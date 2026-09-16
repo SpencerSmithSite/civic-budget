@@ -1,30 +1,41 @@
+using CivicBudget.Application.Security;
 using CivicBudget.Domain.Accounts;
 using CivicBudget.Domain.Budgets;
 using CivicBudget.Domain.Departments;
 using CivicBudget.Domain.FiscalYears;
 using CivicBudget.Domain.Funds;
 using CivicBudget.Domain.Governments;
+using CivicBudget.Infrastructure.Identity;
 using CivicBudget.Infrastructure.Persistence;
-using CivicBudget.Infrastructure.Tenancy;
+using CivicBudget.Infrastructure.Security;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace CivicBudget.Infrastructure.Seed;
 
 /// <summary>
-/// Loads the fictional tenants on first run. Idempotent: if any government exists, it does nothing.
-/// Written as ordinary C# against the domain model (not <c>HasData</c>) so the seed goes through the
-/// same invariants as user input, so a seed that violates a domain rule fails loudly at startup.
+/// Loads roles and the fictional tenants on first run. Roles are ensured every start (cheap, and a
+/// new role must exist before anyone can be assigned to it); tenant data and demo users are loaded
+/// only when no government exists yet. Written as ordinary C# against the domain model (not
+/// <c>HasData</c>) so the seed goes through the same invariants as user input; a seed that violates
+/// a domain rule fails loudly at startup.
 /// </summary>
 public sealed class DevelopmentSeeder(
     IDbContextFactory<CivicBudgetDbContext> dbFactory,
-    AmbientTenantContext tenant,
+    CurrentUserContext tenant,
+    RoleManager<IdentityRole> roleManager,
+    UserManager<ApplicationUser> userManager,
+    IOptions<SeedOptions> seedOptions,
     ILogger<DevelopmentSeeder> logger)
 {
     private const string SeedUserId = "seed";
 
     public async Task SeedAsync(CancellationToken ct = default)
     {
+        await EnsureRolesAsync();
+
         await using CivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
 
         if (await db.Governments.AnyAsync(ct))
@@ -33,19 +44,72 @@ public sealed class DevelopmentSeeder(
             return;
         }
 
-        await SeedMapleRidgeAsync(db, ct);
-        await SeedPineHollowAsync(db, ct);
+        Government mapleRidge = await SeedMapleRidgeAsync(db, ct);
+        Government pineHollow = await SeedPineHollowAsync(db, ct);
+
+        await SeedUsersAsync(mapleRidge, DemoUsers.MapleRidge, ct);
+        await SeedUsersAsync(pineHollow, DemoUsers.PineHollow, ct);
         tenant.Clear();
 
         logger.LogInformation("Seeded Maple Ridge and Pine Hollow demo data.");
     }
 
-    private async Task SeedMapleRidgeAsync(CivicBudgetDbContext db, CancellationToken ct)
+    private async Task EnsureRolesAsync()
+    {
+        foreach (string role in Roles.All)
+        {
+            if (!await roleManager.RoleExistsAsync(role))
+            {
+                await roleManager.CreateAsync(new IdentityRole(role));
+            }
+        }
+    }
+
+    /// <summary>Creates the demo logins for one government. Skipped, with a warning, when no demo password is configured.</summary>
+    private async Task SeedUsersAsync(Government government, IReadOnlyList<DemoUser> users, CancellationToken ct)
+    {
+        string? password = seedOptions.Value.DemoPassword;
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            logger.LogWarning("Seed:DemoPassword is not configured; demo users for {Government} were not created. Run scripts/dev-setup.sh.", government.Name);
+            return;
+        }
+
+        tenant.SetTenant(government.Id);
+        await using CivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
+        Dictionary<string, Guid> departmentsByCode = await db.Departments.ToDictionaryAsync(d => d.Code, d => d.Id, ct);
+
+        foreach (DemoUser demo in users)
+        {
+            var user = new ApplicationUser
+            {
+                UserName = demo.Email,
+                Email = demo.Email,
+                EmailConfirmed = true,
+                DisplayName = demo.DisplayName,
+                GovernmentId = government.Id,
+            };
+            foreach (string code in demo.DepartmentCodes)
+            {
+                user.Departments.Add(new UserDepartment { DepartmentId = departmentsByCode[code] });
+            }
+
+            IdentityResult created = await userManager.CreateAsync(user, password);
+            if (!created.Succeeded)
+            {
+                throw new InvalidOperationException($"Could not create demo user {demo.Email}: {string.Join("; ", created.Errors.Select(e => e.Description))}");
+            }
+
+            await userManager.AddToRoleAsync(user, demo.Role);
+        }
+    }
+
+    private async Task<Government> SeedMapleRidgeAsync(CivicBudgetDbContext db, CancellationToken ct)
     {
         Government government = MapleRidgeSeed.Government();
         db.Governments.Add(government);
         await db.SaveChangesAsync(ct);
-        tenant.Set(government.Id);
+        tenant.SetTenant(government.Id);
 
         var chart = await ChartOfAccounts.CreateAsync(
             db, government, MapleRidgeSeed.Funds(government.Id), MapleRidgeSeed.Departments(government.Id), MapleRidgeSeed.Accounts(government.Id), ct);
@@ -84,14 +148,15 @@ public sealed class DevelopmentSeeder(
         db.FiscalYears.AddRange(chart.FiscalYears);
         db.BudgetVersions.AddRange(fy2025, fy2026, fy2026Amendment, fy2027);
         await db.SaveChangesAsync(ct);
+        return government;
     }
 
-    private async Task SeedPineHollowAsync(CivicBudgetDbContext db, CancellationToken ct)
+    private async Task<Government> SeedPineHollowAsync(CivicBudgetDbContext db, CancellationToken ct)
     {
         Government government = PineHollowSeed.Government();
         db.Governments.Add(government);
         await db.SaveChangesAsync(ct);
-        tenant.Set(government.Id);
+        tenant.SetTenant(government.Id);
 
         var chart = await ChartOfAccounts.CreateAsync(
             db, government, PineHollowSeed.Funds(government.Id), PineHollowSeed.Departments(government.Id), PineHollowSeed.Accounts(government.Id), ct);
@@ -108,6 +173,7 @@ public sealed class DevelopmentSeeder(
         db.FiscalYears.AddRange(chart.FiscalYears);
         db.BudgetVersions.AddRange(fy2026, fy2027);
         await db.SaveChangesAsync(ct);
+        return government;
     }
 
     /// <summary>The saved funds, departments, and accounts for one government, looked up by code.</summary>
