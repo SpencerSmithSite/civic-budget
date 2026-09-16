@@ -1,0 +1,30 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.swp
+TestResults/
+artifacts/
+publish/
+
+# Rider / VS Code
+.idea/
+.vscode/
+!.vscode/launch.json
+
+# Secrets & local config (never commit)
+*.pfx
+*.key
+secrets.json
+appsettings.*.local.json
+.env
+.env.*
+
+# CDK
+infra/**/cdk.out/
+infra/**/cdk.context.json
+
+# macOS
+.DS_Store
