@@ -6,7 +6,7 @@ public sealed class FiscalYear : Entity, ITenantOwned
 {
     public Guid GovernmentId { get; private set; }
 
-    /// <summary>Label year — the calendar year in which the fiscal year ends.</summary>
+    /// <summary>Label year: the calendar year in which the fiscal year ends.</summary>
     public int Year { get; private set; }
 
     public DateOnly StartDate { get; private set; }

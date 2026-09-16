@@ -14,7 +14,7 @@ namespace CivicBudget.Infrastructure.Persistence;
 /// <summary>
 /// The admin-side model. Owns the migrations.
 /// <para>
-/// Always obtained through <c>IDbContextFactory&lt;CivicBudgetDbContext&gt;</c> — in Blazor Server
+/// Always obtained through <c>IDbContextFactory&lt;CivicBudgetDbContext&gt;</c>. In Blazor Server
 /// the DI scope is the circuit (the browser tab), so a scoped DbContext would live for hours and be
 /// shared by concurrent event handlers. One context per unit of work avoids both problems.
 /// </para>
@@ -33,7 +33,7 @@ public sealed class CivicBudgetDbContext(DbContextOptions<CivicBudgetDbContext> 
 
     /// <summary>
     /// Read by the query filters. Must be an instance member so EF Core treats it as a parameter
-    /// evaluated per query — not a constant baked into the compiled model.
+    /// evaluated per query, not a constant baked into the compiled model.
     /// </summary>
     private Guid? CurrentGovernmentId => tenantContext.GovernmentId;
 

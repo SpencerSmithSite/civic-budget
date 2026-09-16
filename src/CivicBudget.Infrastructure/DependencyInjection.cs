@@ -22,7 +22,7 @@ public static class DependencyInjection
 
         // Factory, not AddDbContext: see CivicBudgetDbContext remarks and docs/DECISIONS.md ADR-0003.
         // The factory itself is a singleton, so the tenant context and interceptor are resolved from
-        // the *current scope's* provider via the (sp, options) overload — this is what makes the
+        // the *current scope's* provider via the (sp, options) overload. This is what makes the
         // per-circuit tenant flow into contexts created on that circuit.
         services.AddDbContextFactory<CivicBudgetDbContext>((sp, options) =>
             options

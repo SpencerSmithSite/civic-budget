@@ -14,7 +14,7 @@ namespace CivicBudget.Infrastructure.Seed;
 /// <summary>
 /// Loads the fictional tenants on first run. Idempotent: if any government exists, it does nothing.
 /// Written as ordinary C# against the domain model (not <c>HasData</c>) so the seed goes through the
-/// same invariants as user input — a seed that violates a domain rule fails loudly at startup.
+/// same invariants as user input, so a seed that violates a domain rule fails loudly at startup.
 /// </summary>
 public sealed class DevelopmentSeeder(
     IDbContextFactory<CivicBudgetDbContext> dbFactory,
@@ -50,13 +50,13 @@ public sealed class DevelopmentSeeder(
         var chart = await ChartOfAccounts.CreateAsync(
             db, government, MapleRidgeSeed.Funds(government.Id), MapleRidgeSeed.Departments(government.Id), MapleRidgeSeed.Accounts(government.Id), ct);
 
-        // FY2025 — adopted December 2024.
+        // FY2025: adopted December 2024.
         BudgetVersion fy2025 = chart.BuildVersion(2025, MapleRidgeSeed.Lines, MapleRidgeSeed.BeginningBalances,
             amount: l => l.Budget2025, prior: l => l.Actual2023, current: l => l.Budget2024);
         fy2025.Propose();
         fy2025.Adopt("2024-38", SeedUserId, new DateTimeOffset(2024, 12, 16, 19, 30, 0, TimeSpan.Zero));
 
-        // FY2026 — adopted December 2025, then amended in June 2026.
+        // FY2026: adopted December 2025, then amended in June 2026.
         BudgetVersion fy2026 = chart.BuildVersion(2026, MapleRidgeSeed.Lines, MapleRidgeSeed.BeginningBalances,
             amount: l => l.Budget2026, prior: l => l.Actual2024, current: l => l.Budget2025);
         fy2026.Propose();
@@ -76,7 +76,7 @@ public sealed class DevelopmentSeeder(
         fy2026Amendment.Adopt("2026-11", SeedUserId, new DateTimeOffset(2026, 6, 15, 19, 30, 0, TimeSpan.Zero));
         fy2026.MarkSupersededBy(fy2026Amendment);
 
-        // FY2027 — draft in progress. Street fund is intentionally over its appropriation limit.
+        // FY2027: draft in progress. Street fund is intentionally over its appropriation limit.
         BudgetVersion fy2027 = chart.BuildVersion(2027, MapleRidgeSeed.Lines, MapleRidgeSeed.BeginningBalances,
             amount: l => l.Budget2027, prior: l => l.Actual2025, current: l => l.Budget2026);
 
@@ -96,7 +96,7 @@ public sealed class DevelopmentSeeder(
         var chart = await ChartOfAccounts.CreateAsync(
             db, government, PineHollowSeed.Funds(government.Id), PineHollowSeed.Departments(government.Id), PineHollowSeed.Accounts(government.Id), ct);
 
-        // FY2026 runs July 2025 – June 2026; adopted in March 2025 (townships adopt before the year starts).
+        // FY2026 runs July 2025 through June 2026; adopted in March 2025 (townships adopt before the year starts).
         BudgetVersion fy2026 = chart.BuildVersion(2026, PineHollowSeed.Lines, PineHollowSeed.BeginningBalances,
             amount: l => l.Budget2026, prior: l => l.Actual2024, current: l => l.Budget2025);
         fy2026.Propose();

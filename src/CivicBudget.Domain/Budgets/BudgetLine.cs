@@ -26,7 +26,7 @@ public sealed class BudgetLine : Entity, ITenantOwned
     /// <summary>The amount budgeted (for appropriations: appropriated) in this version.</summary>
     public decimal Amount { get; private set; }
 
-    /// <summary>Prior fiscal year's actual — an entered/imported figure; there is no general ledger.</summary>
+    /// <summary>Prior fiscal year's actual: an entered/imported figure; there is no general ledger.</summary>
     public decimal PriorYearActual { get; private set; }
 
     /// <summary>Current fiscal year's budget, for comparison.</summary>
