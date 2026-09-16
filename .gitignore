@@ -21,6 +21,7 @@ secrets.json
 appsettings.*.local.json
 .env
 .env.*
+!.env.example
 
 # CDK
 infra/**/cdk.out/
