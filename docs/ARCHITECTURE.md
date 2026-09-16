@@ -38,10 +38,11 @@ graph LR
 ```
 
 **Dependency rule:** arrows point inward. `Domain` references nothing but the
-BCL. `Application` references `Domain` and defines interfaces
-(`IBudgetRepository`, `ITenantContext`, `IClock`, `IExcelExporter`, …) that
-`Infrastructure` implements. `Web` is the composition root and the only
-project that knows about all of them.
+BCL. `Application` references `Domain` plus the EF Core abstractions and
+FluentValidation packages, and defines the interfaces (`ICivicBudgetDbContext`,
+`ITenantContext`, `ICurrentUser`, `IUserAdminService`, …) that `Infrastructure`
+implements (ADR-0014). `Web` is the composition root and the only project that
+knows about all of them. `ArchitectureTests` enforces the rule.
 
 **Why this shape (and not more layers):** four projects is enough to keep EF
 Core out of the domain and business rules out of Razor components, which are
@@ -187,8 +188,13 @@ graph TD
   is set (ADR-0013). Entities carry `GovernmentId` from their constructors.
 - `IgnoreQueryFilters()` is banned in application code (an analyzer-style
   test greps for it) except inside the seed/migration tooling.
-- The admin tenant comes from a claim issued at sign-in; the portal tenant
-  comes from the URL slug via a route-value-based `ITenantContext`.
+- The admin tenant comes from the `government_id` claim issued at sign-in.
+  `CurrentUserContext` (scoped) is filled by `CurrentUserMiddleware` for HTTP
+  requests and by `CurrentUserCircuitHandler` for Interactive Server circuits,
+  which have their own DI scope. The portal tenant will come from the URL slug
+  (Phase 5) through the same context.
+- Identity tables are outside the filter (login must find a user before a
+  tenant is known); `UserAdminService` scopes by government explicitly (ADR-0015).
 - Integration tests prove isolation: seed two tenants, query as one, assert
   the other's rows are invisible and cannot be written to.
 
@@ -231,18 +237,21 @@ Why a snapshot rather than "show the adopted version":
 
 ## 7. Identity and authorization
 
-- ASP.NET Core Identity with cookie authentication, EF Core stores in
-  `CivicBudgetDbContext`. Users carry `GovernmentId`; the claims factory adds
-  `government_id`, role, and `department_id` claims at sign-in.
+- ASP.NET Core Identity (`AddIdentityCore`) with cookie authentication, EF
+  Core stores in `CivicBudgetDbContext`. `ApplicationUser` carries
+  `GovernmentId` and `DisplayName`; `UserDepartments` holds Department Head
+  assignments. `ApplicationUserClaimsPrincipalFactory` adds `government_id`,
+  `display_name`, and one `department_id` claim per assignment at sign-in.
+  No self-registration, external logins, passkeys, or 2FA.
 - **Roles:** `Admin`, `FinanceDirector`, `DepartmentHead`, `Viewer`.
 - **Policies** (named constants in `Application`): `CanManageUsers`,
   `CanMaintainSetup`, `CanViewBudget`, `CanEditBeginningBalances`,
   `CanAdvanceWorkflow`, `CanPublish`, `CanImport`, `CanViewAudit`.
-- **Resource-based handler:** `BudgetLineEditRequirement` — the handler
-  receives the line and version, and succeeds if (FD and version not Adopted)
-  or (DH and line.DepartmentId ∈ user's departments and version is Draft).
-  Called from the application service, not only from the UI, so the rule holds
-  for imports too.
+- **Resource-based handler:** `BudgetLineEditHandler` receives a
+  `BudgetLineResource(versionStatus, departmentId)` and delegates to the pure
+  rule `BudgetLinePermissions.CanEdit`: FD while not Adopted; DH only in
+  their departments and only while Draft. Services call the same rule, so it
+  holds for imports too.
 - Tests build `ClaimsPrincipal`s directly and evaluate policies through
   `IAuthorizationService` — no browser needed.
 

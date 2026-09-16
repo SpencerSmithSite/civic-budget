@@ -221,3 +221,101 @@ table that justifies each one.
   (banned here), and don't affect `Add`/`Update` (hence the interceptor).
 - **Testcontainers on Apple Silicon:** the SQL Server image is amd64 and
   runs under Rosetta; works, ~15 s to healthy.
+
+---
+
+## Phase 2 — Identity, authorization, admin maintenance
+
+### Q: Walk me through what happens when a Finance Director logs in and opens the Funds page.
+**A:** The login page is a static form post. `SignInManager` checks the
+password, the claims factory builds the principal (id, name, role, plus our
+`government_id`, `display_name`, and `department_id` claims), and Identity
+writes the cookie. Opening `/admin/funds` is a normal HTTP request first:
+`UseAuthentication` reads the cookie, `[Authorize(Policy = CanMaintainSetup)]`
+passes, and the page is pre-rendered. Then the browser opens the SignalR
+circuit, which gets its own DI scope; `CurrentUserCircuitHandler` copies the
+authentication state into that scope's `CurrentUserContext`, so the
+`FundService` the grid calls creates a DbContext whose tenant filter is the
+FD's government.
+**Look at:** `Web/Security/CurrentUserCircuitHandler.cs`,
+`Infrastructure/Identity/ApplicationUserClaimsPrincipalFactory.cs`.
+
+### Q: Role-based vs policy-based vs resource-based authorization. Which do you use and why?
+**A:** All three, in layers. Roles are the data (a user has one). Policies
+are the vocabulary pages use (`CanPublish`), mapped to roles in one file so
+the mapping is testable and changeable. Resource-based handles the one rule
+roles can't express: a Department Head may edit a line only if it is in
+their department and the version is still Draft. That rule is a pure
+function shared by the handler, the services, and the tests.
+**Look at:** `Web/Security/AuthorizationPolicies.cs`,
+`Application/Security/BudgetLinePermissions.cs`.
+**Tests:** `AuthorizationPolicyTests` (every policy × every role),
+`BudgetLinePermissionsTests`.
+
+### Q: How do you test authorization without a browser?
+**A:** Build a `ServiceCollection` with `AddAuthorizationBuilder().AddCivicBudgetPolicies()`
+and the handler, resolve the real `IAuthorizationService`, and call
+`AuthorizeAsync` with hand-built `ClaimsPrincipal`s. It exercises the same
+code the `[Authorize]` attribute uses.
+**Look at:** `tests/CivicBudget.Web.Tests/Security/AuthorizationPolicyTests.cs`.
+
+### Q: Why is the users table not covered by the tenant query filter?
+**A:** Login has to find the user before a tenant is known. So
+`ApplicationUser` carries `GovernmentId` but is not `ITenantOwned`, and
+`UserAdminService` scopes every query explicitly. It is the one documented
+exception (ADR-0015) and it has tests proving one tenant's admin cannot read,
+edit, or lock another tenant's user, nor assign one of its departments.
+**Look at:** `Infrastructure/Identity/UserAdminService.cs`,
+`UserAdminServiceTests`.
+
+### Q: Your Application project references EF Core. Isn't that a layering violation?
+**A:** It references the EF Core abstractions package for the LINQ surface
+(`DbSet`, `Include`, `ToListAsync`) through an `ICivicBudgetDbContext`
+interface; it does not reference the SQL Server provider, Identity, or
+ASP.NET Core, and the Domain references nothing. That is the trade-off in
+ADR-0014: expressive queries and no hand-written repositories, at the cost
+of Application knowing EF Core's query shape. The architecture test pins
+exactly which assemblies each layer may reference.
+**Look at:** `Application/Persistence/ICivicBudgetDbContext.cs`,
+`ArchitectureTests`.
+
+### Q: How do validation errors get from FluentValidation to the screen?
+**A:** Services return a `Result` with `(PropertyName, Message)` errors. The
+component calls `editContext.ApplyErrors(store, result)`, which adds them to
+Blazor's `ValidationMessageStore` so `<ValidationMessage For>` shows each one
+under its field. The component doesn't know FluentValidation exists; the
+validator doesn't know Blazor exists.
+**Look at:** `Application/Common/Result.cs`,
+`Web/Components/Common/EditContextResultExtensions.cs`, `FundEdit.razor`.
+
+### Q: Why are the login pages static SSR while the admin pages are Interactive Server?
+**A:** A sign-in must set a cookie on an HTTP response; a circuit has no
+response to set it on. So Account pages are plain form posts marked
+`[ExcludeFromInteractiveRouting]`, and `RedirectToLogin` uses a full-page
+navigation. Admin pages need live grids and validation, so they run on a
+circuit.
+**Look at:** `Components/Account/Pages/_Imports.razor`, `Login.razor`,
+`Account/Shared/RedirectToLogin.razor`.
+
+### Q: What happens to an open session when an admin locks a user?
+**A:** `UserAdminService` rotates the user's security stamp. The
+`IdentityRevalidatingAuthenticationStateProvider` re-checks the stamp every
+30 minutes on each circuit, so the session ends without waiting for the
+cookie to expire. A shorter interval is a one-line change.
+
+### Q: What did you leave out of Identity and why?
+**A:** Self-registration (accounts are provisioned by an admin), external
+logins, passkeys, and two-factor. Each adds pages and attack surface
+without serving the scenario; a real deployment would more likely federate
+to the county's identity provider than turn them on.
+
+### General information worth having ready
+- `AddIdentityCore` vs `AddIdentity`: Core registers users/roles/managers
+  without the cookie and UI defaults; the app adds cookies explicitly and
+  owns its pages.
+- The cookie carries the claims. Changing a role takes effect at the next
+  sign-in or security-stamp revalidation, not instantly.
+- `[Authorize]` on a Razor component is enforced by `AuthorizeRouteView`
+  during routing; for static SSR it is enforced by the endpoint metadata.
+- Bootstrap is served from `wwwroot/lib` (no CDN) so the admin app has no
+  external runtime dependency and works on an air-gapped network.

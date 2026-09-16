@@ -227,12 +227,18 @@ Every NuGet package and why. Add a row when adding a package.
 | Microsoft.EntityFrameworkCore.SqlServer | Infrastructure | Provider for SQL Server | 0009 |
 | Microsoft.EntityFrameworkCore.Design | Infrastructure (PrivateAssets) | `dotnet ef` tooling; kept in Infrastructure so no startup project is needed | — |
 | Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore | Web | `/health/ready` checks SQL connectivity through the DbContext | — |
+| Microsoft.EntityFrameworkCore (abstractions) | Application | LINQ surface for `ICivicBudgetDbContext`; no provider | 0014 |
+| FluentValidation | Application | Request validation as testable classes | 0007 |
+| Microsoft.AspNetCore.Identity.EntityFrameworkCore | Infrastructure | Identity stores in the same DbContext | 0015 |
+| Microsoft.AspNetCore.Components.QuickGrid | Web | Admin grids | 0011 |
 | xunit, xunit.runner.visualstudio, Microsoft.NET.Test.Sdk, coverlet.collector | tests | Test framework + coverage (template defaults) | spec |
 | bunit | Web.Tests | Blazor component tests | spec |
 | Testcontainers.MsSql | IntegrationTests | Real SQL Server 2022 in tests | spec |
 | dotnet-ef (local tool, `.config/dotnet-tools.json`) | — | Migrations CLI pinned per repo | — |
 
-Planned for later phases (row confirmed when added): Microsoft.AspNetCore.Identity.EntityFrameworkCore (Phase 2), Microsoft.AspNetCore.Components.QuickGrid (Phase 2, ADR-0011), FluentValidation (Phase 3, ADR-0007), ClosedXML (Phase 6), Amazon.CDK.Lib + Amazon.CDK.Assertions (Phase 7, ADR-0008).
+Planned for later phases (row confirmed when added): ClosedXML (Phase 6), Amazon.CDK.Lib + Amazon.CDK.Assertions (Phase 7, ADR-0008).
+
+Not a package: Bootstrap 5.3 CSS/JS is vendored under `src/CivicBudget.Web/wwwroot/lib/bootstrap` (ADR-0016).
 
 ---
 
@@ -266,3 +272,57 @@ interceptor throws `TenantIsolationException` on mismatch or missing tenant.
 
 **Consequences.** Slightly more explicit constructors; the domain can enforce cross-entity
 tenant checks (e.g. `BudgetVersion.AddLine` rejects a fund from another government).
+
+---
+
+## ADR-0014 — Application depends on EF Core abstractions through `ICivicBudgetDbContext`
+**Date:** 2026-09-16 · **Status:** Accepted
+
+**Context.** Application services need to query and save. Options: hand-written repositories
+per entity, or an interface over the DbContext.
+
+**Decision.** Application defines `ICivicBudgetDbContext` (domain `DbSet`s + `SaveChangesAsync`)
+and `ICivicBudgetDbContextFactory`, and references the `Microsoft.EntityFrameworkCore` package
+for the LINQ surface. It does not reference the SQL Server provider, Identity, ASP.NET Core, or
+Infrastructure. Domain still references nothing. `ArchitectureTests` enforces all of this.
+
+**Alternatives.** Repositories: more code that mostly re-implements `DbSet`, and awkward for
+projections. Specification pattern: heavier than the project needs.
+
+**Consequences.** Queries stay expressive; tests substitute the factory. Application is coupled
+to EF Core's query shape, which is acceptable for a project whose persistence story is EF Core.
+
+---
+
+## ADR-0015 — Identity tables sit outside the tenant query filter
+**Date:** 2026-09-16 · **Status:** Accepted
+
+**Context.** Sign-in must locate a user by email before any tenant is known.
+
+**Decision.** `ApplicationUser` carries `GovernmentId` but is not `ITenantOwned`.
+`UserAdminService` scopes every query by the current government explicitly, validates
+department assignments against the filtered `Departments` set, and is covered by tests that
+try to cross tenants.
+
+**Alternatives.** A separate Identity database or context (more moving parts); resolving the
+tenant from the email domain before login (fragile).
+
+**Consequences.** One documented exception to "everything is filtered". The Identity tables
+also hold no budget data, so the blast radius of a mistake is user metadata, not finances.
+
+---
+
+## ADR-0016 — Bootstrap 5 vendored as static files
+**Date:** 2026-09-16 · **Status:** Accepted
+
+**Context.** The admin app needs a usable layout and form styling quickly; no DevExpress.
+
+**Decision.** Copy Bootstrap 5.3 CSS and bundle JS from the Blazor template into `wwwroot/lib`.
+No CDN, no npm, no NuGet.
+
+**Alternatives.** CDN (external runtime dependency; some government networks block it);
+hand-written CSS (slower to a decent result; still an option for the public portal, which has
+different needs).
+
+**Consequences.** ~300 KB in the repo; versions are updated by hand. The public portal in
+Phase 5 may use its own minimal CSS to stay fast on phones.

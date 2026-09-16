@@ -27,13 +27,16 @@ docs are updated, and Spencer has approved.
 - [ ] Spencer approves Phase 1
 
 ## Phase 2 — Identity & maintenance  `phase-2-identity`
-- [ ] ASP.NET Core Identity, cookie auth, claims factory (`government_id`, `department_id`) — scaffold Account pages from a throwaway `-au Individual` template and move `ApplicationUser`/stores into Infrastructure
-- [ ] Replace `AmbientTenantContext` wiring: set tenant from the signed-in user's claim per circuit
-- [ ] Roles + policies + resource-based `BudgetLineEditRequirement`
-- [ ] Authorization tests via `IAuthorizationService`
-- [ ] CRUD pages: funds, departments, accounts, fiscal years, users (QuickGrid)
-- [ ] Friendly error pages, `/health`, JSON logging
-- [ ] Walkthrough: policy vs. role vs. resource-based authorization
+- [x] ASP.NET Core Identity (`AddIdentityCore` + cookies), `ApplicationUser` with `GovernmentId` and `DisplayName`, `UserDepartments`; Account pages ported from the `-au Individual` template (login, logout, profile, change password only)
+- [x] Claims factory adds `government_id`, `display_name`, `department_id`; `CurrentUserContext` filled by `CurrentUserMiddleware` (HTTP) and `CurrentUserCircuitHandler` (circuits)
+- [x] Roles + policies (`AuthorizationPolicies`) + resource-based `BudgetLineEditHandler` over `BudgetLinePermissions`
+- [x] Authorization tests via `IAuthorizationService` (every policy × every role, resource-based cases)
+- [x] `Result` type, FluentValidation validators, `ICivicBudgetDbContext` (ADR-0014), setup services (funds, departments, accounts, fiscal years, government settings), `IUserAdminService`
+- [x] Admin area with Bootstrap + QuickGrid: overview, funds, departments, chart of accounts, fiscal years, users, government settings
+- [x] Demo users seeded (one per role; password in user-secrets via `scripts/dev-setup.sh`)
+- [x] Tests: 23 application, 38 web (policies + bUnit), 27 integration (user admin, setup services, seed)
+- [x] Walkthrough 02; interview prep Phase 2; ADR-0014/0015/0016
+- [ ] Spencer approves Phase 2
 
 ## Phase 3 — Budget entry  `phase-3-budget-entry`
 - [ ] By-department entry (grouped, subtotals)

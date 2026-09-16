@@ -6,7 +6,7 @@ Blazor, EF Core, and SQL Server, with a deploy-ready AWS CDK stack.
 
 [![ci](https://github.com/SpencerSmithSite/civic-budget/actions/workflows/ci.yml/badge.svg)](https://github.com/SpencerSmithSite/civic-budget/actions/workflows/ci.yml)
 
-> **Status:** Phase 1 (foundation) complete — domain model, EF Core + SQL Server, tenancy, seed data, CI. See [ROADMAP.md](ROADMAP.md).
+> **Status:** Phase 2 complete: identity, roles and policies, and the admin maintenance screens. See [ROADMAP.md](ROADMAP.md).
 
 **Two audiences, one solution**
 - **Admin app** — finance staff and department heads build the annual budget:
@@ -29,10 +29,22 @@ docker compose up -d                        # SQL Server 2022, healthy in ~15–
 dotnet run --project src/CivicBudget.Web    # migrates + seeds, then serves on https://localhost:5001
 ```
 
-Then open `/health/ready` to confirm the database is reachable. Demo logins arrive in Phase 2.
+Then open `https://localhost:5001` and log in. `scripts/dev-setup.sh` prints the demo password once and
+keeps it in user-secrets (`dotnet user-secrets list --project src/CivicBudget.Web`).
+
+| Login | Role | Sees |
+|---|---|---|
+| `admin@mapleridge.example` | Administrator | Users, government settings, setup |
+| `finance@mapleridge.example` | Finance Director | Setup; budget entry and workflow (Phase 3+) |
+| `police@mapleridge.example` | Department Head (Police) | Own department's lines (Phase 3) |
+| `streets@mapleridge.example` | Department Head (Streets, Parks) | Own departments' lines (Phase 3) |
+| `viewer@mapleridge.example` | Viewer | Read-only overview |
+| `admin@pinehollow.example` | Administrator (second tenant) | Pine Hollow only; proves isolation |
+
+To start over with fresh seed data: `docker compose down -v && docker compose up -d`.
 
 ```bash
-dotnet test                                 # all 179 tests; integration tests start their own SQL Server container
+dotnet test                                 # all 248 tests; integration tests start their own SQL Server container
 ```
 
 Documentation: [Spec](docs/SPEC.md) · [Architecture](docs/ARCHITECTURE.md) ·
