@@ -14,19 +14,21 @@ docs are updated, and Spencer has approved.
 - [x] Spencer approves Phase 0 (2026-09-16)
 
 ## Phase 1 — Foundation  `phase-1-foundation`
-- [ ] Verify Docker Desktop Rosetta; `docker-compose.yml` with SQL Server 2022
-- [ ] Solution + 4 src projects + 4 test projects, `Directory.Build.props` (nullable, warnings-as-errors, file-scoped namespaces, .NET 10)
-- [ ] Domain entities, enums, invariants, `DomainException`
-- [ ] `FundBalanceCalculator`, percent-change rounding
-- [ ] `ITenantOwned`, `ITenantContext`, global query filters, tenant stamp interceptor
-- [ ] `CivicBudgetDbContext`, configurations, `decimal(18,2)` convention, initial migration
-- [ ] Seed: Maple Ridge (FY2025 adopted, FY2026 original + Amendment 1, FY2027 draft) and Pine Hollow Township
-- [ ] `ci.yml`: restore, build, test, test-results summary
-- [ ] Domain unit tests for every rule in SPEC §5; integration test for tenancy filter
-- [ ] `docs/walkthroughs/01-foundation.md` (query filters, DbContextFactory, decimal convention)
+- [x] Verify Docker Desktop Rosetta; `docker-compose.yml` with SQL Server 2022 (healthy in ~15 s)
+- [x] Solution + 4 src projects + 4 test projects, `Directory.Build.props` (nullable, warnings-as-errors, analyzers), `Directory.Packages.props` (central package management), `global.json`, `.editorconfig`
+- [x] Domain entities, enums, invariants, `DomainException`, `Guard`, `Money`
+- [x] `FundBalanceCalculator`, `AppropriationLimitCheck`, percent-change rounding
+- [x] `ITenantOwned`, `ITenantContext`, global query filters, `TenantSaveChangesInterceptor`
+- [x] `CivicBudgetDbContext`, configurations, `decimal(18,2)` convention, `InitialCreate` migration, design-time factory
+- [x] Seed: Maple Ridge (FY2025 adopted, FY2026 original + Amendment 1, FY2027 draft) and Pine Hollow Township
+- [x] `ci.yml`: restore, build, format check, test (Testcontainers), test-results summary; PR template; Dependabot
+- [x] Domain unit tests for every rule in SPEC §5 (160); architecture tests (4); bUnit smoke (1); integration tests for migrations, tenancy, seed (14)
+- [x] `docs/walkthroughs/01-foundation.md`; `docs/INTERVIEW-PREP.md` Phase 1 section
+- [ ] Spencer approves Phase 1
 
 ## Phase 2 — Identity & maintenance  `phase-2-identity`
-- [ ] ASP.NET Core Identity, cookie auth, claims factory (`government_id`, `department_id`)
+- [ ] ASP.NET Core Identity, cookie auth, claims factory (`government_id`, `department_id`) — scaffold Account pages from a throwaway `-au Individual` template and move `ApplicationUser`/stores into Infrastructure
+- [ ] Replace `AmbientTenantContext` wiring: set tenant from the signed-in user's claim per circuit
 - [ ] Roles + policies + resource-based `BudgetLineEditRequirement`
 - [ ] Authorization tests via `IAuthorizationService`
 - [ ] CRUD pages: funds, departments, accounts, fiscal years, users (QuickGrid)

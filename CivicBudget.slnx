@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CivicBudget.Application/CivicBudget.Application.csproj" />
+    <Project Path="src/CivicBudget.Domain/CivicBudget.Domain.csproj" />
+    <Project Path="src/CivicBudget.Infrastructure/CivicBudget.Infrastructure.csproj" />
+    <Project Path="src/CivicBudget.Web/CivicBudget.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CivicBudget.Application.Tests/CivicBudget.Application.Tests.csproj" />
+    <Project Path="tests/CivicBudget.Domain.Tests/CivicBudget.Domain.Tests.csproj" />
+    <Project Path="tests/CivicBudget.IntegrationTests/CivicBudget.IntegrationTests.csproj" />
+    <Project Path="tests/CivicBudget.Web.Tests/CivicBudget.Web.Tests.csproj" />
+  </Folder>
+</Solution>

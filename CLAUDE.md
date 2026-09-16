@@ -31,6 +31,12 @@ EF Core + SQL Server 2022 in Docker · ASP.NET Core Identity · QuickGrid ·
 FluentValidation · ClosedXML · xUnit / bUnit / Testcontainers · GitHub
 Actions · AWS CDK (C#) deploy-ready (no account — see ADR-0008).
 
+## Gotchas learned
+- NuGet/`dotnet` network calls hang if Little Snitch blocks `dotnet`; `curl` still works. Allow `dotnet` outbound.
+- `dotnet run --no-build` after adding a migration runs stale code ("No migrations were found"). Build first.
+- Generated migrations live under `Persistence/Migrations/` and are exempt from analyzers via `.editorconfig`.
+- Unsandboxed shell is needed for `dotnet restore`, Docker, and Testcontainers.
+
 ## Code conventions
 - `Directory.Build.props`: `<Nullable>enable</Nullable>`,
   `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`,
@@ -62,8 +68,9 @@ dotnet build                                           # warnings are errors
 dotnet test                                            # all tests (integration tests need Docker running)
 dotnet test tests/CivicBudget.Domain.Tests             # fast domain tests only
 dotnet run --project src/CivicBudget.Web               # migrates + seeds in Development
-dotnet ef migrations add <Name> -p src/CivicBudget.Infrastructure -s src/CivicBudget.Web
-dotnet user-secrets set "Seed:DemoPassword" "<pw>" --project src/CivicBudget.Web
+dotnet ef migrations add <Name> -p src/CivicBudget.Infrastructure -o Persistence/Migrations   # design-time factory; no startup project
+./scripts/dev-setup.sh                                 # once: .env + user-secrets connection string
+dotnet format                                          # CI runs --verify-no-changes
 ```
 
 ## Git
