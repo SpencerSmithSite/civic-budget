@@ -225,15 +225,44 @@ Every NuGet package and why. Add a row when adding a package.
 | Package | Project | Why | ADR |
 |---|---|---|---|
 | Microsoft.EntityFrameworkCore.SqlServer | Infrastructure | Provider for SQL Server | 0009 |
-| Microsoft.EntityFrameworkCore.Design | Web (dev) | `dotnet ef` tooling | — |
-| Microsoft.AspNetCore.Identity.EntityFrameworkCore | Infrastructure | Identity stores | — |
-| Microsoft.AspNetCore.Components.QuickGrid | Web | Admin grids | 0011 |
-| FluentValidation | Application | Input validation | 0007 |
-| ClosedXML | Infrastructure | XLSX read/write without Office | spec |
-| xunit, xunit.runner.visualstudio, Microsoft.NET.Test.Sdk | tests | Test framework | spec |
-| bunit | Web.Tests | Component tests | spec |
-| Testcontainers.MsSql | IntegrationTests | Real SQL Server in tests | spec |
-| Amazon.CDK.Lib, Amazon.CDK.Assertions | Infra | Infrastructure as code + tests | 0008 |
+| Microsoft.EntityFrameworkCore.Design | Infrastructure (PrivateAssets) | `dotnet ef` tooling; kept in Infrastructure so no startup project is needed | — |
+| Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore | Web | `/health/ready` checks SQL connectivity through the DbContext | — |
+| xunit, xunit.runner.visualstudio, Microsoft.NET.Test.Sdk, coverlet.collector | tests | Test framework + coverage (template defaults) | spec |
+| bunit | Web.Tests | Blazor component tests | spec |
+| Testcontainers.MsSql | IntegrationTests | Real SQL Server 2022 in tests | spec |
+| dotnet-ef (local tool, `.config/dotnet-tools.json`) | — | Migrations CLI pinned per repo | — |
 
-(Rows are added as each phase introduces the package; this table is the
-plan, and the phase that adds a package confirms the row.)
+Planned for later phases (row confirmed when added): Microsoft.AspNetCore.Identity.EntityFrameworkCore (Phase 2), Microsoft.AspNetCore.Components.QuickGrid (Phase 2, ADR-0011), FluentValidation (Phase 3, ADR-0007), ClosedXML (Phase 6), Amazon.CDK.Lib + Amazon.CDK.Assertions (Phase 7, ADR-0008).
+
+---
+
+## ADR-0012 — Central Package Management and analyzers as errors
+**Date:** 2026-09-16 · **Status:** Accepted
+
+**Context.** Eight projects; versions drift and analyzer warnings get ignored.
+
+**Decision.** `Directory.Packages.props` holds every package version once.
+`Directory.Build.props` sets `TreatWarningsAsErrors`, `AnalysisLevel=latest-recommended`,
+and `EnforceCodeStyleInBuild`; `.editorconfig` turns off the handful of rules that add
+ceremony without value here (documented inline). EF migrations are marked generated code.
+CI runs `dotnet format --verify-no-changes`.
+
+**Consequences.** New packages must be added in two places (props + csproj) — intentional
+friction that pairs with the Packages table above. Generated migrations are exempt.
+
+---
+
+## ADR-0013 — Tenant interceptor verifies rather than stamps
+**Date:** 2026-09-16 · **Status:** Accepted
+
+**Context.** Two options for the write side of tenancy: stamp `GovernmentId` on new rows from
+the ambient tenant, or require entities to carry it and verify on save.
+
+**Decision.** Verify. Every tenant-owned entity takes `governmentId` in its constructor; the
+interceptor throws `TenantIsolationException` on mismatch or missing tenant.
+
+**Alternatives.** Stamping is convenient but hides the tenant from the domain and lets
+`new Fund(...)` be valid with no owner.
+
+**Consequences.** Slightly more explicit constructors; the domain can enforce cross-entity
+tenant checks (e.g. `BudgetVersion.AddLine` rejects a fund from another government).

@@ -174,7 +174,7 @@ graph TD
   C --> D[CivicBudgetDbContext.OnModelCreating]
   D -->|HasQueryFilter e => e.GovernmentId == tenantContext.GovernmentId| E[Every tenant-owned entity]
   C --> F[TenantStampInterceptor]
-  F -->|sets GovernmentId on Added entities| G[SaveChanges]
+  F -->|verifies GovernmentId on every write| G[SaveChanges]
 ```
 
 - Every tenant-owned entity implements `ITenantOwned { Guid GovernmentId }`.
@@ -182,8 +182,9 @@ graph TD
   adds a global query filter that reads `ITenantContext.GovernmentId` at
   query time (the filter captures the context instance, not a value, so one
   model serves all tenants).
-- A `SaveChanges` interceptor stamps `GovernmentId` on new entities and
-  rejects entities whose `GovernmentId` doesn't match the current tenant.
+- A `SaveChanges` interceptor rejects any added/modified/deleted entity whose
+  `GovernmentId` doesn't match the current tenant, or any write when no tenant
+  is set (ADR-0013). Entities carry `GovernmentId` from their constructors.
 - `IgnoreQueryFilters()` is banned in application code (an analyzer-style
   test greps for it) except inside the seed/migration tooling.
 - The admin tenant comes from a claim issued at sign-in; the portal tenant
@@ -342,6 +343,7 @@ graph TB
 ## 13. Local development
 
 ```
+./scripts/dev-setup.sh        # once: generates .env + stores the connection string in user-secrets
 docker compose up -d          # SQL Server 2022 (amd64 under Rosetta on Apple Silicon)
 dotnet run --project src/CivicBudget.Web   # applies migrations + seeds on first run in Development
 ```

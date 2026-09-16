@@ -134,3 +134,90 @@ fund so the validation demo has something to show.
   one so the original stays immutable.
 - **Why "snapshot" rather than "publish flag":** the budget that was
   public on a date is a record, not a view.
+
+---
+
+## Phase 1 — Foundation
+
+### Q: Show me the domain model. Where are the rules?
+**A:** `BudgetVersion` is the aggregate root: all changes to lines and
+beginning balances go through it and every mutating method calls
+`EnsureEditable()`, so "adopted is immutable" exists once. Value rules
+(slug format, category-matches-type, expenditure-needs-department) live in
+the entity constructors via a tiny `Guard` helper. Calculations that span
+entities (`FundBalanceCalculator`, `AppropriationLimitCheck`) are pure
+static functions on plain inputs so they're testable without EF.
+**Look at:** `src/CivicBudget.Domain/Budgets/BudgetVersion.cs`,
+`Common/Guard.cs`, `Budgets/FundBalanceCalculator.cs`.
+**Tests:** `tests/CivicBudget.Domain.Tests/Budgets/*` — 160 tests, ~30 ms.
+
+### Q: How does the tenant filter actually work under the hood?
+**A:** `OnModelCreating` reflects over every entity implementing
+`ITenantOwned` and adds `HasQueryFilter(e => e.GovernmentId == CurrentGovernmentId)`.
+`CurrentGovernmentId` is an instance property on the context, so EF Core
+compiles it as a SQL parameter evaluated per query rather than a constant
+in the cached model. `Guid == Guid?` with a null tenant is false for every
+row, so no tenant → no rows. Writes are checked separately by a
+`SaveChangesInterceptor` because query filters don't apply to `Add`.
+**Look at:** `CivicBudgetDbContext.ApplyTenantQueryFilter`,
+`TenantSaveChangesInterceptor.Verify`.
+**Tests:** `TenantIsolationTests` (6 tests, real SQL Server).
+
+### Q: Why is the DbContext factory registered as Scoped?
+**A:** The default factory lifetime is singleton, which can't resolve
+scoped services. Scoped lets the `(serviceProvider, options)` overload pull
+the current scope's tenant-aware interceptor into each context it creates.
+That's how the signed-in user's tenant (per circuit) reaches the context
+(per unit of work).
+**Look at:** `src/CivicBudget.Infrastructure/DependencyInjection.cs`.
+
+### Q: What happens if someone changes an entity and forgets a migration?
+**A:** `MigrationTests.Model_snapshot_matches_the_current_model` calls
+`HasPendingModelChanges()` against the migrated database and fails CI.
+**Look at:** `tests/CivicBudget.IntegrationTests/MigrationTests.cs`.
+
+### Q: How do you know every money column is `decimal(18,2)`?
+**A:** A convention in `ConfigureConventions` sets it for every `decimal`
+property, and an integration test queries `INFORMATION_SCHEMA.COLUMNS` for
+any `decimal`/`float`/`money` column that isn't (18,2).
+**Look at:** `CivicBudgetDbContext.ConfigureConventions`,
+`MigrationTests.Every_decimal_column_is_decimal_18_2`.
+
+### Q: Why Guid v7 ids?
+**A:** Globally unique like any GUID (safe to generate client-side, safe
+across tenants and future sharding) but time-ordered, so SQL Server's
+clustered primary key doesn't fragment the way random GUIDs cause.
+`Guid.CreateVersion7()` is built into .NET 9+.
+**Look at:** `src/CivicBudget.Domain/Common/Entity.cs`.
+
+### Q: Why Testcontainers instead of an in-memory provider or SQLite?
+**A:** The things worth integration-testing — query filters, interceptors,
+unique indexes with NULLs, `decimal(18,2)`, migrations — are exactly the
+things in-memory providers don't emulate. Testcontainers runs the same
+SQL Server 2022 image as local dev and CI; the suite takes ~2 s after
+container start.
+**Look at:** `tests/CivicBudget.IntegrationTests/SqlServerFixture.cs`.
+
+### Q: How does the seed avoid being a pile of magic numbers?
+**A:** Each line is declared once by its FY2025 budget; other years derive
+from it with a deterministic hash-based variation (94–101% actuals, 3%
+growth), and a couple of explicit FY2027 overrides create the story (a new
+cruiser, a resurfacing program that over-appropriates the Street fund).
+It runs through the domain API, so the seed obeys every rule.
+**Look at:** `src/CivicBudget.Infrastructure/Seed/SeedLine.cs`,
+`MapleRidgeSeed.cs`, `DevelopmentSeeder.cs`.
+
+### Q: Central Package Management — why?
+**A:** One `Directory.Packages.props` holds every version; project files
+list packages without versions. No version drift between projects, one
+place for Dependabot to update, and it pairs with the DECISIONS "Packages"
+table that justifies each one.
+
+### General information worth having ready
+- **Banker's rounding vs. away-from-zero:** .NET's `Math.Round` default is
+  `ToEven` (0.125 → 0.12); Excel and finance expect 0.13. We're explicit.
+- **`HasQueryFilter` limits:** filters are per entity type, apply to
+  navigations/Include as well, can be bypassed with `IgnoreQueryFilters()`
+  (banned here), and don't affect `Add`/`Update` (hence the interceptor).
+- **Testcontainers on Apple Silicon:** the SQL Server image is amd64 and
+  runs under Rosetta; works, ~15 s to healthy.
