@@ -1,10 +1,11 @@
 using CivicBudget.Domain.Budgets;
 using CivicBudget.Domain.Governments;
+using CivicBudget.Infrastructure.Identity;
 using CivicBudget.Infrastructure.Persistence;
 using CivicBudget.Infrastructure.Seed;
-using CivicBudget.Infrastructure.Tenancy;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CivicBudget.IntegrationTests;
 
@@ -28,9 +29,8 @@ public class SeedTests(SqlServerFixture fixture) : IAsyncLifetime
 
     private async Task RunSeederAsync()
     {
-        var tenant = new AmbientTenantContext();
-        var seeder = new DevelopmentSeeder(new FactoryAdapter(_database, tenant), tenant, NullLogger<DevelopmentSeeder>.Instance);
-        await seeder.SeedAsync();
+        await using AsyncServiceScope scope = _database.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<DevelopmentSeeder>().SeedAsync();
     }
 
     [Fact]
@@ -102,9 +102,27 @@ public class SeedTests(SqlServerFixture fixture) : IAsyncLifetime
         Assert.False(await db.Departments.AnyAsync(d => d.Code == "TR"));
     }
 
-    /// <summary>Lets the seeder's IDbContextFactory dependency resolve to the test database.</summary>
-    private sealed class FactoryAdapter(TestDatabase database, AmbientTenantContext tenant) : IDbContextFactory<CivicBudgetDbContext>
+    [Fact]
+    public async Task Seeds_roles_and_one_demo_user_per_role_with_department_claims_for_heads()
     {
-        public CivicBudgetDbContext CreateDbContext() => database.CreateContext(tenant);
+        await using AsyncServiceScope scope = _database.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+        foreach (string role in CivicBudget.Application.Security.Roles.All)
+        {
+            Assert.True(await roleManager.RoleExistsAsync(role), $"Role {role} was not seeded.");
+        }
+
+        ApplicationUser streets = (await userManager.FindByEmailAsync("streets@mapleridge.example"))!;
+        Assert.Equal(_mapleRidge, streets.GovernmentId);
+        Assert.Contains(CivicBudget.Application.Security.Roles.DepartmentHead, await userManager.GetRolesAsync(streets));
+        Assert.True(await userManager.CheckPasswordAsync(streets, TestDatabase.DemoPassword));
+
+        // The claims factory turns department assignments into department_id claims used for authorization.
+        var claimsFactory = scope.ServiceProvider.GetRequiredService<IUserClaimsPrincipalFactory<ApplicationUser>>();
+        System.Security.Claims.ClaimsPrincipal principal = await claimsFactory.CreateAsync(streets);
+        Assert.Equal(_mapleRidge.ToString(), principal.FindFirst(CivicBudget.Application.Security.ClaimNames.GovernmentId)?.Value);
+        Assert.Equal(2, principal.FindAll(CivicBudget.Application.Security.ClaimNames.DepartmentId).Count()); // ST and PR
     }
 }

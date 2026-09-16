@@ -25,28 +25,36 @@ public class ArchitectureTests
     }
 
     [Fact]
-    public void Application_references_domain_but_no_infrastructure_or_framework()
+    public void Application_references_domain_ef_core_abstractions_and_validation_only()
     {
+        // ADR-0014: Application may use EF Core's LINQ surface (DbSet, Include, ToListAsync) but not a
+        // provider, Identity, ASP.NET Core, or Infrastructure.
         IEnumerable<string> references = Application.GetReferencedAssemblies().Select(a => a.Name!);
 
         Assert.All(references, name => Assert.True(
-            name.StartsWith("System", StringComparison.Ordinal) || name == "netstandard" || name == Domain.GetName().Name,
+            name.StartsWith("System", StringComparison.Ordinal)
+            || name == "netstandard"
+            || name == Domain.GetName().Name
+            || name == "Microsoft.EntityFrameworkCore"
+            || name.StartsWith("Microsoft.Extensions.", StringComparison.Ordinal)
+            || name == "FluentValidation",
             $"Application must not reference {name}."));
     }
 
     [Fact]
-    public void Only_infrastructure_references_entity_framework()
+    public void Only_infrastructure_references_the_sql_server_provider_and_identity()
     {
-        Assert.Contains(Infrastructure.GetReferencedAssemblies(), a => a.Name!.StartsWith("Microsoft.EntityFrameworkCore", StringComparison.Ordinal));
+        Assert.Contains(Infrastructure.GetReferencedAssemblies(), a => a.Name == "Microsoft.EntityFrameworkCore.SqlServer");
         Assert.DoesNotContain(Domain.GetReferencedAssemblies(), a => a.Name!.StartsWith("Microsoft.EntityFrameworkCore", StringComparison.Ordinal));
-        Assert.DoesNotContain(Application.GetReferencedAssemblies(), a => a.Name!.StartsWith("Microsoft.EntityFrameworkCore", StringComparison.Ordinal));
+        Assert.DoesNotContain(Application.GetReferencedAssemblies(), a => a.Name == "Microsoft.EntityFrameworkCore.SqlServer");
+        Assert.DoesNotContain(Application.GetReferencedAssemblies(), a => a.Name!.StartsWith("Microsoft.AspNetCore", StringComparison.Ordinal));
     }
 
     [Fact]
     public void Razor_components_never_touch_the_db_context()
     {
-        // Components call application services; the DbContext type must not appear in the Web assembly's
-        // component code. (Program.cs is allowed to reference it for the health check registration.)
+        // Components call application services; no component may hold a DbContext or a DbContext factory.
+        // (Program.cs is allowed to reference the context for the health check registration.)
         Assembly web = typeof(Web.Components.App).Assembly;
         IEnumerable<Type> components = web.GetTypes()
             .Where(t => typeof(Microsoft.AspNetCore.Components.IComponent).IsAssignableFrom(t));
