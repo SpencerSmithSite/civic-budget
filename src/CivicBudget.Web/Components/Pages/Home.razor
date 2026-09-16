@@ -2,12 +2,16 @@
 
 <PageTitle>CivicBudget</PageTitle>
 
-<main>
+<div class="px-3">
     <h1>CivicBudget</h1>
-    <p>Budgeting and public transparency for local governments.</p>
-    <p>Phase 1: foundation. The admin app and public portal arrive in later phases.</p>
-    <ul>
-        <li><a href="/health">Liveness check</a></li>
-        <li><a href="/health/ready">Readiness check (database)</a></li>
-    </ul>
-</main>
+    <p class="lead">Budgeting and public transparency for local governments.</p>
+    <AuthorizeView>
+        <Authorized>
+            <p>Signed in as <strong>@(context.User.FindFirst(ClaimNames.DisplayName)?.Value)</strong>. <a href="admin">Go to the admin area</a>.</p>
+        </Authorized>
+        <NotAuthorized>
+            <p><a class="btn btn-primary" href="Account/Login">Log in</a></p>
+        </NotAuthorized>
+    </AuthorizeView>
+    <p class="text-secondary small">Phase 2: identity and maintenance. Budget entry arrives in Phase 3; the public portal in Phase 5.</p>
+</div>

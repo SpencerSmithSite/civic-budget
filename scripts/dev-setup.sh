@@ -19,5 +19,15 @@ fi
 CONN="Server=localhost,1433;Database=CivicBudget;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=True"
 dotnet user-secrets set "ConnectionStrings:CivicBudget" "$CONN" --project src/CivicBudget.Web >/dev/null
 echo "Stored ConnectionStrings:CivicBudget in user-secrets for src/CivicBudget.Web"
+
+# Demo login password for the seeded users (one per role). Generated once, kept in user-secrets.
+if ! dotnet user-secrets list --project src/CivicBudget.Web | grep -q '^Seed:DemoPassword'; then
+  DEMO_PASSWORD="Demo-$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | cut -c1-12)-1!"
+  dotnet user-secrets set "Seed:DemoPassword" "$DEMO_PASSWORD" --project src/CivicBudget.Web >/dev/null
+  echo "Stored Seed:DemoPassword in user-secrets: $DEMO_PASSWORD"
+else
+  echo "Seed:DemoPassword already set (dotnet user-secrets list --project src/CivicBudget.Web)"
+fi
 echo
 echo "Next:  docker compose up -d && dotnet run --project src/CivicBudget.Web"
+echo "Demo logins: admin@ / finance@ / police@ / streets@ / viewer@ mapleridge.example (see README)."

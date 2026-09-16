@@ -1,0 +1,27 @@
+@inherits LayoutComponentBase
+@layout MainLayout
+
+@* Two-column admin shell: a navigation column and the page. Links are shown per policy so a Viewer
+   never sees a "Users" link they cannot use (the pages are still protected server-side). *@
+<div class="row g-4">
+    <nav class="col-md-3 col-lg-2" aria-label="Admin navigation">
+        <ul class="nav nav-pills flex-column">
+            <li class="nav-item"><NavLink class="nav-link" href="admin" Match="NavLinkMatch.All">Overview</NavLink></li>
+            <AuthorizeView Policy="@Policies.CanMaintainSetup">
+                <li class="nav-item mt-2 small text-uppercase text-secondary px-3">Setup</li>
+                <li class="nav-item"><NavLink class="nav-link" href="admin/funds">Funds</NavLink></li>
+                <li class="nav-item"><NavLink class="nav-link" href="admin/departments">Departments</NavLink></li>
+                <li class="nav-item"><NavLink class="nav-link" href="admin/accounts">Chart of accounts</NavLink></li>
+                <li class="nav-item"><NavLink class="nav-link" href="admin/fiscal-years">Fiscal years</NavLink></li>
+            </AuthorizeView>
+            <AuthorizeView Policy="@Policies.CanManageUsers">
+                <li class="nav-item mt-2 small text-uppercase text-secondary px-3">Administration</li>
+                <li class="nav-item"><NavLink class="nav-link" href="admin/users">Users</NavLink></li>
+                <li class="nav-item"><NavLink class="nav-link" href="admin/settings">Government settings</NavLink></li>
+            </AuthorizeView>
+        </ul>
+    </nav>
+    <div class="col-md-9 col-lg-10">
+        @Body
+    </div>
+</div>

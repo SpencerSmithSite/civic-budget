@@ -1,0 +1,87 @@
+@page "/Account/Manage"
+
+@using System.ComponentModel.DataAnnotations
+
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Profile</PageTitle>
+
+<h2 class="h4">Profile</h2>
+<StatusMessage />
+
+<div class="row">
+    <div class="col-xl-6">
+        <EditForm Model="Input" FormName="profile" OnValidSubmit="OnValidSubmitAsync" method="post">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert" />
+            <div class="form-floating mb-3">
+                <input type="text" value="@email" id="email" class="form-control" disabled />
+                <label for="email" class="form-label">Email (used to log in)</label>
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.DisplayName" id="Input.DisplayName" class="form-control" placeholder="Your name" />
+                <label for="Input.DisplayName" class="form-label">Display name</label>
+                <ValidationMessage For="() => Input.DisplayName" class="text-danger" />
+            </div>
+            <button type="submit" class="btn btn-primary">Save</button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private ApplicationUser? user;
+    private string? email;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    // Form posts can set this to null before OnInitialized runs, so it is initialized there, not here (BL0008).
+    private InputModel Input { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+
+        user = await UserManager.GetUserAsync(HttpContext.User);
+        if (user is null)
+        {
+            RedirectManager.RedirectToInvalidUser(UserManager, HttpContext);
+            return;
+        }
+
+        email = user.Email;
+        Input.DisplayName ??= user.DisplayName;
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        if (user is null)
+        {
+            RedirectManager.RedirectToInvalidUser(UserManager, HttpContext);
+            return;
+        }
+
+        user.DisplayName = Input.DisplayName!.Trim();
+        IdentityResult result = await UserManager.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            RedirectManager.RedirectToCurrentPageWithStatus("Error: Failed to update your profile.", HttpContext);
+            return;
+        }
+
+        // Re-issue the cookie so the display_name claim reflects the change immediately.
+        await SignInManager.RefreshSignInAsync(user);
+        RedirectManager.RedirectToCurrentPageWithStatus("Your profile has been updated.", HttpContext);
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [StringLength(ApplicationUser.DisplayNameMaxLength)]
+        [Display(Name = "Display name")]
+        public string? DisplayName { get; set; }
+    }
+}

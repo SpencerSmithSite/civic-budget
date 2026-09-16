@@ -1,0 +1,52 @@
+@page "/admin"
+@rendermode InteractiveServer
+@inject IGovernmentSettingsService SettingsService
+@inject IFundService Funds
+@inject IDepartmentService Departments
+@inject IAccountService Accounts
+@inject IFiscalYearService FiscalYears
+
+<PageTitle>Admin overview</PageTitle>
+
+<h1 class="h3">@(government?.Name ?? "Admin overview")</h1>
+
+<AuthorizeView>
+    <p class="text-secondary">
+        Signed in as @context.User.FindFirst(ClaimNames.DisplayName)?.Value,
+        role: @string.Join(", ", context.User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => Roles.DisplayName(c.Value)))
+    </p>
+</AuthorizeView>
+
+@if (government is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="row g-3">
+        <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="text-secondary small">Funds</div><div class="fs-3">@fundCount</div></div></div></div>
+        <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="text-secondary small">Departments</div><div class="fs-3">@departmentCount</div></div></div></div>
+        <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="text-secondary small">Accounts</div><div class="fs-3">@accountCount</div></div></div></div>
+        <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="text-secondary small">Fiscal years</div><div class="fs-3">@fiscalYearCount</div></div></div></div>
+    </div>
+    <dl class="row mt-4">
+        <dt class="col-sm-3">Type</dt><dd class="col-sm-9">@Display.Enum(government.Type), @government.State</dd>
+        <dt class="col-sm-3">Fiscal year starts</dt><dd class="col-sm-9">@System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(government.FiscalYearStartMonth)</dd>
+        <dt class="col-sm-3">Appropriation limit</dt><dd class="col-sm-9">@(government.AppropriationLimitMode == AppropriationLimitMode.Block ? "Block: over-appropriated funds stop the workflow" : "Warn: over-appropriated funds show a warning")</dd>
+        <dt class="col-sm-3">Public address</dt><dd class="col-sm-9"><code>/transparency/@government.PublicSlug</code> (portal arrives in Phase 5)</dd>
+    </dl>
+}
+
+@code {
+    private GovernmentSettingsDto? government;
+    private int fundCount, departmentCount, accountCount, fiscalYearCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        government = await SettingsService.GetAsync();
+        fundCount = (await Funds.ListAsync(includeInactive: false)).Count;
+        departmentCount = (await Departments.ListAsync(includeInactive: false)).Count;
+        accountCount = (await Accounts.ListAsync(includeInactive: false)).Count;
+        fiscalYearCount = (await FiscalYears.ListAsync()).Count;
+    }
+}

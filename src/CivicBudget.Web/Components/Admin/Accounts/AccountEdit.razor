@@ -1,0 +1,120 @@
+@page "/admin/accounts/new"
+@page "/admin/accounts/{Id:guid}"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Policies.CanMaintainSetup)]
+@inject IAccountService AccountService
+@inject NavigationManager Navigation
+
+<PageTitle>@(Id is null ? "New account" : "Edit account")</PageTitle>
+
+<h1 class="h3">@(Id is null ? "New account" : "Edit account")</h1>
+
+@if (notFound)
+{
+    <div class="alert alert-warning">That account was not found.</div>
+}
+else
+{
+    <ResultAlert Result="result" />
+    <EditForm EditContext="editContext" OnSubmit="SaveAsync" class="col-lg-6">
+        <div class="mb-3">
+            <label class="form-label" for="code">Code</label>
+            <InputText id="code" class="form-control" @bind-Value="model.Code" />
+            <ValidationMessage For="() => model.Code" class="text-danger" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="name">Name</label>
+            <InputText id="name" class="form-control" @bind-Value="model.Name" />
+            <ValidationMessage For="() => model.Name" class="text-danger" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="type">Type</label>
+            @* Changing the type resets the category list to the categories valid for that type
+               (ReportingCategoryRules), so the form cannot even offer an invalid combination. *@
+            <InputSelect id="type" class="form-select" @bind-Value="model.Type" @bind-Value:after="OnTypeChanged">
+                @foreach (AccountType type in Enum.GetValues<AccountType>())
+                {
+                    <option value="@type">@Display.Enum(type)</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="() => model.Type" class="text-danger" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="category">Reporting category</label>
+            <InputSelect id="category" class="form-select" @bind-Value="model.Category">
+                @foreach (ReportingCategory category in ReportingCategoryRules.CategoriesFor(model.Type))
+                {
+                    <option value="@category">@Display.Enum(category)</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="() => model.Category" class="text-danger" />
+        </div>
+        <button type="submit" class="btn btn-primary" disabled="@saving">Save</button>
+        <a class="btn btn-link" href="admin/accounts">Cancel</a>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private readonly FormModel model = new();
+    private EditContext editContext = default!;
+    private ValidationMessageStore messages = default!;
+    private Result? result;
+    private bool saving;
+    private bool notFound;
+
+    protected override async Task OnInitializedAsync()
+    {
+        editContext = new EditContext(model);
+        messages = new ValidationMessageStore(editContext);
+
+        if (Id is { } id)
+        {
+            AccountDto? account = await AccountService.GetAsync(id);
+            if (account is null)
+            {
+                notFound = true;
+                return;
+            }
+
+            model.Code = account.Code;
+            model.Name = account.Name;
+            model.Type = account.Type;
+            model.Category = account.Category;
+        }
+    }
+
+    private void OnTypeChanged()
+    {
+        if (!ReportingCategoryRules.IsValidFor(model.Category, model.Type))
+        {
+            model.Category = ReportingCategoryRules.CategoriesFor(model.Type)[0];
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        saving = true;
+        Result<Guid> saved = await AccountService.SaveAsync(new SaveAccountRequest(Id, model.Code, model.Name, model.Type, model.Category));
+        saving = false;
+
+        if (saved.IsSuccess)
+        {
+            Navigation.NavigateTo("admin/accounts");
+            return;
+        }
+
+        result = saved;
+        editContext.ApplyErrors(messages, saved);
+    }
+
+    private sealed class FormModel
+    {
+        public string Code { get; set; } = "";
+        public string Name { get; set; } = "";
+        public AccountType Type { get; set; } = AccountType.Expenditure;
+        public ReportingCategory Category { get; set; } = ReportingCategory.PersonalServices;
+    }
+}

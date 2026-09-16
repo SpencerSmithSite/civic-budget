@@ -1,0 +1,21 @@
+@* Shows the form-level errors of a failed Result (those not tied to a field) as a Bootstrap alert. *@
+@if (Result is { IsFailure: true })
+{
+    var general = Result.Errors.Where(e => string.IsNullOrEmpty(e.PropertyName)).ToList();
+    if (general.Count > 0)
+    {
+        <div class="alert alert-danger" role="alert">
+            <ul class="mb-0">
+                @foreach (var error in general)
+                {
+                    <li>@error.Message</li>
+                }
+            </ul>
+        </div>
+    }
+}
+
+@code {
+    [Parameter]
+    public Result? Result { get; set; }
+}

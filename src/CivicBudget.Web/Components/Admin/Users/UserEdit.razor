@@ -1,0 +1,203 @@
+@page "/admin/users/new"
+@page "/admin/users/{Id}"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Policies.CanManageUsers)]
+@inject IUserAdminService UserAdmin
+@inject IDepartmentService DepartmentService
+@inject NavigationManager Navigation
+
+<PageTitle>@(IsNew ? "New user" : "Edit user")</PageTitle>
+
+<h1 class="h3">@(IsNew ? "New user" : "Edit user")</h1>
+
+@if (notFound)
+{
+    <div class="alert alert-warning">That user was not found.</div>
+}
+else if (departments is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <ResultAlert Result="result" />
+            <EditForm EditContext="editContext" OnSubmit="SaveAsync">
+                <div class="mb-3">
+                    <label class="form-label" for="email">Email (login)</label>
+                    <InputText id="email" class="form-control" @bind-Value="model.Email" disabled="@(!IsNew)" autocomplete="off" />
+                    <ValidationMessage For="() => model.Email" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="displayName">Display name</label>
+                    <InputText id="displayName" class="form-control" @bind-Value="model.DisplayName" />
+                    <ValidationMessage For="() => model.DisplayName" class="text-danger" />
+                </div>
+                @if (IsNew)
+                {
+                    <div class="mb-3">
+                        <label class="form-label" for="password">Initial password</label>
+                        <InputText id="password" type="password" class="form-control" @bind-Value="model.Password" autocomplete="new-password" />
+                        <ValidationMessage For="() => model.Password" class="text-danger" />
+                        <div class="form-text">At least 10 characters with upper, lower, digit, and symbol. Share it out of band; the user can change it after signing in.</div>
+                    </div>
+                }
+                <div class="mb-3">
+                    <label class="form-label" for="role">Role</label>
+                    <InputSelect id="role" class="form-select" @bind-Value="model.Role">
+                        @foreach (string role in Roles.All)
+                        {
+                            <option value="@role">@Roles.DisplayName(role)</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="() => model.Role" class="text-danger" />
+                </div>
+                @if (model.Role == Roles.DepartmentHead)
+                {
+                    <fieldset class="mb-3">
+                        <legend class="form-label">Departments this user may edit</legend>
+                        @foreach (DepartmentDto department in departments)
+                        {
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="dept-@department.Id"
+                                       checked="@model.DepartmentIds.Contains(department.Id)"
+                                       @onchange="e => ToggleDepartment(department.Id, e.Value is true)" />
+                                <label class="form-check-label" for="dept-@department.Id">@department.Code @department.Name</label>
+                            </div>
+                        }
+                        <ValidationMessage For="() => model.DepartmentIds" class="text-danger" />
+                    </fieldset>
+                }
+                <button type="submit" class="btn btn-primary" disabled="@saving">Save</button>
+                <a class="btn btn-link" href="admin/users">Cancel</a>
+            </EditForm>
+        </div>
+
+        @if (!IsNew)
+        {
+            <div class="col-lg-5">
+                <div class="card">
+                    <div class="card-body">
+                        <h2 class="h5">Reset password</h2>
+                        <SuccessAlert Message="@resetMessage" />
+                        <ResultAlert Result="resetResult" />
+                        <EditForm EditContext="resetContext" OnSubmit="ResetPasswordAsync">
+                            <div class="mb-3">
+                                <label class="form-label" for="newPassword">New password</label>
+                                <InputText id="newPassword" type="password" class="form-control" @bind-Value="resetModel.NewPassword" autocomplete="new-password" />
+                                <ValidationMessage For="() => resetModel.NewPassword" class="text-danger" />
+                            </div>
+                            <button type="submit" class="btn btn-outline-danger">Reset password</button>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string? Id { get; set; }
+
+    private bool IsNew => Id is null;
+
+    private IReadOnlyList<DepartmentDto>? departments;
+    private readonly FormModel model = new();
+    private EditContext editContext = default!;
+    private ValidationMessageStore messages = default!;
+    private Result? result;
+    private bool saving;
+    private bool notFound;
+
+    private readonly ResetModel resetModel = new();
+    private EditContext resetContext = default!;
+    private ValidationMessageStore resetMessages = default!;
+    private Result? resetResult;
+    private string? resetMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        editContext = new EditContext(model);
+        messages = new ValidationMessageStore(editContext);
+        resetContext = new EditContext(resetModel);
+        resetMessages = new ValidationMessageStore(resetContext);
+
+        departments = await DepartmentService.ListAsync(includeInactive: false);
+
+        if (Id is { } id)
+        {
+            UserSummaryDto? user = await UserAdmin.GetAsync(id);
+            if (user is null)
+            {
+                notFound = true;
+                return;
+            }
+
+            model.Email = user.Email;
+            model.DisplayName = user.DisplayName;
+            model.Role = user.Role;
+            model.DepartmentIds = [.. user.DepartmentIds];
+        }
+    }
+
+    private void ToggleDepartment(Guid departmentId, bool isChecked)
+    {
+        if (isChecked)
+        {
+            model.DepartmentIds.Add(departmentId);
+        }
+        else
+        {
+            model.DepartmentIds.Remove(departmentId);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        saving = true;
+        // Departments only mean something for a Department Head; clear them otherwise so the validator does not complain.
+        List<Guid> departmentIds = model.Role == Roles.DepartmentHead ? model.DepartmentIds.ToList() : [];
+        Result saved = IsNew
+            ? await UserAdmin.CreateAsync(new CreateUserRequest(model.Email, model.DisplayName, model.Password, model.Role, departmentIds))
+            : await UserAdmin.UpdateAsync(new UpdateUserRequest(Id!, model.DisplayName, model.Role, departmentIds));
+        saving = false;
+
+        if (saved.IsSuccess)
+        {
+            Navigation.NavigateTo("admin/users");
+            return;
+        }
+
+        result = saved;
+        editContext.ApplyErrors(messages, saved);
+    }
+
+    private async Task ResetPasswordAsync()
+    {
+        resetMessage = null;
+        Result reset = await UserAdmin.ResetPasswordAsync(new ResetPasswordRequest(Id!, resetModel.NewPassword));
+        resetResult = reset.IsSuccess ? null : reset;
+        resetContext.ApplyErrors(resetMessages, reset);
+        if (reset.IsSuccess)
+        {
+            resetModel.NewPassword = "";
+            resetMessage = "Password reset. Share the new password with the user out of band.";
+        }
+    }
+
+    private sealed class FormModel
+    {
+        public string Email { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+        public string Password { get; set; } = "";
+        public string Role { get; set; } = Roles.Viewer;
+        public HashSet<Guid> DepartmentIds { get; set; } = [];
+    }
+
+    private sealed class ResetModel
+    {
+        public string NewPassword { get; set; } = "";
+    }
+}

@@ -1,0 +1,108 @@
+@page "/admin/settings"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Policies.CanManageUsers)]
+@inject IGovernmentSettingsService SettingsService
+
+<PageTitle>Government settings</PageTitle>
+
+<h1 class="h3">Government settings</h1>
+
+@if (current is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <SuccessAlert Message="@savedMessage" />
+    <ResultAlert Result="result" />
+    <EditForm EditContext="editContext" OnSubmit="SaveAsync" class="col-lg-6">
+        <div class="mb-3">
+            <label class="form-label" for="name">Name</label>
+            <InputText id="name" class="form-control" @bind-Value="model.Name" />
+            <ValidationMessage For="() => model.Name" class="text-danger" />
+        </div>
+        <div class="row mb-3">
+            <div class="col">
+                <label class="form-label">Type</label>
+                <input class="form-control" value="@Display.Enum(current.Type)" disabled />
+            </div>
+            <div class="col">
+                <label class="form-label">State</label>
+                <input class="form-control" value="@current.State" disabled />
+            </div>
+            <div class="col">
+                <label class="form-label">Fiscal year starts</label>
+                <input class="form-control" value="@System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(current.FiscalYearStartMonth)" disabled />
+            </div>
+            <div class="form-text">Type, state, and fiscal year start are fixed once fiscal years exist, because existing years' dates depend on them.</div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="slug">Public address</label>
+            <div class="input-group">
+                <span class="input-group-text">/transparency/</span>
+                <InputText id="slug" class="form-control" @bind-Value="model.PublicSlug" />
+            </div>
+            <ValidationMessage For="() => model.PublicSlug" class="text-danger" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="mode">When a fund's appropriations exceed its estimated resources</label>
+            <InputSelect id="mode" class="form-select" @bind-Value="model.AppropriationLimitMode">
+                <option value="@AppropriationLimitMode.Block">Block: the budget cannot be proposed or adopted</option>
+                <option value="@AppropriationLimitMode.Warn">Warn: show a warning, allow after acknowledgement</option>
+            </InputSelect>
+            <div class="form-text">Ohio law caps appropriations at certified estimated resources; Block is the safe default.</div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="description">Introduction shown to citizens on the public portal</label>
+            <InputTextArea id="description" class="form-control" rows="4" @bind-Value="model.Description" />
+            <ValidationMessage For="() => model.Description" class="text-danger" />
+        </div>
+        <button type="submit" class="btn btn-primary" disabled="@saving">Save</button>
+    </EditForm>
+}
+
+@code {
+    private GovernmentSettingsDto? current;
+    private readonly FormModel model = new();
+    private EditContext editContext = default!;
+    private ValidationMessageStore messages = default!;
+    private Result? result;
+    private string? savedMessage;
+    private bool saving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        editContext = new EditContext(model);
+        messages = new ValidationMessageStore(editContext);
+
+        current = await SettingsService.GetAsync();
+        model.Name = current.Name;
+        model.PublicSlug = current.PublicSlug;
+        model.AppropriationLimitMode = current.AppropriationLimitMode;
+        model.Description = current.Description;
+    }
+
+    private async Task SaveAsync()
+    {
+        saving = true;
+        savedMessage = null;
+        Result saved = await SettingsService.UpdateAsync(new UpdateGovernmentSettingsRequest(model.Name, model.PublicSlug, model.AppropriationLimitMode, model.Description));
+        saving = false;
+
+        result = saved.IsSuccess ? null : saved;
+        editContext.ApplyErrors(messages, saved);
+        if (saved.IsSuccess)
+        {
+            savedMessage = "Settings saved.";
+            current = await SettingsService.GetAsync();
+        }
+    }
+
+    private sealed class FormModel
+    {
+        public string Name { get; set; } = "";
+        public string PublicSlug { get; set; } = "";
+        public AppropriationLimitMode AppropriationLimitMode { get; set; }
+        public string? Description { get; set; }
+    }
+}
