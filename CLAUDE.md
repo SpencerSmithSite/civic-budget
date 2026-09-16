@@ -75,4 +75,5 @@ dotnet user-secrets set "Seed:DemoPassword" "<pw>" --project src/CivicBudget.Web
 ## Docs to keep current
 `ROADMAP.md` (check boxes), `CHANGELOG.md` (per phase), `docs/DECISIONS.md`
 (new ADR for any non-obvious choice or package), `docs/walkthroughs/NN-*.md`
-(one per phase, written as interview prep).
+(one per phase), and `docs/INTERVIEW-PREP.md` (Q&A with answers and
+code pointers — add a section every phase).

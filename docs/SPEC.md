@@ -1,6 +1,6 @@
 # CivicBudget — Functional Specification
 
-**Status:** Phase 0 draft, approved by Spencer on 2026-09-15 (pending final sign-off)
+**Status:** Approved by Spencer on 2026-09-16 (Phase 0). Living document — updated as phases refine it.
 **Audience:** Spencer (author/presenter), future Claude Code sessions, interviewers
 
 CivicBudget is a multi-tenant web application that lets a local government
@@ -126,7 +126,7 @@ Rules:
 | Field | Notes |
 |---|---|
 | BudgetVersionId, FundId, AccountId | Required |
-| DepartmentId | **Required for Expenditure accounts; null for Revenue and Transfer accounts** (Ohio revenues and transfers are budgeted by fund, not by department) |
+| DepartmentId | **Required for Expenditure accounts; optional for Revenue and Transfer accounts.** Revenue is usually budgeted by fund alone, but a government may attribute revenue to a department (e.g. water sales → Water Utility), so the line allows fund-only *or* fund + department. |
 | Amount | The budgeted/appropriated amount for this version |
 | PriorYearActual | Entered or imported figure (there is no general ledger in scope) |
 | CurrentYearBudget | The comparison figure from the current year, entered or imported |
@@ -199,7 +199,7 @@ transition.
 
 ### 5.2 Other domain rules (each gets a unit test)
 - Account reporting category must match account type.
-- Expenditure lines require a department; revenue/transfer lines must not have one.
+- Expenditure lines require a department; revenue/transfer lines may have one or none.
 - Amounts are stored to two decimal places; `% change` is rounded to one
   decimal place using `MidpointRounding.AwayFromZero` (matches spreadsheet
   behavior finance staff expect; banker's rounding would surprise them).

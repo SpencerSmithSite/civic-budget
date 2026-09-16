@@ -11,7 +11,7 @@ docs are updated, and Spencer has approved.
 - [x] `docs/DECISIONS.md` (ADR-0001…0011)
 - [x] `ROADMAP.md`, `CLAUDE.md`, `CHANGELOG.md`, README stub
 - [x] `git init`, GitHub repo `civic-budget` (public, unlicensed)
-- [ ] Spencer approves Phase 0
+- [x] Spencer approves Phase 0 (2026-09-16)
 
 ## Phase 1 — Foundation  `phase-1-foundation`
 - [ ] Verify Docker Desktop Rosetta; `docker-compose.yml` with SQL Server 2022
