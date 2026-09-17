@@ -56,7 +56,21 @@ docs are updated, and Spencer has approved.
 - [ ] `PublicPortalDbContext`
 - [ ] Walkthrough: snapshot boundary as a security decision
 
+## Phase 4.5 — Admin UI design pass  `phase-4.5-admin-design`
+Spencer's review of Phase 3 (2026-09-17): functional, but bare-bones Bootstrap will not impress in an interview. This phase gives the admin app a deliberate visual identity before the public portal reuses it.
+- [ ] Design brief: palette (civic, trustworthy; sufficient contrast), typography, spacing scale, iconography (vendored Bootstrap Icons), states (empty, loading, error, success)
+- [ ] Mockups of the key screens (login, admin overview, budget workspace, fund balance panel, users) for Spencer's approval before implementation
+- [ ] Design tokens as CSS variables layered over Bootstrap (`--bs-*` overrides), one `app.css` theme, no build pipeline
+- [ ] Application shell: branded navbar, sidebar with icons and active states, page headers with breadcrumbs and actions, responsive behavior
+- [ ] Components: KPI cards on the overview, status badges, toasts instead of inline alerts, confirmation modal instead of `window.confirm`, skeleton loading, consistent form layout and validation styling
+- [ ] Budget workspace: worksheet look (sticky header, zebra rows, right-aligned numerics, change columns colored by sign, fund panel as summary cards + table)
+- [ ] Login page and home page with the product story (what CivicBudget is, who it is for)
+- [ ] Accessibility check of the new theme (contrast, focus states, keyboard navigation)
+- [ ] Walkthrough: design tokens over Bootstrap; how the theme is shared with the portal
+
 ## Phase 5 — Public transparency portal  `phase-5-portal`
+Design-first: this is the screen a citizen (and an interviewer) sees without logging in.
+- [ ] Mockups (overview, drill-down, charts, mobile) approved before implementation
 - [ ] `/transparency/{slug}/{year?}` overview, drill-down with breadcrumbs
 - [ ] Charts with data-table alternatives; year-over-year
 - [ ] Search; CSV + XLSX download
@@ -81,6 +95,6 @@ docs are updated, and Spencer has approved.
 
 ## Phase 8 — Polish  `phase-8-polish`
 - [ ] README with screenshots, demo logins, badges, branch-protection guidance
-- [ ] Demo data review, final accessibility check
+- [ ] Final visual QA across every screen at desktop and phone widths; demo data review; final accessibility check
 - [ ] Dependabot (NuGet + Actions)
 - [ ] All walkthroughs complete; CHANGELOG finalized
