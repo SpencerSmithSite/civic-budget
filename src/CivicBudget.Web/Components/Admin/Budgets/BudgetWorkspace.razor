@@ -1,7 +1,10 @@
 @page "/admin/budgets/{VersionId:guid}"
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.CanViewBudget)]
+@using CivicBudget.Application.Publishing
 @inject IBudgetEntryService BudgetEntry
+@inject IBudgetWorkflowService Workflow
+@inject IPublishingService Publishing
 @inject IJSRuntime JS
 
 <PageTitle>Budget entry</PageTitle>
@@ -35,6 +38,11 @@ else
 
     <ResultAlert Result="lastResult" />
     <SuccessAlert Message="@savedMessage" />
+
+    @if (workflowState is not null)
+    {
+        <WorkflowBar Version="workspace.Version" State="workflowState" ActiveSnapshot="activeSnapshot" OnChanged="OnWorkflowChangedAsync" />
+    }
 
     <div class="mb-3">
         <FundBalancePanel Balances="workspace.FundBalances" OnBeginningBalanceChanged="SetBeginningBalanceAsync" />
@@ -77,6 +85,8 @@ else
     private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
 
     private BudgetWorkspaceDto? workspace;
+    private WorkflowStateDto? workflowState;
+    private SnapshotSummaryDto? activeSnapshot;
     private Mode mode = Mode.ByDepartment;
     private bool notFound;
     private bool isDepartmentHead;
@@ -102,6 +112,9 @@ else
     {
         workspace = await BudgetEntry.GetWorkspaceAsync(VersionId);
         notFound = workspace is null;
+        workflowState = notFound ? null : await Workflow.GetStateAsync(VersionId);
+        activeSnapshot = notFound ? null : (await Publishing.ListAsync())
+            .FirstOrDefault(s => s.BudgetVersionId == VersionId && s.Status == Domain.Publishing.SnapshotStatus.Active);
         if (historyLine is not null && workspace is not null)
         {
             historyLine = workspace.Lines.FirstOrDefault(l => l.Id == historyLine.Id);
@@ -148,6 +161,13 @@ else
         Result result = await action();
         lastResult = result.IsSuccess ? null : result;
         savedMessage = result.IsSuccess ? successMessage : null;
+        await LoadAsync();
+    }
+
+    private async Task OnWorkflowChangedAsync(string message)
+    {
+        savedMessage = message;
+        lastResult = null;
         await LoadAsync();
     }
 

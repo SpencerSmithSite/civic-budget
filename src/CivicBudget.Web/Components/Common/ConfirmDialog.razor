@@ -1,0 +1,78 @@
+@* A Bootstrap modal driven entirely by Blazor state (no JavaScript): the parent calls Show() and
+   Hide(), and the body is whatever the parent renders. Replaces window.confirm so dialogs can carry
+   inputs (a resolution number, an acknowledgement) and validation messages. *@
+@if (isOpen)
+{
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="@titleId">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="@titleId">@Title</h2>
+                    <button type="button" class="btn-close" aria-label="Close" @onclick="Hide" disabled="@busy"></button>
+                </div>
+                <div class="modal-body">
+                    @Body
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="Hide" disabled="@busy">Cancel</button>
+                    <button type="button" class="btn @ConfirmClass" @onclick="ConfirmAsync" disabled="@(busy || ConfirmDisabled)">@ConfirmText</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private readonly string titleId = "dlg-" + Guid.NewGuid().ToString("N")[..8];
+    private bool isOpen;
+    private bool busy;
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public RenderFragment? Body { get; set; }
+
+    [Parameter]
+    public string ConfirmText { get; set; } = "Confirm";
+
+    [Parameter]
+    public string ConfirmClass { get; set; } = "btn-primary";
+
+    [Parameter]
+    public bool ConfirmDisabled { get; set; }
+
+    /// <summary>Runs on confirm. Return true to close the dialog, false to keep it open (for example, to show an error).</summary>
+    [Parameter]
+    public Func<Task<bool>>? OnConfirm { get; set; }
+
+    public void Show()
+    {
+        isOpen = true;
+        StateHasChanged();
+    }
+
+    public void Hide()
+    {
+        isOpen = false;
+        StateHasChanged();
+    }
+
+    private async Task ConfirmAsync()
+    {
+        busy = true;
+        try
+        {
+            bool close = OnConfirm is null || await OnConfirm();
+            if (close)
+            {
+                isOpen = false;
+            }
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}
