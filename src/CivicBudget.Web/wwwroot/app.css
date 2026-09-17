@@ -36,3 +36,82 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+/* Budget entry grids: dense, numeric, desktop-first. Codes never wrap; names may. */
+.budget-lines {
+    font-size: 0.875rem;
+}
+
+table.budget-lines > thead > tr > th,
+table.budget-lines > tbody > tr > td,
+table.budget-lines > tfoot > tr > td {
+    padding: 0.25rem 0.4rem;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+/* With the default QuickGrid theme off, its header button needs the basics back. */
+.budget-lines th .col-header-content {
+    display: flex;
+    align-items: center;
+}
+
+.budget-lines th .col-title {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-weight: 600;
+    color: inherit;
+    cursor: pointer;
+}
+
+.budget-lines th .sort-indicator {
+    width: 1em;
+}
+
+.budget-lines th[aria-sort="ascending"] .sort-indicator::after {
+    content: "\25B4";
+}
+
+.budget-lines th[aria-sort="descending"] .sort-indicator::after {
+    content: "\25BE";
+}
+
+
+.budget-lines td.col-account,
+.budget-lines th.col-account {
+    white-space: normal;
+    min-width: 14rem;
+}
+
+.budget-lines td.col-code,
+.budget-lines th.col-code {
+    width: 1%;
+}
+
+
+.budget-lines .col-amount input {
+    width: 7.5rem;
+    display: inline-block;
+}
+
+.budget-lines .col-note input {
+    width: 12rem;
+}
+
+/* Admin shell: a fixed-width nav column leaves the rest for dense grids. */
+.admin-nav {
+    flex: 0 0 11rem;
+}
+
+.admin-main {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.fund-balance-table input {
+    width: 9rem;
+    display: inline-block;
+}

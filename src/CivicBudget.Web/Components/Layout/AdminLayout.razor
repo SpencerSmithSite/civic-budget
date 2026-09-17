@@ -3,10 +3,14 @@
 
 @* Two-column admin shell: a navigation column and the page. Links are shown per policy so a Viewer
    never sees a "Users" link they cannot use (the pages are still protected server-side). *@
-<div class="row g-4">
-    <nav class="col-md-3 col-lg-2" aria-label="Admin navigation">
+<div class="d-flex flex-column flex-md-row gap-4">
+    <nav class="admin-nav" aria-label="Admin navigation">
         <ul class="nav nav-pills flex-column">
             <li class="nav-item"><NavLink class="nav-link" href="admin" Match="NavLinkMatch.All">Overview</NavLink></li>
+            <AuthorizeView Policy="@Policies.CanViewBudget">
+                <li class="nav-item mt-2 small text-uppercase text-secondary px-3">Budget</li>
+                <li class="nav-item"><NavLink class="nav-link" href="admin/budgets">Budget versions</NavLink></li>
+            </AuthorizeView>
             <AuthorizeView Policy="@Policies.CanMaintainSetup">
                 <li class="nav-item mt-2 small text-uppercase text-secondary px-3">Setup</li>
                 <li class="nav-item"><NavLink class="nav-link" href="admin/funds">Funds</NavLink></li>
@@ -21,7 +25,7 @@
             </AuthorizeView>
         </ul>
     </nav>
-    <div class="col-md-9 col-lg-10">
+    <div class="admin-main">
         @Body
     </div>
 </div>
