@@ -36,6 +36,7 @@ Actions · AWS CDK (C#) deploy-ready (no account — see ADR-0008).
 - `dotnet run --no-build` after adding a migration runs stale code ("No migrations were found"). Build first.
 - Generated migrations live under `Persistence/Migrations/` and are exempt from analyzers via `.editorconfig`.
 - Unsandboxed shell is needed for `dotnet restore`, Docker, and Testcontainers.
+- `dotnet run` right after `docker compose up` used to crash on the pre-login handshake; DatabaseInitializer now retries for up to a minute.
 - Reseed after schema/seed changes: `docker compose down -v && docker compose up -d`, then run the app.
 - SQL Server refuses multiple cascade paths; use `DeleteBehavior.Restrict` on the second path (see IdentityConfiguration).
 - EF Core cannot `OrderBy` after projecting to a DTO with collection sub-queries; order the entity first.
