@@ -5,6 +5,18 @@ All notable changes to CivicBudget. Format loosely follows
 
 ## [Unreleased]
 
+## Phase 2 — 2026-09-16
+### Added
+- ASP.NET Core Identity with cookie sign-in; `ApplicationUser` (government, display name, department assignments); login, logout, profile, and change-password pages; lockout after 5 failed attempts.
+- Claims-based tenant resolution: `CurrentUserContext` filled per HTTP request and per circuit.
+- Roles (Admin, Finance Director, Department Head, Viewer), nine named policies, resource-based budget line edit rule.
+- Application layer: `Result`, FluentValidation validators, `ICivicBudgetDbContext`, setup services, user administration contract.
+- Admin area (Bootstrap + QuickGrid): overview, funds, departments, chart of accounts, fiscal years, users, government settings.
+- Demo users (one per role) seeded with a password from user-secrets.
+- 248 tests total (+69).
+### Changed
+- Code comments use plain punctuation (no em dashes); seed account names use hyphens.
+
 ## Phase 1 — 2026-09-16
 ### Added
 - Solution scaffold: Domain / Application / Infrastructure / Web + four test projects; central package management; analyzers with warnings-as-errors.

@@ -1,4 +1,5 @@
 using System.Reflection;
+using CivicBudget.Application.Persistence;
 using CivicBudget.Application.Tenancy;
 using CivicBudget.Domain.Accounts;
 using CivicBudget.Domain.Budgets;
@@ -7,20 +8,24 @@ using CivicBudget.Domain.Departments;
 using CivicBudget.Domain.FiscalYears;
 using CivicBudget.Domain.Funds;
 using CivicBudget.Domain.Governments;
+using CivicBudget.Infrastructure.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace CivicBudget.Infrastructure.Persistence;
 
 /// <summary>
-/// The admin-side model. Owns the migrations.
+/// The admin-side model: domain tables plus ASP.NET Core Identity tables (the <c>IdentityDbContext</c>
+/// base adds AspNetUsers, AspNetRoles, and friends). Owns the migrations. Implements
+/// <see cref="ICivicBudgetDbContext"/> so Application services can query without referencing this project.
 /// <para>
-/// Always obtained through <c>IDbContextFactory&lt;CivicBudgetDbContext&gt;</c> — in Blazor Server
+/// Always obtained through <c>IDbContextFactory&lt;CivicBudgetDbContext&gt;</c>. In Blazor Server
 /// the DI scope is the circuit (the browser tab), so a scoped DbContext would live for hours and be
 /// shared by concurrent event handlers. One context per unit of work avoids both problems.
 /// </para>
 /// </summary>
 public sealed class CivicBudgetDbContext(DbContextOptions<CivicBudgetDbContext> options, ITenantContext tenantContext)
-    : DbContext(options)
+    : IdentityDbContext<ApplicationUser>(options), ICivicBudgetDbContext
 {
     public DbSet<Government> Governments => Set<Government>();
     public DbSet<Fund> Funds => Set<Fund>();
@@ -30,10 +35,11 @@ public sealed class CivicBudgetDbContext(DbContextOptions<CivicBudgetDbContext> 
     public DbSet<BudgetVersion> BudgetVersions => Set<BudgetVersion>();
     public DbSet<BudgetLine> BudgetLines => Set<BudgetLine>();
     public DbSet<FundBeginningBalance> FundBeginningBalances => Set<FundBeginningBalance>();
+    public DbSet<UserDepartment> UserDepartments => Set<UserDepartment>();
 
     /// <summary>
     /// Read by the query filters. Must be an instance member so EF Core treats it as a parameter
-    /// evaluated per query — not a constant baked into the compiled model.
+    /// evaluated per query, not a constant baked into the compiled model.
     /// </summary>
     private Guid? CurrentGovernmentId => tenantContext.GovernmentId;
 
@@ -44,10 +50,11 @@ public sealed class CivicBudgetDbContext(DbContextOptions<CivicBudgetDbContext> 
         configurationBuilder.Properties<decimal>().HavePrecision(18, 2);
     }
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    protected override void OnModelCreating(ModelBuilder builder)
     {
-        modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
-        ApplyTenantQueryFilters(modelBuilder);
+        base.OnModelCreating(builder); // Identity's tables and keys; must run first
+        builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+        ApplyTenantQueryFilters(builder);
     }
 
     /// <summary>

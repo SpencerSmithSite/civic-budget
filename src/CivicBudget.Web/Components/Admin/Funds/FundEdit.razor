@@ -1,0 +1,110 @@
+@page "/admin/funds/new"
+@page "/admin/funds/{Id:guid}"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Policies.CanMaintainSetup)]
+@inject IFundService FundService
+@inject NavigationManager Navigation
+
+<PageTitle>@(Id is null ? "New fund" : "Edit fund")</PageTitle>
+
+<h1 class="h3">@(Id is null ? "New fund" : "Edit fund")</h1>
+
+@if (notFound)
+{
+    <div class="alert alert-warning">That fund was not found.</div>
+}
+else
+{
+    <ResultAlert Result="result" />
+    @* Interactive form: submit runs on the circuit, calls the service, and maps Result errors onto
+       the fields via EditContextResultExtensions. No validation attributes on the model; the rules
+       live in SaveFundRequestValidator in the Application layer. *@
+    <EditForm EditContext="editContext" OnSubmit="SaveAsync" class="col-lg-6">
+        <div class="mb-3">
+            <label class="form-label" for="code">Code</label>
+            <InputText id="code" class="form-control" @bind-Value="model.Code" />
+            <ValidationMessage For="() => model.Code" class="text-danger" />
+            <div class="form-text">Ohio UAN style codes are conventional: 1000 General, 2011 Street Construction Maintenance &amp; Repair.</div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="name">Name</label>
+            <InputText id="name" class="form-control" @bind-Value="model.Name" />
+            <ValidationMessage For="() => model.Name" class="text-danger" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="category">Category</label>
+            <InputSelect id="category" class="form-select" @bind-Value="model.Category">
+                @foreach (FundCategory category in Enum.GetValues<FundCategory>())
+                {
+                    <option value="@category">@Display.Enum(category) (@category.ToGroup())</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="() => model.Category" class="text-danger" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="description">Plain-language description (shown to citizens)</label>
+            <InputTextArea id="description" class="form-control" rows="3" @bind-Value="model.Description" />
+            <ValidationMessage For="() => model.Description" class="text-danger" />
+        </div>
+        <button type="submit" class="btn btn-primary" disabled="@saving">Save</button>
+        <a class="btn btn-link" href="admin/funds">Cancel</a>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private readonly FormModel model = new();
+    private EditContext editContext = default!;
+    private ValidationMessageStore messages = default!;
+    private Result? result;
+    private bool saving;
+    private bool notFound;
+
+    protected override async Task OnInitializedAsync()
+    {
+        editContext = new EditContext(model);
+        messages = new ValidationMessageStore(editContext);
+
+        if (Id is { } id)
+        {
+            FundDto? fund = await FundService.GetAsync(id);
+            if (fund is null)
+            {
+                notFound = true;
+                return;
+            }
+
+            model.Code = fund.Code;
+            model.Name = fund.Name;
+            model.Category = fund.Category;
+            model.Description = fund.Description;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        saving = true;
+        Result<Guid> saved = await FundService.SaveAsync(new SaveFundRequest(Id, model.Code, model.Name, model.Category, model.Description));
+        saving = false;
+
+        if (saved.IsSuccess)
+        {
+            Navigation.NavigateTo("admin/funds");
+            return;
+        }
+
+        result = saved;
+        editContext.ApplyErrors(messages, saved);
+    }
+
+    // Mutable copy of the request for two-way binding; records with init-only properties cannot be bound.
+    private sealed class FormModel
+    {
+        public string Code { get; set; } = "";
+        public string Name { get; set; } = "";
+        public FundCategory Category { get; set; } = FundCategory.General;
+        public string? Description { get; set; }
+    }
+}

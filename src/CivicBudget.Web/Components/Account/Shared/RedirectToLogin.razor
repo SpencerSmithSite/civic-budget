@@ -1,0 +1,9 @@
+@inject NavigationManager NavigationManager
+
+@* forceLoad: the login page is static SSR, so this must be a full navigation, not a circuit route change. *@
+@code {
+    protected override void OnInitialized()
+    {
+        NavigationManager.NavigateTo($"Account/Login?returnUrl={Uri.EscapeDataString(NavigationManager.Uri)}", forceLoad: true);
+    }
+}

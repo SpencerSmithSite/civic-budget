@@ -1,0 +1,103 @@
+@page "/admin/fiscal-years"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Policies.CanMaintainSetup)]
+@inject IFiscalYearService FiscalYearService
+@inject IJSRuntime JS
+
+<PageTitle>Fiscal years</PageTitle>
+
+<h1 class="h3">Fiscal years</h1>
+
+<div class="row">
+    <div class="col-lg-8">
+        @if (fiscalYears is null)
+        {
+            <p>Loading...</p>
+        }
+        else
+        {
+            <QuickGrid Items="fiscalYears.AsQueryable()" Class="table table-striped">
+                <PropertyColumn Property="fy => fy.Label" Title="Year" />
+                <PropertyColumn Property="fy => fy.StartDate" Title="Starts" Format="MMM d, yyyy" />
+                <PropertyColumn Property="fy => fy.EndDate" Title="Ends" Format="MMM d, yyyy" />
+                <PropertyColumn Property="fy => fy.VersionCount" Title="Budget versions" Align="Align.End" />
+                <TemplateColumn Title="Status">
+                    @if (context.IsClosed) { <span class="badge text-bg-secondary">Closed</span> } else { <span class="badge text-bg-success">Open</span> }
+                </TemplateColumn>
+                <TemplateColumn Title="" Align="Align.End">
+                    @if (context.IsClosed)
+                    {
+                        <button class="btn btn-sm btn-outline-success" @onclick="() => SetClosedAsync(context, false)">Reopen</button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => SetClosedAsync(context, true)">Close</button>
+                    }
+                </TemplateColumn>
+            </QuickGrid>
+        }
+    </div>
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="h5">Add a fiscal year</h2>
+                <p class="text-secondary small">Dates follow the government's fiscal year start month. Closed years accept no new budget versions.</p>
+                <ResultAlert Result="result" />
+                <EditForm EditContext="editContext" OnSubmit="CreateAsync">
+                    <div class="mb-3">
+                        <label class="form-label" for="year">Year</label>
+                        <InputNumber id="year" class="form-control" @bind-Value="model.Year" />
+                        <ValidationMessage For="() => model.Year" class="text-danger" />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add</button>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private IReadOnlyList<FiscalYearDto>? fiscalYears;
+    private readonly FormModel model = new() { Year = DateTime.Today.Year + 1 };
+    private EditContext editContext = default!;
+    private ValidationMessageStore messages = default!;
+    private Result? result;
+
+    protected override async Task OnInitializedAsync()
+    {
+        editContext = new EditContext(model);
+        messages = new ValidationMessageStore(editContext);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync() => fiscalYears = await FiscalYearService.ListAsync();
+
+    private async Task CreateAsync()
+    {
+        Result<Guid> created = await FiscalYearService.CreateAsync(new CreateFiscalYearRequest(model.Year));
+        result = created.IsSuccess ? null : created;
+        editContext.ApplyErrors(messages, created);
+        if (created.IsSuccess)
+        {
+            model.Year++;
+            await LoadAsync();
+        }
+    }
+
+    private async Task SetClosedAsync(FiscalYearDto fiscalYear, bool isClosed)
+    {
+        string verb = isClosed ? "Close" : "Reopen";
+        if (!await JS.InvokeAsync<bool>("confirm", $"{verb} {fiscalYear.Label}?"))
+        {
+            return;
+        }
+
+        await FiscalYearService.SetClosedAsync(fiscalYear.Id, isClosed);
+        await LoadAsync();
+    }
+
+    private sealed class FormModel
+    {
+        public int Year { get; set; }
+    }
+}

@@ -36,6 +36,10 @@ Actions · AWS CDK (C#) deploy-ready (no account — see ADR-0008).
 - `dotnet run --no-build` after adding a migration runs stale code ("No migrations were found"). Build first.
 - Generated migrations live under `Persistence/Migrations/` and are exempt from analyzers via `.editorconfig`.
 - Unsandboxed shell is needed for `dotnet restore`, Docker, and Testcontainers.
+- `dotnet run` right after `docker compose up` used to crash on the pre-login handshake; DatabaseInitializer now retries for up to a minute.
+- Reseed after schema/seed changes: `docker compose down -v && docker compose up -d`, then run the app.
+- SQL Server refuses multiple cascade paths; use `DeleteBehavior.Restrict` on the second path (see IdentityConfiguration).
+- EF Core cannot `OrderBy` after projecting to a DTO with collection sub-queries; order the entity first.
 
 ## Code conventions
 - `Directory.Build.props`: `<Nullable>enable</Nullable>`,
@@ -43,10 +47,13 @@ Actions · AWS CDK (C#) deploy-ready (no account — see ADR-0008).
   `<ImplicitUsings>enable</ImplicitUsings>`, file-scoped namespaces.
 - `async` all the way; never `.Result` / `.Wait()`; pass `CancellationToken`.
 - Money is `decimal` (`decimal(18,2)`); never `double`/`float`.
-- Components never touch `DbContext`; they call Application services.
+- Components never touch `DbContext`; they call Application service interfaces (`IFundService`, ...). Application services use `ICivicBudgetDbContextFactory` (ADR-0014).
+- No em dashes in code comments. Explain *why* in a sentence a reader can follow without the chat history.
 - Data access uses `IDbContextFactory<CivicBudgetDbContext>` — one context
   per unit of work (`await using var db = await factory.CreateDbContextAsync(ct);`).
-- Never call `IgnoreQueryFilters()` in application code.
+- Never call `IgnoreQueryFilters()` in application code (tests may).
+- Identity tables are the one thing outside the tenant filter; `UserAdminService` scopes by government explicitly (ADR-0015).
+- Admin pages: `@rendermode InteractiveServer` + `[Authorize(Policy = Policies.X)]`; Account pages are static SSR.
 - Domain invariants throw `DomainException`; user-input problems return a
   `Result` with errors.
 - Naming: `*Service` (Application), `*Repository` only if it earns its keep,

@@ -8,7 +8,7 @@ using CivicBudget.Domain.Governments;
 namespace CivicBudget.Infrastructure.Seed;
 
 /// <summary>
-/// The Village of Maple Ridge, Ohio — a fictional village of about 4,500 people. Fund numbers follow
+/// The Village of Maple Ridge, Ohio, is a fictional village of about 4,500 people. Fund numbers follow
 /// the Ohio Auditor of State's UAN chart so they read naturally to Ohio finance staff.
 /// Three fiscal years: FY2025 adopted, FY2026 adopted plus one adopted amendment, FY2027 draft
 /// (with the Street fund deliberately over its appropriation limit so the validation is demonstrable).
@@ -23,7 +23,7 @@ internal static class MapleRidgeSeed
     public static IReadOnlyList<Fund> Funds(Guid governmentId) =>
     [
         new(governmentId, "1000", "General Fund", FundCategory.General,
-            "Pays for day-to-day village services — police, administration, parks, and zoning — mostly from income and property taxes."),
+            "Pays for day-to-day village services (police, administration, parks, and zoning), mostly from income and property taxes."),
         new(governmentId, "2011", "Street Construction, Maintenance & Repair", FundCategory.SpecialRevenue,
             "State gasoline tax and vehicle license fees that, by law, may only be spent on streets."),
         new(governmentId, "4901", "Capital Projects", FundCategory.CapitalProjects,
@@ -73,10 +73,10 @@ internal static class MapleRidgeSeed
         new(governmentId, "5320", "Utilities", AccountType.Expenditure, ReportingCategory.ContractualServices),
         new(governmentId, "5410", "Supplies & Materials", AccountType.Expenditure, ReportingCategory.SuppliesAndMaterials),
         new(governmentId, "5420", "Fuel", AccountType.Expenditure, ReportingCategory.SuppliesAndMaterials),
-        new(governmentId, "5510", "Capital Outlay – Equipment", AccountType.Expenditure, ReportingCategory.CapitalOutlay),
-        new(governmentId, "5520", "Capital Outlay – Infrastructure", AccountType.Expenditure, ReportingCategory.CapitalOutlay),
-        new(governmentId, "5610", "Debt Service – Principal", AccountType.Expenditure, ReportingCategory.DebtService),
-        new(governmentId, "5620", "Debt Service – Interest", AccountType.Expenditure, ReportingCategory.DebtService),
+        new(governmentId, "5510", "Capital Outlay - Equipment", AccountType.Expenditure, ReportingCategory.CapitalOutlay),
+        new(governmentId, "5520", "Capital Outlay - Infrastructure", AccountType.Expenditure, ReportingCategory.CapitalOutlay),
+        new(governmentId, "5610", "Debt Service - Principal", AccountType.Expenditure, ReportingCategory.DebtService),
+        new(governmentId, "5620", "Debt Service - Interest", AccountType.Expenditure, ReportingCategory.DebtService),
         new(governmentId, "5710", "Other Expenses", AccountType.Expenditure, ReportingCategory.OtherExpenditure),
         new(governmentId, "5910", "Transfers Out", AccountType.TransferOut, ReportingCategory.Transfers),
     ];
@@ -89,7 +89,7 @@ internal static class MapleRidgeSeed
         new("1000", null, "4130", 1_250_000m),
         new("1000", null, "4210", 95_000m),
         new("1000", null, "4310", 48_000m),
-        new("1000", "PR", "4320", 15_000m),      // shelter and pool fees — revenue attributed to a department
+        new("1000", "PR", "4320", 15_000m),      // shelter and pool fees: revenue attributed to a department
         new("1000", null, "4410", 32_000m),
         new("1000", null, "4510", 18_000m),
         new("1000", null, "4610", 12_000m),
@@ -157,7 +157,7 @@ internal static class MapleRidgeSeed
         new("2011", "ST", "5320", 4_000m),
         new("2011", "ST", "5410", 38_000m),
         new("2011", "ST", "5420", 16_000m),
-        new("2011", "ST", "5520", 20_000m, Proposed2027: 120_000m), // resurfacing program — pushes FY2027 over the limit
+        new("2011", "ST", "5520", 20_000m, Proposed2027: 120_000m), // resurfacing program; pushes FY2027 over the limit
 
         // ---- 4901 Capital Projects -------------------------------------------------------------
         new("4901", null, "4910", 100_000m),     // from General

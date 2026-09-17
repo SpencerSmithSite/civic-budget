@@ -1,0 +1,63 @@
+@page "/admin/users"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Policies.CanManageUsers)]
+@inject IUserAdminService UserAdmin
+@inject IJSRuntime JS
+
+<PageTitle>Users</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Users</h1>
+    <a class="btn btn-primary" href="admin/users/new">New user</a>
+</div>
+
+<ResultAlert Result="result" />
+
+@if (users is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <QuickGrid Items="users.AsQueryable()" Class="table table-striped table-hover">
+        <PropertyColumn Property="u => u.DisplayName" Title="Name" Sortable="true" />
+        <PropertyColumn Property="u => u.Email" Sortable="true" />
+        <TemplateColumn Title="Role" SortBy="GridSort<UserSummaryDto>.ByAscending(u => u.Role)">@Roles.DisplayName(context.Role)</TemplateColumn>
+        <TemplateColumn Title="Departments">@string.Join(", ", context.DepartmentCodes)</TemplateColumn>
+        <TemplateColumn Title="Status">
+            @if (context.IsLockedOut) { <span class="badge text-bg-danger">Locked</span> } else { <span class="badge text-bg-success">Active</span> }
+        </TemplateColumn>
+        <TemplateColumn Title="" Align="Align.End">
+            <a class="btn btn-sm btn-outline-primary" href="admin/users/@context.Id">Edit</a>
+            @if (context.IsLockedOut)
+            {
+                <button class="btn btn-sm btn-outline-success ms-1" @onclick="() => SetLockedAsync(context, false)">Unlock</button>
+            }
+            else
+            {
+                <button class="btn btn-sm btn-outline-danger ms-1" @onclick="() => SetLockedAsync(context, true)">Lock</button>
+            }
+        </TemplateColumn>
+    </QuickGrid>
+}
+
+@code {
+    private IReadOnlyList<UserSummaryDto>? users;
+    private Result? result;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync() => users = await UserAdmin.ListAsync();
+
+    private async Task SetLockedAsync(UserSummaryDto user, bool isLocked)
+    {
+        string verb = isLocked ? "Lock" : "Unlock";
+        if (!await JS.InvokeAsync<bool>("confirm", $"{verb} {user.DisplayName} ({user.Email})?"))
+        {
+            return;
+        }
+
+        result = await UserAdmin.SetLockedOutAsync(user.Id, isLocked);
+        await LoadAsync();
+    }
+}

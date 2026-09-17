@@ -1,5 +1,5 @@
 using CivicBudget.Application.Tenancy;
-using CivicBudget.Infrastructure.Tenancy;
+using CivicBudget.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
@@ -17,7 +17,7 @@ internal sealed class CivicBudgetDbContextDesignTimeFactory : IDesignTimeDbConte
             .UseSqlServer("Server=design-time;Database=CivicBudget;Encrypt=False")
             .Options;
 
-        ITenantContext noTenant = new AmbientTenantContext();
+        ITenantContext noTenant = new CurrentUserContext();
         return new CivicBudgetDbContext(options, noTenant);
     }
 }

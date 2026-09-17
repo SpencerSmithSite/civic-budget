@@ -5,7 +5,7 @@ namespace CivicBudget.Domain.Governments;
 
 /// <summary>
 /// The tenant. Every other entity in the model belongs to exactly one Government.
-/// Not itself <see cref="ITenantOwned"/> — it *is* the tenant.
+/// Not itself <see cref="ITenantOwned"/>, because it *is* the tenant.
 /// </summary>
 public sealed partial class Government : Entity
 {
@@ -18,7 +18,7 @@ public sealed partial class Government : Entity
     /// <summary>Two-letter US state code, e.g. "OH".</summary>
     public string State { get; private set; }
 
-    /// <summary>1–12. Most Ohio subdivisions use 1 (calendar year); some use 7 (July–June).</summary>
+    /// <summary>1 to 12. Most Ohio subdivisions use 1 (calendar year); some use 7 (July to June).</summary>
     public int FiscalYearStartMonth { get; private set; }
 
     /// <summary>URL segment for the public portal: lowercase letters, digits, hyphens.</summary>

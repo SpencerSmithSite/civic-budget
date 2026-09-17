@@ -1,0 +1,5 @@
+@using CivicBudget.Web.Components.Account.Shared
+@using CivicBudget.Infrastructure.Identity
+@using Microsoft.AspNetCore.Identity
+@* Account pages are static SSR only: they read HttpContext and set cookies, which a circuit cannot do. *@
+@attribute [ExcludeFromInteractiveRouting]

@@ -4,7 +4,7 @@ namespace CivicBudget.Domain.Accounts;
 
 /// <summary>
 /// An entry in the chart of accounts. Codes are tenant-defined strings and are *not* parsed into
-/// fund/department segments — a budget line carries fund, department, and account separately.
+/// fund/department segments; a budget line carries fund, department, and account separately.
 /// </summary>
 public sealed class Account : Entity, ITenantOwned
 {

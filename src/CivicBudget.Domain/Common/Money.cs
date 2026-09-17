@@ -2,7 +2,7 @@ namespace CivicBudget.Domain.Common;
 
 /// <summary>
 /// Money rules in one place. Amounts are <see cref="decimal"/> (never double/float) and are stored
-/// to two decimal places. Rounding is "away from zero" — the behavior finance staff see in Excel —
+/// to two decimal places. Rounding is "away from zero" (the behavior finance staff see in Excel)
 /// rather than .NET's default banker's rounding, which would turn 0.125 into 0.12.
 /// </summary>
 public static class Money

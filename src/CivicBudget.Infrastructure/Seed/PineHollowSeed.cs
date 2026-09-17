@@ -6,7 +6,7 @@ using CivicBudget.Domain.Governments;
 namespace CivicBudget.Infrastructure.Seed;
 
 /// <summary>
-/// Pine Hollow Township, Ohio — a deliberately tiny second tenant. It exists to prove tenant isolation
+/// Pine Hollow Township, Ohio, is a deliberately tiny second tenant. It exists to prove tenant isolation
 /// (its rows must never appear for Maple Ridge) and to exercise a July fiscal-year start and Warn mode.
 /// </summary>
 internal static class PineHollowSeed
@@ -37,7 +37,7 @@ internal static class PineHollowSeed
         new(governmentId, "5210", "Retirement Contributions", AccountType.Expenditure, ReportingCategory.FringeBenefits),
         new(governmentId, "5310", "Contractual Services", AccountType.Expenditure, ReportingCategory.ContractualServices),
         new(governmentId, "5410", "Supplies & Materials", AccountType.Expenditure, ReportingCategory.SuppliesAndMaterials),
-        new(governmentId, "5520", "Capital Outlay – Infrastructure", AccountType.Expenditure, ReportingCategory.CapitalOutlay),
+        new(governmentId, "5520", "Capital Outlay - Infrastructure", AccountType.Expenditure, ReportingCategory.CapitalOutlay),
     ];
 
     public static IReadOnlyList<SeedLine> Lines { get; } =

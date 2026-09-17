@@ -2,4 +2,9 @@
   <ItemGroup>
     <ProjectReference Include="../CivicBudget.Domain/CivicBudget.Domain.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- EF Core abstractions only (DbSet, Include, ToListAsync); the SQL Server provider stays in Infrastructure. ADR-0014. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="FluentValidation" />
+  </ItemGroup>
 </Project>

@@ -60,7 +60,7 @@ public class FundBalanceTests
     [Fact]
     public void Appropriations_equal_to_resources_are_within_the_limit()
     {
-        // "May not exceed" — equal is allowed. Spending down to a zero balance is legal, if unwise.
+        // "May not exceed" means equal is allowed. Spending down to a zero balance is legal, if unwise.
         FundBalanceSummary summary = FundBalanceCalculator.Calculate(
             General, 0m, [new(General, AccountType.Revenue, 100m), new(General, AccountType.Expenditure, 100m)]);
 

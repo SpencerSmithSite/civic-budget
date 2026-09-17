@@ -1,0 +1,93 @@
+@page "/admin/departments/new"
+@page "/admin/departments/{Id:guid}"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Policies.CanMaintainSetup)]
+@inject IDepartmentService DepartmentService
+@inject NavigationManager Navigation
+
+<PageTitle>@(Id is null ? "New department" : "Edit department")</PageTitle>
+
+<h1 class="h3">@(Id is null ? "New department" : "Edit department")</h1>
+
+@if (notFound)
+{
+    <div class="alert alert-warning">That department was not found.</div>
+}
+else
+{
+    <ResultAlert Result="result" />
+    <EditForm EditContext="editContext" OnSubmit="SaveAsync" class="col-lg-6">
+        <div class="mb-3">
+            <label class="form-label" for="code">Code</label>
+            <InputText id="code" class="form-control" @bind-Value="model.Code" />
+            <ValidationMessage For="() => model.Code" class="text-danger" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="name">Name</label>
+            <InputText id="name" class="form-control" @bind-Value="model.Name" />
+            <ValidationMessage For="() => model.Name" class="text-danger" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="description">Plain-language description (shown to citizens)</label>
+            <InputTextArea id="description" class="form-control" rows="3" @bind-Value="model.Description" />
+            <ValidationMessage For="() => model.Description" class="text-danger" />
+        </div>
+        <button type="submit" class="btn btn-primary" disabled="@saving">Save</button>
+        <a class="btn btn-link" href="admin/departments">Cancel</a>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private readonly FormModel model = new();
+    private EditContext editContext = default!;
+    private ValidationMessageStore messages = default!;
+    private Result? result;
+    private bool saving;
+    private bool notFound;
+
+    protected override async Task OnInitializedAsync()
+    {
+        editContext = new EditContext(model);
+        messages = new ValidationMessageStore(editContext);
+
+        if (Id is { } id)
+        {
+            DepartmentDto? department = await DepartmentService.GetAsync(id);
+            if (department is null)
+            {
+                notFound = true;
+                return;
+            }
+
+            model.Code = department.Code;
+            model.Name = department.Name;
+            model.Description = department.Description;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        saving = true;
+        Result<Guid> saved = await DepartmentService.SaveAsync(new SaveDepartmentRequest(Id, model.Code, model.Name, model.Description));
+        saving = false;
+
+        if (saved.IsSuccess)
+        {
+            Navigation.NavigateTo("admin/departments");
+            return;
+        }
+
+        result = saved;
+        editContext.ApplyErrors(messages, saved);
+    }
+
+    private sealed class FormModel
+    {
+        public string Code { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string? Description { get; set; }
+    }
+}
