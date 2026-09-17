@@ -9,6 +9,7 @@ using CivicBudget.Domain.Departments;
 using CivicBudget.Domain.FiscalYears;
 using CivicBudget.Domain.Funds;
 using CivicBudget.Domain.Governments;
+using CivicBudget.Domain.Publishing;
 using CivicBudget.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -37,6 +38,7 @@ public sealed class CivicBudgetDbContext(DbContextOptions<CivicBudgetDbContext> 
     public DbSet<BudgetLine> BudgetLines => Set<BudgetLine>();
     public DbSet<FundBeginningBalance> FundBeginningBalances => Set<FundBeginningBalance>();
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
+    public DbSet<PublishedBudgetSnapshot> PublishedBudgetSnapshots => Set<PublishedBudgetSnapshot>();
     public DbSet<UserDepartment> UserDepartments => Set<UserDepartment>();
 
     /// <summary>
@@ -55,6 +57,7 @@ public sealed class CivicBudgetDbContext(DbContextOptions<CivicBudgetDbContext> 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder); // Identity's tables and keys; must run first
+        Configurations.PublishedSnapshotModel.Configure(builder); // shared with PublicPortalDbContext
         builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
         UseClientGeneratedKeys(builder);
         ApplyTenantQueryFilters(builder);

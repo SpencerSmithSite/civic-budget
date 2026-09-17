@@ -1,4 +1,5 @@
 using CivicBudget.Application.Persistence;
+using CivicBudget.Application.Publishing;
 using CivicBudget.Application.Security;
 using CivicBudget.Application.Tenancy;
 using CivicBudget.Application.Users;
@@ -43,6 +44,14 @@ public static class DependencyInjection
                     sp.GetRequiredService<TenantSaveChangesInterceptor>()),
             ServiceLifetime.Scoped);
         services.AddScoped<ICivicBudgetDbContextFactory, CivicBudgetDbContextFactoryAdapter>();
+
+        // The portal's read-only context: same database, three tables, no tracking, no interceptors.
+        // Singleton factory is fine here because nothing per-scope flows into it (tenant comes from the URL slug).
+        services.AddDbContextFactory<PublicPortalDbContext>(options =>
+            options
+                .UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure())
+                .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
+        services.AddSingleton<IPublishedSnapshotCacheInvalidator, NoOpSnapshotCacheInvalidator>();
 
         // Identity core: users, roles, password hashing, lockout, tokens, sign-in. Cookie
         // authentication itself is added by the Web project because it is an HTTP pipeline concern.
