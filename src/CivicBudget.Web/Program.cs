@@ -12,15 +12,26 @@ using Microsoft.AspNetCore.Identity;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-// Structured JSON logs: one JSON object per line, which CloudWatch (and any log shipper) parses
-// into searchable fields. No third-party logging package needed.
+// Logging: readable text at a developer's terminal; structured JSON everywhere else (one object per
+// line, which CloudWatch and any log shipper parse into searchable fields). No third-party package.
 builder.Logging.ClearProviders();
-builder.Logging.AddJsonConsole(options =>
+if (builder.Environment.IsDevelopment())
 {
-    options.IncludeScopes = true;
-    options.TimestampFormat = "O";
-    options.UseUtcTimestamp = true;
-});
+    builder.Logging.AddSimpleConsole(options =>
+    {
+        options.SingleLine = true;
+        options.TimestampFormat = "HH:mm:ss ";
+    });
+}
+else
+{
+    builder.Logging.AddJsonConsole(options =>
+    {
+        options.IncludeScopes = true;
+        options.TimestampFormat = "O";
+        options.UseUtcTimestamp = true;
+    });
+}
 
 string connectionString = builder.Configuration.GetConnectionString("CivicBudget")
     ?? throw new InvalidOperationException(

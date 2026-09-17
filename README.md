@@ -26,10 +26,10 @@ Prerequisites: .NET SDK 10, Docker Desktop (on Apple Silicon, enable *Use Rosett
 ```bash
 ./scripts/dev-setup.sh                      # once: generates a SQL password into .env and user-secrets
 docker compose up -d                        # SQL Server 2022, healthy in ~15–30 s
-dotnet run --project src/CivicBudget.Web    # migrates + seeds, then serves on https://localhost:5001
+dotnet run --project src/CivicBudget.Web    # migrates + seeds, then serves on https://localhost:5001 (and http://localhost:5000)
 ```
 
-Then open `https://localhost:5001` and log in. `scripts/dev-setup.sh` prints the demo password once and
+Then open `https://localhost:5001` and log in (accept the ASP.NET Core dev certificate, or use http://localhost:5000). `scripts/dev-setup.sh` prints the demo password once and
 keeps it in user-secrets (`dotnet user-secrets list --project src/CivicBudget.Web`).
 
 | Login | Role | Sees |
