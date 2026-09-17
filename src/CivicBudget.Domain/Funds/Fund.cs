@@ -6,6 +6,7 @@ namespace CivicBudget.Domain.Funds;
 /// A self-balancing set of accounts (e.g. General, Street Construction Maintenance &amp; Repair, Water).
 /// Codes are tenant-defined strings; seed data uses Ohio UAN-style numbers.
 /// </summary>
+[Audited]
 public sealed class Fund : Entity, ITenantOwned
 {
     public const int CodeMaxLength = 20;

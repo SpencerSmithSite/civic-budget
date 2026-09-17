@@ -10,6 +10,7 @@ using CivicBudget.Infrastructure.Seed;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace CivicBudget.Infrastructure;
 
@@ -26,6 +27,8 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUser>(sp => sp.GetRequiredService<CurrentUserContext>());
         services.AddScoped<ITenantContext>(sp => sp.GetRequiredService<CurrentUserContext>());
         services.AddScoped<TenantSaveChangesInterceptor>();
+        services.AddScoped<AuditInterceptor>();
+        services.TryAddSingleton(TimeProvider.System); // tests substitute a fake clock
 
         // Factory, not AddDbContext: see CivicBudgetDbContext remarks and docs/DECISIONS.md ADR-0003.
         // The factory is registered Scoped so the (sp, options) overload resolves the tenant context
@@ -34,7 +37,10 @@ public static class DependencyInjection
         services.AddDbContextFactory<CivicBudgetDbContext>((sp, options) =>
             options
                 .UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure())
-                .AddInterceptors(sp.GetRequiredService<TenantSaveChangesInterceptor>()),
+                // Audit first so the audit rows it adds are also checked by the tenant interceptor.
+                .AddInterceptors(
+                    sp.GetRequiredService<AuditInterceptor>(),
+                    sp.GetRequiredService<TenantSaveChangesInterceptor>()),
             ServiceLifetime.Scoped);
         services.AddScoped<ICivicBudgetDbContextFactory, CivicBudgetDbContextFactoryAdapter>();
 

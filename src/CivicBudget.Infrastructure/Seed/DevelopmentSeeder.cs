@@ -107,9 +107,9 @@ public sealed class DevelopmentSeeder(
     private async Task<Government> SeedMapleRidgeAsync(CivicBudgetDbContext db, CancellationToken ct)
     {
         Government government = MapleRidgeSeed.Government();
+        tenant.SetTenant(government.Id); // before the first save: the government's own audit row is tenant-checked
         db.Governments.Add(government);
         await db.SaveChangesAsync(ct);
-        tenant.SetTenant(government.Id);
 
         var chart = await ChartOfAccounts.CreateAsync(
             db, government, MapleRidgeSeed.Funds(government.Id), MapleRidgeSeed.Departments(government.Id), MapleRidgeSeed.Accounts(government.Id), ct);
@@ -154,9 +154,9 @@ public sealed class DevelopmentSeeder(
     private async Task<Government> SeedPineHollowAsync(CivicBudgetDbContext db, CancellationToken ct)
     {
         Government government = PineHollowSeed.Government();
+        tenant.SetTenant(government.Id);
         db.Governments.Add(government);
         await db.SaveChangesAsync(ct);
-        tenant.SetTenant(government.Id);
 
         var chart = await ChartOfAccounts.CreateAsync(
             db, government, PineHollowSeed.Funds(government.Id), PineHollowSeed.Departments(government.Id), PineHollowSeed.Accounts(government.Id), ct);
