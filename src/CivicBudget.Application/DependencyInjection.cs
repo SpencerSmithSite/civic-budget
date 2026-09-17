@@ -1,4 +1,6 @@
 using System.Reflection;
+using CivicBudget.Application.Auditing;
+using CivicBudget.Application.Budgets;
 using CivicBudget.Application.Setup;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +17,8 @@ public static class DependencyInjection
         services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<IFiscalYearService, FiscalYearService>();
         services.AddScoped<IGovernmentSettingsService, GovernmentSettingsService>();
+        services.AddScoped<IBudgetEntryService, BudgetEntryService>();
+        services.AddScoped<IAuditQueryService, AuditQueryService>();
 
         // Validators are found by convention (any class implementing IValidator<T>) so adding one
         // is a single file, not a file plus a registration line.
