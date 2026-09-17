@@ -5,6 +5,14 @@ All notable changes to CivicBudget. Format loosely follows
 
 ## [Unreleased]
 
+## Phase 4 — 2026-09-17
+### Added
+- Workflow: Propose, Return to draft, Adopt with resolution number; Ohio appropriation limit enforced at transitions (Block refuses, Warn requires acknowledgement); audit events per transition.
+- Amendments: new draft copied from an adopted version with a reason; adoption supersedes the prior version.
+- Publishing: immutable `PublishedBudgetSnapshot` with denormalized lines and funds; publish, unpublish, republish with history; `PublicPortalDbContext` read-only over the three snapshot tables.
+- `ConfirmDialog` component and the workflow bar; publishing history on the version list.
+- 292 tests total (+19).
+
 ## Phase 3 — 2026-09-17
 ### Added
 - Budget entry: version list, workspace with by-department and by-account-line modes, inline editing, add/remove lines, justification notes.

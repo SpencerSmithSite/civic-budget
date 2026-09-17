@@ -50,11 +50,15 @@ docs are updated, and Spencer has approved.
 - [ ] Spencer approves Phase 3
 
 ## Phase 4 — Workflow & publishing  `phase-4-workflow`
-- [ ] Draft → Proposed → Adopted transitions with confirmation and role checks
-- [ ] Amendments (copy adopted → new draft, reason, resolution number)
-- [ ] Publish → `PublishedBudgetSnapshot`; unpublish; republish; history view
-- [ ] `PublicPortalDbContext`
-- [ ] Walkthrough: snapshot boundary as a security decision
+- [x] `BudgetWorkflowService`: Propose / Return to draft / Adopt (resolution number) with Block/Warn enforcement and acknowledgement, FD-only, audit events per transition
+- [x] Amendments: copy adopted version into a new draft with a reason; one open version per year; adoption supersedes the prior adopted version
+- [x] `PublishedBudgetSnapshot` (+ lines, funds) captured from adopted versions; Active / Superseded / Unpublished lifecycle (ADR-0019); `AddPublishedSnapshots` migration; seed publishes FY2025, FY2026 Amendment 1, Pine Hollow FY2026
+- [x] `PublicPortalDbContext`: three tables, Active-only query filter, read-only, shared mapping with the admin context (ADR-0006)
+- [x] `IPublishedSnapshotCacheInvalidator` hook (no-op until Phase 5)
+- [x] UI: `ConfirmDialog` (no JS), `WorkflowBar` with six dialogs, publish/unpublish, publishing history on the version list
+- [x] Tests: 6 domain, 4 bUnit, 9 integration; 292 total
+- [x] Walkthrough 04; interview prep Phase 4; ADR-0019
+- [ ] Spencer approves Phase 4
 
 ## Phase 4.5 — Admin UI design pass  `phase-4.5-admin-design`
 Spencer's review of Phase 3 (2026-09-17): functional, but bare-bones Bootstrap will not impress in an interview. This phase gives the admin app a deliberate visual identity before the public portal reuses it.

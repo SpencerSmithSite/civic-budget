@@ -151,8 +151,10 @@ await using var db = await _dbFactory.CreateDbContextAsync(ct);
 ### 4.2 Two DbContexts, one database (ADR-0006)
 - `CivicBudgetDbContext` — the full admin model, Identity tables, audit,
   snapshots. Owns the migrations.
-- `PublicPortalDbContext` — maps **only** the snapshot tables, `NoTracking`
-  by default, no `SaveChanges` exposed. Used exclusively by the portal.
+- `PublicPortalDbContext` — maps **only** the three snapshot tables, filters to
+  Active snapshots globally, `NoTracking` by default, and `SaveChanges` throws.
+  Shares `PublishedSnapshotModel.Configure` with the admin context so the two
+  mappings cannot drift; owns no migrations. Used exclusively by the portal.
 
 Same connection string in development; in AWS the portal can use a SQL login
 with `SELECT` on snapshot tables only — the code already can't reach anything

@@ -397,3 +397,77 @@ and pagination are behavior, not styling, so they keep working.
 - **Ohio context:** the fund balance panel is what a fiscal officer checks
   against the Certificate of Estimated Resources; the amendment workflow in
   Phase 4 is the supplemental appropriation ordinance.
+
+---
+
+## Phase 4 — Workflow, amendments, publishing
+
+### Q: Walk me through what happens when the Finance Director clicks Adopt.
+**A:** The dialog collects the resolution number (and an acknowledgement if
+the government is in Warn mode and a fund is over its limit). The page
+calls `BudgetWorkflowService.AdoptAsync`, which checks the role, reloads the
+aggregate, evaluates the appropriation limit in the government's mode,
+calls the domain's `version.Adopt(...)` (which itself refuses anything but
+Proposed), writes an `AuditKind.Event` row "Adopted by resolution X", marks
+any previously adopted version of that year superseded if this is an
+amendment, and saves. The workspace reloads and is read-only.
+**Look at:** `Application/Budgets/BudgetWorkflowService.cs` (`TransitionAsync`).
+**Tests:** `WorkflowAndPublishingTests` (9), `BudgetWorkflowTests` (domain).
+
+### Q: How is the Ohio appropriation limit enforced, and why at the transition rather than on save?
+**A:** Every save recalculates and shows the fund balances (Phase 3), but
+enforcement happens at Draft→Proposed and Proposed→Adopted so staff can
+save a budget that is temporarily out of balance. In Block mode the
+transition is refused with a message naming the problem; in Warn mode it
+needs an explicit acknowledgement. Both are tested against seeded data
+where the Street fund is $35,908 over.
+**Look at:** `BudgetWorkflowService.TransitionAsync`, `WorkflowStateDto`.
+
+### Q: Why is an amendment a whole copy rather than a diff?
+**A:** Because the adopted original must stay exactly as council adopted
+it, and because in Ohio a supplemental appropriation ordinance replaces the
+appropriation measure. The copy is a new Draft that goes through the same
+workflow with its own resolution number; on adoption the original is marked
+superseded but never changed.
+**Look at:** `BudgetVersion.CreateAmendment`, `BudgetWorkflowService.CreateAmendmentAsync`.
+
+### Q: How does publishing work, and what stops the portal showing a draft?
+**A:** Publishing captures an adopted version into three denormalized
+tables with every name copied. The portal reads those through
+`PublicPortalDbContext`, which maps only those three tables, filters to
+active snapshots globally, and throws on `SaveChanges`. So a draft is
+unreachable by construction: not in the tables, not in the model, not in
+the filter. Unpublish flips a status and keeps the rows.
+**Look at:** `Domain/Publishing/PublishedBudgetSnapshot.cs`,
+`Application/Publishing/PublishingService.cs`,
+`Infrastructure/Persistence/PublicPortalDbContext.cs`.
+**Tests:** `Portal_context_sees_only_active_snapshots_by_slug_and_nothing_live`,
+`Portal_context_cannot_write`, `Unpublish_keeps_the_snapshot_but_hides_it_from_the_portal`.
+
+### Q: Two DbContexts on one database. How do you keep their mappings in sync?
+**A:** One shared `PublishedSnapshotModel.Configure(ModelBuilder)` that both
+contexts call. The admin context adds only the foreign key to Governments
+(which the portal must not map). The admin context owns the migrations; the
+portal context has none. `dotnet ef` needs `--context` now.
+**Look at:** `Persistence/Configurations/PublishedSnapshotConfiguration.cs`.
+
+### Q: What is superseded vs unpublished?
+**A:** Superseded: replaced by a newer publish of the same fiscal year
+(after an amendment). Unpublished: withdrawn by the Finance Director. Both
+keep every row for history and both are invisible to the portal; the
+publishing history table in the admin app shows all of them.
+
+### Q: How did you build confirmation dialogs in Blazor Server?
+**A:** A `ConfirmDialog` component that renders Bootstrap's modal markup
+from a boolean, with the body as a `RenderFragment` and an `OnConfirm`
+callback returning whether to close. No JavaScript, so the dialog can hold
+inputs and validation. The workflow bar owns six of them.
+
+### General information worth having ready
+- **Audit events vs field changes:** the interceptor records what changed;
+  services record why ("Proposed to council"). Both land in one table.
+- **`db.BudgetVersions.Add(amendment)`** tracks the whole new graph as
+  Added because the root is added explicitly, unlike children discovered
+  through an existing root (ADR-0018).
+- **Cache invalidation hook:** `IPublishedSnapshotCacheInvalidator` is
+  called on publish/unpublish today and is a no-op until Phase 5.
