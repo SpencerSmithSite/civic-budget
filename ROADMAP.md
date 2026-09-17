@@ -39,12 +39,15 @@ docs are updated, and Spencer has approved.
 - [ ] Spencer approves Phase 2
 
 ## Phase 3 — Budget entry  `phase-3-budget-entry`
-- [ ] By-department entry (grouped, subtotals)
-- [ ] By-account grid with inline editing, filter, sort
-- [ ] Fund balance panel with appropriation-limit Warn/Block
-- [ ] `AuditInterceptor` + per-line history view
-- [ ] bUnit tests for grid and panel; integration tests for audit
-- [ ] Walkthrough: SaveChanges interceptors; keeping logic out of components
+- [x] `BudgetEntryService`: workspace DTO (visible lines with `CanEdit`, whole-fund balances with limit results, lookups), update amount/justification, add/remove line, set beginning balance; every mutation re-checks `BudgetLinePermissions`
+- [x] By-department entry (department → fund → category, subtotals, inline amounts) via pure `BudgetGrouping`
+- [x] By-account grid (QuickGrid, filters, sort, inline amount, note toggle, add/remove) with Bootstrap theming
+- [x] Fund balance panel with Warn/Block severity and FD-only beginning balance edits
+- [x] `AuditInterceptor` + `[Audited]` + `AuditEntry` (append-only, tenant-owned); `AddAuditTrail` migration; per-line history view
+- [x] `ValueGeneratedNever` key convention (ADR-0018)
+- [x] Tests: 4 grouping, 7 bUnit (panel, department view), 14 integration (budget entry, audit); 273 total
+- [x] Walkthrough 03; interview prep Phase 3; ADR-0017/0018
+- [ ] Spencer approves Phase 3
 
 ## Phase 4 — Workflow & publishing  `phase-4-workflow`
 - [ ] Draft → Proposed → Adopted transitions with confirmation and role checks
@@ -53,7 +56,21 @@ docs are updated, and Spencer has approved.
 - [ ] `PublicPortalDbContext`
 - [ ] Walkthrough: snapshot boundary as a security decision
 
+## Phase 4.5 — Admin UI design pass  `phase-4.5-admin-design`
+Spencer's review of Phase 3 (2026-09-17): functional, but bare-bones Bootstrap will not impress in an interview. This phase gives the admin app a deliberate visual identity before the public portal reuses it.
+- [ ] Design brief: palette (civic, trustworthy; sufficient contrast), typography, spacing scale, iconography (vendored Bootstrap Icons), states (empty, loading, error, success)
+- [ ] Mockups of the key screens (login, admin overview, budget workspace, fund balance panel, users) for Spencer's approval before implementation
+- [ ] Design tokens as CSS variables layered over Bootstrap (`--bs-*` overrides), one `app.css` theme, no build pipeline
+- [ ] Application shell: branded navbar, sidebar with icons and active states, page headers with breadcrumbs and actions, responsive behavior
+- [ ] Components: KPI cards on the overview, status badges, toasts instead of inline alerts, confirmation modal instead of `window.confirm`, skeleton loading, consistent form layout and validation styling
+- [ ] Budget workspace: worksheet look (sticky header, zebra rows, right-aligned numerics, change columns colored by sign, fund panel as summary cards + table)
+- [ ] Login page and home page with the product story (what CivicBudget is, who it is for)
+- [ ] Accessibility check of the new theme (contrast, focus states, keyboard navigation)
+- [ ] Walkthrough: design tokens over Bootstrap; how the theme is shared with the portal
+
 ## Phase 5 — Public transparency portal  `phase-5-portal`
+Design-first: this is the screen a citizen (and an interviewer) sees without logging in.
+- [ ] Mockups (overview, drill-down, charts, mobile) approved before implementation
 - [ ] `/transparency/{slug}/{year?}` overview, drill-down with breadcrumbs
 - [ ] Charts with data-table alternatives; year-over-year
 - [ ] Search; CSV + XLSX download
@@ -78,6 +95,6 @@ docs are updated, and Spencer has approved.
 
 ## Phase 8 — Polish  `phase-8-polish`
 - [ ] README with screenshots, demo logins, badges, branch-protection guidance
-- [ ] Demo data review, final accessibility check
+- [ ] Final visual QA across every screen at desktop and phone widths; demo data review; final accessibility check
 - [ ] Dependabot (NuGet + Actions)
 - [ ] All walkthroughs complete; CHANGELOG finalized

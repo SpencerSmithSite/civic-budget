@@ -5,6 +5,17 @@ All notable changes to CivicBudget. Format loosely follows
 
 ## [Unreleased]
 
+## Phase 3 — 2026-09-17
+### Added
+- Budget entry: version list, workspace with by-department and by-account-line modes, inline editing, add/remove lines, justification notes.
+- Fund balance panel with estimated resources, appropriations, projected ending balance, and the appropriation limit in Warn/Block severity; Finance Director edits beginning balances inline.
+- Audit trail: `AuditInterceptor` records create/delete/field changes for `[Audited]` entities with user and UTC time; per-line history view; `AddAuditTrail` migration.
+- 273 tests total (+25).
+### Changed
+- Domain entity keys declared `ValueGeneratedNever` so aggregates can add children through their own methods (ADR-0018).
+- Fixed ports (5001/5000) and readable console logging in Development; `DatabaseInitializer` waits for SQL Server.
+- Dependabot: EF Core 10.0.12, GitHub Actions majors.
+
 ## Phase 2 — 2026-09-16
 ### Added
 - ASP.NET Core Identity with cookie sign-in; `ApplicationUser` (government, display name, department assignments); login, logout, profile, and change-password pages; lockout after 5 failed attempts.

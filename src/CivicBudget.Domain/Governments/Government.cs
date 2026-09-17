@@ -7,6 +7,7 @@ namespace CivicBudget.Domain.Governments;
 /// The tenant. Every other entity in the model belongs to exactly one Government.
 /// Not itself <see cref="ITenantOwned"/>, because it *is* the tenant.
 /// </summary>
+[Audited]
 public sealed partial class Government : Entity
 {
     public const int NameMaxLength = 200;

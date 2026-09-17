@@ -1,0 +1,48 @@
+@* One money value that is either printed or, when the line is editable, an input that saves on change.
+   Typing is local; nothing is sent until the field loses focus or Enter is pressed, so the grid stays
+   responsive over the circuit. *@
+@if (CanEdit)
+{
+    <input type="text" inputmode="decimal"
+           class="form-control form-control-sm text-end @(invalid ? "is-invalid" : "")"
+           value="@Value.ToString("N2", Culture)"
+           aria-label="@Label"
+           @onchange="OnChangedAsync" />
+}
+else
+{
+    <span class="text-end d-block">@Display.Money(Value)</span>
+}
+
+@code {
+    private static readonly System.Globalization.CultureInfo Culture = System.Globalization.CultureInfo.GetCultureInfo("en-US");
+    private bool invalid;
+
+    [Parameter, EditorRequired]
+    public decimal Value { get; set; }
+
+    [Parameter]
+    public bool CanEdit { get; set; }
+
+    [Parameter]
+    public string Label { get; set; } = "Amount";
+
+    [Parameter]
+    public EventCallback<decimal> ValueChanged { get; set; }
+
+    private async Task OnChangedAsync(ChangeEventArgs e)
+    {
+        string text = (e.Value?.ToString() ?? "").Replace("$", "", StringComparison.Ordinal).Trim();
+        if (!decimal.TryParse(text, System.Globalization.NumberStyles.Number, Culture, out decimal parsed) || parsed < 0)
+        {
+            invalid = true;
+            return;
+        }
+
+        invalid = false;
+        if (parsed != Value)
+        {
+            await ValueChanged.InvokeAsync(parsed);
+        }
+    }
+}

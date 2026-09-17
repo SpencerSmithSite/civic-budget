@@ -2,6 +2,7 @@ using System.Reflection;
 using CivicBudget.Application.Persistence;
 using CivicBudget.Application.Tenancy;
 using CivicBudget.Domain.Accounts;
+using CivicBudget.Domain.Auditing;
 using CivicBudget.Domain.Budgets;
 using CivicBudget.Domain.Common;
 using CivicBudget.Domain.Departments;
@@ -35,6 +36,7 @@ public sealed class CivicBudgetDbContext(DbContextOptions<CivicBudgetDbContext> 
     public DbSet<BudgetVersion> BudgetVersions => Set<BudgetVersion>();
     public DbSet<BudgetLine> BudgetLines => Set<BudgetLine>();
     public DbSet<FundBeginningBalance> FundBeginningBalances => Set<FundBeginningBalance>();
+    public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
     public DbSet<UserDepartment> UserDepartments => Set<UserDepartment>();
 
     /// <summary>
@@ -54,7 +56,24 @@ public sealed class CivicBudgetDbContext(DbContextOptions<CivicBudgetDbContext> 
     {
         base.OnModelCreating(builder); // Identity's tables and keys; must run first
         builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+        UseClientGeneratedKeys(builder);
         ApplyTenantQueryFilters(builder);
+    }
+
+    /// <summary>
+    /// Every domain entity assigns its own Guid v7 id in its constructor. Telling EF Core the key is
+    /// never store-generated matters for aggregates: when a new BudgetLine is discovered through
+    /// BudgetVersion.Lines, EF decides Added vs Modified by asking "is a generated key already set?".
+    /// With the default (generated) it would answer "set, so it must exist" and issue an UPDATE that
+    /// affects zero rows. With ValueGeneratedNever it tracks the new child as Added.
+    /// </summary>
+    private static void UseClientGeneratedKeys(ModelBuilder builder)
+    {
+        foreach (Microsoft.EntityFrameworkCore.Metadata.IMutableEntityType entityType in builder.Model.GetEntityTypes()
+                     .Where(e => typeof(Entity).IsAssignableFrom(e.ClrType)))
+        {
+            builder.Entity(entityType.ClrType).Property(nameof(Entity.Id)).ValueGeneratedNever();
+        }
     }
 
     /// <summary>

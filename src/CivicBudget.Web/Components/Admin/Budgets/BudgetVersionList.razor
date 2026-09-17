@@ -1,0 +1,54 @@
+@page "/admin/budgets"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Policies.CanViewBudget)]
+@inject IBudgetEntryService BudgetEntry
+
+<PageTitle>Budget versions</PageTitle>
+
+<h1 class="h3">Budget versions</h1>
+<p class="text-secondary">Each fiscal year has an original budget and, after adoption, any amendments. Open a version to enter or review lines.</p>
+
+@if (versions is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th scope="col">Fiscal year</th>
+                <th scope="col">Version</th>
+                <th scope="col">Status</th>
+                <th scope="col">Resolution</th>
+                <th scope="col" class="text-end">Lines</th>
+                <th scope="col"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (BudgetVersionSummaryDto version in versions)
+            {
+                <tr>
+                    <td>FY@(version.Year)</td>
+                    <td>
+                        @version.Label
+                        @if (version.AmendmentReason is not null)
+                        {
+                            <div class="small text-secondary">@version.AmendmentReason</div>
+                        }
+                    </td>
+                    <td><StatusBadge Status="version.Status" /></td>
+                    <td>@version.ResolutionNumber</td>
+                    <td class="text-end">@version.LineCount</td>
+                    <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="admin/budgets/@version.Id">Open</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private IReadOnlyList<BudgetVersionSummaryDto>? versions;
+
+    protected override async Task OnInitializedAsync() => versions = await BudgetEntry.ListVersionsAsync();
+}

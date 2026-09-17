@@ -23,5 +23,16 @@ public static class Display
         return sb.ToString().Replace(" And ", " & ", StringComparison.Ordinal);
     }
 
-    public static string Money(decimal amount) => amount.ToString("C0", System.Globalization.CultureInfo.GetCultureInfo("en-US"));
+    private static readonly System.Globalization.CultureInfo UsCulture = System.Globalization.CultureInfo.GetCultureInfo("en-US");
+
+    /// <summary>"$1,234.50". Budgets are kept to the cent, so screens show the cent.</summary>
+    public static string Money(decimal amount) => amount.ToString("C2", UsCulture);
+
+    /// <summary>"+12.5%" / "-3.0%", or "new" when there is no baseline to compare against.</summary>
+    public static string Percent(decimal? percent) => percent is { } p
+        ? (p >= 0 ? "+" : "") + p.ToString("0.0", UsCulture) + "%"
+        : "new";
+
+    /// <summary>Signed money for change columns: "+$500.00" / "-$500.00".</summary>
+    public static string SignedMoney(decimal amount) => (amount >= 0 ? "+" : "-") + Math.Abs(amount).ToString("C2", UsCulture);
 }

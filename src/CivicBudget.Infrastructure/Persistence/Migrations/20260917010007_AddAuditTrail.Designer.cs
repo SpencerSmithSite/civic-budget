@@ -4,6 +4,7 @@ using CivicBudget.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CivicBudget.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(CivicBudgetDbContext))]
-    partial class CivicBudgetDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260917010007_AddAuditTrail")]
+    partial class AddAuditTrail
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -55,7 +58,7 @@ namespace CivicBudget.Infrastructure.Persistence.Migrations
                     b.HasIndex("GovernmentId", "Code")
                         .IsUnique();
 
-                    b.ToTable("Accounts", (string)null);
+                    b.ToTable("Accounts");
                 });
 
             modelBuilder.Entity("CivicBudget.Domain.Auditing.AuditEntry", b =>
@@ -113,7 +116,7 @@ namespace CivicBudget.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("EntityName", "EntityId", "TimestampUtc");
 
-                    b.ToTable("AuditEntries", (string)null);
+                    b.ToTable("AuditEntries");
                 });
 
             modelBuilder.Entity("CivicBudget.Domain.Budgets.BudgetLine", b =>
@@ -167,7 +170,7 @@ namespace CivicBudget.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasFilter("[DepartmentId] IS NOT NULL");
 
-                    b.ToTable("BudgetLines", (string)null);
+                    b.ToTable("BudgetLines");
                 });
 
             modelBuilder.Entity("CivicBudget.Domain.Budgets.BudgetVersion", b =>
@@ -215,7 +218,7 @@ namespace CivicBudget.Infrastructure.Persistence.Migrations
                     b.HasIndex("FiscalYearId", "VersionNumber")
                         .IsUnique();
 
-                    b.ToTable("BudgetVersions", (string)null);
+                    b.ToTable("BudgetVersions");
                 });
 
             modelBuilder.Entity("CivicBudget.Domain.Budgets.FundBeginningBalance", b =>
@@ -246,7 +249,7 @@ namespace CivicBudget.Infrastructure.Persistence.Migrations
                     b.HasIndex("BudgetVersionId", "FundId")
                         .IsUnique();
 
-                    b.ToTable("FundBeginningBalances", (string)null);
+                    b.ToTable("FundBeginningBalances");
                 });
 
             modelBuilder.Entity("CivicBudget.Domain.Departments.Department", b =>
@@ -279,7 +282,7 @@ namespace CivicBudget.Infrastructure.Persistence.Migrations
                     b.HasIndex("GovernmentId", "Code")
                         .IsUnique();
 
-                    b.ToTable("Departments", (string)null);
+                    b.ToTable("Departments");
                 });
 
             modelBuilder.Entity("CivicBudget.Domain.FiscalYears.FiscalYear", b =>
@@ -308,7 +311,7 @@ namespace CivicBudget.Infrastructure.Persistence.Migrations
                     b.HasIndex("GovernmentId", "Year")
                         .IsUnique();
 
-                    b.ToTable("FiscalYears", (string)null);
+                    b.ToTable("FiscalYears");
                 });
 
             modelBuilder.Entity("CivicBudget.Domain.Funds.Fund", b =>
@@ -344,7 +347,7 @@ namespace CivicBudget.Infrastructure.Persistence.Migrations
                     b.HasIndex("GovernmentId", "Code")
                         .IsUnique();
 
-                    b.ToTable("Funds", (string)null);
+                    b.ToTable("Funds");
                 });
 
             modelBuilder.Entity("CivicBudget.Domain.Governments.Government", b =>
@@ -386,7 +389,7 @@ namespace CivicBudget.Infrastructure.Persistence.Migrations
                     b.HasIndex("PublicSlug")
                         .IsUnique();
 
-                    b.ToTable("Governments", (string)null);
+                    b.ToTable("Governments");
                 });
 
             modelBuilder.Entity("CivicBudget.Infrastructure.Identity.ApplicationUser", b =>

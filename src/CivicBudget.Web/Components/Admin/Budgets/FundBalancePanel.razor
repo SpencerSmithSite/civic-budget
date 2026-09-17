@@ -1,0 +1,76 @@
+@* Per-fund estimated resources vs. appropriations, with the appropriation limit result. The
+   numbers come from the service; this component only prints and colors them. *@
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Fund balances</span>
+        @if (Balances.Any(b => b.Limit.BlocksWorkflow))
+        {
+            <span class="badge text-bg-danger">Over limit</span>
+        }
+        else if (Balances.Any(b => b.Limit.Severity == AppropriationLimitSeverity.Warning))
+        {
+            <span class="badge text-bg-warning">Warning</span>
+        }
+        else
+        {
+            <span class="badge text-bg-success">In balance</span>
+        }
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm mb-0 fund-balance-table">
+            <thead>
+                <tr>
+                    <th scope="col">Fund</th>
+                    <th scope="col" class="text-end">Beginning balance</th>
+                    <th scope="col" class="text-end">Revenues + transfers in</th>
+                    <th scope="col" class="text-end">Estimated resources</th>
+                    <th scope="col" class="text-end">Appropriations</th>
+                    <th scope="col" class="text-end">Projected ending</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (FundBalanceDto fund in Balances)
+                {
+                    string rowClass = fund.Limit.Severity switch
+                    {
+                        AppropriationLimitSeverity.Error => "table-danger",
+                        AppropriationLimitSeverity.Warning => "table-warning",
+                        _ => "",
+                    };
+                    <tr class="@rowClass">
+                        <th scope="row">
+                            @fund.FundCode @fund.FundName
+                            @if (!fund.Summary.IsWithinAppropriationLimit)
+                            {
+                                <div class="small fw-normal">
+                                    Appropriations exceed estimated resources by <strong>@Display.Money(fund.Limit.AmountOverLimit)</strong>.
+                                </div>
+                            }
+                        </th>
+                        <td>
+                            <AmountCell Value="fund.Summary.BeginningBalance" CanEdit="fund.CanEditBeginningBalance"
+                                        Label="@($"Beginning balance for {fund.FundCode}")"
+                                        ValueChanged="amount => OnBeginningBalanceChanged.InvokeAsync((fund.FundId, amount))" />
+                        </td>
+                        <td class="text-end">@Display.Money(fund.Summary.Revenues + fund.Summary.TransfersIn)</td>
+                        <td class="text-end fw-semibold">@Display.Money(fund.Summary.EstimatedResources)</td>
+                        <td class="text-end fw-semibold">@Display.Money(fund.Summary.Appropriations)</td>
+                        <td class="text-end @(fund.Summary.ProjectedEndingBalance < 0 ? "text-danger fw-bold" : "")">@Display.Money(fund.Summary.ProjectedEndingBalance)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer small text-secondary">
+        Estimated resources = beginning balance + revenues + transfers in. Appropriations = expenditures + transfers out.
+        Ohio law caps appropriations at certified estimated resources.
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<FundBalanceDto> Balances { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<(Guid FundId, decimal Amount)> OnBeginningBalanceChanged { get; set; }
+}

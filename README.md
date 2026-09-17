@@ -6,7 +6,7 @@ Blazor, EF Core, and SQL Server, with a deploy-ready AWS CDK stack.
 
 [![ci](https://github.com/SpencerSmithSite/civic-budget/actions/workflows/ci.yml/badge.svg)](https://github.com/SpencerSmithSite/civic-budget/actions/workflows/ci.yml)
 
-> **Status:** Phase 2 complete: identity, roles and policies, and the admin maintenance screens. See [ROADMAP.md](ROADMAP.md).
+> **Status:** Phase 3 complete: budget entry in two modes, live fund balances with the Ohio appropriation check, and a field-level audit trail. See [ROADMAP.md](ROADMAP.md).
 
 **Two audiences, one solution**
 - **Admin app** — finance staff and department heads build the annual budget:
@@ -35,16 +35,16 @@ keeps it in user-secrets (`dotnet user-secrets list --project src/CivicBudget.We
 | Login | Role | Sees |
 |---|---|---|
 | `admin@mapleridge.example` | Administrator | Users, government settings, setup |
-| `finance@mapleridge.example` | Finance Director | Setup; budget entry and workflow (Phase 3+) |
-| `police@mapleridge.example` | Department Head (Police) | Own department's lines (Phase 3) |
-| `streets@mapleridge.example` | Department Head (Streets, Parks) | Own departments' lines (Phase 3) |
+| `finance@mapleridge.example` | Finance Director | Setup; budget entry in both modes; beginning balances |
+| `police@mapleridge.example` | Department Head (Police) | Own department's lines, grouped view |
+| `streets@mapleridge.example` | Department Head (Streets, Parks) | Own departments' lines, grouped view |
 | `viewer@mapleridge.example` | Viewer | Read-only overview |
 | `admin@pinehollow.example` | Administrator (second tenant) | Pine Hollow only; proves isolation |
 
 To start over with fresh seed data: `docker compose down -v && docker compose up -d`.
 
 ```bash
-dotnet test                                 # all 248 tests; integration tests start their own SQL Server container
+dotnet test                                 # all 273 tests; integration tests start their own SQL Server container
 ```
 
 Documentation: [Spec](docs/SPEC.md) · [Architecture](docs/ARCHITECTURE.md) ·

@@ -6,6 +6,7 @@ namespace CivicBudget.Domain.Budgets;
 /// The estimated unencumbered fund balance at the start of the fiscal year, per fund, per version.
 /// Together with revenue and transfer-in lines this forms the fund's estimated resources.
 /// </summary>
+[Audited]
 public sealed class FundBeginningBalance : Entity, ITenantOwned
 {
     public Guid GovernmentId { get; private set; }

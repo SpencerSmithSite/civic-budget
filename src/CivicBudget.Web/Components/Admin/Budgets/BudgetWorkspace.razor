@@ -1,0 +1,159 @@
+@page "/admin/budgets/{VersionId:guid}"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Policies.CanViewBudget)]
+@inject IBudgetEntryService BudgetEntry
+@inject IJSRuntime JS
+
+<PageTitle>Budget entry</PageTitle>
+
+@if (notFound)
+{
+    <div class="alert alert-warning">That budget version was not found.</div>
+}
+else if (workspace is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+        <div>
+            <h1 class="h3 mb-0">FY@(workspace.Version.Year) budget, @workspace.Version.Label <StatusBadge Status="workspace.Version.Status" /></h1>
+            <div class="text-secondary small">
+                @if (workspace.Version.AmendmentReason is not null) { <span>@workspace.Version.AmendmentReason. </span> }
+                @(workspace.IsEditable ? "Changes save when you leave a field." : "Adopted versions are read-only; create an amendment to change them.")
+            </div>
+        </div>
+        @if (!isDepartmentHead)
+        {
+            <div class="btn-group" role="group" aria-label="Entry mode">
+                <button type="button" class="btn btn-sm @(mode == Mode.ByDepartment ? "btn-primary" : "btn-outline-primary")" @onclick="() => mode = Mode.ByDepartment">By department</button>
+                <button type="button" class="btn btn-sm @(mode == Mode.ByAccount ? "btn-primary" : "btn-outline-primary")" @onclick="() => mode = Mode.ByAccount">By account line</button>
+            </div>
+        }
+    </div>
+
+    <ResultAlert Result="lastResult" />
+    <SuccessAlert Message="@savedMessage" />
+
+    <div class="mb-3">
+        <FundBalancePanel Balances="workspace.FundBalances" OnBeginningBalanceChanged="SetBeginningBalanceAsync" />
+    </div>
+
+    @if (workspace.CanAddLines && mode == Mode.ByAccount)
+    {
+        <AddLineForm Workspace="workspace" OnAdd="AddLineAsync" />
+    }
+
+    @if (mode == Mode.ByDepartment)
+    {
+        <DepartmentEntryView Lines="workspace.Lines" OnAmountChanged="UpdateAmountAsync" OnShowHistory="ShowHistory" />
+        @if (workspace.CanAddLines)
+        {
+            <AddLineForm Workspace="workspace" OnAdd="AddLineAsync" />
+        }
+    }
+    else
+    {
+        <AccountLineGrid Workspace="workspace" OnAmountChanged="UpdateAmountAsync" OnJustificationChanged="UpdateJustificationAsync"
+                         OnShowHistory="ShowHistory" OnRemove="RemoveLineAsync" />
+    }
+
+    @if (historyLine is not null)
+    {
+        <div class="mt-3">
+            <LineHistory Line="historyLine" Version="historyVersion" OnClose="() => historyLine = null" />
+        </div>
+    }
+}
+
+@code {
+    private enum Mode { ByDepartment, ByAccount }
+
+    [Parameter]
+    public Guid VersionId { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    private BudgetWorkspaceDto? workspace;
+    private Mode mode = Mode.ByDepartment;
+    private bool notFound;
+    private bool isDepartmentHead;
+    private Result? lastResult;
+    private string? savedMessage;
+    private BudgetLineDto? historyLine;
+    private int historyVersion;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Finance Directors (and admins/viewers) default to the grid; Department Heads only have the grouped view.
+        AuthenticationState state = await AuthenticationState;
+        isDepartmentHead = state.User.IsInRole(Roles.DepartmentHead);
+        if (!isDepartmentHead)
+        {
+            mode = Mode.ByAccount;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        workspace = await BudgetEntry.GetWorkspaceAsync(VersionId);
+        notFound = workspace is null;
+        if (historyLine is not null && workspace is not null)
+        {
+            historyLine = workspace.Lines.FirstOrDefault(l => l.Id == historyLine.Id);
+            historyVersion++;
+        }
+    }
+
+    // Every mutation goes through the service and then reloads the workspace, so the fund balance
+    // panel and subtotals are always computed from saved data rather than from screen state.
+    private Task UpdateAmountAsync((Guid LineId, decimal Amount) change) =>
+        ApplyAsync(() => BudgetEntry.UpdateLineAmountAsync(VersionId, change.LineId, change.Amount), "Amount saved.");
+
+    private Task UpdateJustificationAsync((Guid LineId, string? Justification) change) =>
+        ApplyAsync(() => BudgetEntry.UpdateLineJustificationAsync(VersionId, change.LineId, change.Justification), "Justification saved.");
+
+    private Task SetBeginningBalanceAsync((Guid FundId, decimal Amount) change) =>
+        ApplyAsync(() => BudgetEntry.SetBeginningBalanceAsync(VersionId, change.FundId, change.Amount), "Beginning balance saved.");
+
+    private async Task<Result> AddLineAsync(AddBudgetLineRequest request)
+    {
+        Result<Guid> added = await BudgetEntry.AddLineAsync(request);
+        if (added.IsSuccess)
+        {
+            savedMessage = "Line added.";
+            lastResult = null;
+            await LoadAsync();
+        }
+
+        return added;
+    }
+
+    private async Task RemoveLineAsync(BudgetLineDto line)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"Remove {line.AccountCode} {line.AccountName} from {line.FundCode}?"))
+        {
+            return;
+        }
+
+        await ApplyAsync(() => BudgetEntry.RemoveLineAsync(VersionId, line.Id), "Line removed.");
+    }
+
+    private async Task ApplyAsync(Func<Task<Result>> action, string successMessage)
+    {
+        Result result = await action();
+        lastResult = result.IsSuccess ? null : result;
+        savedMessage = result.IsSuccess ? successMessage : null;
+        await LoadAsync();
+    }
+
+    private void ShowHistory(BudgetLineDto line)
+    {
+        historyLine = line;
+        historyVersion++;
+    }
+}

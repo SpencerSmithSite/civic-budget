@@ -1,0 +1,15 @@
+@{
+    string css = Status switch
+    {
+        BudgetStatus.Draft => "text-bg-secondary",
+        BudgetStatus.Proposed => "text-bg-info",
+        BudgetStatus.Adopted => "text-bg-success",
+        _ => "text-bg-light",
+    };
+}
+<span class="badge @css">@Status</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public BudgetStatus Status { get; set; }
+}

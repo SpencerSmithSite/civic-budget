@@ -298,6 +298,16 @@ Razor components display the validation results; they never contain rules.
 
 ---
 
+## 7.3 Visual design (added 2026-09-17)
+The application is a portfolio piece and will be judged on sight before it is judged on
+code. Both apps get a deliberate visual identity (ROADMAP Phase 4.5 for the admin app,
+Phase 5 for the portal): a civic, trustworthy palette with WCAG AA contrast, a clear type
+scale, consistent spacing, icons, and designed states (empty, loading, error, success).
+Mockups are approved by Spencer before implementation. Bootstrap stays as the base, themed
+through CSS variables, with no front-end build pipeline.
+
+---
+
 ## 8. Non-functional requirements
 - .NET 10 LTS; nullable enabled; warnings as errors; file-scoped namespaces;
   async end-to-end.

@@ -10,6 +10,7 @@ namespace CivicBudget.Domain.Budgets;
 /// Lines are created and mutated only through <see cref="BudgetVersion"/>, which owns the
 /// "is this version still editable?" rule; that is why the setters here are internal.
 /// </summary>
+[Audited]
 public sealed class BudgetLine : Entity, ITenantOwned
 {
     public const int JustificationMaxLength = 2000;

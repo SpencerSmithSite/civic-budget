@@ -6,6 +6,7 @@ namespace CivicBudget.Domain.Departments;
 /// An organizational unit (Police, Streets &amp; Service, Water Utility). Departments are cross-fund:
 /// one department may have budget lines in several funds.
 /// </summary>
+[Audited]
 public sealed class Department : Entity, ITenantOwned
 {
     public const int CodeMaxLength = 20;

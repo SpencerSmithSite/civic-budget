@@ -2,6 +2,7 @@ using CivicBudget.Domain.Common;
 
 namespace CivicBudget.Domain.FiscalYears;
 
+[Audited]
 public sealed class FiscalYear : Entity, ITenantOwned
 {
     public Guid GovernmentId { get; private set; }

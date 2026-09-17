@@ -10,6 +10,7 @@ namespace CivicBudget.Domain.Budgets;
 /// amendment (2, 3, …). All edits to lines and beginning balances go through this class so the
 /// "adopted versions are immutable" rule lives in exactly one place.
 /// </summary>
+[Audited]
 public sealed class BudgetVersion : Entity, ITenantOwned
 {
     public const int ReasonMaxLength = 1000;

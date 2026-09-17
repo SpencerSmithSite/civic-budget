@@ -1,0 +1,92 @@
+@using CivicBudget.Domain.Accounts
+@* Adds a line to the open version. Department is required for expenditure accounts and optional
+   otherwise; the domain enforces that too, so a bad combination becomes a message, not a crash. *@
+<div class="card mb-3">
+    <div class="card-body">
+        <h2 class="h6">Add a line</h2>
+        <ResultAlert Result="result" />
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small" for="add-fund">Fund</label>
+                <select id="add-fund" class="form-select form-select-sm" @bind="fundId">
+                    <option value="">Choose...</option>
+                    @foreach (LookupDto fund in Workspace.Funds)
+                    {
+                        <option value="@fund.Id">@fund.Display</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small" for="add-dept">Department</label>
+                <select id="add-dept" class="form-select form-select-sm" @bind="departmentId">
+                    <option value="">(none, fund level)</option>
+                    @foreach (LookupDto department in Workspace.Departments)
+                    {
+                        <option value="@department.Id">@department.Display</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small" for="add-account">Account</label>
+                <select id="add-account" class="form-select form-select-sm" @bind="accountId">
+                    <option value="">Choose...</option>
+                    @foreach (AccountLookupDto account in Workspace.Accounts)
+                    {
+                        <option value="@account.Id">@account.Display (@Display.Enum(account.Type))</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small" for="add-amount">Proposed amount</label>
+                <input id="add-amount" type="text" inputmode="decimal" class="form-control form-control-sm text-end" @bind="amountText" />
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-sm btn-primary w-100" @onclick="SubmitAsync" disabled="@saving">Add</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string fundId = "";
+    private string departmentId = "";
+    private string accountId = "";
+    private string amountText = "0.00";
+    private Result? result;
+    private bool saving;
+
+    [Parameter, EditorRequired]
+    public BudgetWorkspaceDto Workspace { get; set; } = default!;
+
+    /// <summary>Receives the request; the page calls the service and reloads. Returns the service result for display.</summary>
+    [Parameter]
+    public Func<AddBudgetLineRequest, Task<Result>> OnAdd { get; set; } = default!;
+
+    private async Task SubmitAsync()
+    {
+        if (!Guid.TryParse(fundId, out Guid fund) || !Guid.TryParse(accountId, out Guid account))
+        {
+            result = Result.Failure("Choose a fund and an account.");
+            return;
+        }
+
+        if (!decimal.TryParse(amountText, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.GetCultureInfo("en-US"), out decimal amount))
+        {
+            result = Result.Failure("Enter a valid amount.");
+            return;
+        }
+
+        Guid? department = Guid.TryParse(departmentId, out Guid d) ? d : null;
+
+        saving = true;
+        result = await OnAdd(new AddBudgetLineRequest(Workspace.Version.Id, fund, department, account, amount, 0m, 0m, null));
+        saving = false;
+
+        if (result.IsSuccess)
+        {
+            accountId = "";
+            amountText = "0.00";
+            result = null;
+        }
+    }
+}

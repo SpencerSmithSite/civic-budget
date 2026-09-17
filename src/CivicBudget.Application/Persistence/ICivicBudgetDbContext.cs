@@ -1,4 +1,5 @@
 using CivicBudget.Domain.Accounts;
+using CivicBudget.Domain.Auditing;
 using CivicBudget.Domain.Budgets;
 using CivicBudget.Domain.Departments;
 using CivicBudget.Domain.FiscalYears;
@@ -24,6 +25,7 @@ public interface ICivicBudgetDbContext : IAsyncDisposable, IDisposable
     DbSet<BudgetVersion> BudgetVersions { get; }
     DbSet<BudgetLine> BudgetLines { get; }
     DbSet<FundBeginningBalance> FundBeginningBalances { get; }
+    DbSet<AuditEntry> AuditEntries { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
