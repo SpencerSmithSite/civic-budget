@@ -40,6 +40,10 @@ Actions · AWS CDK (C#) deploy-ready (no account — see ADR-0008).
 - Reseed after schema/seed changes: `docker compose down -v && docker compose up -d`, then run the app.
 - SQL Server refuses multiple cascade paths; use `DeleteBehavior.Restrict` on the second path (see IdentityConfiguration).
 - EF Core cannot `OrderBy` after projecting to a DTO with collection sub-queries; order the entity first.
+- Entities set their own Guid v7 ids, so keys are `ValueGeneratedNever` (ADR-0018); otherwise EF tracks children discovered through an aggregate as Modified.
+- QuickGrid's default theme wins on CSS specificity; pass `Theme="bootstrap"` and style headers in app.css for dense grids.
+- SQL Server under Rosetta occasionally segfaults (container exit 139). `docker compose up -d` restarts it; the volume survives.
+- Interceptor order: `AuditInterceptor` before `TenantSaveChangesInterceptor` so audit rows are tenant-checked too.
 
 ## Code conventions
 - `Directory.Build.props`: `<Nullable>enable</Nullable>`,
@@ -54,6 +58,7 @@ Actions · AWS CDK (C#) deploy-ready (no account — see ADR-0008).
 - Never call `IgnoreQueryFilters()` in application code (tests may).
 - Identity tables are the one thing outside the tenant filter; `UserAdminService` scopes by government explicitly (ADR-0015).
 - Admin pages: `@rendermode InteractiveServer` + `[Authorize(Policy = Policies.X)]`; Account pages are static SSR.
+- Mark financial entities `[Audited]`; the interceptor does the rest. Use `AuditEntry.Event(...)` for named actions.
 - Domain invariants throw `DomainException`; user-input problems return a
   `Result` with errors.
 - Naming: `*Service` (Application), `*Repository` only if it earns its keep,

@@ -39,12 +39,15 @@ docs are updated, and Spencer has approved.
 - [ ] Spencer approves Phase 2
 
 ## Phase 3 — Budget entry  `phase-3-budget-entry`
-- [ ] By-department entry (grouped, subtotals)
-- [ ] By-account grid with inline editing, filter, sort
-- [ ] Fund balance panel with appropriation-limit Warn/Block
-- [ ] `AuditInterceptor` + per-line history view
-- [ ] bUnit tests for grid and panel; integration tests for audit
-- [ ] Walkthrough: SaveChanges interceptors; keeping logic out of components
+- [x] `BudgetEntryService`: workspace DTO (visible lines with `CanEdit`, whole-fund balances with limit results, lookups), update amount/justification, add/remove line, set beginning balance; every mutation re-checks `BudgetLinePermissions`
+- [x] By-department entry (department → fund → category, subtotals, inline amounts) via pure `BudgetGrouping`
+- [x] By-account grid (QuickGrid, filters, sort, inline amount, note toggle, add/remove) with Bootstrap theming
+- [x] Fund balance panel with Warn/Block severity and FD-only beginning balance edits
+- [x] `AuditInterceptor` + `[Audited]` + `AuditEntry` (append-only, tenant-owned); `AddAuditTrail` migration; per-line history view
+- [x] `ValueGeneratedNever` key convention (ADR-0018)
+- [x] Tests: 4 grouping, 7 bUnit (panel, department view), 14 integration (budget entry, audit); 273 total
+- [x] Walkthrough 03; interview prep Phase 3; ADR-0017/0018
+- [ ] Spencer approves Phase 3
 
 ## Phase 4 — Workflow & publishing  `phase-4-workflow`
 - [ ] Draft → Proposed → Adopted transitions with confirmation and role checks

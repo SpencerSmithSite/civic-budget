@@ -319,3 +319,81 @@ to the county's identity provider than turn them on.
   during routing; for static SSR it is enforced by the endpoint metadata.
 - Bootstrap is served from `wwwroot/lib` (no CDN) so the admin app has no
   external runtime dependency and works on an air-gapped network.
+
+---
+
+## Phase 3 — Budget entry, fund balances, audit trail
+
+### Q: How does the audit trail work, and why an interceptor?
+**A:** `AuditInterceptor` is an EF Core `SaveChangesInterceptor`. Inside
+`SaveChanges` it walks the change tracker, and for every entity marked
+`[Audited]` it appends `AuditEntry` rows: one for a create or delete, one
+per changed property for an update, each with old value, new value, user,
+and UTC time. The rows are added to the same context before the save
+continues, so they commit in the same transaction as the change. No
+service has to remember to write audit rows, and none can forget.
+**Look at:** `Infrastructure/Persistence/Interceptors/AuditInterceptor.cs`,
+`Domain/Auditing/AuditEntry.cs`, `Domain/Common/AuditedAttribute.cs`.
+**Tests:** `AuditInterceptorTests` (5).
+**Rejected:** database triggers (invisible to the code, no user context),
+temporal tables (great for point-in-time queries, but they do not record
+*who*, and they version whole rows rather than answering "what changed").
+
+### Q: What does a Department Head see, and how do you stop them editing other departments?
+**A:** `GetWorkspaceAsync` filters lines to the departments in the user's
+claims and sets `CanEdit` per line with `BudgetLinePermissions`. Every
+mutation re-loads the version and re-checks the same rule against the
+line's department and the version's *current* status, so a stale screen or
+a guessed id cannot edit what the user may not. Fund balances are always
+whole-fund figures, because a partial fund total would make the
+appropriation check meaningless.
+**Look at:** `Application/Budgets/BudgetEntryService.cs` (`GetWorkspaceAsync`, `LoadLineForEditAsync`).
+**Tests:** `BudgetEntryServiceTests` (9).
+
+### Q: Why reload the whole workspace after each edit?
+**A:** Correctness over cleverness: the fund balance panel and subtotals
+are always computed from saved data. At village scale it is one query for
+~100 lines. If scale demanded it, the service could return a delta and the
+components would not change, because they only render the DTO.
+
+### Q: Tell me about a bug you hit and what you learned.
+**A:** Adding a line through the aggregate threw a concurrency exception:
+EF tracked the new child as Modified. Our entities assign Guid v7 keys in
+their constructors, and EF's default for Guid keys is "generated on add",
+so when it discovered the child through the parent's collection it saw a
+set key and assumed the row existed. Marking `Id` as `ValueGeneratedNever`
+for every entity (a convention in `OnModelCreating`) fixed it with no
+schema change. Lesson: EF decides Added vs Modified for discovered entities
+from key-generation metadata, not from whether the row exists.
+**Look at:** `CivicBudgetDbContext.UseClientGeneratedKeys`.
+
+### Q: How is the by-department view built? Where are the subtotals computed?
+**A:** `BudgetGrouping.ByDepartment` is a pure function in Application that
+builds department → fund → category groups; `LineGroup` exposes `Amount`,
+`CurrentYearBudget`, `DollarChange`, `PercentChange` as sums of its lines and
+children. The component only walks the tree and prints. Unit-tested
+without a database or a renderer.
+**Look at:** `Application/Budgets/BudgetGrouping.cs`, `BudgetGroupingTests`.
+
+### Q: What about two Finance Directors editing the same line at once?
+**A:** Last write wins today, and the audit trail shows both writes. A
+`rowversion` concurrency token plus a "this line changed since you loaded
+it" message is the standard EF Core answer and would be a small change; it
+was not in the spec, so it is documented as a known gap rather than built.
+
+### Q: Why is Bootstrap's table styling fighting QuickGrid?
+**A:** QuickGrid ships a default theme with its own cell padding at higher
+specificity. Its documented escape hatch is a different `Theme` name, which
+disables the built-in styles so `.table-sm` and app CSS take over. Sorting
+and pagination are behavior, not styling, so they keep working.
+
+### General information worth having ready
+- **Interceptor order:** audit first, tenant check second, so audit rows are
+  also verified. Order is the `AddInterceptors` argument order.
+- **`TimeProvider`** (in .NET 8+) replaces hand-rolled `IClock`
+  abstractions; `TimeProvider.System` in production, a fake in tests.
+- **`Modified` vs `Added` on graph discovery:** EF uses key-generation
+  metadata; `Add()` on the DbSet forces Added regardless.
+- **Ohio context:** the fund balance panel is what a fiscal officer checks
+  against the Certificate of Estimated Resources; the amendment workflow in
+  Phase 4 is the supplemental appropriation ordinance.

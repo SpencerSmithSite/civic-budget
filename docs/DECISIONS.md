@@ -326,3 +326,38 @@ different needs).
 
 **Consequences.** ~300 KB in the repo; versions are updated by hand. The public portal in
 Phase 5 may use its own minimal CSS to stay fast on phones.
+
+---
+
+## ADR-0017 — Audit trail via SaveChanges interceptor and an opt-in attribute
+**Date:** 2026-09-17 · **Status:** Accepted
+
+**Context.** SPEC section 7.1 item 6: record who changed what and when, field by field, and show
+history per budget line.
+
+**Decision.** `AuditInterceptor : SaveChangesInterceptor` writes `AuditEntry` rows for entities
+marked `[Audited]`, in the same context and transaction as the change. User and time come from
+`ICurrentUser` and `TimeProvider`. `AuditEntry` is append-only and tenant-owned. `AuditKind.Event`
+lets services record named actions (workflow, publishing) explicitly.
+
+**Alternatives.** SQL Server temporal tables (no "who", whole-row versions); database triggers
+(outside the code, no user context); writing audit rows in each service (easy to forget).
+
+**Consequences.** Every audited change costs extra insert rows (one per changed property). Audit
+values are text for humans; they are not a replay log. The interceptor must be registered before
+the tenant interceptor.
+
+---
+
+## ADR-0018 — Client-generated keys are declared `ValueGeneratedNever`
+**Date:** 2026-09-17 · **Status:** Accepted
+
+**Context.** Entities assign Guid v7 ids in their constructors. EF Core's default for Guid keys is
+"generated on add", which made EF classify a new child discovered through an aggregate's
+collection as Modified, producing a zero-row UPDATE and a concurrency exception.
+
+**Decision.** `CivicBudgetDbContext.UseClientGeneratedKeys` marks `Id` on every `Entity` subtype
+as `ValueGeneratedNever()`. No schema change.
+
+**Consequences.** Aggregates can add children through their own methods and `SaveChanges` does the
+right thing. Any entity must set its own id (the base class does).
