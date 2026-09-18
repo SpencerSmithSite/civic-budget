@@ -86,13 +86,18 @@ Design-first: this is the screen a citizen (and an interviewer) sees without log
 - [x] Accessibility: landmarks, breadcrumb list, `aria-current`, chart text alternatives, works without JavaScript, checked at 1440 and 390 px
 - [x] Tests: 9 integration (`SnapshotQueryServiceTests`), 4 unit (CSV, XLSX), 42 Web (cache policy, invalidator, middleware, `Breakdown`, helpers); 347 total
 - [x] Walkthrough 06; interview prep Phase 5
-- [ ] Spencer approves Phase 5
+- [x] Spencer approves Phase 5 (2026-09-18)
 
 ## Phase 6 — Import/export & reports  `phase-6-import-reports`
-- [ ] CSV/XLSX import with validation preview
-- [ ] XLSX export of any grid/report (ClosedXML)
-- [ ] Reports: Budget Summary by Fund, Department Budget Detail, Revenue vs. Expenditure by Category; print CSS
-- [ ] Walkthrough: server-side Excel without Office
+- [x] `IBudgetImportService`: CSV/XLSX upload, preview with per-row Add/Update/Unchanged/Error, commit re-validates and applies through the aggregate with one audit event (ADR-0022)
+- [x] `ImportAnalyzer` (pure rules), `ImportFileParser` (columns by name), `CsvReader`, `ISpreadsheetReader` (ClosedXML)
+- [x] Import screen: file picker, four KPIs, preview grid with error rows, confirm dialog; Finance Director only, editable versions only
+- [x] XLSX export: workspace lines (in the import's layout), the three reports, funds/departments/accounts; minimal API under `/admin/export` behind the same policies
+- [x] `IReportService` + `ReportBuilder`: Budget Summary by Fund, Department Budget Detail (with department filter), Revenue vs. Expenditure by Category
+- [x] Report screens with a printable header block, Print (`window.print`) and Export XLSX; `@media print` stylesheet; Reports in the sidebar; Tools menu on the workspace
+- [x] Tests: 24 unit (readers, parser, analyser, builders), 8 integration (import service, report service), 8 bUnit; 387 total
+- [x] Walkthrough 07; interview prep Phase 6; ADR-0022
+- [ ] Spencer approves Phase 6
 
 ## Phase 7 — AWS deployment (deploy-ready)  `phase-7-aws`
 - [ ] Dockerfile (multi-stage), full-stack docker compose

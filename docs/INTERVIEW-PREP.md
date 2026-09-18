@@ -621,3 +621,88 @@ with the pages.
   inside the output cache's `ServeResponseAsync` headers are already read-only.
 - `IOutputCacheStore` has an in-memory default and a Redis package
   (`Microsoft.AspNetCore.OutputCaching.StackExchangeRedis`) for multi-instance hosting.
+
+## Phase 6 — Import, export, reports
+
+### Q: How does the import make sure a bad file cannot half-apply?
+**A:** Two calls. `PreviewAsync` parses and classifies every row (Add,
+Update, Unchanged, Error with the reason) and writes nothing.
+`CommitAsync` takes the raw rows back, re-analyses them against the
+database at that moment, refuses if any row errs, and applies the rest
+through the `BudgetVersion` aggregate in one `SaveChangesAsync`. The
+preview is a courtesy; the commit-time check is the gate, which also
+covers the race where someone edits the budget between the two.
+**Look at:** `Application/Import/BudgetImportService.cs`, `BudgetImportServiceTests`.
+
+### Q: Where do the import rules live and how are they tested?
+**A:** In `ImportAnalyzer.Analyze`, a static function over records:
+codes resolve case-insensitively, inactive and unknown codes are named
+in the error, expenditures need a department, money parses "$1,250.50"
+and "(500)", negatives are refused, duplicate keys in the file flag the
+second row, blank optional columns mean "leave as is". Nine unit tests
+with no database, then the service test proves the same over SQL Server.
+It mirrors `BudgetVersion.AddLine`'s guards, and commit still catches
+`DomainException` as belt and braces.
+**Look at:** `Application/Import/ImportAnalyzer.cs`, `ImportAnalyzerTests.cs`.
+
+### Q: Why codes rather than ids in the file?
+**A:** Clerks build the file in Excel from the chart of accounts they
+know; a GUID column would be unusable. The import's column layout is the
+same one the workspace exports, so export, edit, import is the round trip
+and the export doubles as the template.
+
+### Q: Does the import delete lines that are missing from the file?
+**A:** No, and the page says so. A department's partial file must not
+wipe another department's lines. Deleting is a deliberate act in the
+workspace with its own audit row.
+
+### Q: What does the audit trail show for an import?
+**A:** One `AuditKind.Event` row on the version ("Imported budget.csv: 1
+added, 1 updated, 0 unchanged") plus the interceptor's normal field-level
+rows for each changed line, all under the importing user's name, in the
+same transaction.
+
+### Q: How did you parse CSV and XLSX?
+**A:** CSV with a sixty-line RFC 4180 parser in Application (`CsvReader`:
+quotes, doubled quotes, embedded newlines, BOM). XLSX with ClosedXML
+behind `ISpreadsheetReader` in Infrastructure, which returns numbers as
+invariant strings so both formats reach the analyser as text. Both
+produce a `TabularFile`; `ImportFileParser` maps columns by name in any
+order and numbers rows the way the spreadsheet does.
+
+### Q: How do the export endpoints stay secure and tenant-scoped?
+**A:** They are minimal API GETs under `/admin/export` with
+`RequireAuthorization(policy)`, so the cookie sign-in and the same named
+policies as the pages apply. `CurrentUserMiddleware` fills the tenant
+context for a plain HTTP request, so the Application services see exactly
+what a page would; a wrong tenant gets a 404 from the query filter, an
+anonymous request is redirected to sign in.
+**Look at:** `Components/Admin/AdminExportEndpoints.cs`.
+
+### Q: Why are reports built from the workspace DTO?
+**A:** So a report can never disagree with the screen beside it, and so
+the tenant filter and the Department Head visibility rule are applied
+once. `ReportBuilder` is pure over `BudgetWorkspaceDto`; `ReportTables`
+maps each report to an `ExportTable` for XLSX next to its DTO. A
+county-scale tenant would push grouping into SQL behind the same
+`IReportService`.
+**Look at:** `Application/Reports/ReportBuilder.cs`, `ReportBuilderTests.cs`, `ReportServiceTests`.
+
+### Q: How does printing work?
+**A:** CSS. `@media print` hides the shell (sidebar, top bar, page
+header, toasts), removes the sticky header, and leads with the report
+block that carries the government, version, and who prepared it. The
+Print button calls `window.print`, the admin app's one JavaScript call.
+No PDF library.
+
+### General information worth having ready
+- `InputFile` streams over the SignalR circuit; `OpenReadStream(maxAllowedSize)`
+  throws `IOException` past the cap. Buffer to memory before handing to a service.
+- Minimal API endpoints can be grouped (`MapGroup`) and take
+  `RequireAuthorization` per group; `[FromServices]` resolves services in
+  a lambda.
+- `Results.File(bytes, contentType, fileName)` sets `Content-Disposition`.
+- ClosedXML: `RangeUsed()` for the populated block, `DataType` per cell,
+  sheet names max 31 characters.
+- Blazor: a named `RenderFragment` parameter (`<Filters>`) means the rest
+  of the child content must be wrapped in `<ChildContent>`.
