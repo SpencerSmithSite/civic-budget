@@ -118,7 +118,14 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
+
+// Redirect to HTTPS only where Kestrel itself has an HTTPS port (a developer's machine). In a
+// container TLS ends at the load balancer and Kestrel is HTTP only; the middleware would just log
+// "failed to determine the https port" on the first request and do nothing.
+if (app.Environment.IsDevelopment() || app.Configuration["HTTPS_PORT"] is not null || app.Configuration["ASPNETCORE_HTTPS_PORTS"] is not null)
+{
+    app.UseHttpsRedirection();
+}
 
 // Order matters: authentication populates HttpContext.User, then our middleware copies it into the
 // scoped CurrentUserContext that the tenant query filter reads.
