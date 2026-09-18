@@ -97,16 +97,18 @@ Design-first: this is the screen a citizen (and an interviewer) sees without log
 - [x] Report screens with a printable header block, Print (`window.print`) and Export XLSX; `@media print` stylesheet; Reports in the sidebar; Tools menu on the workspace
 - [x] Tests: 24 unit (readers, parser, analyser, builders), 8 integration (import service, report service), 8 bUnit; 387 total
 - [x] Walkthrough 07; interview prep Phase 6; ADR-0022
-- [ ] Spencer approves Phase 6
+- [x] Spencer approves Phase 6 (2026-09-18)
 
 ## Phase 7 — AWS deployment (deploy-ready)  `phase-7-aws`
-- [ ] Dockerfile (multi-stage), full-stack docker compose
-- [ ] Check current AWS docs: ECS Express Mode vs. Elastic Beanstalk, record tradeoffs
-- [ ] CDK stack (C#): VPC, ALB, ECS/Fargate, RDS SQL Server Express, Secrets Manager, CloudWatch, GitHub OIDC role
-- [ ] CDK assertion tests; `cdk synth` in CI
-- [ ] `deploy.yml` (OIDC, ECR push, `cdk deploy`, `workflow_dispatch`)
-- [ ] Cost note, teardown command, AWS Budgets alarm
-- [ ] Walkthrough: how OIDC removes AWS keys from GitHub
+- [x] Multi-stage `Dockerfile` (non-root, healthcheck, forwarded headers), `.dockerignore`, `docker-compose.full.yml` (app + SQL Server, one command)
+- [x] App changes for containers: `DatabaseOptions` (compose the connection string from parts), `Database:MigrateOnStartup` / `SeedDemoData` switches, Data Protection keys in SQL Server (`AddDataProtectionKeys` migration)
+- [x] Checked current AWS docs: ECS Express Mode (L1 only, public subnets, single container) and Beanstalk rejected for `ApplicationLoadBalancedFargateService`; tradeoffs in ADR-0023
+- [x] CDK stack (C#): VPC (2 AZs, 1 NAT), ECR, RDS SQL Server Express (private, encrypted), Secrets Manager (RDS-managed + demo password), Fargate service behind a public ALB (sticky, `/health`, circuit breaker), CloudWatch logs, Budgets alarm, outputs
+- [x] `GitHubOidcStack`: OIDC provider + deploy role trusting one repo on `v*` tags / `production`; ECR push + CDK bootstrap roles only
+- [x] 17 CDK assertion tests (`tests/CivicBudget.Infra.Tests`); `cdk synth` + Docker build job in CI
+- [x] `deploy.yml` (OIDC, ECR push tagged by SHA, `cdk deploy -c imageTag`, `workflow_dispatch`, gated on `AWS_DEPLOY_ROLE_ARN`)
+- [x] Cost note (~$90/mo, NAT a third), teardown (`cdk destroy`), Budgets alarm; walkthrough 08; interview prep; ADR-0023
+- [ ] Spencer approves Phase 7
 
 ## Phase 8 — Polish  `phase-8-polish`
 - [ ] README with screenshots, demo logins, badges, branch-protection guidance

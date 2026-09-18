@@ -235,9 +235,11 @@ Every NuGet package and why. Add a row when adding a package.
 | bunit | Web.Tests | Blazor component tests | spec |
 | Testcontainers.MsSql | IntegrationTests | Real SQL Server 2022 in tests | spec |
 | ClosedXML | Infrastructure | XLSX downloads and (Phase 6) reports without Office or COM | 0021 |
+| Microsoft.AspNetCore.DataProtection.EntityFrameworkCore | Infrastructure | Data Protection key ring in SQL Server so cookies survive container restarts and scale-out | 0023 |
+| Amazon.CDK.Lib, Constructs | Infra, Infra.Tests | AWS CDK in C#; `Amazon.CDK.Assertions` ships inside Amazon.CDK.Lib | 0008, 0023 |
 | dotnet-ef (local tool, `.config/dotnet-tools.json`) | — | Migrations CLI pinned per repo | — |
 
-Planned for later phases (row confirmed when added): Amazon.CDK.Lib + Amazon.CDK.Assertions (Phase 7, ADR-0008).
+All planned packages are now in the table.
 
 Not packages: Bootstrap 5.3 CSS/JS is vendored under `src/CivicBudget.Web/wwwroot/lib/bootstrap` (ADR-0016); Bootstrap Icons 1.13 under `wwwroot/lib/bootstrap-icons` (ADR-0020).
 
@@ -477,4 +479,67 @@ held in the circuit and re-validated on commit); SQL views or a reporting databa
 Infrastructure; `CsvReader` sits beside `CsvWriter` in Application. A file larger than 5 MB or
 10,000 rows is refused up front. Reports cost the workspace read plus one lookup; a county-scale
 tenant would cache or push grouping into SQL behind the same `IReportService`.
+
+## ADR-0023 — Fargate behind an ALB via the CDK L2 pattern; one stack; secrets by reference
+**Date:** 2026-09-18 · **Status:** Accepted
+
+**Context.** ADR-0008 committed to deploy-ready AWS infrastructure without an account. Phase 0
+left the compute choice open between ECS Express Mode and Elastic Beanstalk, to be checked
+against current docs. Checked 2026-09-18: Express Mode (GA November 2025) has only an L1
+construct (`CfnExpressGatewayService`), runs a single container in the default VPC's public
+subnets, and has no custom-domain support; Elastic Beanstalk is a platform abstraction that
+hides the network and database wiring an interviewer wants to see.
+
+**Decision.**
+- **Compute:** `ApplicationLoadBalancedFargateService` (the ECS Patterns L2) in
+  `infra/CivicBudget.Infra/CivicBudgetStack.cs`: a public ALB, a Fargate task (0.5 vCPU / 1 GB)
+  in private subnets, a target group with `/health` checks and sticky sessions (Blazor Server
+  circuits), a deployment circuit breaker with rollback. Express Mode is the right answer for a
+  public API with no database; not for this.
+- **Database:** RDS SQL Server Express (`db.t3.micro`, 20 GB gp3, encrypted, 7-day backups) in
+  private subnets, reachable only from the service's security group. Same engine as local
+  development. The master password is generated and held by Secrets Manager.
+- **Secrets by reference, not by value.** The task definition names Secrets Manager entries
+  (`Database__Password` from the RDS-managed secret, `Seed__DemoPassword` from a generated one);
+  ECS injects them at start. The app composes its connection string from `Database:*` settings
+  plus the password (`DatabaseOptions`), so no derived connection-string secret exists to drift
+  when RDS rotates the password. The template never contains a password; a test proves it.
+- **One stack for the demo.** VPC, ECR, RDS, ECS, ALB, logs, alarm, and outputs in one
+  `cdk deploy`, with `RemovalPolicy.DESTROY` everywhere so `cdk destroy` leaves nothing billing.
+  A production account would split network + database from the service and set deletion
+  protection and snapshot-on-delete on RDS; the comments say so where it applies.
+- **OIDC, not keys.** A second, one-time stack (`GitHubOidcStack`) creates the GitHub OIDC
+  provider and a deploy role trusting only `repo:SpencerSmithSite/civic-budget` on `v*` tags or
+  the `production` environment. The role can push to one ECR repository and assume the CDK
+  bootstrap roles; CloudFormation permissions live in those, so the GitHub role is narrow.
+  `deploy.yml` runs only when the repository variable `AWS_DEPLOY_ROLE_ARN` exists.
+- **Data Protection keys in SQL Server.** The container's default key store is its filesystem,
+  which is gone on every restart (every user signed out, every antiforgery token invalid).
+  `PersistKeysToDbContext<CivicBudgetDbContext>` keeps the key ring in a `DataProtectionKeys`
+  table: restarts and a second task share it. Migration `AddDataProtectionKeys`.
+- **Migrate and seed on startup, opt-in.** `Database:MigrateOnStartup` and
+  `Database:SeedDemoData` are true for the containerized demo and the AWS deploy (one task, EF's
+  migration lock). A real pipeline would run migrations as a step and never seed.
+- **Scaling is deliberately one task.** Sticky sessions and shared keys are in place; the one
+  missing piece for two tasks is a shared output cache store for the portal
+  (`Microsoft.AspNetCore.OutputCaching.StackExchangeRedis`), because an in-memory eviction on
+  task A is invisible to task B. Written in the stack where the autoscaling would go.
+
+**Cost (us-east-2, list prices, September 2026, approximate).** RDS SQL Server Express
+`db.t3.micro` ≈ $17/mo + 20 GB gp3 ≈ $2.50; Fargate 0.5 vCPU / 1 GB ≈ $18/mo; ALB ≈ $16/mo +
+LCU; NAT gateway ≈ $33/mo + data; Secrets Manager 2 × $0.40; CloudWatch and ECR under $2.
+About **$90/mo** running, of which the NAT gateway is a third; the budget alarm defaults to $60 at
+80% so it fires early. Teardown: `cdk destroy CivicBudget-App` (the OIDC stack costs nothing).
+Cheaper variants, in order of what they give up: drop the NAT gateway by putting the task in a
+public subnet with a public IP (saves $33, exposes the task's ENI behind its security group);
+stop the RDS instance outside demo hours (RDS restarts it after seven days).
+
+**Alternatives.** ECS Express Mode (above); Elastic Beanstalk (above); App Runner (no VPC-private
+database without a VPC connector, no WebSockets at the time of checking); a single EC2 instance
+with docker compose (cheapest, but nothing about it transfers to the employer's ECS estate).
+
+**Consequences.** `dotnet test` now needs Node.js for the JSII runtime (the Infra.Tests assembly
+runs sequentially because JSII is one process per test host); CI gained a `cdk-synth` job and a
+Docker build. The Dockerfile must copy `.editorconfig` for the migration analyzer exemptions.
+Nothing here has been deployed; it has been synthesized and asserted on every commit.
 

@@ -5,6 +5,14 @@ All notable changes to CivicBudget. Format loosely follows
 
 ## [Unreleased]
 
+## Phase 7 — 2026-09-18
+### Added
+- `Dockerfile` (multi-stage, non-root, healthcheck) and `docker-compose.full.yml` for a one-command containerized demo.
+- AWS CDK app in C# (`infra/CivicBudget.Infra`): VPC, ECR, RDS SQL Server Express, Secrets Manager, Fargate service behind an ALB, CloudWatch logs, Budgets alarm; a one-time GitHub OIDC stack; 17 assertion tests; `cdk synth` and Docker build in CI; gated `deploy.yml`.
+- `DatabaseOptions`: connection string composed from `Database:*` settings so ECS can inject the RDS-managed password; `MigrateOnStartup` and `SeedDemoData` switches.
+- Data Protection keys persisted in SQL Server (`DataProtectionKeys` table) so cookies survive container restarts.
+- 404 tests total (+17).
+
 ## Phase 6 — 2026-09-18
 ### Added
 - Import of budget lines from CSV or XLSX with a validation preview (per-row Add/Update/Unchanged/Error), committed through the aggregate in one save with an audit event; never deletes.

@@ -47,6 +47,8 @@ Actions · AWS CDK (C#) deploy-ready (no account — see ADR-0008).
 - Output caching: Blazor SSR marks pages `no-store` and the default output cache policy honors it, so the portal policy is the base policy with `excludeDefaultPolicy: true`. Headers are read-only in `ServeResponseAsync`; rewrite them in `PortalResponseMiddleware` (`OnStarting`), which must sit before `UseOutputCache` or it never runs on a hit. `[OutputCache]` does nothing on Razor component endpoints.
 - Including two collections triggers EF's cartesian warning; both contexts default to split queries (`UseQuerySplittingBehavior`).
 - Razor: a variable named `code` inside `@foreach ((..., string code, ...) in ...)` trips the `@code` directive parser; name it something else. A component with a named `RenderFragment` (`<Filters>`) needs the rest wrapped in `<ChildContent>`.
+- CDK: `Amazon.CDK.Assertions` lives inside Amazon.CDK.Lib (the separate package is CDK v1). JSII is one Node process per test host, so `CivicBudget.Infra.Tests` disables xUnit parallelization. `Tags.SetTag` on a stack does not write resource tags; use `Tags.Of(this).Add`. `cdk synth` needs the app built first (`--no-build` in cdk.json).
+- Docker: the build context must include `.editorconfig` (migration analyzer exemptions) or publish fails on CA1861. `infra/`, `tests/`, `docs/`, `.env` are ignored.
 - Kestrel logs `SslStream ... Bad address` on HTTP/2 when Safari drops an HTTPS connection; harmless macOS noise, use http://localhost:5000 if it bothers you.
 
 ## Code conventions
@@ -88,6 +90,8 @@ dotnet test                                            # all tests (integration 
 dotnet test tests/CivicBudget.Domain.Tests             # fast domain tests only
 dotnet run --project src/CivicBudget.Web               # migrates + seeds in Development
 dotnet ef migrations add <Name> -p src/CivicBudget.Infrastructure -o Persistence/Migrations --context CivicBudgetDbContext   # the portal context has no migrations
+docker compose -f docker-compose.full.yml up --build   # app + SQL Server in containers on :8080
+cd infra/CivicBudget.Infra && npx aws-cdk@2 synth      # CloudFormation from the C# CDK app (no credentials needed)
 ./scripts/dev-setup.sh                                 # once: .env + user-secrets connection string
 dotnet format                                          # CI runs --verify-no-changes
 ```
