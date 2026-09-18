@@ -1,0 +1,28 @@
+@* Shown inside workflow dialogs when the government is in Warn mode and a fund is over its limit. *@
+@if (State.RequiresAcknowledgement)
+{
+    <div class="alert alert-warning">
+        <p class="mb-2">These funds appropriate more than their estimated resources:</p>
+        <ul class="mb-2">
+            @foreach (var result in State.LimitResults.Where(r => r.Severity == AppropriationLimitSeverity.Warning))
+            {
+                <li>Fund over by @Display.Money(result.AmountOverLimit)</li>
+            }
+        </ul>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="ack" checked="@Acknowledged" @onchange="e => AcknowledgedChanged.InvokeAsync(e.Value is true)" />
+            <label class="form-check-label" for="ack">I understand and want to continue.</label>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public WorkflowStateDto State { get; set; } = default!;
+
+    [Parameter]
+    public bool Acknowledged { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> AcknowledgedChanged { get; set; }
+}

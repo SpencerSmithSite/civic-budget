@@ -6,7 +6,7 @@ Blazor, EF Core, and SQL Server, with a deploy-ready AWS CDK stack.
 
 [![ci](https://github.com/SpencerSmithSite/civic-budget/actions/workflows/ci.yml/badge.svg)](https://github.com/SpencerSmithSite/civic-budget/actions/workflows/ci.yml)
 
-> **Status:** Phase 3 complete: budget entry in two modes, live fund balances with the Ohio appropriation check, and a field-level audit trail. See [ROADMAP.md](ROADMAP.md).
+> **Status:** Phase 4 complete: Draft → Proposed → Adopted workflow with the Ohio appropriation check enforced, amendments, and publishing immutable snapshots for the public portal. See [ROADMAP.md](ROADMAP.md).
 
 **Two audiences, one solution**
 - **Admin app** — finance staff and department heads build the annual budget:
@@ -44,7 +44,7 @@ keeps it in user-secrets (`dotnet user-secrets list --project src/CivicBudget.We
 To start over with fresh seed data: `docker compose down -v && docker compose up -d`.
 
 ```bash
-dotnet test                                 # all 273 tests; integration tests start their own SQL Server container
+dotnet test                                 # all 292 tests; integration tests start their own SQL Server container
 ```
 
 Documentation: [Spec](docs/SPEC.md) · [Architecture](docs/ARCHITECTURE.md) ·

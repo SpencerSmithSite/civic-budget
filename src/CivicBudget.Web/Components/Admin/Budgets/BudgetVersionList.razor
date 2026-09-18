@@ -1,7 +1,9 @@
 @page "/admin/budgets"
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.CanViewBudget)]
+@using CivicBudget.Application.Publishing
 @inject IBudgetEntryService BudgetEntry
+@inject IPublishingService Publishing
 
 <PageTitle>Budget versions</PageTitle>
 
@@ -21,6 +23,7 @@ else
                 <th scope="col">Version</th>
                 <th scope="col">Status</th>
                 <th scope="col">Resolution</th>
+                <th scope="col">Portal</th>
                 <th scope="col" class="text-end">Lines</th>
                 <th scope="col"></th>
             </tr>
@@ -39,16 +42,65 @@ else
                     </td>
                     <td><StatusBadge Status="version.Status" /></td>
                     <td>@version.ResolutionNumber</td>
+                    <td>
+                        @if (snapshots?.FirstOrDefault(s => s.BudgetVersionId == version.Id && s.Status == Domain.Publishing.SnapshotStatus.Active) is { } active)
+                        {
+                            <span class="badge text-bg-success" title="@active.PublishedAtUtc.ToString("u")">Published</span>
+                        }
+                    </td>
                     <td class="text-end">@version.LineCount</td>
                     <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="admin/budgets/@version.Id">Open</a></td>
                 </tr>
             }
         </tbody>
     </table>
+
+    @if (snapshots is { Count: > 0 })
+    {
+        <h2 class="h5 mt-4">Publishing history</h2>
+        <p class="text-secondary small">Every snapshot ever published, including ones since replaced or withdrawn. Citizens see only the active one for each year.</p>
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th scope="col">Fiscal year</th>
+                    <th scope="col">Version</th>
+                    <th scope="col">Published</th>
+                    <th scope="col">By</th>
+                    <th scope="col">Status</th>
+                    <th scope="col" class="text-end">Lines</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (SnapshotSummaryDto snapshot in snapshots)
+                {
+                    <tr>
+                        <td>FY@(snapshot.FiscalYear)</td>
+                        <td>@snapshot.VersionLabel</td>
+                        <td>@snapshot.PublishedAtUtc.ToString("yyyy-MM-dd HH:mm") UTC</td>
+                        <td>@snapshot.PublishedByUserName</td>
+                        <td>
+                            @switch (snapshot.Status)
+                            {
+                                case Domain.Publishing.SnapshotStatus.Active: <span class="badge text-bg-success">Active</span> break;
+                                case Domain.Publishing.SnapshotStatus.Superseded: <span class="badge text-bg-secondary">Superseded @snapshot.StatusChangedAtUtc?.ToString("yyyy-MM-dd")</span> break;
+                                default: <span class="badge text-bg-warning">Unpublished @snapshot.StatusChangedAtUtc?.ToString("yyyy-MM-dd")</span> break;
+                            }
+                        </td>
+                        <td class="text-end">@snapshot.LineCount</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 }
 
 @code {
     private IReadOnlyList<BudgetVersionSummaryDto>? versions;
+    private IReadOnlyList<SnapshotSummaryDto>? snapshots;
 
-    protected override async Task OnInitializedAsync() => versions = await BudgetEntry.ListVersionsAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        versions = await BudgetEntry.ListVersionsAsync();
+        snapshots = await Publishing.ListAsync();
+    }
 }

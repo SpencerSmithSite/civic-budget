@@ -5,6 +5,7 @@ using CivicBudget.Domain.Departments;
 using CivicBudget.Domain.FiscalYears;
 using CivicBudget.Domain.Funds;
 using CivicBudget.Domain.Governments;
+using CivicBudget.Domain.Publishing;
 using Microsoft.EntityFrameworkCore;
 
 namespace CivicBudget.Application.Persistence;
@@ -26,6 +27,7 @@ public interface ICivicBudgetDbContext : IAsyncDisposable, IDisposable
     DbSet<BudgetLine> BudgetLines { get; }
     DbSet<FundBeginningBalance> FundBeginningBalances { get; }
     DbSet<AuditEntry> AuditEntries { get; }
+    DbSet<PublishedBudgetSnapshot> PublishedBudgetSnapshots { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

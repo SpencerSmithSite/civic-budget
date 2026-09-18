@@ -5,6 +5,7 @@ using CivicBudget.Domain.Departments;
 using CivicBudget.Domain.FiscalYears;
 using CivicBudget.Domain.Funds;
 using CivicBudget.Domain.Governments;
+using CivicBudget.Domain.Publishing;
 using CivicBudget.Infrastructure.Identity;
 using CivicBudget.Infrastructure.Persistence;
 using CivicBudget.Infrastructure.Security;
@@ -147,6 +148,13 @@ public sealed class DevelopmentSeeder(
         // Fiscal years are not reachable from a version by navigation, so they are added explicitly.
         db.FiscalYears.AddRange(chart.FiscalYears);
         db.BudgetVersions.AddRange(fy2025, fy2026, fy2026Amendment, fy2027);
+
+        // SPEC section 9: FY2025 and the FY2026 amendment are published to the portal.
+        List<Fund> funds = chart.AllFunds.ToList();
+        db.PublishedBudgetSnapshots.Add(PublishedBudgetSnapshot.Capture(
+            government, chart.FiscalYear(2025), fy2025, funds, SeedUserId, "system", new DateTimeOffset(2025, 1, 6, 15, 0, 0, TimeSpan.Zero)));
+        db.PublishedBudgetSnapshots.Add(PublishedBudgetSnapshot.Capture(
+            government, chart.FiscalYear(2026), fy2026Amendment, funds, SeedUserId, "system", new DateTimeOffset(2026, 6, 16, 14, 0, 0, TimeSpan.Zero)));
         await db.SaveChangesAsync(ct);
         return government;
     }
@@ -172,6 +180,8 @@ public sealed class DevelopmentSeeder(
 
         db.FiscalYears.AddRange(chart.FiscalYears);
         db.BudgetVersions.AddRange(fy2026, fy2027);
+        db.PublishedBudgetSnapshots.Add(PublishedBudgetSnapshot.Capture(
+            government, chart.FiscalYear(2026), fy2026, chart.AllFunds.ToList(), SeedUserId, "system", new DateTimeOffset(2025, 7, 1, 13, 0, 0, TimeSpan.Zero)));
         await db.SaveChangesAsync(ct);
         return government;
     }
@@ -247,5 +257,7 @@ public sealed class DevelopmentSeeder(
         }
 
         public IEnumerable<FiscalYear> FiscalYears => fiscalYears.Values;
+        public FiscalYear FiscalYear(int year) => fiscalYears[year];
+        public IEnumerable<Fund> AllFunds => funds.Values;
     }
 }

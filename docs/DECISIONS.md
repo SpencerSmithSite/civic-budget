@@ -361,3 +361,22 @@ as `ValueGeneratedNever()`. No schema change.
 
 **Consequences.** Aggregates can add children through their own methods and `SaveChanges` does the
 right thing. Any entity must set its own id (the base class does).
+
+---
+
+## ADR-0019 — Snapshot status lifecycle: Active, Superseded, Unpublished
+**Date:** 2026-09-17 · **Status:** Accepted
+
+**Context.** SPEC section 6: unpublish is allowed and audited; republishing an amendment
+replaces what citizens see and keeps history.
+
+**Decision.** A snapshot is never deleted or edited except for its status. Exactly one
+snapshot per fiscal year is Active. Publishing a year that already has an Active snapshot
+marks the old one Superseded; the Finance Director can mark an Active one Unpublished. The
+portal context filters to Active globally.
+
+**Alternatives.** Deleting on unpublish (loses history); a boolean `IsActive` (cannot tell
+"replaced" from "withdrawn" in the history view).
+
+**Consequences.** Storage grows with each publish (95 rows per village-sized budget, trivial).
+The history view can explain every past state.

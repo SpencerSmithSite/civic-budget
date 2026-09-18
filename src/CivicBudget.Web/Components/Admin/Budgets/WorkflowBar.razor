@@ -1,0 +1,173 @@
+@using CivicBudget.Application.Publishing
+@inject IBudgetWorkflowService Workflow
+@inject IPublishingService Publishing
+@inject NavigationManager Navigation
+
+@* The version's place in Draft → Proposed → Adopted and the actions the current user may take.
+   Each action opens a ConfirmDialog; the services decide, and the page reloads on success. *@
+<div class="card mb-3">
+    <div class="card-body d-flex flex-wrap align-items-center gap-3">
+        <div class="me-auto">
+            <span class="text-secondary small">Status</span>
+            <div class="d-flex align-items-center gap-2">
+                <StatusBadge Status="State.Status" />
+                @if (State.Status == BudgetStatus.Draft) { <span class="small text-secondary">Departments and the Finance Director may edit.</span> }
+                else if (State.Status == BudgetStatus.Proposed) { <span class="small text-secondary">Before council. Only the Finance Director may edit.</span> }
+                else { <span class="small text-secondary">Adopted @(Version.ResolutionNumber is null ? "" : $"by resolution {Version.ResolutionNumber}"). Read-only.</span> }
+            </div>
+        </div>
+
+        @if (State.BlocksTransition && State.Status != BudgetStatus.Adopted)
+        {
+            <span class="badge text-bg-danger">Over limit: cannot propose or adopt</span>
+        }
+        else if (State.RequiresAcknowledgement && State.Status != BudgetStatus.Adopted)
+        {
+            <span class="badge text-bg-warning">Over limit: acknowledgement required</span>
+        }
+
+        @if (State.CanPropose)
+        {
+            <button type="button" class="btn btn-primary" @onclick="() => proposeDialog.Show()" disabled="@State.BlocksTransition">Propose to council</button>
+        }
+        @if (State.CanReturnToDraft)
+        {
+            <button type="button" class="btn btn-outline-secondary" @onclick="() => returnDialog.Show()">Return to draft</button>
+        }
+        @if (State.CanAdopt)
+        {
+            <button type="button" class="btn btn-success" @onclick="() => adoptDialog.Show()" disabled="@State.BlocksTransition">Adopt</button>
+        }
+        @if (State.Status == BudgetStatus.Adopted)
+        {
+            <AuthorizeView Policy="@Policies.CanPublish">
+                @if (ActiveSnapshot is null)
+                {
+                    <button type="button" class="btn btn-primary" @onclick="() => publishDialog.Show()">Publish to portal</button>
+                }
+                else
+                {
+                    <span class="badge text-bg-success">Published @ActiveSnapshot.PublishedAtUtc.ToString("yyyy-MM-dd")</span>
+                    <button type="button" class="btn btn-outline-danger" @onclick="() => unpublishDialog.Show()">Unpublish</button>
+                }
+            </AuthorizeView>
+            @if (State.CanAmend)
+            {
+                <button type="button" class="btn btn-outline-primary" @onclick="() => amendDialog.Show()">Start an amendment</button>
+            }
+            else if (State.HasOpenSibling)
+            {
+                <span class="small text-secondary">An amendment is already in progress.</span>
+            }
+        }
+    </div>
+    <ResultAlert Result="error" />
+</div>
+
+<ConfirmDialog @ref="proposeDialog" Title="Propose this budget to council?" ConfirmText="Propose" OnConfirm="ProposeAsync" ConfirmDisabled="@(State.RequiresAcknowledgement && !acknowledged)">
+    <Body>
+        <p>Department Heads will no longer be able to edit. The Finance Director can still adjust lines until adoption, or return the budget to draft.</p>
+        <AcknowledgeWarning State="State" @bind-Acknowledged="acknowledged" />
+    </Body>
+</ConfirmDialog>
+
+<ConfirmDialog @ref="returnDialog" Title="Return this budget to draft?" ConfirmText="Return to draft" ConfirmClass="btn-outline-secondary" OnConfirm="ReturnAsync">
+    <Body><p>Department Heads will be able to edit their lines again.</p></Body>
+</ConfirmDialog>
+
+<ConfirmDialog @ref="adoptDialog" Title="Adopt this budget?" ConfirmText="Adopt" ConfirmClass="btn-success" OnConfirm="AdoptAsync"
+               ConfirmDisabled="@(string.IsNullOrWhiteSpace(resolutionNumber) || (State.RequiresAcknowledgement && !acknowledged))">
+    <Body>
+        <p>Adoption is final. The version becomes read-only; later changes require an amendment.</p>
+        <div class="mb-3">
+            <label class="form-label" for="resolution">Ordinance or resolution number</label>
+            <input id="resolution" class="form-control" @bind="resolutionNumber" @bind:event="oninput" placeholder="e.g. 2026-41" />
+        </div>
+        <AcknowledgeWarning State="State" @bind-Acknowledged="acknowledged" />
+    </Body>
+</ConfirmDialog>
+
+<ConfirmDialog @ref="amendDialog" Title="Start an amendment" ConfirmText="Create amendment" OnConfirm="AmendAsync" ConfirmDisabled="@string.IsNullOrWhiteSpace(amendmentReason)">
+    <Body>
+        <p>A new draft is created with a copy of every line. The adopted budget is not changed. When the amendment is adopted it supersedes this version.</p>
+        <div class="mb-3">
+            <label class="form-label" for="reason">Reason (recorded with the amendment)</label>
+            <textarea id="reason" class="form-control" rows="3" @bind="amendmentReason" @bind:event="oninput" placeholder="e.g. Supplemental appropriation for police overtime"></textarea>
+        </div>
+    </Body>
+</ConfirmDialog>
+
+<ConfirmDialog @ref="publishDialog" Title="Publish to the public portal?" ConfirmText="Publish" OnConfirm="PublishAsync">
+    <Body>
+        <p>A frozen copy of this version becomes what citizens see for FY@(Version.Year). If an earlier version of this year is published, it is replaced and kept as history.</p>
+    </Body>
+</ConfirmDialog>
+
+<ConfirmDialog @ref="unpublishDialog" Title="Unpublish from the public portal?" ConfirmText="Unpublish" ConfirmClass="btn-danger" OnConfirm="UnpublishAsync">
+    <Body>
+        <p>Citizens will no longer see FY@(Version.Year) on the portal. The snapshot is kept for history and can be published again.</p>
+    </Body>
+</ConfirmDialog>
+
+@code {
+    private ConfirmDialog proposeDialog = default!;
+    private ConfirmDialog returnDialog = default!;
+    private ConfirmDialog adoptDialog = default!;
+    private ConfirmDialog amendDialog = default!;
+    private ConfirmDialog publishDialog = default!;
+    private ConfirmDialog unpublishDialog = default!;
+
+    private bool acknowledged;
+    private string resolutionNumber = "";
+    private string amendmentReason = "";
+    private Result? error;
+
+    [Parameter, EditorRequired]
+    public BudgetVersionSummaryDto Version { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public WorkflowStateDto State { get; set; } = default!;
+
+    [Parameter]
+    public SnapshotSummaryDto? ActiveSnapshot { get; set; }
+
+    /// <summary>Raised after any successful action so the page reloads workspace and state.</summary>
+    [Parameter]
+    public EventCallback<string> OnChanged { get; set; }
+
+    private Task<bool> ProposeAsync() => RunAsync(() => Workflow.ProposeAsync(Version.Id, acknowledged), "Budget proposed to council.");
+
+    private Task<bool> ReturnAsync() => RunAsync(() => Workflow.ReturnToDraftAsync(Version.Id), "Budget returned to draft.");
+
+    private Task<bool> AdoptAsync() => RunAsync(() => Workflow.AdoptAsync(Version.Id, resolutionNumber, acknowledged), $"Budget adopted by resolution {resolutionNumber.Trim()}.");
+
+    private async Task<bool> AmendAsync()
+    {
+        Result<Guid> created = await Workflow.CreateAmendmentAsync(Version.Id, amendmentReason);
+        if (created.IsFailure)
+        {
+            error = created;
+            return true;
+        }
+
+        Navigation.NavigateTo($"admin/budgets/{created.Value}");
+        return true;
+    }
+
+    private Task<bool> PublishAsync() => RunAsync(async () => await Publishing.PublishAsync(Version.Id), "Published to the public portal.");
+
+    private Task<bool> UnpublishAsync() => RunAsync(() => Publishing.UnpublishAsync(ActiveSnapshot!.Id), "Unpublished from the public portal.");
+
+    private async Task<bool> RunAsync(Func<Task<Result>> action, string successMessage)
+    {
+        Result result = await action();
+        error = result.IsSuccess ? null : result;
+        if (result.IsSuccess)
+        {
+            acknowledged = false;
+            await OnChanged.InvokeAsync(successMessage);
+        }
+
+        return true; // close the dialog either way; errors show in the bar
+    }
+}

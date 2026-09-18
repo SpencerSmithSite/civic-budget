@@ -80,7 +80,7 @@ dotnet build                                           # warnings are errors
 dotnet test                                            # all tests (integration tests need Docker running)
 dotnet test tests/CivicBudget.Domain.Tests             # fast domain tests only
 dotnet run --project src/CivicBudget.Web               # migrates + seeds in Development
-dotnet ef migrations add <Name> -p src/CivicBudget.Infrastructure -o Persistence/Migrations   # design-time factory; no startup project
+dotnet ef migrations add <Name> -p src/CivicBudget.Infrastructure -o Persistence/Migrations --context CivicBudgetDbContext   # the portal context has no migrations
 ./scripts/dev-setup.sh                                 # once: .env + user-secrets connection string
 dotnet format                                          # CI runs --verify-no-changes
 ```
