@@ -1,10 +1,13 @@
 using CivicBudget.Application;
+using CivicBudget.Application.Publishing;
 using CivicBudget.Infrastructure;
 using CivicBudget.Infrastructure.Persistence;
 using CivicBudget.Infrastructure.Seed;
+using CivicBudget.Web.Caching;
 using CivicBudget.Web.Components;
 using CivicBudget.Web.Components.Account;
 using CivicBudget.Web.Components.Common;
+using CivicBudget.Web.Components.Portal;
 using CivicBudget.Web.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -72,6 +75,12 @@ builder.Services.AddScoped<CircuitHandler, CurrentUserCircuitHandler>();
 builder.Services.AddScoped<AdminPageState>();
 builder.Services.AddScoped<ToastService>();
 
+// Output caching for the public portal (ADR-0005): pages are cached per URL and tagged by
+// government slug; publishing evicts the tag. Registered after AddInfrastructure so the real
+// invalidator replaces the no-op.
+builder.Services.AddOutputCache(options => options.AddBasePolicy(policy => policy.AddPolicy<PortalOutputCachePolicy>(), excludeDefaultPolicy: true));
+builder.Services.AddSingleton<IPublishedSnapshotCacheInvalidator, OutputCacheSnapshotInvalidator>();
+
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<CivicBudgetDbContext>("database", tags: ["ready"]);
 
@@ -96,6 +105,8 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<CurrentUserMiddleware>();
+app.UseMiddleware<PortalResponseMiddleware>();
+app.UseOutputCache();
 app.UseAntiforgery();
 
 // Liveness: the process is up. Readiness: it can also reach the database.
@@ -106,5 +117,6 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 app.MapIdentityEndpoints();
+app.MapPortalEndpoints();
 
 await app.RunAsync();
