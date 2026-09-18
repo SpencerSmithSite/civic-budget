@@ -1,0 +1,87 @@
+# Deploys CivicBudget to AWS. Fully written, never run: there is no AWS account behind this
+# repository (ADR-0008). When one exists, the steps are:
+#   1. cdk bootstrap, then deploy the OIDC stack once by hand:  cdk deploy CivicBudget-GitHubOidc
+#   2. Put its DeployRoleArn output in the repository variable AWS_DEPLOY_ROLE_ARN
+#   3. Push a tag like v1.0.0, or run this workflow by hand
+# No AWS access key is stored in GitHub: the job asks GitHub for an OIDC token and AWS trades it
+# for one-hour credentials on the role (see infra/CivicBudget.Infra/GitHubOidcStack.cs).
+name: deploy
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      alert_email:
+        description: "Email for the monthly spend alarm (optional)"
+        required: false
+      certificate_arn:
+        description: "ACM certificate ARN for HTTPS (optional; HTTP without it)"
+        required: false
+
+permissions:
+  id-token: write   # request the OIDC token
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-2   # Ohio
+
+jobs:
+  deploy:
+    # Skips cleanly until the role variable exists, so a tag on a fork or before setup is a no-op.
+    if: ${{ vars.AWS_DEPLOY_ROLE_ARN != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Assume the deploy role with OIDC
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push the image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          docker build -t "$REGISTRY/civicbudget:${GITHUB_SHA}" -t "$REGISTRY/civicbudget:latest" .
+          docker push "$REGISTRY/civicbudget:${GITHUB_SHA}"
+          docker push "$REGISTRY/civicbudget:latest"
+
+      - name: Build the CDK app
+        run: dotnet build infra/CivicBudget.Infra --configuration Release
+
+      # The image tag is the commit, so the running task definition says exactly what is deployed.
+      # The CDK CLI assumes the bootstrap roles for CloudFormation; the deploy role only pushes images.
+      - name: cdk deploy
+        working-directory: infra/CivicBudget.Infra
+        run: >
+          npx --yes aws-cdk@2 deploy CivicBudget-App
+          --require-approval never
+          -c imageTag=${GITHUB_SHA}
+          ${{ inputs.alert_email && format('-c alertEmail={0}', inputs.alert_email) || '' }}
+          ${{ inputs.certificate_arn && format('-c certificateArn={0}', inputs.certificate_arn) || '' }}
+          --outputs-file outputs.json
+
+      - name: Show where it is
+        working-directory: infra/CivicBudget.Infra
+        run: cat outputs.json

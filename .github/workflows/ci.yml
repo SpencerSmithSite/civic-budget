@@ -60,3 +60,27 @@ jobs:
           name: coverage
           path: TestResults/**/coverage.cobertura.xml
           if-no-files-found: ignore
+
+  # The CDK app synthesizes without credentials: this proves cdk.json, the C# app, and the
+  # templates are sound on every change, even though nothing deploys (ADR-0008). The assertion
+  # tests in tests/CivicBudget.Infra.Tests already ran above; this is the CLI path a deploy uses.
+  cdk-synth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Build the CDK app
+        run: dotnet build infra/CivicBudget.Infra --configuration Release
+      - name: cdk synth
+        working-directory: infra/CivicBudget.Infra
+        run: npx --yes aws-cdk@2 synth --quiet
+        env:
+          CDK_DEFAULT_REGION: us-east-2
+      - name: Docker image builds
+        run: docker build -t civicbudget:ci .
