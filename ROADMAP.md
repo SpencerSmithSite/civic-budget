@@ -117,6 +117,7 @@ Spencer's review (2026-09-18): strip title-plus-explanation clutter into tooltip
 - [x] Accessibility check from the accessibility tree and a keyboard walk: account menu and brand links named, amount inputs labelled with account name and department, dialogs and drawer take focus on open, access-denied page styled
 - [x] Leftover "Arrives in Phase 6" grid Export placeholder wired to the XLSX endpoint; portal section leads trimmed
 - [x] README screenshots (7) via a reproducible Playwright script (`scripts/screenshots`)
+- [x] Tests: 406 total (+2 InfoTip)
 - [x] Docs sweep: `docs/DEMO-SCRIPT.md`, spec status table (SPEC §12), 60-second pitch refreshed, walkthrough 09, interview prep Phase 8
 - [ ] Tag `v1.0.0` after merge (the deploy workflow listens for it and no-ops without an account)
 - [ ] Spencer approves Phase 8
