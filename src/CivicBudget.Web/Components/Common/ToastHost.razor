@@ -1,0 +1,46 @@
+@implements IDisposable
+@inject ToastService Toasts
+
+@* Renders queued toasts top-right and dismisses each after four seconds. Lives once in AdminLayout. *@
+<div class="cb-toasts" aria-live="polite" aria-atomic="false">
+    @foreach (ToastMessage toast in Toasts.Toasts)
+    {
+        <div class="cb-toast @toast.Kind.ToString().ToLowerInvariant()" role="status">
+            <i class="bi @(toast.Kind switch { ToastKind.Success => "bi-check-circle-fill", ToastKind.Warning => "bi-exclamation-triangle-fill", _ => "bi-x-circle-fill" })" aria-hidden="true"></i>
+            <span>@toast.Text</span>
+            <button type="button" class="btn-close" aria-label="Dismiss" @onclick="() => Toasts.Remove(toast.Id)"></button>
+        </div>
+    }
+</div>
+
+@code {
+    private readonly Dictionary<Guid, Timer> timers = [];
+
+    protected override void OnInitialized() => Toasts.Changed += OnChanged;
+
+    private void OnChanged()
+    {
+        foreach (ToastMessage toast in Toasts.Toasts.Where(t => !timers.ContainsKey(t.Id)))
+        {
+            timers[toast.Id] = new Timer(_ => InvokeAsync(() =>
+            {
+                Toasts.Remove(toast.Id);
+                if (timers.Remove(toast.Id, out Timer? timer))
+                {
+                    timer.Dispose();
+                }
+            }), null, TimeSpan.FromSeconds(4), Timeout.InfiniteTimeSpan);
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Toasts.Changed -= OnChanged;
+        foreach (Timer timer in timers.Values)
+        {
+            timer.Dispose();
+        }
+    }
+}

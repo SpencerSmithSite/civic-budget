@@ -1,0 +1,16 @@
+@* The kebab menu at the end of a grid row. Bootstrap's dropdown JS handles open/close via the
+   data attributes, so this is markup only; items are plain buttons wired by the parent. *@
+<div class="dropdown">
+    <button type="button" class="cb-kebab" data-bs-toggle="dropdown" aria-expanded="false" aria-label="@Label">···</button>
+    <ul class="dropdown-menu dropdown-menu-end">
+        @ChildContent
+    </ul>
+</div>
+
+@code {
+    [Parameter]
+    public string Label { get; set; } = "Row actions";
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

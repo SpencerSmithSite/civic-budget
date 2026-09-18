@@ -1,0 +1,29 @@
+@using CivicBudget.Domain.Budgets
+@* The version's place in the lifecycle. Published is a fourth stage because that is how staff
+   think about it, even though it is a snapshot rather than a status on the version. *@
+<ol class="cb-stepper" aria-label="Budget workflow">
+    @foreach ((string label, int index) in Stages.Select((s, i) => (s, i)))
+    {
+        string css = index < Current ? "done" : index == Current ? "current" : "";
+        <li class="cb-step @css" aria-current="@(index == Current ? "step" : null)">
+            <span class="n" aria-hidden="true">@(index < Current ? "✓" : (index + 1).ToString())</span>@label
+        </li>
+    }
+</ol>
+
+@code {
+    private static readonly string[] Stages = ["Draft", "Proposed", "Adopted", "Published"];
+
+    [Parameter, EditorRequired]
+    public BudgetStatus Status { get; set; }
+
+    [Parameter]
+    public bool IsPublished { get; set; }
+
+    private int Current => IsPublished ? 3 : Status switch
+    {
+        BudgetStatus.Draft => 0,
+        BudgetStatus.Proposed => 1,
+        _ => 2,
+    };
+}

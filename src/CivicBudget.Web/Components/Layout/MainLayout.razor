@@ -1,46 +1,32 @@
 @inherits LayoutComponentBase
-@inject NavigationManager NavigationManager
 
-@* Site shell used by the home page and the Account pages. The admin area nests AdminLayout inside it. *@
-<header>
-    <nav class="navbar navbar-expand-md navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="/">CivicBudget</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
-                    aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="mainNav">
-                <ul class="navbar-nav me-auto">
-                    <AuthorizeView>
+@* Public shell for the home page and the Account pages: a navy header bar and a plain page. *@
+<header class="cb-public-header">
+    <nav class="navbar navbar-dark">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand" href="/"><span class="cb-seal" aria-hidden="true">CB</span><span>CivicBudget</span></a>
+            <ul class="navbar-nav flex-row gap-3">
+                <AuthorizeView>
+                    <Authorized>
                         <li class="nav-item"><NavLink class="nav-link" href="admin">Admin</NavLink></li>
-                    </AuthorizeView>
-                </ul>
-                <ul class="navbar-nav">
-                    <AuthorizeView>
-                        <Authorized>
-                            <li class="nav-item">
-                                <NavLink class="nav-link" href="Account/Manage">@(context.User.FindFirst(ClaimNames.DisplayName)?.Value ?? context.User.Identity?.Name)</NavLink>
-                            </li>
-                            <li class="nav-item">
-                                <form action="Account/Logout" method="post" class="d-inline">
-                                    <AntiforgeryToken />
-                                    <input type="hidden" name="ReturnUrl" value="" />
-                                    <button type="submit" class="btn btn-link nav-link">Log out</button>
-                                </form>
-                            </li>
-                        </Authorized>
-                        <NotAuthorized>
-                            <li class="nav-item"><NavLink class="nav-link" href="Account/Login">Log in</NavLink></li>
-                        </NotAuthorized>
-                    </AuthorizeView>
-                </ul>
-            </div>
+                        <li class="nav-item">
+                            <form action="Account/Logout" method="post" class="d-inline">
+                                <AntiforgeryToken />
+                                <input type="hidden" name="ReturnUrl" value="" />
+                                <button type="submit" class="btn btn-link nav-link">Log out</button>
+                            </form>
+                        </li>
+                    </Authorized>
+                    <NotAuthorized>
+                        <li class="nav-item"><NavLink class="nav-link" href="Account/Login">Sign in</NavLink></li>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </ul>
         </div>
     </nav>
 </header>
 
-<main class="container-fluid py-3">
+<main>
     @Body
 </main>
 
