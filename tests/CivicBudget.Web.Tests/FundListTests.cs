@@ -2,6 +2,7 @@ using CivicBudget.Application.Common;
 using CivicBudget.Application.Setup;
 using CivicBudget.Domain.Funds;
 using CivicBudget.Web.Components.Admin.Funds;
+using CivicBudget.Web.Components.Common;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CivicBudget.Web.Tests;
@@ -16,6 +17,8 @@ public class FundListTests : BunitContext
     public void Lists_funds_and_filters_by_search_text()
     {
         Services.AddSingleton<IFundService>(new FakeFundService());
+        Services.AddSingleton<ToastService>();
+        Services.AddSingleton<AdminPageState>();
         AddAuthorization().SetAuthorized("finance");
         // QuickGrid loads a small JS module for column resizing; bUnit has no browser, so stub it.
         JSInterop.Mode = JSRuntimeMode.Loose;

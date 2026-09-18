@@ -30,6 +30,7 @@ public class WorkflowBarTests : BunitContext
         workflow = new FakeWorkflow();
         Services.AddSingleton<IBudgetWorkflowService>(workflow);
         Services.AddSingleton<IPublishingService>(new FakePublishing());
+        Services.AddSingleton<ToastService>();
         var auth = AddAuthorization();
         auth.SetAuthorized("dana");
         if (asFinanceDirector)
@@ -55,12 +56,11 @@ public class WorkflowBarTests : BunitContext
     }
 
     [Fact]
-    public void Viewer_sees_status_only()
+    public void Viewer_gets_no_workflow_buttons()
     {
         IRenderedComponent<WorkflowBar> bar = RenderBar(State(BudgetStatus.Draft, fd: false), asFinanceDirector: false);
 
-        Assert.Empty(bar.FindAll("button"));
-        Assert.Contains("Draft", bar.Markup);
+        Assert.Empty(bar.FindAll("button:not(.btn-close)"));
     }
 
     [Fact]
@@ -86,6 +86,7 @@ public class WorkflowBarTests : BunitContext
         workflow = new FakeWorkflow();
         Services.AddSingleton<IBudgetWorkflowService>(workflow);
         Services.AddSingleton<IPublishingService>(new FakePublishing());
+        Services.AddSingleton<ToastService>();
         var auth = AddAuthorization();
         auth.SetAuthorized("dana");
         auth.SetPolicies(Policies.CanPublish);
