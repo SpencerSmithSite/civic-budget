@@ -1,0 +1,54 @@
+@page "/transparency/{Slug}/{Year:int}/funds/{FundCode}"
+@inject ISnapshotQueryService Snapshots
+
+<PageTitle>@(fund is null ? "Fund" : $"{fund.Name}, FY{Year}")</PageTitle>
+
+@if (loaded && fund is null)
+{
+    <PortalNotFound Text="That fund is not in this year's published budget." />
+}
+else if (fund is not null)
+{
+    <PortalCrumbs Crumbs="@([new Crumb($"{Year} budget", Root), new Crumb("Funds", $"{Root}/funds"), new Crumb($"{fund.Code} {fund.Name}")])" />
+    <div class="cb-eyebrow">@Display.Enum(fund.Category) fund</div>
+    <h1 class="pt-h1">@fund.Name</h1>
+    @if (fund.Description is not null)
+    {
+        <p class="pt-lead">@fund.Description</p>
+    }
+
+    <div class="pt-kpis">
+        <PortalKpi Label="Revenues" Value="@MoneyShort.Format(fund.Revenues + fund.TransfersIn)" Text="@(fund.TransfersIn > 0 ? $"Including {Display.Money(fund.TransfersIn)} transferred in from other funds." : "Money this fund takes in during the year.")" />
+        <PortalKpi Label="Expenditures" Value="@MoneyShort.Format(fund.Appropriations)" Text="@(fund.TransfersOut > 0 ? $"Including {Display.Money(fund.TransfersOut)} transferred to other funds." : "What council authorized this fund to spend.")" />
+        <PortalKpi Label="Projected ending balance" Value="@MoneyShort.Format(fund.ProjectedEndingBalance)" Text="@($"Began the year with {Display.Money(fund.BeginningBalance)}; estimated resources {Display.Money(fund.EstimatedResources)}.")" />
+    </div>
+
+    @if (fund.ExpendituresByDepartment.Items.Count > 0)
+    {
+        <Breakdown Title="@($"Where does the {fund.Name} fund's money go?")" Lead="Expenditures by department. Select one to see its accounts." Data="fund.ExpendituresByDepartment" ItemHeader="Department" Open="true"
+                   ShowPercent="ShowPercent" PageHref="@($"{Root}/funds/{FundCode}")" LinkFor="@(item => $"{Root}/funds/{FundCode}/departments/{item.Key}")" />
+    }
+    <Breakdown Title="By category" Data="fund.ExpendituresByCategory" ItemHeader="Category"
+               ShowPercent="ShowPercent" PageHref="@($"{Root}/funds/{FundCode}")" />
+    <Breakdown Title="Where does it come from?" Data="fund.RevenuesByCategory" ItemHeader="Source" Tone="rev"
+               ShowPercent="ShowPercent" PageHref="@($"{Root}/funds/{FundCode}")" />
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public int Year { get; set; }
+    [Parameter] public string FundCode { get; set; } = "";
+    [SupplyParameterFromQuery(Name = "show")] public string? Show { get; set; }
+
+    private PortalFundDto? fund;
+    private bool loaded;
+
+    private bool ShowPercent => Show == "pct";
+    private string Root => $"/transparency/{Slug}/{Year}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        fund = await Snapshots.GetFundAsync(Slug, Year, FundCode);
+        loaded = true;
+    }
+}

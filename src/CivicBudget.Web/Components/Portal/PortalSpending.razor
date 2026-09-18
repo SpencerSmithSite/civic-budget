@@ -1,0 +1,77 @@
+@page "/transparency/{Slug}/{Year:int}/spending"
+@inject ISnapshotQueryService Snapshots
+
+<PageTitle>@(budget is null ? "Where it goes" : $"Where it goes, FY{budget.FiscalYear}")</PageTitle>
+
+@if (loaded && budget is null)
+{
+    <PortalNotFound />
+}
+else if (budget is not null && byDepartment is not null && byCategory is not null)
+{
+    <PortalCrumbs Crumbs="@([new Crumb($"{budget.FiscalYear} budget", Root), new Crumb("Where it goes")])" />
+    <h1 class="pt-h1">Where does the money go?</h1>
+    <p class="pt-lead">@MoneyShort.Format(budget.TotalExpenditures) in expenditures for @budget.FiscalYear, across every fund. Departments show who spends it; categories show what it buys.</p>
+
+    <Breakdown Title="By department" Lead="Select a department to see its accounts, fund by fund." Data="byDepartment" ItemHeader="Department" Open="true"
+               ShowPercent="ShowPercent" PageHref="@($"{Root}/spending")" />
+    <Breakdown Title="By category" Lead="Personal services are wages; fringe benefits are pensions and health insurance; capital outlay is equipment and construction." Data="byCategory" ItemHeader="Category"
+               ShowPercent="ShowPercent" PageHref="@($"{Root}/spending")" />
+
+    @if (departments is not null)
+    {
+        <section class="pt-section" aria-labelledby="depts">
+            <h2 id="depts" class="pt-q">Departments by fund</h2>
+            <p class="pt-lead-sm">A department can spend from more than one fund. Each link opens that department's accounts within that fund.</p>
+            <div class="cb-grid-wrap">
+                <table class="cb-grid pt-grid">
+                    <thead><tr><th scope="col">Department</th><th scope="col">Fund</th><th scope="col" class="cb-num">Expenditures</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in departments)
+                        {
+                            <tr>
+                                <th scope="row" class="fw-normal"><a href="@Root/funds/@row.FundCode/departments/@row.DepartmentCode">@row.DepartmentName</a></th>
+                                <td>@row.FundCode @row.FundName</td>
+                                <td class="cb-num">@Display.Money(row.Amount)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public int Year { get; set; }
+    [SupplyParameterFromQuery(Name = "show")] public string? Show { get; set; }
+
+    private PortalBudgetDto? budget;
+    private BreakdownDto? byDepartment;
+    private BreakdownDto? byCategory;
+    private List<(string FundCode, string FundName, string DepartmentCode, string DepartmentName, decimal Amount)>? departments;
+    private bool loaded;
+
+    private bool ShowPercent => Show == "pct";
+    private string Root => $"/transparency/{Slug}/{Year}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        budget = await Snapshots.GetBudgetAsync(Slug, Year);
+        if (budget is not null)
+        {
+            byDepartment = await Snapshots.ExpendituresByDepartmentAsync(Slug, Year);
+            byCategory = await Snapshots.ExpendituresByCategoryAsync(Slug, Year);
+            IReadOnlyList<PortalLineDto> lines = await Snapshots.GetLinesAsync(Slug, Year);
+            departments = lines
+                .Where(l => l.AccountType == Domain.Accounts.AccountType.Expenditure && l.DepartmentCode is not null)
+                .GroupBy(l => (l.FundCode, l.FundName, l.DepartmentCode!, l.DepartmentName!))
+                .Select(g => (g.Key.FundCode, g.Key.FundName, g.Key.Item3, g.Key.Item4, g.Sum(l => l.Amount)))
+                .OrderBy(r => r.Item4).ThenBy(r => r.FundCode)
+                .ToList();
+        }
+
+        loaded = true;
+    }
+}

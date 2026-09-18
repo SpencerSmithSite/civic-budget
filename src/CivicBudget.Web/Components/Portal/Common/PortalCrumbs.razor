@@ -1,0 +1,12 @@
+<nav class="pt-crumbs" aria-label="Breadcrumb">
+    <ol>
+        @foreach (Crumb crumb in Crumbs)
+        {
+            <li>@if (crumb.Href is not null) { <a href="@crumb.Href">@crumb.Text</a> } else { <span aria-current="page">@crumb.Text</span> }</li>
+        }
+    </ol>
+</nav>
+
+@code {
+    [Parameter, EditorRequired] public Crumb[] Crumbs { get; set; } = [];
+}

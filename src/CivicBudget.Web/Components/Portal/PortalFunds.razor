@@ -1,0 +1,88 @@
+@page "/transparency/{Slug}/{Year:int}/funds"
+@inject ISnapshotQueryService Snapshots
+
+<PageTitle>@(budget is null ? "Funds" : $"Fund balances, FY{budget.FiscalYear}")</PageTitle>
+
+@if (loaded && budget is null)
+{
+    <PortalNotFound />
+}
+else if (budget is not null && funds is not null)
+{
+    <PortalCrumbs Crumbs="@([new Crumb($"{budget.FiscalYear} budget", Root), new Crumb("Funds")])" />
+    <h1 class="pt-h1">Fund balances</h1>
+    <p class="pt-lead">A fund is a separate set of books for money that can only be used for a purpose. Each one starts the year with a balance, takes in revenue, spends, and carries the rest forward. In Ohio, a fund may not appropriate more than its estimated resources.</p>
+
+    <div class="cb-grid-wrap">
+        <table class="cb-grid pt-grid pt-funds">
+            <caption class="visually-hidden">Fund balances for fiscal year @budget.FiscalYear</caption>
+            <thead>
+                <tr>
+                    <th scope="col">Fund</th>
+                    <th scope="col" class="cb-num">Beginning balance</th>
+                    <th scope="col" class="cb-num">Revenues and transfers in</th>
+                    <th scope="col" class="cb-num">Estimated resources</th>
+                    <th scope="col" class="cb-num">Appropriations</th>
+                    <th scope="col" class="cb-num">Projected ending balance</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (PortalFundDto fund in funds)
+                {
+                    <tr>
+                        <th scope="row" class="fw-normal cb-wrap"><a href="@Root/funds/@fund.Code">@fund.Code @fund.Name</a>@if (fund.Description is not null) { <div class="pt-muted small">@fund.Description</div> }</th>
+                        <td class="cb-num">@Display.Money(fund.BeginningBalance)</td>
+                        <td class="cb-num">@Display.Money(fund.Revenues + fund.TransfersIn)</td>
+                        <td class="cb-num">@Display.Money(fund.EstimatedResources)</td>
+                        <td class="cb-num">@Display.Money(fund.Appropriations)</td>
+                        <td class="cb-num @(fund.ProjectedEndingBalance < 0 ? "cb-neg" : "")">@Display.SignedOrPlain(fund.ProjectedEndingBalance)</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th scope="row">All funds</th>
+                    <td class="cb-num">@Display.Money(funds.Sum(f => f.BeginningBalance))</td>
+                    <td class="cb-num">@Display.Money(funds.Sum(f => f.Revenues + f.TransfersIn))</td>
+                    <td class="cb-num">@Display.Money(funds.Sum(f => f.EstimatedResources))</td>
+                    <td class="cb-num">@Display.Money(funds.Sum(f => f.Appropriations))</td>
+                    <td class="cb-num">@Display.SignedOrPlain(funds.Sum(f => f.ProjectedEndingBalance))</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    <p class="pt-dl">Estimated resources = beginning balance + revenues + transfers in. Appropriations = expenditures + transfers out.</p>
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public int Year { get; set; }
+
+    private PortalBudgetDto? budget;
+    private List<PortalFundDto>? funds;
+    private bool loaded;
+
+    private string Root => $"/transparency/{Slug}/{Year}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        budget = await Snapshots.GetBudgetAsync(Slug, Year);
+        if (budget is not null)
+        {
+            BreakdownDto? byFund = await Snapshots.ExpendituresByFundAsync(Slug, Year);
+            IReadOnlyList<PortalLineDto> lines = await Snapshots.GetLinesAsync(Slug, Year);
+            IEnumerable<string> codes = lines.Select(l => l.FundCode).Concat(byFund?.Items.Select(i => i.Key) ?? []).Distinct().OrderBy(c => c);
+            funds = [];
+            foreach (string code in codes)
+            {
+                PortalFundDto? fund = await Snapshots.GetFundAsync(Slug, Year, code);
+                if (fund is not null)
+                {
+                    funds.Add(fund);
+                }
+            }
+        }
+
+        loaded = true;
+    }
+}

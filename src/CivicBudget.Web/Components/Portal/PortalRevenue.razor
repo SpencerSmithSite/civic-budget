@@ -1,0 +1,69 @@
+@page "/transparency/{Slug}/{Year:int}/revenue"
+@inject ISnapshotQueryService Snapshots
+
+<PageTitle>@(budget is null ? "Where it comes from" : $"Where it comes from, FY{budget.FiscalYear}")</PageTitle>
+
+@if (loaded && budget is null)
+{
+    <PortalNotFound />
+}
+else if (budget is not null && bySource is not null)
+{
+    <PortalCrumbs Crumbs="@([new Crumb($"{budget.FiscalYear} budget", Root), new Crumb("Where it comes from")])" />
+    <h1 class="pt-h1">Where does the money come from?</h1>
+    <p class="pt-lead">@MoneyShort.Format(budget.TotalRevenues) in revenues expected for @budget.FiscalYear. Transfers between funds (@Display.Money(budget.TotalTransfersIn)) are not counted here because they move money rather than raise it.</p>
+
+    <Breakdown Title="By source" Lead="Taxes and intergovernmental money (state shared revenue, gasoline tax) support general services; charges for services are mostly water and sewer bills." Data="bySource" ItemHeader="Source" Tone="rev" Open="true"
+               ShowPercent="ShowPercent" PageHref="@($"{Root}/revenue")" />
+
+    @if (lines is not null)
+    {
+        <section class="pt-section" aria-labelledby="revlines">
+            <h2 id="revlines" class="pt-q">Every revenue account</h2>
+            <div class="cb-grid-wrap">
+                <table class="cb-grid pt-grid">
+                    <thead><tr><th scope="col">Account</th><th scope="col">Fund</th><th scope="col">Source</th><th scope="col" class="cb-num">FY@(Year) budget</th><th scope="col" class="cb-num">FY@(Year - 1) budget</th><th scope="col" class="cb-num">FY@(Year - 2) actual</th></tr></thead>
+                    <tbody>
+                        @foreach (PortalLineDto line in lines)
+                        {
+                            <tr>
+                                <th scope="row" class="fw-normal"><span class="cb-code">@line.AccountCode</span> @line.AccountName</th>
+                                <td><a href="@Root/funds/@line.FundCode">@line.FundCode @line.FundName</a></td>
+                                <td>@Display.Enum(line.Category)</td>
+                                <td class="cb-num">@Display.Money(line.Amount)</td>
+                                <td class="cb-num">@Display.Money(line.CurrentYearBudget)</td>
+                                <td class="cb-num">@Display.Money(line.PriorYearActual)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public int Year { get; set; }
+    [SupplyParameterFromQuery(Name = "show")] public string? Show { get; set; }
+
+    private PortalBudgetDto? budget;
+    private BreakdownDto? bySource;
+    private List<PortalLineDto>? lines;
+    private bool loaded;
+
+    private bool ShowPercent => Show == "pct";
+    private string Root => $"/transparency/{Slug}/{Year}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        budget = await Snapshots.GetBudgetAsync(Slug, Year);
+        if (budget is not null)
+        {
+            bySource = await Snapshots.RevenuesByCategoryAsync(Slug, Year);
+            lines = (await Snapshots.GetLinesAsync(Slug, Year)).Where(l => l.AccountType == Domain.Accounts.AccountType.Revenue).OrderByDescending(l => l.Amount).ToList();
+        }
+
+        loaded = true;
+    }
+}

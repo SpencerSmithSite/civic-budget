@@ -1,0 +1,74 @@
+@page "/transparency/{Slug}"
+@page "/transparency/{Slug}/{Year:int}"
+@inject ISnapshotQueryService Snapshots
+
+<PageTitle>@(budget is null ? "Budget" : $"{budget.GovernmentName} FY{budget.FiscalYear} budget")</PageTitle>
+
+@if (loaded && budget is null)
+{
+    <PortalNotFound />
+}
+else if (budget is not null && byFund is not null && revenue is not null)
+{
+    <div class="pt-head">
+        <div>
+            <h1 class="pt-h1">The @budget.FiscalYear budget</h1>
+            <p class="pt-lead">@(budget.GovernmentDescription ?? $"This is the budget council adopted for {budget.FiscalYear}.") It shows what the government expects to take in, what it plans to spend, and what each fund keeps in reserve.</p>
+        </div>
+        @if (budget.AvailableYears.Count > 1)
+        {
+            <nav class="pt-years" aria-label="Fiscal year">
+                @foreach (PortalYearDto y in budget.AvailableYears)
+                {
+                    <a href="/transparency/@Slug/@y.FiscalYear" class="@(y.FiscalYear == budget.FiscalYear ? "on" : "")" aria-current="@(y.FiscalYear == budget.FiscalYear ? "page" : null)">FY@(y.FiscalYear)</a>
+                }
+            </nav>
+        }
+    </div>
+
+    <div class="pt-trust">
+        @if (budget.ResolutionNumber is not null) { <span>Adopted by resolution <b>@budget.ResolutionNumber</b>@(budget.AdoptedOnUtc is { } a ? $" on {a:MMMM d, yyyy}" : "")</span> }
+        <span>Published <b>@budget.PublishedAtUtc.ToString("MMMM d, yyyy")</b></span>
+        <span>Version <b>@budget.VersionLabel</b>@(budget.AmendmentReason is null ? "" : $": {budget.AmendmentReason}")</span>
+    </div>
+
+    <div class="pt-kpis">
+        <PortalKpi Label="Revenues" Value="@MoneyShort.Format(budget.TotalRevenues)" Text="Taxes, state funding, utility bills, fees, and interest the government expects to receive." Href="@($"{Root}/revenue")" LinkText="Where it comes from" />
+        <PortalKpi Label="Expenditures" Value="@MoneyShort.Format(budget.TotalExpenditures)" Text="What council authorized departments to spend, including debt payments." Href="@($"{Root}/spending")" LinkText="Where it goes" />
+        <PortalKpi Label="Projected ending balance" Value="@MoneyShort.Format(budget.ProjectedEndingBalance)" Text="@($"Money carried into {budget.FiscalYear + 1} across all funds, after this year's revenues and spending.")" Href="@($"{Root}/funds")" LinkText="Fund balances" />
+    </div>
+
+    <Breakdown Title="Where does the money go?" Lead="Expenditures by fund. Select a fund to see its departments." Data="byFund" ItemHeader="Fund" Open="true"
+               ShowPercent="ShowPercent" PageHref="@Root" LinkFor="@(item => $"{Root}/funds/{item.Key}")" />
+
+    <Breakdown Title="Where does it come from?" Lead="Revenues by source, across all funds." Data="revenue" ItemHeader="Source" Tone="rev"
+               ShowPercent="ShowPercent" PageHref="@Root" />
+
+    <p class="pt-dl">Want the numbers? <a href="@Root/download.csv">Download CSV</a> · <a href="@Root/download.xlsx">Download Excel</a> · every line of the adopted budget.</p>
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public int? Year { get; set; }
+    [SupplyParameterFromQuery(Name = "show")] public string? Show { get; set; }
+
+    private PortalBudgetDto? budget;
+    private BreakdownDto? byFund;
+    private BreakdownDto? revenue;
+    private bool loaded;
+
+    private bool ShowPercent => Show == "pct";
+    private string Root => $"/transparency/{Slug}/{budget?.FiscalYear}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        budget = await Snapshots.GetBudgetAsync(Slug, Year);
+        if (budget is not null)
+        {
+            byFund = await Snapshots.ExpendituresByFundAsync(Slug, budget.FiscalYear);
+            revenue = await Snapshots.RevenuesByCategoryAsync(Slug, budget.FiscalYear);
+        }
+
+        loaded = true;
+    }
+}

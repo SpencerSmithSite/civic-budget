@@ -1,0 +1,31 @@
+@page "/transparency"
+@inject ISnapshotQueryService Snapshots
+
+<PageTitle>Budget transparency</PageTitle>
+
+<h1 class="pt-h1">Budget transparency</h1>
+<p class="pt-lead">Governments publishing their adopted budgets with CivicBudget. Pick one to see where its money comes from and where it goes.</p>
+
+@if (governments is null)
+{
+    <p class="pt-muted">Loading…</p>
+}
+else if (governments.Count == 0)
+{
+    <PortalNotFound Text="No government has published a budget yet." />
+}
+else
+{
+    <ul class="pt-govlist">
+        @foreach ((string slug, string name) in governments)
+        {
+            <li><a href="/transparency/@slug">@name</a></li>
+        }
+    </ul>
+}
+
+@code {
+    private IReadOnlyList<(string Slug, string Name)>? governments;
+
+    protected override async Task OnInitializedAsync() => governments = await Snapshots.ListGovernmentsAsync();
+}

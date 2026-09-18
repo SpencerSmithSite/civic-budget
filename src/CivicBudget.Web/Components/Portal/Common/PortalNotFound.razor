@@ -1,0 +1,21 @@
+@* Friendly not-found that also sets a real 404 so crawlers and the output cache treat it correctly.
+   HttpContext is available as a cascading parameter only during static SSR, which is all the portal uses. *@
+<div class="pt-empty">
+    <h1>No published budget here</h1>
+    <p>@Text</p>
+    <a href="/transparency">See governments with a published budget</a>
+</div>
+
+@code {
+    [Parameter] public string Text { get; set; } = "Either the address is wrong or this government has not published a budget yet.";
+
+    [CascadingParameter] private HttpContext? HttpContext { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (HttpContext is { Response.HasStarted: false })
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+        }
+    }
+}
