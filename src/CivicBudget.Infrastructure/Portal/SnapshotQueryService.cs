@@ -1,3 +1,4 @@
+using CivicBudget.Application.Common;
 using CivicBudget.Application.Portal;
 using CivicBudget.Domain.Accounts;
 using CivicBudget.Domain.Publishing;
@@ -61,7 +62,7 @@ public sealed class SnapshotQueryService(IDbContextFactory<PublicPortalDbContext
         Loaded? data = await LoadAsync(slug, fiscalYear, ct);
         return data is null ? null : Breakdown("Revenues by source",
             data.Lines.Where(l => l.AccountType == AccountType.Revenue),
-            l => l.Category.ToString(), l => CategoryLabel(l.Category), _ => null);
+            l => l.Category.ToString(), l => Labels.Category(l.Category), _ => null);
     }
 
     public async Task<BreakdownDto?> ExpendituresByCategoryAsync(string slug, int fiscalYear, CancellationToken ct = default)
@@ -69,7 +70,7 @@ public sealed class SnapshotQueryService(IDbContextFactory<PublicPortalDbContext
         Loaded? data = await LoadAsync(slug, fiscalYear, ct);
         return data is null ? null : Breakdown("Expenditures by category",
             data.Lines.Where(l => l.AccountType == AccountType.Expenditure),
-            l => l.Category.ToString(), l => CategoryLabel(l.Category), _ => null);
+            l => l.Category.ToString(), l => Labels.Category(l.Category), _ => null);
     }
 
     public async Task<BreakdownDto?> ExpendituresByDepartmentAsync(string slug, int fiscalYear, CancellationToken ct = default)
@@ -99,10 +100,10 @@ public sealed class SnapshotQueryService(IDbContextFactory<PublicPortalDbContext
             Breakdown("Expenditures by department", lines.Where(l => l.AccountType == AccountType.Expenditure && l.DepartmentCode != null),
                 l => l.DepartmentCode!, l => l.DepartmentName!, l => l.DepartmentDescription),
             Breakdown("Expenditures by category", lines.Where(l => l.AccountType == AccountType.Expenditure),
-                l => l.Category.ToString(), l => CategoryLabel(l.Category), _ => null),
+                l => l.Category.ToString(), l => Labels.Category(l.Category), _ => null),
             Breakdown("Revenues by source", lines.Where(l => l.AccountType is AccountType.Revenue or AccountType.TransferIn),
                 l => l.AccountType == AccountType.TransferIn ? "TransfersIn" : l.Category.ToString(),
-                l => l.AccountType == AccountType.TransferIn ? "Transfers in" : CategoryLabel(l.Category), _ => null));
+                l => l.AccountType == AccountType.TransferIn ? "Transfers in" : Labels.Category(l.Category), _ => null));
     }
 
     public async Task<PortalDepartmentDto?> GetDepartmentAsync(string slug, int fiscalYear, string fundCode, string departmentCode, CancellationToken ct = default)
@@ -127,7 +128,7 @@ public sealed class SnapshotQueryService(IDbContextFactory<PublicPortalDbContext
             first.DepartmentCode!, first.DepartmentName!, first.DepartmentDescription, first.FundCode, first.FundName,
             Sum(lines, AccountType.Expenditure, l => l.Amount),
             Breakdown("Expenditures by category", lines.Where(l => l.AccountType == AccountType.Expenditure),
-                l => l.Category.ToString(), l => CategoryLabel(l.Category), _ => null),
+                l => l.Category.ToString(), l => Labels.Category(l.Category), _ => null),
             lines.Select(ToLine).ToList());
     }
 
@@ -240,28 +241,6 @@ public sealed class SnapshotQueryService(IDbContextFactory<PublicPortalDbContext
             .OrderByDescending(i => i.Amount)
             .ToList();
         return new BreakdownDto(title, items.Sum(i => i.Amount), items);
-    }
-
-    /// <summary>"SuppliesAndMaterials" reads as "Supplies and materials" to a citizen.</summary>
-    private static string CategoryLabel(ReportingCategory category)
-    {
-        string name = category.ToString();
-        var chars = new List<char>(name.Length + 4);
-        for (int i = 0; i < name.Length; i++)
-        {
-            if (i > 0 && char.IsUpper(name[i]))
-            {
-                chars.Add(' ');
-                chars.Add(char.ToLowerInvariant(name[i]));
-            }
-            else
-            {
-                chars.Add(name[i]);
-            }
-        }
-
-        string label = new(chars.ToArray());
-        return label == "Other expenditure" ? "Other" : label;
     }
 
     private static bool Matches(string value, string query) => value.Contains(query, StringComparison.OrdinalIgnoreCase);
