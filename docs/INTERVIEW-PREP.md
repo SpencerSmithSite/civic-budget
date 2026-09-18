@@ -523,3 +523,101 @@ respected. A screen-reader pass is scheduled for Phase 8.
   its built-in styling.
 - `prefers-reduced-motion` is a media query; respect it for anything that
   animates continuously (skeleton shimmer).
+
+## Phase 5 — Public transparency portal
+
+### Q: Why is the portal static SSR when the admin app is Interactive Server?
+**A:** Different audiences with different costs. An Interactive Server
+page holds a SignalR circuit (component tree, DI scope, WebSocket) per
+visitor, which is right for twenty finance staff editing a worksheet and
+wrong for thousands of anonymous citizens. A static SSR page is one HTTP
+request that renders once and can be cached; there is no per-visitor
+state. The switch is one attribute: the portal folder's `_Imports.razor`
+adds `[ExcludeFromInteractiveRouting]`, the admin pages declare
+`@rendermode InteractiveServer`.
+**Look at:** `Components/Portal/_Imports.razor`, `docs/walkthroughs/06-public-portal.md` section 2.
+
+### Q: How do you guarantee the portal can never show a draft?
+**A:** Structurally, not by a filter someone could forget. The portal
+reads only through `ISnapshotQueryService`, whose one implementation uses
+`PublicPortalDbContext`, which maps just the three snapshot tables with an
+Active-only query filter and throws on `SaveChanges`. There is no code
+path from a portal page to `BudgetVersions`. The integration test
+`Unpublishing_removes_the_government_from_the_portal_immediately` shows
+the row still exists for auditors while every portal query returns nothing.
+**Look at:** `Infrastructure/Persistence/PublicPortalDbContext.cs`, `Infrastructure/Portal/SnapshotQueryService.cs`, ADR-0005/0006.
+
+### Q: Walk me through the output caching.
+**A:** Three pieces. A base `IOutputCachePolicy` enables caching only for
+`GET /transparency/**`, keys by path and query, tags the entry
+`portal:{slug}`, and refuses to store non-200s or anything setting a
+cookie. A middleware before `UseOutputCache` rewrites Blazor's
+`Cache-Control: no-store` to `public, max-age=600` and drops the
+antiforgery cookie in `OnStarting`. And the Application-level
+`IPublishedSnapshotCacheInvalidator`, which `PublishingService` has called
+since Phase 4, is now implemented with `EvictByTagAsync`. Publish an
+amendment and that government's pages render fresh on the next request.
+**Look at:** `Web/Caching/*.cs`, `Program.cs`, ADR-0021.
+
+### Q: Why did you need a custom policy instead of `[OutputCache]`?
+**A:** Two reasons. `[OutputCache]` is not applied to Razor component
+endpoints, so a per-page attribute would silently do nothing. And the
+built-in default policy refuses to cache any response marked `no-store`,
+which Blazor's SSR endpoint puts on every page. Registering the policy as
+the base policy with `excludeDefaultPolicy: true` puts our rules in charge
+while keeping the two that matter: GET only, never a response that still
+sets a cookie.
+
+### Q: Is it safe to remove the antiforgery cookie?
+**A:** For these pages, yes: the antiforgery token protects POST forms,
+and the portal has none (search is a GET form). The middleware only drops
+the `Set-Cookie` header when every cookie in it is the antiforgery one; if
+Identity or anything else ever sets a cookie on a portal response, it is
+kept and the policy then refuses to cache that response.
+**Look at:** `PortalResponseMiddleware.cs`, `PortalResponseMiddlewareTests.cs`.
+
+### Q: Why no chart library?
+**A:** A transparency portal's charts have to be readable without color,
+without JavaScript, and on paper, and the numbers have to be checkable.
+Horizontal CSS bars with the value beside each one, a `role="img"`
+summary, and a `<details>` table with the same figures meet all of that
+with no dependency, and the bUnit tests can assert the accessibility
+promises directly. Sorted horizontal bars with labels are also what the
+best portals converge on.
+**Look at:** `Components/Portal/Common/Breakdown.razor`, `tests/CivicBudget.Web.Tests/Portal/BreakdownTests.cs`.
+
+### Q: Where do the breakdowns get computed, and would that scale?
+**A:** In memory, in `SnapshotQueryService`: one query loads the
+snapshot's lines and funds (about a hundred rows for a village), then
+LINQ `GroupBy`. With output caching in front that is one query per page
+per six hours. A county with tens of thousands of lines would move the
+grouping into SQL; the `ISnapshotQueryService` contract would not change.
+
+### Q: What was the split-query change about?
+**A:** Every aggregate load includes two collections (a version's Lines
+and BeginningBalances; a snapshot's Lines and Funds). EF Core's default
+single query JOINs both, repeating each line once per row of the other
+collection, and logs a cartesian-product warning. Both contexts now
+default to `QuerySplittingBehavior.SplitQuery`: one SQL statement per
+collection. The trade-off is consistency between the statements, which
+does not matter for immutable snapshots or a single user's draft.
+**Look at:** `Infrastructure/DependencyInjection.cs`.
+
+### Q: How do the downloads work?
+**A:** Two minimal API GET endpoints under the portal prefix build an
+`ExportTable` from `GetLinesAsync` and hand it to `CsvWriter` (no
+package; UTF-8 BOM, CRLF, RFC 4180 quoting, invariant numbers) or
+`ISpreadsheetExporter` (ClosedXML; typed cells, frozen bold header).
+Being GETs under `/transparency`, the files are output-cached and evicted
+with the pages.
+**Look at:** `Components/Portal/PortalEndpoints.cs`, `Application/Export/`, `Infrastructure/Export/`.
+
+### General information worth having ready
+- Static SSR components get parameters once, cannot use `@onclick`, and
+  bind forms via `[SupplyParameterFromForm]`/`[SupplyParameterFromQuery]`.
+- `OutputCacheContext` flags: `EnableOutputCaching`, `AllowCacheLookup`,
+  `AllowCacheStorage`, `Tags`, `CacheVaryByRules.QueryKeys`.
+- `HttpResponse.OnStarting` is the last hook before headers are sent;
+  inside the output cache's `ServeResponseAsync` headers are already read-only.
+- `IOutputCacheStore` has an in-memory default and a Redis package
+  (`Microsoft.AspNetCore.OutputCaching.StackExchangeRedis`) for multi-instance hosting.

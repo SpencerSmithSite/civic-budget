@@ -1,0 +1,77 @@
+@page "/transparency/{Slug}/{Year:int}/years"
+@inject ISnapshotQueryService Snapshots
+
+<PageTitle>Year over year</PageTitle>
+
+@if (loaded && years is null)
+{
+    <PortalNotFound />
+}
+else if (years is not null)
+{
+    <PortalCrumbs Crumbs="@([new Crumb($"{Year} budget", Root), new Crumb("Year over year")])" />
+    <h1 class="pt-h1">What changed from year to year?</h1>
+    <p class="pt-lead">Every published budget, side by side. Amounts are the adopted (or amended) budget for each year, not actual results.</p>
+
+    @if (years.Count < 2)
+    {
+        <p class="pt-muted">Only one year has been published so far; the comparison appears once a second year is published.</p>
+    }
+    else
+    {
+        decimal max = years.Max(y => Math.Max(y.Revenues, y.Expenditures));
+        <section class="pt-section" aria-labelledby="yoy">
+            <h2 id="yoy" class="pt-q">Revenues and expenditures by year</h2>
+            <div class="pt-yoy" role="img" aria-label="@string.Join("; ", years.Select(y => $"FY{y.FiscalYear}: revenues {Display.Money(y.Revenues)}, expenditures {Display.Money(y.Expenditures)}"))">
+                @foreach (YearTotalsDto y in years)
+                {
+                    <div class="pt-yoy-year">
+                        <div class="pt-yoy-label">FY@(y.FiscalYear) <span class="pt-muted">@y.VersionLabel</span></div>
+                        <div class="pt-yoy-row"><span class="pt-yoy-key">Revenues</span><div class="pt-bar-track"><div class="pt-bar-fill rev" style="width:@(Pct(y.Revenues, max))%"></div></div><span class="pt-bar-value">@Display.Money(y.Revenues)</span></div>
+                        <div class="pt-yoy-row"><span class="pt-yoy-key">Expenditures</span><div class="pt-bar-track"><div class="pt-bar-fill" style="width:@(Pct(y.Expenditures, max))%"></div></div><span class="pt-bar-value">@Display.Money(y.Expenditures)</span></div>
+                    </div>
+                }
+            </div>
+            <div class="cb-grid-wrap">
+                <table class="cb-grid pt-grid">
+                    <caption class="visually-hidden">Revenues, expenditures, and ending balance by fiscal year</caption>
+                    <thead><tr><th scope="col">Fiscal year</th><th scope="col">Version</th><th scope="col" class="cb-num">Revenues</th><th scope="col" class="cb-num">Expenditures</th><th scope="col" class="cb-num">Projected ending balance</th><th scope="col" class="cb-num">Expenditure change</th></tr></thead>
+                    <tbody>
+                        @for (int i = 0; i < years.Count; i++)
+                        {
+                            YearTotalsDto y = years[i];
+                            decimal? change = i == 0 ? null : Domain.Common.Money.PercentChange(years[i - 1].Expenditures, y.Expenditures);
+                            <tr>
+                                <th scope="row" class="fw-normal"><a href="/transparency/@Slug/@y.FiscalYear">FY@(y.FiscalYear)</a></th>
+                                <td>@y.VersionLabel</td>
+                                <td class="cb-num">@Display.Money(y.Revenues)</td>
+                                <td class="cb-num">@Display.Money(y.Expenditures)</td>
+                                <td class="cb-num">@Display.SignedOrPlain(y.EndingBalance)</td>
+                                <td class="cb-num @(change < 0 ? "cb-neg" : "")">@(change is null ? "" : Display.Percent(change))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public int Year { get; set; }
+
+    private IReadOnlyList<YearTotalsDto>? years;
+    private bool loaded;
+
+    private string Root => $"/transparency/{Slug}/{Year}";
+
+    private static string Pct(decimal value, decimal max) => (max <= 0 ? 0 : Math.Round(value / max * 100m, 1)).ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    protected override async Task OnInitializedAsync()
+    {
+        IReadOnlyList<YearTotalsDto> all = await Snapshots.YearOverYearAsync(Slug);
+        years = all.Count == 0 ? null : all;
+        loaded = true;
+    }
+}

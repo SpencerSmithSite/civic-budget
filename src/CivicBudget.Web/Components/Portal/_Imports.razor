@@ -1,0 +1,6 @@
+@using CivicBudget.Application.Portal
+@using CivicBudget.Web.Components.Portal.Common
+@layout PortalLayout
+@* The portal is static server-side rendering only: no circuit per citizen, cacheable, works with
+   JavaScript off. This attribute guarantees no page under this folder is ever made interactive. *@
+@attribute [ExcludeFromInteractiveRouting]

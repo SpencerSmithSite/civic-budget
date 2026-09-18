@@ -1,0 +1,14 @@
+<div class="pt-kpi">
+    <div class="cb-eyebrow">@Label</div>
+    <div class="pt-kpi-v">@Value</div>
+    @if (Text is not null) { <p>@Text</p> }
+    @if (Href is not null) { <a href="@Href">@LinkText ›</a> }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    [Parameter, EditorRequired] public string Value { get; set; } = "";
+    [Parameter] public string? Text { get; set; }
+    [Parameter] public string? Href { get; set; }
+    [Parameter] public string LinkText { get; set; } = "Explore";
+}

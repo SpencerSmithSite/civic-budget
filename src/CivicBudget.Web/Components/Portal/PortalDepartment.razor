@@ -1,0 +1,71 @@
+@page "/transparency/{Slug}/{Year:int}/funds/{FundCode}/departments/{DepartmentCode}"
+@inject ISnapshotQueryService Snapshots
+
+<PageTitle>@(department is null ? "Department" : $"{department.Name}, {department.FundName}, FY{Year}")</PageTitle>
+
+@if (loaded && department is null)
+{
+    <PortalNotFound Text="That department has no lines in this fund for this year." />
+}
+else if (department is not null)
+{
+    <PortalCrumbs Crumbs="@([new Crumb($"{Year} budget", Root), new Crumb("Funds", $"{Root}/funds"), new Crumb($"{department.FundCode} {department.FundName}", $"{Root}/funds/{FundCode}"), new Crumb(department.Name)])" />
+    <div class="cb-eyebrow">@department.FundCode @department.FundName</div>
+    <h1 class="pt-h1">@department.Name</h1>
+    @if (department.Description is not null)
+    {
+        <p class="pt-lead">@department.Description</p>
+    }
+    <p class="pt-lead">@MoneyShort.Format(department.Expenditures) budgeted for @Year in this fund.</p>
+
+    <Breakdown Title="By category" Data="department.ByCategory" ItemHeader="Category" Open="true"
+               ShowPercent="ShowPercent" PageHref="@($"{Root}/funds/{FundCode}/departments/{DepartmentCode}")" />
+
+    <section class="pt-section" aria-labelledby="accts">
+        <h2 id="accts" class="pt-q">Every account</h2>
+        <p class="pt-lead-sm">The proposed amount next to last year's budget and the most recent completed year's actual spending.</p>
+        <div class="cb-grid-wrap">
+            <table class="cb-grid pt-grid">
+                <caption class="visually-hidden">Accounts for @department.Name in @department.FundName, fiscal year @Year</caption>
+                <thead><tr><th scope="col">Account</th><th scope="col">Category</th><th scope="col" class="cb-num">FY@(Year) budget</th><th scope="col" class="cb-num">FY@(Year - 1) budget</th><th scope="col" class="cb-num">FY@(Year - 2) actual</th><th scope="col" class="cb-num">Change</th></tr></thead>
+                <tbody>
+                    @foreach (PortalLineDto line in department.Lines)
+                    {
+                        decimal? change = Domain.Common.Money.PercentChange(line.CurrentYearBudget, line.Amount);
+                        <tr>
+                            <th scope="row" class="fw-normal"><span class="cb-code">@line.AccountCode</span> @line.AccountName</th>
+                            <td>@Display.Enum(line.Category)</td>
+                            <td class="cb-num">@Display.Money(line.Amount)</td>
+                            <td class="cb-num">@Display.Money(line.CurrentYearBudget)</td>
+                            <td class="cb-num">@Display.Money(line.PriorYearActual)</td>
+                            <td class="cb-num @(change < 0 ? "cb-neg" : "")">@Display.Percent(change)</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr><th scope="row" colspan="2">Total</th><td class="cb-num">@Display.Money(department.Lines.Sum(l => l.Amount))</td><td class="cb-num">@Display.Money(department.Lines.Sum(l => l.CurrentYearBudget))</td><td class="cb-num">@Display.Money(department.Lines.Sum(l => l.PriorYearActual))</td><td></td></tr>
+                </tfoot>
+            </table>
+        </div>
+    </section>
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public int Year { get; set; }
+    [Parameter] public string FundCode { get; set; } = "";
+    [Parameter] public string DepartmentCode { get; set; } = "";
+    [SupplyParameterFromQuery(Name = "show")] public string? Show { get; set; }
+
+    private PortalDepartmentDto? department;
+    private bool loaded;
+
+    private bool ShowPercent => Show == "pct";
+    private string Root => $"/transparency/{Slug}/{Year}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        department = await Snapshots.GetDepartmentAsync(Slug, Year, FundCode, DepartmentCode);
+        loaded = true;
+    }
+}

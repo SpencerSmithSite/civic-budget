@@ -1,0 +1,96 @@
+@inherits LayoutComponentBase
+@using CivicBudget.Application.Portal
+@using CivicBudget.Web.Components.Portal.Common
+@inject NavigationManager Navigation
+@inject ISnapshotQueryService Snapshots
+
+@* The citizen-facing shell: a navy header band with the government's name and question-led
+   navigation, the page, and a footer of trust chrome (adopted by, published, glossary,
+   accessibility statement, contact). Static SSR: rendered once per request, then cached. *@
+<div class="cb-portal">
+    <header class="pt-bar">
+        <div class="pt-in pt-bar-in">
+            <a class="pt-brand" href="@(route?.Root ?? "/transparency")">
+                <span class="cb-seal pt-seal" aria-hidden="true">@Initials(budget?.GovernmentName)</span>
+                <span><b>@(budget?.GovernmentName ?? "CivicBudget")</b><small>Budget transparency portal</small></span>
+            </a>
+            @if (budget is not null && route is not null)
+            {
+                <nav class="pt-nav" aria-label="Portal">
+                    <a href="@Root" class="@Active("")">Overview</a>
+                    <a href="@Root/spending" class="@Active("spending")">Where it goes</a>
+                    <a href="@Root/revenue" class="@Active("revenue")">Where it comes from</a>
+                    <a href="@Root/funds" class="@Active("funds")">Funds</a>
+                    <a href="@Root/years" class="@Active("years")">Year over year</a>
+                    <a href="@Root/search" class="@Active("search")">Search</a>
+                </nav>
+            }
+        </div>
+    </header>
+
+    <main class="pt-in pt-main" id="main">
+        @Body
+    </main>
+
+    <footer class="pt-foot">
+        <div class="pt-in pt-foot-in">
+            @if (budget is not null)
+            {
+                <span>@budget.GovernmentName · FY@(budget.FiscalYear) @budget.VersionLabel@(budget.ResolutionNumber is null ? "" : $", resolution {budget.ResolutionNumber}") · published @budget.PublishedAtUtc.ToString("MMMM d, yyyy")</span>
+                <a href="@Root/download.csv">Download CSV</a>
+                <a href="@Root/download.xlsx">Download Excel</a>
+            }
+            <a href="#glossary">Glossary</a>
+            <a href="#accessibility">Accessibility</a>
+            <span class="pt-fine">CivicBudget is a portfolio project; every government and figure on this site is fictional.</span>
+        </div>
+        <div class="pt-in pt-glossary" id="glossary">
+            <h2 class="h6">Glossary</h2>
+            <dl>
+                <dt>Fund</dt><dd>A separate set of books for money that can only be used for a purpose: the General Fund for day-to-day services, the Street fund for roads, the Water fund for the water system.</dd>
+                <dt>Appropriation</dt><dd>Council's legal permission to spend up to an amount. Departments cannot spend money that has not been appropriated.</dd>
+                <dt>Estimated resources</dt><dd>What a fund starts the year with plus what it expects to take in. In Ohio, appropriations may not exceed this amount.</dd>
+                <dt>Amendment</dt><dd>A change to the adopted budget passed by council during the year, usually to move or add money for something unexpected.</dd>
+            </dl>
+            <p id="accessibility" class="pt-fine">This site is built to WCAG 2.1 AA: every chart has a table with the same numbers, nothing is conveyed by color alone, and every page works without JavaScript. If something does not work for you, contact the fiscal office.</p>
+        </div>
+    </footer>
+</div>
+
+@code {
+    private PortalRoute? route;
+    private PortalBudgetDto? budget;
+
+    private string Root => route is null ? "/transparency" : $"/transparency/{route.Slug}/{budget?.FiscalYear ?? route.Year}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        route = PortalRoutes.Parse(new Uri(Navigation.Uri));
+        if (route is not null)
+        {
+            budget = await Snapshots.GetBudgetAsync(route.Slug, route.Year);
+        }
+    }
+
+    /// <summary>Marks the nav item for the current section (the third path segment after the year).</summary>
+    private string Active(string section)
+    {
+        string[] segments = new Uri(Navigation.Uri).AbsolutePath.Trim('/').Split('/');
+        string current = segments.Length >= 4 ? segments[3] : "";
+        return current.Equals(section, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+    }
+
+    private static string Initials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return "CB";
+        }
+
+        string[] words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Where(w => w.Length > 2 && !w.Equals("of", StringComparison.OrdinalIgnoreCase) && !w.Equals("the", StringComparison.OrdinalIgnoreCase)
+                        && !w.Equals("Village", StringComparison.OrdinalIgnoreCase) && !w.Equals("City", StringComparison.OrdinalIgnoreCase) && !w.Equals("Township", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        return words.Length >= 2 ? $"{words[0][0]}{words[1][0]}".ToUpperInvariant() : words.Length == 1 ? words[0][..2].ToUpperInvariant() : name[..2].ToUpperInvariant();
+    }
+}

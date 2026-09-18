@@ -1,0 +1,110 @@
+@* Sorted horizontal bars with direct value labels, a "$ | %" toggle that is just two links (no
+   JavaScript), and the same numbers as a table below. Never color alone: every bar has its label
+   and value beside it. Items can link to a drill-down page. *@
+<section class="pt-section" aria-labelledby="@headingId">
+    <div class="pt-section-head">
+        <h2 id="@headingId" class="pt-q">@Title</h2>
+        <span class="pt-toggle" role="group" aria-label="Show amounts as">
+            <a href="@ToggleHref(false)" class="@(showPercent ? "" : "on")" aria-current="@(showPercent ? null : "true")">$</a><a href="@ToggleHref(true)" class="@(showPercent ? "on" : "")" aria-current="@(showPercent ? "true" : null)">%</a>
+        </span>
+    </div>
+    @if (Lead is not null)
+    {
+        <p class="pt-lead-sm">@Lead</p>
+    }
+    @if (Data.Items.Count == 0)
+    {
+        <p class="pt-muted">Nothing budgeted here.</p>
+    }
+    else
+    {
+        <div class="pt-bars @Tone" role="img" aria-label="@AriaSummary">
+            @foreach (BreakdownItemDto item in Data.Items)
+            {
+                decimal share = Data.ShareOf(item);
+                decimal max = Data.Items.Max(i => i.Amount);
+                decimal width = max <= 0 ? 0 : Math.Round(item.Amount / max * 100m, 1);
+                <div class="pt-bar-row">
+                    <div class="pt-bar-label">
+                        @if (LinkFor is not null && LinkFor(item) is { } href)
+                        {
+                            <a href="@href">@item.Label</a>
+                        }
+                        else
+                        {
+                            <span>@item.Label</span>
+                        }
+                    </div>
+                    <div class="pt-bar-track"><div class="pt-bar-fill" style="width:@(width.ToString(System.Globalization.CultureInfo.InvariantCulture))%"></div></div>
+                    <div class="pt-bar-value">@(showPercent ? $"{share.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)}%" : Display.Money(item.Amount))</div>
+                </div>
+            }
+        </div>
+        <details class="pt-table" open="@Open">
+            <summary>Show as a table</summary>
+            <div class="cb-grid-wrap">
+                <table class="cb-grid pt-grid">
+                    <caption class="visually-hidden">@Title</caption>
+                    <thead>
+                        <tr><th scope="col">@ItemHeader</th><th scope="col" class="cb-num">Amount</th><th scope="col" class="cb-num">Share</th><th scope="col" class="cb-num">Change vs prior year</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (BreakdownItemDto item in Data.Items)
+                        {
+                            <tr>
+                                <th scope="row" class="fw-normal">@item.Label</th>
+                                <td class="cb-num">@Display.Money(item.Amount)</td>
+                                <td class="cb-num">@Data.ShareOf(item).ToString("0.0")%</td>
+                                <td class="cb-num @(item.ChangePercent < 0 ? "cb-neg" : "")">@Display.Percent(item.ChangePercent)</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr><th scope="row">Total</th><td class="cb-num">@Display.Money(Data.Total)</td><td class="cb-num">100%</td><td></td></tr>
+                    </tfoot>
+                </table>
+            </div>
+        </details>
+    }
+</section>
+
+@code {
+    private readonly string headingId = "bd-" + Guid.NewGuid().ToString("N")[..6];
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public string? Lead { get; set; }
+
+    [Parameter, EditorRequired]
+    public BreakdownDto Data { get; set; } = default!;
+
+    /// <summary>Header for the first table column: "Fund", "Department", "Category".</summary>
+    [Parameter]
+    public string ItemHeader { get; set; } = "Item";
+
+    /// <summary>"rev" colors the bars teal (money in); default navy (money out).</summary>
+    [Parameter]
+    public string Tone { get; set; } = "";
+
+    [Parameter]
+    public Func<BreakdownItemDto, string?>? LinkFor { get; set; }
+
+    /// <summary>Whether the table twin starts expanded. The overview opens the first one so no-JS readers see numbers immediately.</summary>
+    [Parameter]
+    public bool Open { get; set; }
+
+    /// <summary>Set from the page's ?show=pct query so every breakdown on a page toggles together.</summary>
+    [Parameter]
+    public bool ShowPercent { get; set; }
+
+    [Parameter]
+    public string PageHref { get; set; } = "";
+
+    private bool showPercent => ShowPercent;
+
+    private string ToggleHref(bool percent) => percent ? $"{PageHref}?show=pct#{headingId}" : $"{PageHref}#{headingId}";
+
+    private string AriaSummary => $"{Title}: " + string.Join("; ", Data.Items.Take(6).Select(i => $"{i.Label} {Display.Money(i.Amount)}"));
+}

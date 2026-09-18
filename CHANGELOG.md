@@ -5,6 +5,16 @@ All notable changes to CivicBudget. Format loosely follows
 
 ## [Unreleased]
 
+## Phase 5 — 2026-09-18
+### Added
+- Public transparency portal at `/transparency/{slug}/{year?}`: overview with KPIs, where it goes, where it comes from, funds, fund and department drill-downs, year over year, search. Static SSR, no login, no JavaScript.
+- `ISnapshotQueryService` read model over the read-only portal context; `Breakdown` bar chart with `$ | %` toggle and table twin.
+- CSV and XLSX downloads of every published line (ClosedXML added).
+- Output caching for portal pages with eviction by government tag on publish/unpublish; portal responses are `public, max-age=600` with no antiforgery cookie (ADR-0021).
+- 347 tests total (+55).
+### Changed
+- Both DbContexts use split queries for multi-collection includes.
+
 ## Phase 4.5 — 2026-09-18
 ### Added
 - Design research (Ohio vendors, admin budgeting UIs, transparency portals), design brief, and eight approved mockups under `docs/design/`.

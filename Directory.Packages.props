@@ -13,6 +13,7 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="$(EfCoreVersion)" />
     <!-- Application -->
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
+    <PackageVersion Include="ClosedXML" Version="0.105.1" />
     <!-- Identity -->
     <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="$(EfCoreVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.Components.QuickGrid" Version="$(EfCoreVersion)" />

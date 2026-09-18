@@ -1,0 +1,55 @@
+@page "/transparency/{Slug}/{Year:int}/search"
+@inject ISnapshotQueryService Snapshots
+
+<PageTitle>Search the budget</PageTitle>
+
+<PortalCrumbs Crumbs="@([new Crumb($"{Year} budget", Root), new Crumb("Search")])" />
+<h1 class="pt-h1">Search the @Year budget</h1>
+<p class="pt-lead">Find a fund, a department, or an account by name or code. Try "police", "salaries", or "5101".</p>
+
+@* A plain GET form: works without JavaScript and the results page is cacheable like any other. *@
+<form method="get" action="@Root/search" class="pt-search" role="search">
+    <label for="q" class="visually-hidden">Search</label>
+    <input id="q" name="q" type="search" class="form-control form-control-lg" value="@Q" placeholder="Fund, department, or account" />
+    <button type="submit" class="btn btn-primary btn-lg">Search</button>
+</form>
+
+@if (!string.IsNullOrWhiteSpace(Q))
+{
+    @if (hits is null)
+    {
+        <p class="pt-muted">Searching…</p>
+    }
+    else if (hits.Count == 0)
+    {
+        <p class="pt-muted">Nothing matched "@Q". Try a shorter word, or browse <a href="@Root/spending">where the money goes</a>.</p>
+    }
+    else
+    {
+        <p class="pt-muted">@hits.Count result@(hits.Count == 1 ? "" : "s") for "@Q".</p>
+        <ul class="pt-results">
+            @foreach (PortalSearchHitDto hit in hits)
+            {
+                <li><span class="cb-pill no-dot">@hit.Kind</span> <a href="@hit.Url">@hit.Label</a> <span class="pt-result-amt">@Display.Money(hit.Amount)</span></li>
+            }
+        </ul>
+    }
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public int Year { get; set; }
+    [SupplyParameterFromQuery(Name = "q")] public string? Q { get; set; }
+
+    private IReadOnlyList<PortalSearchHitDto>? hits;
+
+    private string Root => $"/transparency/{Slug}/{Year}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(Q))
+        {
+            hits = await Snapshots.SearchAsync(Slug, Year, Q);
+        }
+    }
+}
