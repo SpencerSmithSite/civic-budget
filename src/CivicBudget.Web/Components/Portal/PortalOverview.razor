@@ -38,10 +38,10 @@ else if (budget is not null && byFund is not null && revenue is not null)
         <PortalKpi Label="Projected ending balance" Value="@MoneyShort.Format(budget.ProjectedEndingBalance)" Text="@($"Money carried into {budget.FiscalYear + 1} across all funds, after this year's revenues and spending.")" Href="@($"{Root}/funds")" LinkText="Fund balances" />
     </div>
 
-    <Breakdown Title="Where does the money go?" Lead="Expenditures by fund. Select a fund to see its departments." Data="byFund" ItemHeader="Fund" Open="true"
+    <Breakdown Title="Where does the money go?" Data="byFund" ItemHeader="Fund" Open="true"
                ShowPercent="ShowPercent" PageHref="@Root" LinkFor="@(item => $"{Root}/funds/{item.Key}")" />
 
-    <Breakdown Title="Where does it come from?" Lead="Revenues by source, across all funds." Data="revenue" ItemHeader="Source" Tone="rev"
+    <Breakdown Title="Where does it come from?" Data="revenue" ItemHeader="Source" Tone="rev"
                ShowPercent="ShowPercent" PageHref="@Root" />
 
     <p class="pt-dl">Want the numbers? <a href="@Root/download.csv">Download CSV</a> · <a href="@Root/download.xlsx">Download Excel</a> · every line of the adopted budget.</p>

@@ -108,7 +108,7 @@ Design-first: this is the screen a citizen (and an interviewer) sees without log
 - [x] 17 CDK assertion tests (`tests/CivicBudget.Infra.Tests`); `cdk synth` + Docker build job in CI
 - [x] `deploy.yml` (OIDC, ECR push tagged by SHA, `cdk deploy -c imageTag`, `workflow_dispatch`, gated on `AWS_DEPLOY_ROLE_ARN`)
 - [x] Cost note (~$90/mo, NAT a third), teardown (`cdk destroy`), Budgets alarm; walkthrough 08; interview prep; ADR-0023
-- [ ] Spencer approves Phase 7
+- [x] Spencer approves Phase 7 (2026-09-18)
 
 ## Phase 8 — Polish  `phase-8-polish`
 - [ ] README with screenshots, demo logins, badges, branch-protection guidance

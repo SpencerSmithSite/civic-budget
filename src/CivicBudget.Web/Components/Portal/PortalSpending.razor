@@ -13,7 +13,7 @@ else if (budget is not null && byDepartment is not null && byCategory is not nul
     <h1 class="pt-h1">Where does the money go?</h1>
     <p class="pt-lead">@MoneyShort.Format(budget.TotalExpenditures) in expenditures for @budget.FiscalYear, across every fund. Departments show who spends it; categories show what it buys.</p>
 
-    <Breakdown Title="By department" Lead="Select a department to see its accounts, fund by fund." Data="byDepartment" ItemHeader="Department" Open="true"
+    <Breakdown Title="By department" Data="byDepartment" ItemHeader="Department" Open="true"
                ShowPercent="ShowPercent" PageHref="@($"{Root}/spending")" />
     <Breakdown Title="By category" Lead="Personal services are wages; fringe benefits are pensions and health insurance; capital outlay is equipment and construction." Data="byCategory" ItemHeader="Category"
                ShowPercent="ShowPercent" PageHref="@($"{Root}/spending")" />
@@ -22,7 +22,6 @@ else if (budget is not null && byDepartment is not null && byCategory is not nul
     {
         <section class="pt-section" aria-labelledby="depts">
             <h2 id="depts" class="pt-q">Departments by fund</h2>
-            <p class="pt-lead-sm">A department can spend from more than one fund. Each link opens that department's accounts within that fund.</p>
             <div class="cb-grid-wrap">
                 <table class="cb-grid pt-grid">
                     <thead><tr><th scope="col">Department</th><th scope="col">Fund</th><th scope="col" class="cb-num">Expenditures</th></tr></thead>

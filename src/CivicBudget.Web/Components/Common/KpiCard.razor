@@ -1,6 +1,6 @@
 @* A labeled number with an optional one-line delta or context. Tone colors only the top rule. *@
 <div class="card cb-kpi @Tone">
-    <div class="cb-eyebrow">@Label</div>
+    <div class="cb-eyebrow">@Label@if (Tip is not null) { <InfoTip Text="@Tip" /> }</div>
     <div class="v">@Value</div>
     @if (Detail is not null)
     {
@@ -15,8 +15,13 @@
     [Parameter, EditorRequired]
     public string Value { get; set; } = "";
 
+    /// <summary>Data beneath the number: a count, a date, a delta. Explanations go in <see cref="Tip"/> instead.</summary>
     [Parameter]
     public string? Detail { get; set; }
+
+    /// <summary>What the number means, shown on demand beside the label.</summary>
+    [Parameter]
+    public string? Tip { get; set; }
 
     /// <summary>"ok", "warn", "bad", or empty for navy.</summary>
     [Parameter]
