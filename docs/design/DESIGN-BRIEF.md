@@ -1,7 +1,8 @@
 # CivicBudget design brief
 
-**Status:** proposed 2026-09-18, awaiting Spencer's approval before mockups and implementation
-(ROADMAP Phase 4.5 and Phase 5).
+**Status:** direction approved by Spencer 2026-09-18 with one sharpening: it does not have to
+look like VIP, but it must look and feel like it *fits in* next to VIP. Mockups next, then
+implementation (ROADMAP Phase 4.5 and Phase 5).
 **Inputs:** the VIP screenshot Spencer supplied, and the three research reports in this folder.
 
 ## 1. Direction in one sentence
@@ -16,6 +17,14 @@ white; finance directors read density as competence; and the interviewer's own p
 blue-module-tree ERP. The goal is "this person understands our world and knows what 2026 looks
 like", not "this person can imitate a consumer app".
 
+### "Fits in with VIP" means
+Same family, one generation newer. Keep: blue module navigation with uppercase group headers,
+an icon toolbar above records, a breadcrumb trail, label/value detail cards with small uppercase
+labels, tabbed sub-sections over grids, grids that group and filter, blue as the trust color.
+Change: one blue instead of several, a dark sidebar instead of saturated bars, whitespace in
+headers and cards (not in grids), a single icon set, and designed states. A VIP user should feel
+at home in ten seconds; an OpenGov user should not feel they went back in time.
+
 ## 2. Design tokens
 
 All colors meet WCAG AA (4.5:1) as text on white unless noted. Defined once as CSS variables in
@@ -24,6 +33,7 @@ All colors meet WCAG AA (4.5:1) as text on white unless noted. Defined once as C
 | Token | Value | Use |
 |---|---|---|
 | `--cb-navy` | `#1F4E79` | Primary: buttons, active nav, links in chrome (8.7:1) |
+| `--cb-action` | `#1565C0` | VIP-adjacent action blue for primary buttons and toolbar icons (4.9:1 with white text) |
 | `--cb-navy-hover` | `#2B6CB0` | Hover and focus rings (5.4:1) |
 | `--cb-sidebar` | `#0F2A44` | Admin sidebar and portal footer background |
 | `--cb-teal` | `#0B7285` | Accent: drill-down links, active rule in the sidebar, chart secondary (5.6:1) |
