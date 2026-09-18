@@ -6,7 +6,7 @@ Blazor, EF Core, and SQL Server, with a deploy-ready AWS CDK stack.
 
 [![ci](https://github.com/SpencerSmithSite/civic-budget/actions/workflows/ci.yml/badge.svg)](https://github.com/SpencerSmithSite/civic-budget/actions/workflows/ci.yml)
 
-> **Status:** Phase 6 complete: import with a validation preview, XLSX export of every grid and report, and three printable reports. Next: deploy-ready AWS infrastructure. See [ROADMAP.md](ROADMAP.md).
+> **Status:** Phase 7 complete: containerized, with a CDK stack in C# that synthesizes and is asserted in CI, and an OIDC deploy workflow waiting on an account. Next: polish. See [ROADMAP.md](ROADMAP.md).
 
 **Two audiences, one solution**
 - **Admin app** — finance staff and department heads build the annual budget:
@@ -47,8 +47,22 @@ admin app and the portal shows it on the next request.
 
 To start over with fresh seed data: `docker compose down -v && docker compose up -d`.
 
+### Everything in containers
+
 ```bash
-dotnet test                                 # all 387 tests; integration tests start their own SQL Server container
+docker compose -f docker-compose.full.yml up --build     # app image + SQL Server; open http://localhost:8080
+```
+
+### AWS (deploy-ready, not deployed)
+
+`infra/CivicBudget.Infra` is an AWS CDK app in C#: VPC, RDS SQL Server Express, Fargate behind an
+ALB, Secrets Manager, CloudWatch, a spending alarm, and a GitHub OIDC deploy role. CI synthesizes
+it and runs 17 assertion tests on the templates; `.github/workflows/deploy.yml` deploys on a `v*`
+tag once an account's role ARN is set. There is no account behind this repository (ADR-0008), so
+nothing is live; see [infra/README.md](infra/README.md) and [walkthrough 08](docs/walkthroughs/08-aws-deploy-ready.md).
+
+```bash
+dotnet test                                 # all 404 tests; integration tests start their own SQL Server container, infra tests need Node.js
 ```
 
 Documentation: [Design brief](docs/design/DESIGN-BRIEF.md) · [Spec](docs/SPEC.md) · [Architecture](docs/ARCHITECTURE.md) ·

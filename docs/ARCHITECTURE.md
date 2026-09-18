@@ -312,43 +312,46 @@ Ubuntu runners natively.
 
 ---
 
-## 12. AWS deployment (Phase 7, deploy-ready — ADR-0008)
+## 12. AWS deployment (deploy-ready — ADR-0008, ADR-0023)
 
-Target shape (to be confirmed against current AWS docs in Phase 7; the
-tentative choice is **ECS Express Mode on Fargate** over Elastic Beanstalk):
+Built and asserted, never deployed: there is no AWS account behind the repository. Everything up
+to `cdk deploy` exists and runs in CI (`cdk synth`, 17 assertion tests, a Docker build).
 
 ```mermaid
 graph TB
-  Dev[Developer push / tag] --> GH[GitHub Actions deploy.yml]
-  GH -->|OIDC: assume role, no stored keys| IAM[IAM role for GitHub]
-  GH -->|docker build & push| ECR[Amazon ECR]
-  GH -->|cdk deploy| CFN[CloudFormation via CDK C#]
-  subgraph VPC
+  Dev[git tag v1.2.3] --> GH[GitHub Actions deploy.yml]
+  GH -->|OIDC: assume role, no stored keys| IAM[IAM role CivicBudget-GitHubDeploy]
+  GH -->|docker build & push :sha| ECR[Amazon ECR civicbudget]
+  GH -->|cdk deploy -c imageTag=sha| CFN[CloudFormation via CDK C#]
+  subgraph VPC 2 AZs, 1 NAT
     subgraph Public subnets
-      ALB[Application Load Balancer - HTTPS]
+      ALB[Application Load Balancer, sticky sessions, /health]
     end
     subgraph Private subnets
-      ECS[ECS Express Mode service on Fargate - CivicBudget.Web container]
-      RDS[(RDS for SQL Server Express)]
+      ECS[Fargate task 0.5 vCPU / 1 GB: CivicBudget.Web]
+      RDS[(RDS SQL Server Express db.t3.micro, encrypted)]
     end
   end
-  Internet((Citizens & staff)) --> ALB --> ECS --> RDS
-  ECS -->|reads at start| SM[Secrets Manager: connection string, Identity seed password]
-  ECS -->|stdout JSON| CW[CloudWatch Logs]
-  BUD[AWS Budgets alarm] -.-> Dev
+  Internet((Citizens & staff)) --> ALB --> ECS -->|1433, service SG only| RDS
+  ECS -->|at task start| SM[Secrets Manager: RDS password, demo password]
+  ECS -->|JSON stdout| CW[CloudWatch Logs, 30 days]
+  BUD[AWS Budgets alarm 80% of $60] -.-> Dev
 ```
 
-- **OIDC:** GitHub presents a short-lived token; AWS IAM trusts the GitHub
-  OIDC provider for `repo:SpencerSmithSite/civic-budget:ref:refs/tags/*`.
-  No `AWS_ACCESS_KEY_ID` secret ever exists in GitHub.
-- **Secrets:** the container's task definition references Secrets Manager
-  ARNs; ECS injects them as environment variables at start.
-- **Cost (estimate, to be refreshed in Phase 7):** RDS SQL Server Express
-  `db.t3.micro` ≈ $15–20/mo dominates; Fargate 0.25 vCPU/0.5 GB ≈ $9/mo;
-  ALB ≈ $16/mo. Teardown: `cdk destroy --all`.
-- **Without an AWS account:** `cdk synth` and the assertion tests run in CI
-  with no credentials; `deploy.yml` is `workflow_dispatch`-gated and fully
-  written. See ADR-0008.
+- **Stacks:** `CivicBudget-GitHubOidc` (once, by hand: OIDC provider + deploy role) and
+  `CivicBudget-App` (everything else). `infra/CivicBudget.Infra`, tests in `tests/CivicBudget.Infra.Tests`.
+- **Secrets:** the task definition references Secrets Manager entries; ECS injects
+  `Database__Password` (from the RDS-managed secret) and `Seed__DemoPassword` as environment
+  variables at start. The app builds its connection string from `Database:*` settings plus the
+  password (`DatabaseOptions`). A test proves no password is in the template.
+- **State that must survive a restart:** Data Protection keys live in SQL Server
+  (`DataProtectionKeys`), so cookies and antiforgery tokens outlive the container.
+- **Scaling:** one task by design; sticky sessions and shared keys are ready, the portal's output
+  cache would need a Redis store before a second task (ADR-0023).
+- **Cost:** about $90/mo at list price, a third of it the NAT gateway; `cdk destroy CivicBudget-App`
+  leaves nothing billing (every resource is `RemovalPolicy.DESTROY` for the demo).
+- **Local stand-in:** `docker compose -f docker-compose.full.yml up --build` runs the same image
+  against SQL Server with the same environment variables ECS would inject.
 
 ---
 

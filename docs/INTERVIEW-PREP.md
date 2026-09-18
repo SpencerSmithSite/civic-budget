@@ -706,3 +706,81 @@ No PDF library.
   sheet names max 31 characters.
 - Blazor: a named `RenderFragment` parameter (`<Filters>`) means the rest
   of the child content must be wrapped in `<ChildContent>`.
+
+## Phase 7 — AWS, deploy-ready
+
+### Q: You never deployed this. What does "deploy-ready" mean here?
+**A:** Everything up to `cdk deploy` exists and is exercised on every
+commit: a multi-stage Dockerfile that CI builds, a CDK app in C# that CI
+synthesizes with no credentials, 17 assertion tests on the CloudFormation
+it produces, and a complete OIDC-based deploy workflow that is gated on a
+repository variable. With an account, the steps are `cdk bootstrap`,
+deploy the OIDC stack once, set one variable, push a tag. I chose that
+over a free PaaS because a live URL on Fly.io says nothing about AWS.
+**Look at:** ADR-0008, ADR-0023, `infra/README.md`.
+
+### Q: Why Fargate behind an ALB instead of ECS Express Mode or Beanstalk?
+**A:** I checked in September 2026. Express Mode is L1-only in CDK, one
+container, default VPC public subnets, no custom domain: right for a
+stateless API, wrong for an app with a private SQL Server. Beanstalk hides
+the network and database wiring, which is exactly what I want to be able
+to explain. `ApplicationLoadBalancedFargateService` is the ECS L2 pattern:
+public ALB, private task, target group with health checks and sticky
+sessions, circuit breaker with rollback, in about forty lines.
+**Look at:** `infra/CivicBudget.Infra/CivicBudgetStack.cs`.
+
+### Q: How do secrets reach the container?
+**A:** By reference. The task definition names Secrets Manager entries;
+ECS reads them at task start and injects them as environment variables.
+The database password comes straight from the secret RDS generated, so
+rotation needs no coordination. The app composes its connection string
+from `Database:*` settings plus that password (`DatabaseOptions`). A test
+asserts the two passwords are in `Secrets`, not `Environment`, and that
+no `MasterUserPassword` literal exists in the template.
+**Look at:** `DatabaseOptions.cs`, `CivicBudgetStackTests.Passwords_reach_the_container_as_secrets_never_as_environment_variables`.
+
+### Q: How does GitHub deploy without AWS keys?
+**A:** OIDC. GitHub signs a short-lived token for each workflow run; IAM
+trusts GitHub's provider for one repository on `v*` tags or the
+`production` environment, and returns one-hour credentials for a role that
+can push to one ECR repository and assume the CDK bootstrap roles. No
+`AWS_ACCESS_KEY_ID` exists in GitHub; the only value stored is the role
+ARN, as a variable, not a secret. A test checks the trust condition and
+that no IAM user or access key is created.
+**Look at:** `GitHubOidcStack.cs`, `.github/workflows/deploy.yml`, `GitHubOidcStackTests`.
+
+### Q: What breaks when you run a Blazor Server app in a container, and what did you do about it?
+**A:** Three things. Data Protection keys default to the filesystem, so a
+restart signs everyone out: I persist them in SQL Server
+(`PersistKeysToDbContext`). Circuits are per instance, so the ALB has
+sticky sessions. And TLS ends at the ALB, so forwarded headers are on and
+HSTS and redirects see the original scheme. The one thing I left for a
+second instance is a shared output cache store for the portal (Redis),
+because an in-memory eviction on one task is invisible to the other.
+
+### Q: What does it cost and how do you turn it off?
+**A:** About $90 a month at list price: RDS SQL Server Express about $20,
+Fargate about $18, the ALB about $16, and the NAT gateway about $33, which
+is why the alarm is set at 80% of $60. `cdk destroy CivicBudget-App`
+leaves nothing billing because every resource is `RemovalPolicy.DESTROY`
+for the demo; a production account would flip RDS to deletion protection
+and snapshot-on-delete, and the comments say so.
+
+### Q: Why migrate on startup in AWS when you said a pipeline should do it?
+**A:** One task, EF's migration lock, and a demo. `Database:MigrateOnStartup`
+is a switch, on for the demo, off by default. With more than one task or a
+real change-management process, the deploy workflow would run migrations
+as a step (an ECS run-task or a migrations bundle) before the service
+update. The switch keeps both stories honest.
+
+### General information worth having ready
+- CDK bootstrap creates the `cdk-*` roles (lookup, file publishing, image
+  publishing, deploy) that the CLI assumes; the caller needs `sts:AssumeRole`
+  on them and nothing else for CloudFormation.
+- `Amazon.CDK.Assertions.Template.FromStack` synthesizes in-process; JSII is
+  one Node process per test host, hence no xUnit parallelization.
+- ECS `Secrets` versus `Environment` in a container definition; the
+  execution role needs `secretsmanager:GetSecretValue` (the L2 grants it).
+- RDS for SQL Server does not take a `DBName`; the app creates the database
+  on first migration.
+- ALB WebSockets need no configuration; stickiness is a target group attribute.

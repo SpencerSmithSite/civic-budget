@@ -18,19 +18,21 @@ public static class DatabaseInitializer
     private const int MaxAttempts = 12;
     private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(5);
 
-    public static async Task MigrateAndSeedAsync(IServiceProvider services, CancellationToken ct = default)
+    public static async Task MigrateAsync(IServiceProvider services, CancellationToken ct = default)
     {
         await using AsyncServiceScope scope = services.CreateAsyncScope();
         ILogger logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(nameof(DatabaseInitializer));
 
         var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<CivicBudgetDbContext>>();
-        await using (CivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct))
-        {
-            int pending = await WaitForSqlServerAsync(db, logger, ct);
-            logger.LogInformation("Applying {Count} pending migration(s).", pending);
-            await db.Database.MigrateAsync(ct);
-        }
+        await using CivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
+        int pending = await WaitForSqlServerAsync(db, logger, ct);
+        logger.LogInformation("Applying {Count} pending migration(s).", pending);
+        await db.Database.MigrateAsync(ct);
+    }
 
+    public static async Task SeedAsync(IServiceProvider services, CancellationToken ct = default)
+    {
+        await using AsyncServiceScope scope = services.CreateAsyncScope();
         await scope.ServiceProvider.GetRequiredService<DevelopmentSeeder>().SeedAsync(ct);
     }
 
