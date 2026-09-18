@@ -5,9 +5,13 @@
     <Project Path="src/CivicBudget.Infrastructure/CivicBudget.Infrastructure.csproj" />
     <Project Path="src/CivicBudget.Web/CivicBudget.Web.csproj" />
   </Folder>
+  <Folder Name="/infra/">
+    <Project Path="infra/CivicBudget.Infra/CivicBudget.Infra.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/CivicBudget.Application.Tests/CivicBudget.Application.Tests.csproj" />
     <Project Path="tests/CivicBudget.Domain.Tests/CivicBudget.Domain.Tests.csproj" />
+    <Project Path="tests/CivicBudget.Infra.Tests/CivicBudget.Infra.Tests.csproj" />
     <Project Path="tests/CivicBudget.IntegrationTests/CivicBudget.IntegrationTests.csproj" />
     <Project Path="tests/CivicBudget.Web.Tests/CivicBudget.Web.Tests.csproj" />
   </Folder>
