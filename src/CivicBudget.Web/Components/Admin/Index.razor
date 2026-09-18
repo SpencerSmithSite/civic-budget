@@ -1,52 +1,154 @@
 @page "/admin"
 @rendermode InteractiveServer
+@using CivicBudget.Application.Publishing
 @inject IGovernmentSettingsService SettingsService
+@inject IBudgetEntryService BudgetEntry
+@inject IPublishingService Publishing
+@inject IAuditQueryService AuditQuery
 @inject IFundService Funds
-@inject IDepartmentService Departments
-@inject IAccountService Accounts
-@inject IFiscalYearService FiscalYears
 
-<PageTitle>Admin overview</PageTitle>
+<PageTitle>Overview</PageTitle>
 
-<h1 class="h3">@(government?.Name ?? "Admin overview")</h1>
+<PageHeader Title="Overview" Eyebrow="@(government?.Name ?? "")" Crumbs="@([new Crumb("Budget"), new Crumb("Overview")])">
+    <Subtitle>Where the budget stands today, @DateTime.Today.ToString("MMMM d, yyyy").</Subtitle>
+    <Actions>
+        <a class="btn btn-outline-primary btn-sm" href="admin/budgets">Budget versions</a>
+        @if (openVersion is not null)
+        {
+            <a class="btn btn-primary btn-sm" href="admin/budgets/@openVersion.Id">Continue FY@(openVersion.Year) @openVersion.Label.ToLowerInvariant()</a>
+        }
+    </Actions>
+</PageHeader>
 
-<AuthorizeView>
-    <p class="text-secondary">
-        Signed in as @context.User.FindFirst(ClaimNames.DisplayName)?.Value,
-        role: @string.Join(", ", context.User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => Roles.DisplayName(c.Value)))
-    </p>
-</AuthorizeView>
-
-@if (government is null)
+@if (government is null || versions is null)
 {
-    <p>Loading...</p>
+    <SkeletonRows Rows="6" Columns="4" />
 }
 else
 {
-    <div class="row g-3">
-        <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="text-secondary small">Funds</div><div class="fs-3">@fundCount</div></div></div></div>
-        <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="text-secondary small">Departments</div><div class="fs-3">@departmentCount</div></div></div></div>
-        <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="text-secondary small">Accounts</div><div class="fs-3">@accountCount</div></div></div></div>
-        <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="text-secondary small">Fiscal years</div><div class="fs-3">@fiscalYearCount</div></div></div></div>
+    <div class="cb-kpis">
+        @if (openWorkspace is not null)
+        {
+            <KpiCard Label="@($"FY{openWorkspace.Version.Year} appropriations")" Value="@Display.Money(openWorkspace.FundBalances.Sum(f => f.Summary.Appropriations))" Detail="@($"{openWorkspace.Lines.Count} lines, {openWorkspace.Version.Label.ToLowerInvariant()}, {openWorkspace.Version.Status.ToString().ToLowerInvariant()}")" />
+            <KpiCard Label="Estimated resources" Value="@Display.Money(openWorkspace.FundBalances.Sum(f => f.Summary.EstimatedResources))" Detail="Beginning balances + revenues + transfers in" />
+            <KpiCard Label="Funds over limit" Value="@($"{overLimit} of {openWorkspace.FundBalances.Count}")" Tone="@(overLimit > 0 ? (openWorkspace.AnyFundBlocksWorkflow ? "bad" : "warn") : "ok")"
+                     Detail="@(overLimit > 0 ? string.Join(", ", openWorkspace.FundBalances.Where(f => !f.Summary.IsWithinAppropriationLimit).Select(f => $"{f.FundCode} over by {Display.Money(f.Limit.AmountOverLimit)}")) : "Every fund within estimated resources")"
+                     DetailTone="@(overLimit > 0 ? "down" : "")" />
+        }
+        else
+        {
+            <KpiCard Label="Budget in progress" Value="None" Detail="Adopt a year, then start an amendment, or add a fiscal year" />
+        }
+        <KpiCard Label="Public portal" Value="@(latestSnapshot is null ? "Nothing published" : $"FY{latestSnapshot.FiscalYear}")" Tone="@(latestSnapshot is null ? "warn" : "ok")"
+                 Detail="@(latestSnapshot is null ? "Publish an adopted version to open the portal" : $"{latestSnapshot.VersionLabel}, published {latestSnapshot.PublishedAtUtc:MMM d, yyyy}")" />
     </div>
-    <dl class="row mt-4">
-        <dt class="col-sm-3">Type</dt><dd class="col-sm-9">@Display.Enum(government.Type), @government.State</dd>
-        <dt class="col-sm-3">Fiscal year starts</dt><dd class="col-sm-9">@System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(government.FiscalYearStartMonth)</dd>
-        <dt class="col-sm-3">Appropriation limit</dt><dd class="col-sm-9">@(government.AppropriationLimitMode == AppropriationLimitMode.Block ? "Block: over-appropriated funds stop the workflow" : "Warn: over-appropriated funds show a warning")</dd>
-        <dt class="col-sm-3">Public address</dt><dd class="col-sm-9"><code>/transparency/@government.PublicSlug</code> (portal arrives in Phase 5)</dd>
-    </dl>
+
+    <div class="row g-3">
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-header d-flex align-items-center">Budget versions <a class="ms-auto small fw-normal" href="admin/budgets">All versions ›</a></div>
+                <div class="cb-grid-wrap">
+                    <table class="cb-grid">
+                        <thead><tr><th>Fiscal year</th><th>Version</th><th>Status</th><th>Resolution</th><th>Portal</th><th class="cb-num">Lines</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (BudgetVersionSummaryDto version in versions.Take(6))
+                            {
+                                <tr>
+                                    <td>FY@(version.Year)</td>
+                                    <td>@version.Label</td>
+                                    <td><StatusPill Budget="version.Status" /></td>
+                                    <td class="cb-code">@version.ResolutionNumber</td>
+                                    <td>
+                                        @if (snapshots?.FirstOrDefault(s => s.BudgetVersionId == version.Id && s.Status == Domain.Publishing.SnapshotStatus.Active) is not null)
+                                        {
+                                            <StatusPill Tone="success" Label="Published" />
+                                        }
+                                        else if (snapshots?.Any(s => s.BudgetVersionId == version.Id) == true)
+                                        {
+                                            <span class="cb-code">Superseded</span>
+                                        }
+                                    </td>
+                                    <td class="cb-num">@version.LineCount</td>
+                                    <td class="text-end"><a href="admin/budgets/@version.Id">@(version.Status == BudgetStatus.Adopted ? "Open" : "Continue")</a></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card">
+                <div class="card-header">Recent activity</div>
+                @if (activity is null || activity.Count == 0)
+                {
+                    <EmptyState Icon="bi-clock-history" Title="No activity yet" Text="Changes to budget lines and workflow actions appear here." />
+                }
+                else
+                {
+                    <ul class="cb-timeline">
+                        @foreach (AuditEntryDto entry in activity)
+                        {
+                            <li>
+                                <span class="cb-avatar" aria-hidden="true">@Initials(entry.UserName)</span>
+                                <div><b>@entry.UserName</b> @Describe(entry)</div>
+                                <span class="when" title="@entry.TimestampUtc.ToString("u")">@Display.Relative(entry.TimestampUtc)</span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+            <div class="card mt-3">
+                <div class="card-header">Government</div>
+                <dl class="row mb-0 p-3 small">
+                    <dt class="col-5 fw-semibold">Type</dt><dd class="col-7">@Display.Enum(government.Type), @government.State</dd>
+                    <dt class="col-5 fw-semibold">Fiscal year starts</dt><dd class="col-7">@System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(government.FiscalYearStartMonth)</dd>
+                    <dt class="col-5 fw-semibold">Appropriation limit</dt><dd class="col-7">@(government.AppropriationLimitMode == AppropriationLimitMode.Block ? "Block over-appropriated funds" : "Warn on over-appropriated funds")</dd>
+                    <dt class="col-5 fw-semibold">Public address</dt><dd class="col-7 mb-0"><code>/transparency/@government.PublicSlug</code></dd>
+                </dl>
+            </div>
+        </div>
+    </div>
 }
 
 @code {
     private GovernmentSettingsDto? government;
-    private int fundCount, departmentCount, accountCount, fiscalYearCount;
+    private IReadOnlyList<BudgetVersionSummaryDto>? versions;
+    private IReadOnlyList<SnapshotSummaryDto>? snapshots;
+    private BudgetVersionSummaryDto? openVersion;
+    private BudgetWorkspaceDto? openWorkspace;
+    private SnapshotSummaryDto? latestSnapshot;
+    private IReadOnlyList<AuditEntryDto>? activity;
+    private int overLimit;
 
     protected override async Task OnInitializedAsync()
     {
         government = await SettingsService.GetAsync();
-        fundCount = (await Funds.ListAsync(includeInactive: false)).Count;
-        departmentCount = (await Departments.ListAsync(includeInactive: false)).Count;
-        accountCount = (await Accounts.ListAsync(includeInactive: false)).Count;
-        fiscalYearCount = (await FiscalYears.ListAsync()).Count;
+        versions = await BudgetEntry.ListVersionsAsync();
+        snapshots = await Publishing.ListAsync();
+        latestSnapshot = snapshots.Where(s => s.Status == Domain.Publishing.SnapshotStatus.Active).OrderByDescending(s => s.FiscalYear).FirstOrDefault();
+
+        openVersion = versions.FirstOrDefault(v => v.Status != BudgetStatus.Adopted);
+        if (openVersion is not null)
+        {
+            openWorkspace = await BudgetEntry.GetWorkspaceAsync(openVersion.Id);
+            overLimit = openWorkspace?.FundBalances.Count(f => !f.Summary.IsWithinAppropriationLimit) ?? 0;
+        }
+
+        activity = await AuditQuery.GetRecentAsync(6);
+    }
+
+    private static string Describe(AuditEntryDto entry) => entry.Kind switch
+    {
+        Domain.Auditing.AuditKind.FieldChanged => $"changed {Display.PropertyName(entry.PropertyName)} on a {Display.EntityName(entry.EntityName)}: {entry.OldValue} → {entry.NewValue}",
+        Domain.Auditing.AuditKind.Created => $"created a {Display.EntityName(entry.EntityName)}",
+        Domain.Auditing.AuditKind.Deleted => $"removed a {Display.EntityName(entry.EntityName)}",
+        _ => entry.Description ?? "",
+    };
+
+    private static string Initials(string name)
+    {
+        string[] parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Where(p => char.IsLetter(p[0])).ToArray();
+        return parts.Length >= 2 ? $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant() : name.Length > 0 ? name[..1].ToUpperInvariant() : "?";
     }
 }

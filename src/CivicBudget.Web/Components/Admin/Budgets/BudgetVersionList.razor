@@ -7,90 +7,95 @@
 
 <PageTitle>Budget versions</PageTitle>
 
-<h1 class="h3">Budget versions</h1>
-<p class="text-secondary">Each fiscal year has an original budget and, after adoption, any amendments. Open a version to enter or review lines.</p>
+<PageHeader Title="Budget versions" Eyebrow="Budget" Crumbs="@([new Crumb("Budget"), new Crumb("Budget versions")])">
+    <Subtitle>Each fiscal year has an original budget and, after adoption, any amendments. Open a version to enter or review lines.</Subtitle>
+</PageHeader>
 
 @if (versions is null)
 {
-    <p>Loading...</p>
+    <SkeletonRows Rows="5" Columns="6" />
 }
 else
 {
-    <table class="table table-hover align-middle">
-        <thead>
-            <tr>
-                <th scope="col">Fiscal year</th>
-                <th scope="col">Version</th>
-                <th scope="col">Status</th>
-                <th scope="col">Resolution</th>
-                <th scope="col">Portal</th>
-                <th scope="col" class="text-end">Lines</th>
-                <th scope="col"></th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (BudgetVersionSummaryDto version in versions)
-            {
-                <tr>
-                    <td>FY@(version.Year)</td>
-                    <td>
-                        @version.Label
-                        @if (version.AmendmentReason is not null)
-                        {
-                            <div class="small text-secondary">@version.AmendmentReason</div>
-                        }
-                    </td>
-                    <td><StatusBadge Status="version.Status" /></td>
-                    <td>@version.ResolutionNumber</td>
-                    <td>
-                        @if (snapshots?.FirstOrDefault(s => s.BudgetVersionId == version.Id && s.Status == Domain.Publishing.SnapshotStatus.Active) is { } active)
-                        {
-                            <span class="badge text-bg-success" title="@active.PublishedAtUtc.ToString("u")">Published</span>
-                        }
-                    </td>
-                    <td class="text-end">@version.LineCount</td>
-                    <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="admin/budgets/@version.Id">Open</a></td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <div class="card mb-4">
+        <div class="cb-grid-wrap">
+            <table class="cb-grid">
+                <thead>
+                    <tr>
+                        <th>Fiscal year</th>
+                        <th>Version</th>
+                        <th>Status</th>
+                        <th>Resolution</th>
+                        <th>Portal</th>
+                        <th class="cb-num">Lines</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (BudgetVersionSummaryDto version in versions)
+                    {
+                        <tr>
+                            <td>FY@(version.Year)</td>
+                            <td class="cb-wrap">
+                                @version.Label
+                                @if (version.AmendmentReason is not null)
+                                {
+                                    <div class="small text-secondary">@version.AmendmentReason</div>
+                                }
+                            </td>
+                            <td><StatusPill Budget="version.Status" /></td>
+                            <td class="cb-code">@version.ResolutionNumber</td>
+                            <td>
+                                @if (snapshots?.FirstOrDefault(s => s.BudgetVersionId == version.Id && s.Status == Domain.Publishing.SnapshotStatus.Active) is { } active)
+                                {
+                                    <StatusPill Tone="success" Label="@($"Published {active.PublishedAtUtc:MMM d, yyyy}")" />
+                                }
+                                else if (snapshots?.Any(s => s.BudgetVersionId == version.Id) == true)
+                                {
+                                    <span class="cb-code">Previously published</span>
+                                }
+                            </td>
+                            <td class="cb-num">@version.LineCount</td>
+                            <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="admin/budgets/@version.Id">@(version.Status == BudgetStatus.Adopted ? "Open" : "Continue")</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
 
+    <h2 class="h6 fw-semibold" id="publishing">Publishing history</h2>
+    <p class="text-secondary small">Every snapshot ever published, including ones since replaced or withdrawn. Citizens see only the active one for each year.</p>
     @if (snapshots is { Count: > 0 })
     {
-        <h2 class="h5 mt-4">Publishing history</h2>
-        <p class="text-secondary small">Every snapshot ever published, including ones since replaced or withdrawn. Citizens see only the active one for each year.</p>
-        <table class="table table-sm">
-            <thead>
-                <tr>
-                    <th scope="col">Fiscal year</th>
-                    <th scope="col">Version</th>
-                    <th scope="col">Published</th>
-                    <th scope="col">By</th>
-                    <th scope="col">Status</th>
-                    <th scope="col" class="text-end">Lines</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (SnapshotSummaryDto snapshot in snapshots)
-                {
-                    <tr>
-                        <td>FY@(snapshot.FiscalYear)</td>
-                        <td>@snapshot.VersionLabel</td>
-                        <td>@snapshot.PublishedAtUtc.ToString("yyyy-MM-dd HH:mm") UTC</td>
-                        <td>@snapshot.PublishedByUserName</td>
-                        <td>
-                            @switch (snapshot.Status)
-                            {
-                                case Domain.Publishing.SnapshotStatus.Active: <span class="badge text-bg-success">Active</span> break;
-                                case Domain.Publishing.SnapshotStatus.Superseded: <span class="badge text-bg-secondary">Superseded @snapshot.StatusChangedAtUtc?.ToString("yyyy-MM-dd")</span> break;
-                                default: <span class="badge text-bg-warning">Unpublished @snapshot.StatusChangedAtUtc?.ToString("yyyy-MM-dd")</span> break;
-                            }
-                        </td>
-                        <td class="text-end">@snapshot.LineCount</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+        <div class="card">
+            <div class="cb-grid-wrap">
+                <table class="cb-grid">
+                    <thead>
+                        <tr><th>Fiscal year</th><th>Version</th><th>Published</th><th>By</th><th>Status</th><th class="cb-num">Lines</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (SnapshotSummaryDto snapshot in snapshots)
+                        {
+                            <tr>
+                                <td>FY@(snapshot.FiscalYear)</td>
+                                <td>@snapshot.VersionLabel</td>
+                                <td>@snapshot.PublishedAtUtc.ToString("MMM d, yyyy HH:mm") UTC</td>
+                                <td>@snapshot.PublishedByUserName</td>
+                                <td>
+                                    <StatusPill Snapshot="snapshot.Status" Label="@(snapshot.Status == Domain.Publishing.SnapshotStatus.Active ? "Active" : $"{snapshot.Status} {snapshot.StatusChangedAtUtc:MMM d, yyyy}")" />
+                                </td>
+                                <td class="cb-num">@snapshot.LineCount</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card"><EmptyState Icon="bi-megaphone" Title="Nothing published yet" Text="Adopt a budget, then publish it from its workspace." /></div>
     }
 }
 

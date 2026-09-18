@@ -2,20 +2,23 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.CanManageUsers)]
 @inject IGovernmentSettingsService SettingsService
+@inject ToastService Toasts
 
 <PageTitle>Government settings</PageTitle>
 
-<h1 class="h3">Government settings</h1>
+<PageHeader Title="Government settings" Eyebrow="Administration" Crumbs="@([new Crumb("Administration"), new Crumb("Government settings")])">
+    <Subtitle>Name, public address, and how strictly the appropriation limit is enforced.</Subtitle>
+</PageHeader>
 
 @if (current is null)
 {
-    <p>Loading...</p>
+    <SkeletonRows Rows="6" Columns="2" />
 }
 else
 {
-    <SuccessAlert Message="@savedMessage" />
+    <div class="card"><div class="card-body" style="max-width: 640px">
     <ResultAlert Result="result" />
-    <EditForm EditContext="editContext" OnSubmit="SaveAsync" class="col-lg-6">
+    <EditForm EditContext="editContext" OnSubmit="SaveAsync">
         <div class="mb-3">
             <label class="form-label" for="name">Name</label>
             <InputText id="name" class="form-control" @bind-Value="model.Name" />
@@ -57,8 +60,9 @@ else
             <InputTextArea id="description" class="form-control" rows="4" @bind-Value="model.Description" />
             <ValidationMessage For="() => model.Description" class="text-danger" />
         </div>
-        <button type="submit" class="btn btn-primary" disabled="@saving">Save</button>
+        <button type="submit" class="btn btn-primary" disabled="@saving">Save settings</button>
     </EditForm>
+    </div></div>
 }
 
 @code {
@@ -67,7 +71,6 @@ else
     private EditContext editContext = default!;
     private ValidationMessageStore messages = default!;
     private Result? result;
-    private string? savedMessage;
     private bool saving;
 
     protected override async Task OnInitializedAsync()
@@ -85,7 +88,6 @@ else
     private async Task SaveAsync()
     {
         saving = true;
-        savedMessage = null;
         Result saved = await SettingsService.UpdateAsync(new UpdateGovernmentSettingsRequest(model.Name, model.PublicSlug, model.AppropriationLimitMode, model.Description));
         saving = false;
 
@@ -93,7 +95,7 @@ else
         editContext.ApplyErrors(messages, saved);
         if (saved.IsSuccess)
         {
-            savedMessage = "Settings saved.";
+            Toasts.Success("Settings saved.");
             current = await SettingsService.GetAsync();
         }
     }

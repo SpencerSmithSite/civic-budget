@@ -2,62 +2,126 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.CanManageUsers)]
 @inject IUserAdminService UserAdmin
-@inject IJSRuntime JS
+@inject ToastService Toasts
 
 <PageTitle>Users</PageTitle>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h3 mb-0">Users</h1>
-    <a class="btn btn-primary" href="admin/users/new">New user</a>
+<PageHeader Title="Users" Eyebrow="Administration" Crumbs="@([new Crumb("Administration"), new Crumb("Users")])">
+    <Subtitle>Department Heads edit only the departments assigned here. Locked accounts cannot sign in.</Subtitle>
+    <Actions><a class="btn btn-primary btn-sm" href="admin/users/new"><i class="bi bi-person-plus me-1" aria-hidden="true"></i>New user</a></Actions>
+</PageHeader>
+
+<div class="card">
+    <div class="cb-toolbar">
+        <input class="form-control" placeholder="Search name or email" @bind="search" @bind:event="oninput" aria-label="Search users" />
+        <select class="form-select" @bind="roleFilter" aria-label="Filter by role">
+            <option value="">All roles</option>
+            @foreach (string role in Roles.All)
+            {
+                <option value="@role">@Roles.DisplayName(role)</option>
+            }
+        </select>
+    </div>
+    @if (users is null)
+    {
+        <SkeletonRows Rows="5" Columns="5" />
+    }
+    else if (!Filtered.Any())
+    {
+        <EmptyState Icon="bi-people" Title="No users match" Text="Try a different search or role." />
+    }
+    else
+    {
+        <div class="cb-grid-wrap">
+            <QuickGrid Items="Filtered" Theme="bootstrap" Class="cb-grid">
+                <TemplateColumn Title="Name" SortBy="GridSort<UserSummaryDto>.ByAscending(u => u.DisplayName)">
+                    <span class="d-inline-flex align-items-center gap-2"><span class="cb-avatar" style="width:24px;height:24px;font-size:.625rem;background:#dbe4ee;color:var(--cb-navy)" aria-hidden="true">@Initials(context.DisplayName)</span><b>@context.DisplayName</b></span>
+                </TemplateColumn>
+                <PropertyColumn Property="u => u.Email" Sortable="true" />
+                <TemplateColumn Title="Role" SortBy="GridSort<UserSummaryDto>.ByAscending(u => u.Role)">@Roles.DisplayName(context.Role)</TemplateColumn>
+                <TemplateColumn Title="Departments">
+                    @foreach (string code in context.DepartmentCodes)
+                    {
+                        <span class="cb-pill no-dot me-1">@(code)</span>
+                    }
+                </TemplateColumn>
+                <TemplateColumn Title="Status">
+                    @if (context.IsLockedOut) { <StatusPill Tone="danger" Label="Locked" /> } else { <StatusPill Tone="success" Label="Active" /> }
+                </TemplateColumn>
+                <TemplateColumn Title="" Align="Align.End">
+                    <RowMenu Label="@($"Actions for {context.DisplayName}")">
+                        <li><a class="dropdown-item" href="admin/users/@context.Id"><i class="bi bi-pencil me-2" aria-hidden="true"></i>Edit</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        @if (context.IsLockedOut)
+                        {
+                            <li><button type="button" class="dropdown-item" @onclick="() => Ask(context, false)"><i class="bi bi-unlock me-2" aria-hidden="true"></i>Unlock</button></li>
+                        }
+                        else
+                        {
+                            <li><button type="button" class="dropdown-item text-danger" @onclick="() => Ask(context, true)"><i class="bi bi-lock me-2" aria-hidden="true"></i>Lock account</button></li>
+                        }
+                    </RowMenu>
+                </TemplateColumn>
+            </QuickGrid>
+        </div>
+        <div class="cb-grid-foot"><span>@Filtered.Count() users</span></div>
+    }
 </div>
 
-<ResultAlert Result="result" />
-
-@if (users is null)
-{
-    <p>Loading...</p>
-}
-else
-{
-    <QuickGrid Items="users.AsQueryable()" Class="table table-striped table-hover">
-        <PropertyColumn Property="u => u.DisplayName" Title="Name" Sortable="true" />
-        <PropertyColumn Property="u => u.Email" Sortable="true" />
-        <TemplateColumn Title="Role" SortBy="GridSort<UserSummaryDto>.ByAscending(u => u.Role)">@Roles.DisplayName(context.Role)</TemplateColumn>
-        <TemplateColumn Title="Departments">@string.Join(", ", context.DepartmentCodes)</TemplateColumn>
-        <TemplateColumn Title="Status">
-            @if (context.IsLockedOut) { <span class="badge text-bg-danger">Locked</span> } else { <span class="badge text-bg-success">Active</span> }
-        </TemplateColumn>
-        <TemplateColumn Title="" Align="Align.End">
-            <a class="btn btn-sm btn-outline-primary" href="admin/users/@context.Id">Edit</a>
-            @if (context.IsLockedOut)
-            {
-                <button class="btn btn-sm btn-outline-success ms-1" @onclick="() => SetLockedAsync(context, false)">Unlock</button>
-            }
-            else
-            {
-                <button class="btn btn-sm btn-outline-danger ms-1" @onclick="() => SetLockedAsync(context, true)">Lock</button>
-            }
-        </TemplateColumn>
-    </QuickGrid>
-}
+<ConfirmDialog @ref="dialog" Title="@($"{(pendingLocked ? "Lock" : "Unlock")} {pending?.DisplayName}?")" ConfirmText="@(pendingLocked ? "Lock account" : "Unlock")" ConfirmClass="@(pendingLocked ? "btn-danger" : "btn-primary")" OnConfirm="ConfirmAsync">
+    <Body><p>@(pendingLocked ? "They will be signed out within 30 minutes and cannot sign in again until unlocked." : "They can sign in again immediately.")</p></Body>
+</ConfirmDialog>
 
 @code {
     private IReadOnlyList<UserSummaryDto>? users;
-    private Result? result;
+    private string search = "";
+    private string roleFilter = "";
+    private ConfirmDialog dialog = default!;
+    private UserSummaryDto? pending;
+    private bool pendingLocked;
+
+    private IQueryable<UserSummaryDto> Filtered => (users ?? [])
+        .Where(u => string.IsNullOrWhiteSpace(search)
+            || u.DisplayName.Contains(search, StringComparison.OrdinalIgnoreCase)
+            || u.Email.Contains(search, StringComparison.OrdinalIgnoreCase))
+        .Where(u => string.IsNullOrEmpty(roleFilter) || u.Role == roleFilter)
+        .AsQueryable();
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
     private async Task LoadAsync() => users = await UserAdmin.ListAsync();
 
-    private async Task SetLockedAsync(UserSummaryDto user, bool isLocked)
+    private void Ask(UserSummaryDto user, bool isLocked)
     {
-        string verb = isLocked ? "Lock" : "Unlock";
-        if (!await JS.InvokeAsync<bool>("confirm", $"{verb} {user.DisplayName} ({user.Email})?"))
+        pending = user;
+        pendingLocked = isLocked;
+        dialog.Show();
+    }
+
+    private async Task<bool> ConfirmAsync()
+    {
+        if (pending is null)
         {
-            return;
+            return true;
         }
 
-        result = await UserAdmin.SetLockedOutAsync(user.Id, isLocked);
+        Result result = await UserAdmin.SetLockedOutAsync(pending.Id, pendingLocked);
+        if (result.IsSuccess)
+        {
+            Toasts.Success($"{pending.DisplayName} {(pendingLocked ? "locked" : "unlocked")}.");
+        }
+        else
+        {
+            Toasts.Danger(result.Errors[0].Message);
+        }
+
         await LoadAsync();
+        return true;
+    }
+
+    private static string Initials(string name)
+    {
+        string[] parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Where(p => char.IsLetter(p[0])).ToArray();
+        return parts.Length >= 2 ? $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant() : name.Length > 0 ? name[..1].ToUpperInvariant() : "?";
     }
 }

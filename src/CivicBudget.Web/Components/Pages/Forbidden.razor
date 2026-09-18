@@ -1,8 +1,8 @@
 @* Rendered by Routes.razor when a signed-in user lacks the policy a page requires. *@
 <PageTitle>Not allowed</PageTitle>
 
-<div class="px-3">
-    <h1 class="text-danger">Not allowed</h1>
-    <p>Your account does not have permission to open this page. Ask your administrator if you think it should.</p>
-    <a href="admin">Back to the admin overview</a>
+<div class="container py-5">
+    <EmptyState Icon="bi-shield-lock" Title="Not allowed" Text="Your account does not have permission to open this page. Ask your administrator if you think it should.">
+        <a class="btn btn-primary btn-sm" href="admin">Back to the overview</a>
+    </EmptyState>
 </div>
