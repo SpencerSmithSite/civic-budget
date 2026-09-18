@@ -1,11 +1,15 @@
+using CivicBudget.Application.Export;
 using CivicBudget.Application.Persistence;
+using CivicBudget.Application.Portal;
 using CivicBudget.Application.Publishing;
 using CivicBudget.Application.Security;
 using CivicBudget.Application.Tenancy;
 using CivicBudget.Application.Users;
+using CivicBudget.Infrastructure.Export;
 using CivicBudget.Infrastructure.Identity;
 using CivicBudget.Infrastructure.Persistence;
 using CivicBudget.Infrastructure.Persistence.Interceptors;
+using CivicBudget.Infrastructure.Portal;
 using CivicBudget.Infrastructure.Security;
 using CivicBudget.Infrastructure.Seed;
 using Microsoft.AspNetCore.Identity;
@@ -35,9 +39,12 @@ public static class DependencyInjection
         // The factory is registered Scoped so the (sp, options) overload resolves the tenant context
         // and interceptor from the *current scope's* provider. This is what makes the per-circuit
         // user flow into contexts created on that circuit.
+        // Split queries: every aggregate load here includes two collections (Lines and
+        // BeginningBalances, or Lines and Funds). One JOINed query would repeat each line once per
+        // balance row; EF warns about that cartesian product, so each collection gets its own query.
         services.AddDbContextFactory<CivicBudgetDbContext>((sp, options) =>
             options
-                .UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure())
+                .UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure().UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
                 // Audit first so the audit rows it adds are also checked by the tenant interceptor.
                 .AddInterceptors(
                     sp.GetRequiredService<AuditInterceptor>(),
@@ -49,9 +56,12 @@ public static class DependencyInjection
         // Singleton factory is fine here because nothing per-scope flows into it (tenant comes from the URL slug).
         services.AddDbContextFactory<PublicPortalDbContext>(options =>
             options
-                .UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure())
+                .UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure().UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
                 .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
+        // A no-op so Infrastructure works without a web host; Program.cs registers the output cache one after this (last wins).
         services.AddSingleton<IPublishedSnapshotCacheInvalidator, NoOpSnapshotCacheInvalidator>();
+        services.AddScoped<ISnapshotQueryService, SnapshotQueryService>();
+        services.AddSingleton<ISpreadsheetExporter, ClosedXmlSpreadsheetExporter>();
 
         // Identity core: users, roles, password hashing, lockout, tokens, sign-in. Cookie
         // authentication itself is added by the Web project because it is an HTTP pipeline concern.
