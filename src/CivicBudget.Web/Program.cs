@@ -3,6 +3,7 @@ using CivicBudget.Application.Publishing;
 using CivicBudget.Infrastructure;
 using CivicBudget.Infrastructure.Persistence;
 using CivicBudget.Infrastructure.Seed;
+using CivicBudget.Web;
 using CivicBudget.Web.Caching;
 using CivicBudget.Web.Components;
 using CivicBudget.Web.Components.Account;
@@ -13,7 +14,9 @@ using CivicBudget.Web.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -38,9 +41,10 @@ else
     });
 }
 
-string connectionString = builder.Configuration.GetConnectionString("CivicBudget")
+string connectionString = DatabaseOptions.ResolveConnectionString(builder.Configuration)
     ?? throw new InvalidOperationException(
-        "Connection string 'CivicBudget' is not configured. Run scripts/dev-setup.sh (sets it in user-secrets).");
+        "Connection string 'CivicBudget' is not configured. Run scripts/dev-setup.sh (sets it in user-secrets), or set Database:Host and friends.");
+builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection(DatabaseOptions.SectionName));
 
 // Composition root: the only place that knows about every layer.
 builder.Services.AddApplication();
@@ -82,17 +86,32 @@ builder.Services.AddScoped<ToastService>();
 builder.Services.AddOutputCache(options => options.AddBasePolicy(policy => policy.AddPolicy<PortalOutputCachePolicy>(), excludeDefaultPolicy: true));
 builder.Services.AddSingleton<IPublishedSnapshotCacheInvalidator, OutputCacheSnapshotInvalidator>();
 
+// Data Protection keys in SQL Server, not the container's filesystem, so sign-in cookies and
+// antiforgery tokens survive a restart and are shared by every instance (see DataProtectionKeys).
+builder.Services.AddDataProtection()
+    .SetApplicationName("CivicBudget")
+    .PersistKeysToDbContext<CivicBudgetDbContext>();
+
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<CivicBudgetDbContext>("database", tags: ["ready"]);
 
 WebApplication app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+// Development migrates and seeds on every start. Elsewhere both are opt-in (DatabaseOptions): the
+// containerized demo and the single-task AWS deploy turn them on; a real pipeline would run
+// migrations as its own step and never seed.
+DatabaseOptions databaseOptions = app.Services.GetRequiredService<IOptions<DatabaseOptions>>().Value;
+if (app.Environment.IsDevelopment() || databaseOptions.MigrateOnStartup)
 {
-    // Development only: migrate + seed on start. Production runs migrations as a deploy step.
-    await DatabaseInitializer.MigrateAndSeedAsync(app.Services);
+    await DatabaseInitializer.MigrateAsync(app.Services);
 }
-else
+
+if (app.Environment.IsDevelopment() || databaseOptions.SeedDemoData)
+{
+    await DatabaseInitializer.SeedAsync(app.Services);
+}
+
+if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();

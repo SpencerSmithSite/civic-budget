@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" />
     <PackageReference Include="ClosedXML" />
     <!-- Design-time only (PrivateAssets): lets `dotnet ef -p src/CivicBudget.Infrastructure` run without a startup project. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">

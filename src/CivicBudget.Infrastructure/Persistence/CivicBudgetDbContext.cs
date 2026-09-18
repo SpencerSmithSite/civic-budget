@@ -11,6 +11,7 @@ using CivicBudget.Domain.Funds;
 using CivicBudget.Domain.Governments;
 using CivicBudget.Domain.Publishing;
 using CivicBudget.Infrastructure.Identity;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,7 +28,7 @@ namespace CivicBudget.Infrastructure.Persistence;
 /// </para>
 /// </summary>
 public sealed class CivicBudgetDbContext(DbContextOptions<CivicBudgetDbContext> options, ITenantContext tenantContext)
-    : IdentityDbContext<ApplicationUser>(options), ICivicBudgetDbContext
+    : IdentityDbContext<ApplicationUser>(options), ICivicBudgetDbContext, IDataProtectionKeyContext
 {
     public DbSet<Government> Governments => Set<Government>();
     public DbSet<Fund> Funds => Set<Fund>();
@@ -38,6 +39,13 @@ public sealed class CivicBudgetDbContext(DbContextOptions<CivicBudgetDbContext> 
     public DbSet<BudgetLine> BudgetLines => Set<BudgetLine>();
     public DbSet<FundBeginningBalance> FundBeginningBalances => Set<FundBeginningBalance>();
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
+
+    /// <summary>
+    /// ASP.NET Core Data Protection key ring (cookies, antiforgery tokens). Kept in the database so
+    /// a container restart or a second instance does not sign everyone out; the default file
+    /// store is ephemeral in a container. Not tenant-owned: one key ring serves the whole app.
+    /// </summary>
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
     public DbSet<PublishedBudgetSnapshot> PublishedBudgetSnapshots => Set<PublishedBudgetSnapshot>();
     public DbSet<UserDepartment> UserDepartments => Set<UserDepartment>();
 

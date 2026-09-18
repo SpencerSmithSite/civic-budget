@@ -26,7 +26,13 @@ if ! dotnet user-secrets list --project src/CivicBudget.Web | grep -q '^Seed:Dem
   dotnet user-secrets set "Seed:DemoPassword" "$DEMO_PASSWORD" --project src/CivicBudget.Web >/dev/null
   echo "Stored Seed:DemoPassword in user-secrets: $DEMO_PASSWORD"
 else
+  DEMO_PASSWORD="$(dotnet user-secrets list --project src/CivicBudget.Web | sed -n 's/^Seed:DemoPassword = //p')"
   echo "Seed:DemoPassword already set (dotnet user-secrets list --project src/CivicBudget.Web)"
+fi
+
+# The containerized demo (docker-compose.full.yml) reads the same password from .env.
+if ! grep -q '^DEMO_PASSWORD=' .env; then
+  printf 'DEMO_PASSWORD=%s\n' "$DEMO_PASSWORD" >> .env
 fi
 echo
 echo "Next:  docker compose up -d && dotnet run --project src/CivicBudget.Web"
