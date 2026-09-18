@@ -35,6 +35,20 @@ else
                     <button type="button" class="btn @(mode == Mode.ByAccount ? "btn-primary" : "btn-outline-primary")" @onclick="() => mode = Mode.ByAccount">By account line</button>
                 </div>
             }
+            <div class="dropdown">
+                <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-tools me-1" aria-hidden="true"></i>Tools</button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="admin/export/budgets/@VersionId/lines.xlsx"><i class="bi bi-file-earmark-spreadsheet me-2" aria-hidden="true"></i>Export lines (XLSX)</a></li>
+                    <li><a class="dropdown-item" href="admin/reports/@VersionId/fund-summary"><i class="bi bi-file-earmark-bar-graph me-2" aria-hidden="true"></i>Reports for this version</a></li>
+                    <AuthorizeView Policy="@Policies.CanImport">
+                        @if (workspace.IsEditable)
+                        {
+                            <li><hr class="dropdown-divider" /></li>
+                            <li><a class="dropdown-item" href="admin/budgets/@VersionId/import"><i class="bi bi-upload me-2" aria-hidden="true"></i>Import lines from a file</a></li>
+                        }
+                    </AuthorizeView>
+                </ul>
+            </div>
             <WorkflowBar Version="workspace.Version" State="workflowState" ActiveSnapshot="activeSnapshot" OnChanged="LoadAsync" />
         </Actions>
     </PageHeader>

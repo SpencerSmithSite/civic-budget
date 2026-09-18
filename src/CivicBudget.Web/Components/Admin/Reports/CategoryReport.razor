@@ -1,0 +1,74 @@
+@page "/admin/reports/{VersionId:guid}/category"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Policies.CanViewBudget)]
+@using CivicBudget.Application.Reports
+@inject IReportService Reports
+
+<PageTitle>Revenue vs. Expenditure by Category</PageTitle>
+
+@if (notFound)
+{
+    <EmptyState Icon="bi-journal-x" Title="Budget version not found" Text="It may have been removed, or the link is wrong."><a class="btn btn-primary" href="admin/reports">Reports</a></EmptyState>
+}
+else if (report is null)
+{
+    <PageHeader Title="Revenue vs. Expenditure by Category" Eyebrow="Reports" Crumbs="@([new Crumb("Budget"), new Crumb("Reports", "admin/reports"), new Crumb("Revenue vs. Expenditure by Category")])" />
+    <SkeletonRows Rows="6" Columns="5" />
+}
+else
+{
+    <ReportShell Title="Revenue vs. Expenditure by Category" Header="report.Header" ExportHref="@($"admin/export/reports/{VersionId}/category.xlsx")"
+                 Description="Where the money comes from and where it goes, by reporting category, against the prior year actual and the current year budget.">
+        <div class="cb-grid-wrap">
+            <table class="cb-grid table cb-report-table" aria-label="Revenue versus expenditure by category">
+                <thead>
+                    <tr>
+                        <th scope="col">Category</th>
+                        <th scope="col" class="cb-num">Prior year actual</th>
+                        <th scope="col" class="cb-num">Current year budget</th>
+                        <th scope="col" class="cb-num cb-col-strong">FY@(report.Header.FiscalYear) budget</th>
+                        <th scope="col" class="cb-num">Change</th>
+                        <th scope="col" class="cb-num">Change %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="cb-group"><td colspan="6">Revenues</td></tr>
+                    @foreach (CategoryRowDto r in report.Revenues) { @Row(r, false) }
+                    @Row(report.RevenueTotal, true)
+                    <tr class="cb-group"><td colspan="6">Expenditures</td></tr>
+                    @foreach (CategoryRowDto r in report.Expenditures) { @Row(r, false) }
+                    @Row(report.ExpenditureTotal, true)
+                </tbody>
+                <tfoot>
+                    @Row(report.Net, true)
+                </tfoot>
+            </table>
+        </div>
+    </ReportShell>
+}
+
+@code {
+    [Parameter]
+    public Guid VersionId { get; set; }
+
+    private CategoryReportDto? report;
+    private bool notFound;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        report = await Reports.RevenueVsExpenditureAsync(VersionId);
+        notFound = report is null;
+    }
+
+    private static RenderFragment Row(CategoryRowDto r, bool subtotal) => __builder =>
+    {
+        <tr class="@(subtotal ? "cb-subtotal" : "")">
+            <th scope="row" class="@(subtotal ? "" : "fw-normal ps-4")">@r.Label</th>
+            <td class="cb-num">@Display.Money(r.PriorYearActual)</td>
+            <td class="cb-num">@Display.Money(r.CurrentYearBudget)</td>
+            <td class="cb-num cb-col-strong">@Display.Money(r.Amount)</td>
+            <td class="cb-num @(r.DollarChange < 0 ? "cb-neg" : "")">@Display.Money(r.DollarChange)</td>
+            <td class="cb-num @(r.PercentChange < 0 ? "cb-neg" : "")">@Display.Percent(r.PercentChange)</td>
+        </tr>
+    };
+}

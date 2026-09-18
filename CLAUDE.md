@@ -46,6 +46,7 @@ Actions · AWS CDK (C#) deploy-ready (no account — see ADR-0008).
 - Interceptor order: `AuditInterceptor` before `TenantSaveChangesInterceptor` so audit rows are tenant-checked too.
 - Output caching: Blazor SSR marks pages `no-store` and the default output cache policy honors it, so the portal policy is the base policy with `excludeDefaultPolicy: true`. Headers are read-only in `ServeResponseAsync`; rewrite them in `PortalResponseMiddleware` (`OnStarting`), which must sit before `UseOutputCache` or it never runs on a hit. `[OutputCache]` does nothing on Razor component endpoints.
 - Including two collections triggers EF's cartesian warning; both contexts default to split queries (`UseQuerySplittingBehavior`).
+- Razor: a variable named `code` inside `@foreach ((..., string code, ...) in ...)` trips the `@code` directive parser; name it something else. A component with a named `RenderFragment` (`<Filters>`) needs the rest wrapped in `<ChildContent>`.
 - Kestrel logs `SslStream ... Bad address` on HTTP/2 when Safari drops an HTTPS connection; harmless macOS noise, use http://localhost:5000 if it bothers you.
 
 ## Code conventions
@@ -61,6 +62,7 @@ Actions · AWS CDK (C#) deploy-ready (no account — see ADR-0008).
 - Never call `IgnoreQueryFilters()` in application code (tests may).
 - Identity tables are the one thing outside the tenant filter; `UserAdminService` scopes by government explicitly (ADR-0015).
 - Admin pages: `@rendermode InteractiveServer` + `[Authorize(Policy = Policies.X)]`; Account and Portal pages are static SSR (`[ExcludeFromInteractiveRouting]` in the folder `_Imports.razor`).
+- Import/reports: `ImportAnalyzer` and `ReportBuilder` are pure; keep rules there and tests in Application.Tests. Exports go through `ExportTable` + `ISpreadsheetExporter`; add endpoints to `AdminExportEndpoints` behind a policy.
 - Portal pages call `ISnapshotQueryService` only; shared pieces live in `Components/Portal/Common` (`Breakdown`, `PortalKpi`, `PortalCrumbs`, `PortalNotFound`, `MoneyShort`). Styles are the `.pt-*` section of `app.css`.
 - UI: use `PageHeader` (sets breadcrumbs), `StatusPill`, `KpiCard`, `ConfirmDialog`, `RowMenu`, `EmptyState`, `SkeletonRows`, `ToastService`; grids use `table.cb-grid` inside `.cb-grid-wrap` (QuickGrid with `Theme="bootstrap"`). Tokens live in `wwwroot/app.css`; see `docs/design/DESIGN-BRIEF.md`. Never `window.confirm`.
 - Mark financial entities `[Audited]`; the interceptor does the rest. Use `AuditEntry.Event(...)` for named actions.

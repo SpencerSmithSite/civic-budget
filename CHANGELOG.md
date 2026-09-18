@@ -5,6 +5,14 @@ All notable changes to CivicBudget. Format loosely follows
 
 ## [Unreleased]
 
+## Phase 6 — 2026-09-18
+### Added
+- Import of budget lines from CSV or XLSX with a validation preview (per-row Add/Update/Unchanged/Error), committed through the aggregate in one save with an audit event; never deletes.
+- XLSX export of the workspace lines (same layout as the import), the three reports, and the setup lists.
+- Reports: Budget Summary by Fund, Department Budget Detail (filter by department), Revenue vs. Expenditure by Category; on screen, printable, and as XLSX.
+- `CsvReader`, `ISpreadsheetReader` (ClosedXML), `Labels` for plain-language enum names.
+- 387 tests total (+40).
+
 ## Phase 5 — 2026-09-18
 ### Added
 - Public transparency portal at `/transparency/{slug}/{year?}`: overview with KPIs, where it goes, where it comes from, funds, fund and department drill-downs, year over year, search. Static SSR, no login, no JavaScript.

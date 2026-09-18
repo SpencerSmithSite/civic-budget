@@ -1,0 +1,239 @@
+@page "/admin/budgets/{VersionId:guid}/import"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Policies.CanImport)]
+@using CivicBudget.Application.Import
+@inject IBudgetEntryService BudgetEntry
+@inject IBudgetImportService Import
+@inject NavigationManager Navigation
+@inject ToastService Toasts
+
+@* Two steps on one page: choose a file and see exactly what it would do (adds, updates, errors,
+   row by row), then confirm. The service re-checks everything at commit time, so the preview is a
+   courtesy, not the gate. Nothing is written until the confirm dialog's button is pressed. *@
+<PageTitle>Import budget lines</PageTitle>
+
+@if (notFound)
+{
+    <EmptyState Icon="bi-journal-x" Title="Budget version not found" Text="It may have been removed, or the link is wrong."><a class="btn btn-primary" href="admin/budgets">Budget versions</a></EmptyState>
+}
+else if (version is null)
+{
+    <PageHeader Title="Import budget lines" Eyebrow="Budget" Crumbs="@([new Crumb("Budget"), new Crumb("Budget versions", "admin/budgets"), new Crumb("Import")])" />
+    <SkeletonRows Rows="4" Columns="5" />
+}
+else
+{
+    <PageHeader Title="Import budget lines" Eyebrow="@($"Budget · Fiscal year {version.Version.Year}")"
+                Crumbs="@([new Crumb("Budget"), new Crumb("Budget versions", "admin/budgets"), new Crumb($"FY{version.Version.Year} {version.Version.Label}", $"admin/budgets/{VersionId}"), new Crumb("Import")])">
+        <TitleAddon><StatusPill Budget="version.Version.Status" /></TitleAddon>
+        <Subtitle>Upload a CSV or Excel file of lines for <b>FY@(version.Version.Year) @version.Version.Label</b>. Rows match existing lines by fund, department, and account; the import adds and updates, and never deletes.</Subtitle>
+        <Actions>
+            <a class="btn btn-outline-primary btn-sm" href="admin/export/budgets/@VersionId/lines.xlsx"><i class="bi bi-file-earmark-spreadsheet me-1" aria-hidden="true"></i>Download current lines as a template</a>
+        </Actions>
+    </PageHeader>
+
+    @if (!version.IsEditable)
+    {
+        <div class="alert alert-warning">This version is adopted and cannot be changed. Start an amendment and import into that.</div>
+    }
+    else
+    {
+        <div class="card mb-3">
+            <div class="card-body cb-import-pick">
+                <div>
+                    <label class="form-label fw-semibold" for="importFile">Choose a file</label>
+                    <InputFile id="importFile" class="form-control" accept=".csv,.xlsx" OnChange="OnFileChosenAsync" disabled="@busy" />
+                    <div class="form-text">
+                        Columns: <code>Fund</code>, <code>Department</code>, <code>Account</code>, <code>Amount</code>, and optionally
+                        <code>Prior Year Actual</code>, <code>Current Year Budget</code>, <code>Justification</code>. Codes, not names. Up to @MaxFileMb MB.
+                    </div>
+                </div>
+                @if (busy)
+                {
+                    <div class="text-secondary small" role="status"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Checking the file…</div>
+                }
+            </div>
+        </div>
+
+        @if (fileError is not null)
+        {
+            <div class="alert alert-danger" role="alert"><i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i>@fileError</div>
+        }
+
+        @if (preview is not null)
+        {
+            <div class="cb-kpis cb-import-kpis">
+                <KpiCard Label="Rows in file" Value="@preview.Rows.Count.ToString()" Detail="@preview.FileName" />
+                <KpiCard Label="Will be added" Value="@preview.AddCount.ToString()" Tone="@(preview.AddCount > 0 ? "ok" : "")" Detail="Lines that do not exist yet" />
+                <KpiCard Label="Will be updated" Value="@preview.UpdateCount.ToString()" Tone="@(preview.UpdateCount > 0 ? "ok" : "")" Detail="@($"{preview.UnchangedCount} already match")" />
+                <KpiCard Label="Errors" Value="@preview.ErrorCount.ToString()" Tone="@(preview.ErrorCount > 0 ? "bad" : "ok")"
+                         Detail="@(preview.ErrorCount > 0 ? "Fix these rows in the file and upload it again" : "Every row can be applied")" />
+            </div>
+
+            <div class="card">
+                <div class="cb-toolbar">
+                    <div class="grow">
+                        <span class="fw-semibold">Preview</span>
+                        <span class="text-secondary small ms-2">@Display.Money(preview.AmountToWrite) across the rows that will change</span>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="onlyProblems" @bind="onlyProblems" />
+                        <label class="form-check-label small" for="onlyProblems">Show only rows with errors or changes</label>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-sm" @onclick="() => confirmDialog.Show()" disabled="@(!preview.CanCommit || busy)">
+                        <i class="bi bi-upload me-1" aria-hidden="true"></i>Import @(preview.AddCount + preview.UpdateCount) lines
+                    </button>
+                </div>
+                <div class="cb-grid-wrap">
+                    <table class="cb-grid table" aria-label="Import preview">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="cb-num">Row</th>
+                                <th scope="col">Result</th>
+                                <th scope="col">Fund</th>
+                                <th scope="col">Department</th>
+                                <th scope="col">Account</th>
+                                <th scope="col" class="cb-num">Current</th>
+                                <th scope="col" class="cb-num">Amount</th>
+                                <th scope="col">Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (ImportRowDto row in VisibleRows)
+                            {
+                                <tr class="@(row.Action == ImportRowAction.Error ? "cb-row-error" : "")">
+                                    <td class="cb-num text-secondary">@row.RowNumber</td>
+                                    <td><StatusPill Tone="@ToneFor(row.Action)" Label="@LabelFor(row.Action)" /></td>
+                                    <td>@Code(row.FundCode, row.FundName)</td>
+                                    <td>@(row.DepartmentCode is null ? "" : Code(row.DepartmentCode, row.DepartmentName))</td>
+                                    <td>@Code(row.AccountCode, row.AccountName)</td>
+                                    <td class="cb-num text-secondary">@(row.ExistingAmount is { } existing ? Display.Money(existing) : "")</td>
+                                    <td class="cb-num">@(row.Amount is { } amount ? Display.Money(amount) : "")</td>
+                                    <td class="cb-wrap">
+                                        @if (row.Errors.Count > 0)
+                                        {
+                                            <ul class="cb-import-errors">@foreach (string error in row.Errors) { <li>@error</li> }</ul>
+                                        }
+                                        else if (row.Justification is not null)
+                                        {
+                                            <span class="text-secondary">@row.Justification</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                @if (!VisibleRows.Any())
+                {
+                    <div class="p-3 text-secondary small">Nothing to show with this filter.</div>
+                }
+            </div>
+        }
+    }
+}
+
+<ConfirmDialog @ref="confirmDialog" Title="Import these lines?" ConfirmText="Import" OnConfirm="CommitAsync">
+    <Body>
+        @if (preview is not null && version is not null)
+        {
+            <p>This adds <b>@preview.AddCount</b> and updates <b>@preview.UpdateCount</b> lines in <b>FY@(version.Version.Year) @version.Version.Label</b>, totalling @Display.Money(preview.AmountToWrite). Every change is written to the audit trail under your name.</p>
+            <p class="mb-0 text-secondary small">The file is checked again against the budget as it is right now; if anything changed since the preview, the import stops and shows you.</p>
+        }
+    </Body>
+</ConfirmDialog>
+
+@code {
+    private const int MaxFileMb = 5;
+
+    [Parameter]
+    public Guid VersionId { get; set; }
+
+    private BudgetWorkspaceDto? version;
+    private bool notFound;
+    private bool busy;
+    private bool onlyProblems;
+    private string? fileError;
+    private ImportPreviewDto? preview;
+    private ConfirmDialog confirmDialog = null!;
+
+    private IEnumerable<ImportRowDto> VisibleRows =>
+        preview is null ? [] : onlyProblems ? preview.Rows.Where(r => r.Action != ImportRowAction.Unchanged) : preview.Rows;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        version = await BudgetEntry.GetWorkspaceAsync(VersionId);
+        notFound = version is null;
+    }
+
+    private async Task OnFileChosenAsync(InputFileChangeEventArgs e)
+    {
+        fileError = null;
+        preview = null;
+        busy = true;
+        try
+        {
+            // The file is read on the server over the circuit; the size cap keeps a mistaken upload from tying it up.
+            await using Stream stream = e.File.OpenReadStream(MaxFileMb * 1024 * 1024);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            buffer.Position = 0;
+
+            Result<ImportPreviewDto> result = await Import.PreviewAsync(VersionId, e.File.Name, buffer);
+            if (result.IsSuccess)
+            {
+                preview = result.Value;
+                onlyProblems = preview.ErrorCount > 0;
+            }
+            else
+            {
+                fileError = string.Join(" ", result.Errors.Select(x => x.Message));
+            }
+        }
+        catch (IOException)
+        {
+            fileError = $"The file is larger than {MaxFileMb} MB.";
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task<bool> CommitAsync()
+    {
+        if (preview is null)
+        {
+            return true;
+        }
+
+        Result<ImportResultDto> result = await Import.CommitAsync(VersionId, preview.FileName, preview.Inputs);
+        if (result.IsFailure)
+        {
+            Toasts.Danger(string.Join(" ", result.Errors.Select(x => x.Message)));
+            return true;
+        }
+
+        Toasts.Success($"Imported {preview.FileName}: {result.Value.Added} added, {result.Value.Updated} updated.");
+        Navigation.NavigateTo($"admin/budgets/{VersionId}");
+        return true;
+    }
+
+    private static string Code(string code, string? name) => name is null ? code : $"{code} {name}";
+
+    private static string ToneFor(ImportRowAction action) => action switch
+    {
+        ImportRowAction.Add => "success",
+        ImportRowAction.Update => "info",
+        ImportRowAction.Error => "danger",
+        _ => "",
+    };
+
+    private static string LabelFor(ImportRowAction action) => action switch
+    {
+        ImportRowAction.Add => "Add",
+        ImportRowAction.Update => "Update",
+        ImportRowAction.Unchanged => "Same",
+        _ => "Error",
+    };
+}

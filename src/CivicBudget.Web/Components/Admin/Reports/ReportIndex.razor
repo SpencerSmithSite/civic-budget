@@ -1,0 +1,63 @@
+@page "/admin/reports"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Policies.CanViewBudget)]
+@inject IBudgetEntryService BudgetEntry
+
+<PageTitle>Reports</PageTitle>
+
+<PageHeader Title="Reports" Eyebrow="Budget" Crumbs="@([new Crumb("Budget"), new Crumb("Reports")])">
+    <Subtitle>Three standard reports for any version, on screen, on paper, or as a spreadsheet. Pick the budget version, then the report.</Subtitle>
+</PageHeader>
+
+@if (versions is null)
+{
+    <SkeletonRows Rows="3" Columns="3" />
+}
+else if (versions.Count == 0)
+{
+    <EmptyState Icon="bi-journal-x" Title="No budget versions yet" Text="Add a fiscal year and open a budget, then come back to run reports." />
+}
+else
+{
+    <div class="card mb-3">
+        <div class="card-body cb-report-pick">
+            <label class="form-label fw-semibold mb-0" for="reportVersion">Budget version</label>
+            <select id="reportVersion" class="form-select" @bind="selectedId">
+                @foreach (BudgetVersionSummaryDto v in versions)
+                {
+                    <option value="@v.Id">FY@(v.Year) @v.Label · @v.Status (@v.LineCount lines)</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    <div class="cb-report-cards">
+        <a class="card cb-report-card" href="admin/reports/@selectedId/fund-summary">
+            <i class="bi bi-bank" aria-hidden="true"></i>
+            <h2 class="h6">Budget Summary by Fund</h2>
+            <p>Beginning balance, revenues, transfers, estimated resources, appropriations, and the projected ending balance for every fund, with the appropriation check.</p>
+        </a>
+        <a class="card cb-report-card" href="admin/reports/@selectedId/department-detail">
+            <i class="bi bi-diagram-3" aria-hidden="true"></i>
+            <h2 class="h6">Department Budget Detail</h2>
+            <p>Every account line by department with prior year actual, current year budget, the request, and the change. Filter to one department.</p>
+        </a>
+        <a class="card cb-report-card" href="admin/reports/@selectedId/category">
+            <i class="bi bi-pie-chart" aria-hidden="true"></i>
+            <h2 class="h6">Revenue vs. Expenditure by Category</h2>
+            <p>Revenues by source and expenditures by category with the same three comparatives, and the net at the bottom.</p>
+        </a>
+    </div>
+}
+
+@code {
+    private IReadOnlyList<BudgetVersionSummaryDto>? versions;
+    private Guid selectedId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        versions = await BudgetEntry.ListVersionsAsync();
+        // Default to the version people are working on: the open one if any, else the newest.
+        selectedId = (versions.FirstOrDefault(v => v.Status != BudgetStatus.Adopted) ?? versions.FirstOrDefault())?.Id ?? Guid.Empty;
+    }
+}

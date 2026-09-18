@@ -439,3 +439,42 @@ middleware. The in-memory store is per instance; in AWS with more than one task 
 (`ISpreadsheetExporter`) lands in this phase for the XLSX download and is reused by Phase 6
 reports; CSV needs no package (`CsvWriter`).
 
+## ADR-0022 — Import as preview-then-commit with a pure analyser; reports built from the workspace read
+**Date:** 2026-09-18 · **Status:** Accepted
+
+**Context.** Phase 6 adds CSV/XLSX import of budget lines and three reports. Import is the
+riskiest write in the app (one file can touch every line), and reports must never disagree with
+the entry screen.
+
+**Decision.**
+- **Import is two calls.** `PreviewAsync` parses the file and returns every row classified as
+  Add, Update, Unchanged, or Error with the reason; `CommitAsync` takes the raw rows back,
+  re-analyses them against the database *at that moment*, refuses if any row errs, and applies
+  the rest through the `BudgetVersion` aggregate in one `SaveChanges` with a single audit event
+  (the interceptor still records each field change). Nothing is written from a preview.
+- **The rules live in a pure function.** `ImportAnalyzer.Analyze(rows, funds, departments,
+  accounts, existingLines)` mirrors `BudgetVersion.AddLine`'s guards plus the file-level ones
+  (parseable money, no duplicate keys, blank optional columns mean "leave as is"). Every rule
+  has a unit test with no database; the service test proves the same rules over SQL Server.
+- **The file contract is the export.** Columns are codes (Fund, Department, Account, Amount,
+  Prior Year Actual, Current Year Budget, Justification), the exact layout the workspace's
+  "Export lines" writes, so export, edit in Excel, import is the round trip. Import never
+  deletes; a line absent from the file is left alone.
+- **Reports are shaped from `BudgetWorkspaceDto`.** `ReportBuilder` is pure over the same DTO
+  the workspace renders, so the Department Head visibility rule and the fund arithmetic are
+  applied once. `ReportTables` turns each report into an `ExportTable` for XLSX, and the
+  minimal API endpoints under `/admin/export` reuse `ISpreadsheetExporter` from Phase 5.
+- **Print is CSS.** `@media print` hides the shell and leads with the report block; the Print
+  button is the admin app's one JavaScript call (`window.print`).
+
+**Alternatives.** Import committing directly with a summary (no chance to see a mistake before
+it lands); a staging table for imports (more moving parts than a village needs; the preview is
+held in the circuit and re-validated on commit); SQL views or a reporting database for reports
+(premature; the workspace read is already one query per version); a PDF library for print
+(browser print with a stylesheet is enough and needs no package).
+
+**Consequences.** `ISpreadsheetReader` (ClosedXML) joins `ISpreadsheetExporter` in
+Infrastructure; `CsvReader` sits beside `CsvWriter` in Application. A file larger than 5 MB or
+10,000 rows is refused up front. Reports cost the workspace read plus one lookup; a county-scale
+tenant would cache or push grouping into SQL behind the same `IReportService`.
+

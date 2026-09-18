@@ -20,6 +20,7 @@
             <nav class="nav cb-nav flex-column" aria-label="Budget">
                 <NavLink class="nav-link" href="admin" Match="NavLinkMatch.All" @onclick="CloseMenu"><i class="bi bi-grid-1x2" aria-hidden="true"></i>Overview</NavLink>
                 <NavLink class="nav-link" href="admin/budgets" @onclick="CloseMenu"><i class="bi bi-journal-text" aria-hidden="true"></i>Budget versions</NavLink>
+                <NavLink class="nav-link" href="admin/reports" @onclick="CloseMenu"><i class="bi bi-file-earmark-bar-graph" aria-hidden="true"></i>Reports</NavLink>
             </nav>
         </AuthorizeView>
         <AuthorizeView Policy="@Policies.CanMaintainSetup">

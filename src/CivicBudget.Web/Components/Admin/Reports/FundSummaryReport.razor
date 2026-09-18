@@ -1,0 +1,90 @@
+@page "/admin/reports/{VersionId:guid}/fund-summary"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Policies.CanViewBudget)]
+@using CivicBudget.Application.Reports
+@inject IReportService Reports
+
+<PageTitle>Budget Summary by Fund</PageTitle>
+
+@if (notFound)
+{
+    <EmptyState Icon="bi-journal-x" Title="Budget version not found" Text="It may have been removed, or the link is wrong."><a class="btn btn-primary" href="admin/reports">Reports</a></EmptyState>
+}
+else if (report is null)
+{
+    <PageHeader Title="Budget Summary by Fund" Eyebrow="Reports" Crumbs="@([new Crumb("Budget"), new Crumb("Reports", "admin/reports"), new Crumb("Budget Summary by Fund")])" />
+    <SkeletonRows Rows="6" Columns="8" />
+}
+else
+{
+    <ReportShell Title="Budget Summary by Fund" Header="report.Header" ExportHref="@($"admin/export/reports/{VersionId}/fund-summary.xlsx")"
+                 Description="Each fund's estimated resources against its appropriations, the check Ohio law applies at adoption.">
+        @if (report.FundsOverLimit > 0)
+        {
+            <div class="alert alert-warning cb-report-note"><i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i>@report.FundsOverLimit fund@(report.FundsOverLimit == 1 ? "" : "s") appropriate@(report.FundsOverLimit == 1 ? "s" : "") more than estimated resources.</div>
+        }
+        <div class="cb-grid-wrap">
+            <table class="cb-grid table cb-report-table" aria-label="Budget summary by fund">
+                <thead>
+                    <tr>
+                        <th scope="col">Fund</th>
+                        <th scope="col" class="cb-num">Beginning balance</th>
+                        <th scope="col" class="cb-num">Revenues</th>
+                        <th scope="col" class="cb-num">Transfers in</th>
+                        <th scope="col" class="cb-num cb-col-strong">Estimated resources</th>
+                        <th scope="col" class="cb-num">Expenditures</th>
+                        <th scope="col" class="cb-num">Transfers out</th>
+                        <th scope="col" class="cb-num cb-col-strong">Appropriations</th>
+                        <th scope="col" class="cb-num">Projected ending balance</th>
+                        <th scope="col">Within limit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (FundSummaryRowDto f in report.Funds)
+                    {
+                        <tr>
+                            <th scope="row" class="fw-normal">@f.FundCode @f.FundName<div class="text-secondary small">@Display.Enum(f.Category!.Value)</div></th>
+                            <td class="cb-num">@Display.Money(f.BeginningBalance)</td>
+                            <td class="cb-num">@Display.Money(f.Revenues)</td>
+                            <td class="cb-num">@Display.Money(f.TransfersIn)</td>
+                            <td class="cb-num cb-col-strong">@Display.Money(f.EstimatedResources)</td>
+                            <td class="cb-num">@Display.Money(f.Expenditures)</td>
+                            <td class="cb-num">@Display.Money(f.TransfersOut)</td>
+                            <td class="cb-num cb-col-strong">@Display.Money(f.Appropriations)</td>
+                            <td class="cb-num @(f.ProjectedEndingBalance < 0 ? "cb-neg" : "")">@Display.Money(f.ProjectedEndingBalance)</td>
+                            <td>@if (f.IsWithinAppropriationLimit) { <StatusPill Tone="success" Label="Yes" /> } else { <StatusPill Tone="danger" Label="Over" /> }</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th scope="row">All funds</th>
+                        <td class="cb-num">@Display.Money(report.Total.BeginningBalance)</td>
+                        <td class="cb-num">@Display.Money(report.Total.Revenues)</td>
+                        <td class="cb-num">@Display.Money(report.Total.TransfersIn)</td>
+                        <td class="cb-num cb-col-strong">@Display.Money(report.Total.EstimatedResources)</td>
+                        <td class="cb-num">@Display.Money(report.Total.Expenditures)</td>
+                        <td class="cb-num">@Display.Money(report.Total.TransfersOut)</td>
+                        <td class="cb-num cb-col-strong">@Display.Money(report.Total.Appropriations)</td>
+                        <td class="cb-num @(report.Total.ProjectedEndingBalance < 0 ? "cb-neg" : "")">@Display.Money(report.Total.ProjectedEndingBalance)</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </ReportShell>
+}
+
+@code {
+    [Parameter]
+    public Guid VersionId { get; set; }
+
+    private FundSummaryReportDto? report;
+    private bool notFound;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        report = await Reports.FundSummaryAsync(VersionId);
+        notFound = report is null;
+    }
+}
