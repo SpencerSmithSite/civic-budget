@@ -6,7 +6,7 @@ Blazor, EF Core, and SQL Server, with a deploy-ready AWS CDK stack.
 
 [![ci](https://github.com/SpencerSmithSite/civic-budget/actions/workflows/ci.yml/badge.svg)](https://github.com/SpencerSmithSite/civic-budget/actions/workflows/ci.yml)
 
-> **Status:** Phase 4.5 complete: the admin app has its visual identity (a modern civic ERP that fits in next to Ohio's incumbents). Next: the public transparency portal. See [ROADMAP.md](ROADMAP.md).
+> **Status:** Phase 5 complete: the public transparency portal is live at `/transparency` (static SSR, output-cached, CSV/XLSX downloads). Next: import/export and reports. See [ROADMAP.md](ROADMAP.md).
 
 **Two audiences, one solution**
 - **Admin app** — finance staff and department heads build the annual budget:
@@ -41,10 +41,14 @@ keeps it in user-secrets (`dotnet user-secrets list --project src/CivicBudget.We
 | `viewer@mapleridge.example` | Viewer | Read-only overview |
 | `admin@pinehollow.example` | Administrator (second tenant) | Pine Hollow only; proves isolation |
 
+The public portal needs no login: open `http://localhost:5000/transparency/maple-ridge-oh`
+(Pine Hollow Township is at `/transparency/pine-hollow-twp-oh`). Publish an amendment in the
+admin app and the portal shows it on the next request.
+
 To start over with fresh seed data: `docker compose down -v && docker compose up -d`.
 
 ```bash
-dotnet test                                 # all 292 tests; integration tests start their own SQL Server container
+dotnet test                                 # all 347 tests; integration tests start their own SQL Server container
 ```
 
 Documentation: [Design brief](docs/design/DESIGN-BRIEF.md) · [Spec](docs/SPEC.md) · [Architecture](docs/ARCHITECTURE.md) ·

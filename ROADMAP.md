@@ -76,13 +76,17 @@ Spencer's review of Phase 3 (2026-09-17): functional, but bare-bones Bootstrap w
 
 ## Phase 5 — Public transparency portal  `phase-5-portal`
 Design-first: this is the screen a citizen (and an interviewer) sees without logging in.
-- [ ] Mockups (overview, drill-down, charts, mobile) approved before implementation
-- [ ] `/transparency/{slug}/{year?}` overview, drill-down with breadcrumbs
-- [ ] Charts with data-table alternatives; year-over-year
-- [ ] Search; CSV + XLSX download
-- [ ] Output caching with tag eviction on publish
-- [ ] Accessibility pass (WCAG 2.1 AA checklist)
-- [ ] Walkthrough: static SSR vs. Interactive Server; output caching
+- [x] Portal mockup (approved with the Phase 4.5 set in `docs/design/mockups.html`): question-led navigation, bars with table twins, mobile
+- [x] `ISnapshotQueryService` (Application) over `PublicPortalDbContext` (Infrastructure): budget header, breakdowns by fund/category/department/source, fund and department pages, lines, year over year, search
+- [x] Static SSR pages under `/transparency/{slug}/{year?}`: index, overview, spending, revenue, funds, fund, department, years, search; `PortalLayout` with year pills and section nav; 404 for unknown slugs/years
+- [x] `Breakdown` component: CSS bars with values, `$ | %` toggle as links, `<details>` table twin; `PortalKpi`, `PortalCrumbs`, `MoneyShort`
+- [x] CSV (`CsvWriter`) and XLSX (`ClosedXmlSpreadsheetExporter`, ClosedXML) downloads via minimal API endpoints
+- [x] Output caching: `PortalOutputCachePolicy` (base policy, tag `portal:{slug}`), `PortalResponseMiddleware` (public max-age, no antiforgery cookie), `OutputCacheSnapshotInvalidator` (evict by tag on publish/unpublish); ADR-0021
+- [x] Split queries on both contexts (the two-collection includes triggered EF's cartesian warning)
+- [x] Accessibility: landmarks, breadcrumb list, `aria-current`, chart text alternatives, works without JavaScript, checked at 1440 and 390 px
+- [x] Tests: 9 integration (`SnapshotQueryServiceTests`), 4 unit (CSV, XLSX), 42 Web (cache policy, invalidator, middleware, `Breakdown`, helpers); 347 total
+- [x] Walkthrough 06; interview prep Phase 5
+- [ ] Spencer approves Phase 5
 
 ## Phase 6 — Import/export & reports  `phase-6-import-reports`
 - [ ] CSV/XLSX import with validation preview

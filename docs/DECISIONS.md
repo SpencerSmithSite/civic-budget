@@ -234,9 +234,10 @@ Every NuGet package and why. Add a row when adding a package.
 | xunit, xunit.runner.visualstudio, Microsoft.NET.Test.Sdk, coverlet.collector | tests | Test framework + coverage (template defaults) | spec |
 | bunit | Web.Tests | Blazor component tests | spec |
 | Testcontainers.MsSql | IntegrationTests | Real SQL Server 2022 in tests | spec |
+| ClosedXML | Infrastructure | XLSX downloads and (Phase 6) reports without Office or COM | 0021 |
 | dotnet-ef (local tool, `.config/dotnet-tools.json`) | — | Migrations CLI pinned per repo | — |
 
-Planned for later phases (row confirmed when added): ClosedXML (Phase 6), Amazon.CDK.Lib + Amazon.CDK.Assertions (Phase 7, ADR-0008).
+Planned for later phases (row confirmed when added): Amazon.CDK.Lib + Amazon.CDK.Assertions (Phase 7, ADR-0008).
 
 Not packages: Bootstrap 5.3 CSS/JS is vendored under `src/CivicBudget.Web/wwwroot/lib/bootstrap` (ADR-0016); Bootstrap Icons 1.13 under `wwwroot/lib/bootstrap-icons` (ADR-0020).
 
@@ -400,3 +401,41 @@ commercial suite (rejected in ADR-0011); inline SVG icons (harder to keep consis
 
 **Consequences.** One file to read to understand the look; updates to Bootstrap Icons are
 manual; no dark theme yet (tokens make it a later addition).
+
+## ADR-0021 — Portal output caching: base policy, header rewrite, evict by tag
+**Date:** 2026-09-18 · **Status:** Accepted
+
+**Context.** The portal is static SSR and anonymous, so its pages are ideal for ASP.NET
+Core output caching: one render per URL per government until the next publish. Two things
+stood in the way. Blazor's static SSR endpoint marks every response `Cache-Control:
+no-cache, no-store` and issues an antiforgery cookie, and the built-in default output cache
+policy honors both by refusing to store the response. `[OutputCache]` attributes are also
+not applied to Razor component endpoints, so the policy could not be declared per page.
+
+**Decision.** Three small pieces in `src/CivicBudget.Web/Caching/`:
+1. `PortalOutputCachePolicy`, registered as the *base* policy with
+   `excludeDefaultPolicy: true`. It enables caching only for `GET /transparency/**`, keys by
+   the full URL (`QueryKeys = "*"`, because `?show=pct` and `?q=` change the page), tags the
+   entry `portal:{slug}`, and refuses to store anything that is not a 200 or that still
+   sets a cookie. Everything else (admin, sign-in, health) is untouched.
+2. `PortalResponseMiddleware`, placed *before* `UseOutputCache` so it runs on hits and
+   misses. In `OnStarting` it rewrites a 200 portal response to `Cache-Control: public,
+   max-age=600`, drops `Pragma`, and removes the `Set-Cookie` header when the only cookie
+   is the antiforgery token (portal pages have no POST forms; search is a GET form).
+3. `OutputCacheSnapshotInvalidator` implements the Application hook
+   `IPublishedSnapshotCacheInvalidator` with `IOutputCacheStore.EvictByTagAsync("portal:{slug}")`,
+   so a publish or unpublish drops exactly that government's pages. Registered in Web after
+   `AddInfrastructure`, replacing the no-op.
+
+**Alternatives.** `ResponseCaching` middleware (honors `no-store`, no tag eviction);
+caching inside `SnapshotQueryService` with `IMemoryCache` (saves the query but still renders
+every request, and eviction logic would leak into Infrastructure); a reverse proxy or CDN
+(right for production, but the app should be correct on its own and the CDN respects the
+same `public, max-age` header this emits).
+
+**Consequences.** A cache miss costs one query and one render; a hit costs nothing past the
+middleware. The in-memory store is per instance; in AWS with more than one task the Redis
+`IOutputCacheStore` package drops in without code changes. The ClosedXML package
+(`ISpreadsheetExporter`) lands in this phase for the XLSX download and is reused by Phase 6
+reports; CSV needs no package (`CsvWriter`).
+

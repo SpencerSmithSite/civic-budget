@@ -99,7 +99,7 @@ sequenceDiagram
     M-->>B: cached HTML
   else miss
     M->>P: render
-    P->>Q: GetOverviewAsync(slug, year)
+    P->>Q: GetBudgetAsync(slug, year)
     Q->>DB: read PublishedBudgetSnapshot*
     DB-->>Q: rows
     Q-->>P: DTO
@@ -119,7 +119,7 @@ cache by tag.
 |---|---|---|
 | Admin app | `InteractiveServer` | Stateful grids with inline editing, live fund-balance panel, confirmation dialogs. Server-side keeps the domain and EF Core off the client and makes authorization simple. |
 | Public portal | Static SSR (no interactivity) | Each citizen visit is a plain HTTP request: cacheable, crawlable, tiny payload, no SignalR connection to hold open per visitor. Core tables work with JavaScript disabled. |
-| Portal enhancements (charts, search box) | Static SSR + minimal progressive enhancement | Charts render from a data table that is always present; JavaScript enhances, never replaces. |
+| Portal charts and search | Static SSR, no JavaScript at all | Bars are CSS with the value beside each one and a `<details>` table twin; the `$ \| %` toggle is two links; search is a GET form. Nothing to enhance, nothing to break. |
 
 Interview talking point: a SignalR circuit costs server memory per connected
 user. That is fine for 20 finance staff and wrong for 20,000 citizens on
@@ -193,8 +193,9 @@ graph TD
 - The admin tenant comes from the `government_id` claim issued at sign-in.
   `CurrentUserContext` (scoped) is filled by `CurrentUserMiddleware` for HTTP
   requests and by `CurrentUserCircuitHandler` for Interactive Server circuits,
-  which have their own DI scope. The portal tenant will come from the URL slug
-  (Phase 5) through the same context.
+  which have their own DI scope. The portal never sets a tenant: it reads
+  through `PublicPortalDbContext`, which has no tenant filter, and every
+  query takes the government slug from the URL as a plain predicate.
 - Identity tables are outside the filter (login must find a user before a
   tenant is known); `UserAdminService` scopes by government explicitly (ADR-0015).
 - Integration tests prove isolation: seed two tenants, query as one, assert
@@ -289,7 +290,7 @@ or bypass attempts, not user input errors.
 | Errors | `UseExceptionHandler("/error")` with a friendly page; `ProblemDetails` for API-style endpoints (downloads). |
 | Health | `/health` (liveness) and `/health/ready` (checks SQL connectivity). |
 | Config & secrets | `appsettings.json` for non-secrets; `dotnet user-secrets` locally; AWS Secrets Manager → environment at container start. |
-| Output caching | `AddOutputCache` with a portal policy: vary by route, tag `gov:{slug}`; evicted on publish/unpublish. |
+| Output caching | `AddOutputCache` with `PortalOutputCachePolicy` as the base policy: `GET /transparency/**` only, keyed by path + query, tagged `portal:{slug}`, evicted on publish/unpublish. `PortalResponseMiddleware` rewrites Blazor's `no-store` to `public, max-age=600` and drops the antiforgery cookie (ADR-0021). |
 | Time | `IClock` abstraction (`TimeProvider`) so tests control "now". |
 | Excel | ClosedXML server-side; no COM/Office dependency. |
 
