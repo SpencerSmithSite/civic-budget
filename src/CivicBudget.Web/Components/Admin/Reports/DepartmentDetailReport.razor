@@ -1,0 +1,121 @@
+@page "/admin/reports/{VersionId:guid}/department-detail"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Policies.CanViewBudget)]
+@using CivicBudget.Application.Reports
+@inject IReportService Reports
+@inject NavigationManager Navigation
+
+<PageTitle>Department Budget Detail</PageTitle>
+
+@if (notFound)
+{
+    <EmptyState Icon="bi-journal-x" Title="Budget version not found" Text="It may have been removed, or the link is wrong."><a class="btn btn-primary" href="admin/reports">Reports</a></EmptyState>
+}
+else if (report is null)
+{
+    <PageHeader Title="Department Budget Detail" Eyebrow="Reports" Crumbs="@([new Crumb("Budget"), new Crumb("Reports", "admin/reports"), new Crumb("Department Budget Detail")])" />
+    <SkeletonRows Rows="8" Columns="6" />
+}
+else
+{
+    <ReportShell Title="Department Budget Detail" Header="report.Header" ExportHref="@ExportHref"
+                 Description="Every account line a department budgets, with the prior year actual, the current year budget, this request, and the change.">
+        <Filters>
+            <select class="form-select form-select-sm cb-report-filter" aria-label="Department" value="@(Department?.ToString() ?? "")" @onchange="OnDepartmentChanged">
+                <option value="">All departments</option>
+                @foreach ((Guid id, string deptCode, string name) in report.AvailableDepartments)
+                {
+                    <option value="@id">@deptCode @name</option>
+                }
+            </select>
+        </Filters>
+        <ChildContent>
+        @if (report.Departments.Count == 0)
+        {
+            <EmptyState Icon="bi-diagram-3" Title="No department lines" Text="This version has no lines budgeted to a department." />
+        }
+        <div class="cb-grid-wrap">
+            <table class="cb-grid table cb-report-table" aria-label="Department budget detail">
+                <thead>
+                    <tr>
+                        <th scope="col">Account</th>
+                        <th scope="col">Fund</th>
+                        <th scope="col">Category</th>
+                        <th scope="col" class="cb-num">Prior year actual</th>
+                        <th scope="col" class="cb-num">Current year budget</th>
+                        <th scope="col" class="cb-num cb-col-strong">FY@(report.Header.FiscalYear) budget</th>
+                        <th scope="col" class="cb-num">Change</th>
+                        <th scope="col" class="cb-num">Change %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (DepartmentDetailDto d in report.Departments)
+                    {
+                        <tr class="cb-group"><td colspan="8">@d.DepartmentCode @d.DepartmentName</td></tr>
+                        @foreach (DetailLineDto l in d.Lines)
+                        {
+                            <tr>
+                                <th scope="row" class="fw-normal ps-4">@l.AccountCode @l.AccountName@if (l.AccountType != AccountType.Expenditure) { <span class="text-secondary small ms-1">(@Display.Enum(l.AccountType).ToLowerInvariant())</span> }@if (l.Justification is not null) { <div class="text-secondary small cb-report-note-inline">@l.Justification</div> }</th>
+                                <td>@l.FundCode</td>
+                                <td class="cb-wrap">@Labels.Category(l.Category)</td>
+                                <td class="cb-num">@Display.Money(l.PriorYearActual)</td>
+                                <td class="cb-num">@Display.Money(l.CurrentYearBudget)</td>
+                                <td class="cb-num cb-col-strong">@Display.Money(l.Amount)</td>
+                                <td class="cb-num @(l.DollarChange < 0 ? "cb-neg" : "")">@Display.Money(l.DollarChange)</td>
+                                <td class="cb-num @(l.PercentChange < 0 ? "cb-neg" : "")">@Display.Percent(l.PercentChange)</td>
+                            </tr>
+                        }
+                        <tr class="cb-subtotal">
+                            <th scope="row" colspan="3">@d.DepartmentName expenditures</th>
+                            <td class="cb-num">@Display.Money(d.PriorYearActual)</td>
+                            <td class="cb-num">@Display.Money(d.CurrentYearBudget)</td>
+                            <td class="cb-num cb-col-strong">@Display.Money(d.Amount)</td>
+                            <td class="cb-num @(d.DollarChange < 0 ? "cb-neg" : "")">@Display.Money(d.DollarChange)</td>
+                            <td class="cb-num @(d.PercentChange < 0 ? "cb-neg" : "")">@Display.Percent(d.PercentChange)</td>
+                        </tr>
+                    }
+                </tbody>
+                @if (report.Departments.Count > 1)
+                {
+                    <tfoot>
+                        <tr>
+                            <th scope="row" colspan="3">All departments, expenditures</th>
+                            <td class="cb-num">@Display.Money(report.TotalPriorYearActual)</td>
+                            <td class="cb-num">@Display.Money(report.TotalCurrentYearBudget)</td>
+                            <td class="cb-num cb-col-strong">@Display.Money(report.TotalAmount)</td>
+                            <td class="cb-num">@Display.Money(report.TotalAmount - report.TotalCurrentYearBudget)</td>
+                            <td class="cb-num">@Display.Percent(Domain.Common.Money.PercentChange(report.TotalCurrentYearBudget, report.TotalAmount))</td>
+                        </tr>
+                    </tfoot>
+                }
+            </table>
+        </div>
+        </ChildContent>
+    </ReportShell>
+}
+
+@code {
+    [Parameter]
+    public Guid VersionId { get; set; }
+
+    /// <summary>Optional department filter; in the URL so a printed or bookmarked report is reproducible.</summary>
+    [SupplyParameterFromQuery]
+    public Guid? Department { get; set; }
+
+    private DepartmentDetailReportDto? report;
+    private bool notFound;
+
+    private string ExportHref => $"admin/export/reports/{VersionId}/department-detail.xlsx" + (Department is { } d ? $"?department={d}" : "");
+
+    protected override async Task OnParametersSetAsync()
+    {
+        report = await Reports.DepartmentDetailAsync(VersionId, Department);
+        notFound = report is null;
+    }
+
+    private void OnDepartmentChanged(ChangeEventArgs e)
+    {
+        string value = e.Value?.ToString() ?? "";
+        Navigation.NavigateTo(Navigation.GetUriWithQueryParameter("department", value.Length == 0 ? null : value));
+    }
+}

@@ -1,0 +1,58 @@
+@using CivicBudget.Application.Reports
+@inject IJSRuntime JS
+
+@* Chrome shared by the three reports: the page header with Print and Export, and the block that
+   prints at the top of the paper (government, budget, who ran it). On screen the block is the
+   report's subtitle; in print CSS the sidebar and toolbar disappear and this block leads. *@
+<PageHeader Title="@Title" Eyebrow="@($"Reports · FY{Header.FiscalYear} {Header.VersionLabel}")"
+            Crumbs="@([new Crumb("Budget"), new Crumb("Reports", "admin/reports"), new Crumb(Title)])">
+    <TitleAddon><StatusPill Budget="Header.Status" /></TitleAddon>
+    <Subtitle>@Description</Subtitle>
+    <Actions>
+        @Filters
+        <a class="btn btn-outline-primary btn-sm" href="@ExportHref"><i class="bi bi-file-earmark-spreadsheet me-1" aria-hidden="true"></i>Export XLSX</a>
+        <button type="button" class="btn btn-primary btn-sm" @onclick="PrintAsync"><i class="bi bi-printer me-1" aria-hidden="true"></i>Print</button>
+    </Actions>
+</PageHeader>
+
+<div class="cb-report">
+    <div class="cb-report-head">
+        <div>
+            <div class="cb-report-gov">@Header.GovernmentName</div>
+            <h2 class="cb-report-title">@Title</h2>
+            <div class="cb-report-meta">
+                FY@(Header.FiscalYear) @Header.VersionLabel · @Header.Status@(Header.ResolutionNumber is null ? "" : $", resolution {Header.ResolutionNumber}")
+            </div>
+        </div>
+        <div class="cb-report-meta text-end">
+            Prepared @Header.GeneratedAtUtc.ToLocalTime().ToString("MMMM d, yyyy h:mm tt")<br />
+            by @Header.GeneratedBy
+        </div>
+    </div>
+    @ChildContent
+    <div class="cb-report-foot">Amounts are budgeted figures for FY@(Header.FiscalYear) @Header.VersionLabel; "current year" and "prior year" are the comparatives entered with each line. CivicBudget · fictional data.</div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public string? Description { get; set; }
+
+    [Parameter, EditorRequired]
+    public ReportHeaderDto Header { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string ExportHref { get; set; } = "";
+
+    /// <summary>Report-specific controls (a department picker) rendered beside the buttons.</summary>
+    [Parameter]
+    public RenderFragment? Filters { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>The one JavaScript call in the admin app: the browser's own print dialog, driven by the print stylesheet.</summary>
+    private async Task PrintAsync() => await JS.InvokeVoidAsync("window.print");
+}

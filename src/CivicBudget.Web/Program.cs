@@ -6,6 +6,7 @@ using CivicBudget.Infrastructure.Seed;
 using CivicBudget.Web.Caching;
 using CivicBudget.Web.Components;
 using CivicBudget.Web.Components.Account;
+using CivicBudget.Web.Components.Admin;
 using CivicBudget.Web.Components.Common;
 using CivicBudget.Web.Components.Portal;
 using CivicBudget.Web.Security;
@@ -118,5 +119,6 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 app.MapIdentityEndpoints();
 app.MapPortalEndpoints();
+app.MapAdminExportEndpoints();
 
 await app.RunAsync();

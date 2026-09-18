@@ -1191,6 +1191,233 @@ h1:focus {
 }
 
 /* ==========================================================================
+   Import preview and reports (Phase 6). Reports are the one admin surface meant for paper, so
+   they carry a print stylesheet: the shell disappears and the report block leads the page.
+   ========================================================================== */
+
+.cb-import-pick {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.cb-import-pick > div:first-child {
+    flex: 1 1 360px;
+    max-width: 640px;
+}
+
+.cb-import-kpis {
+    margin-bottom: 16px;
+}
+
+.cb-import-errors {
+    margin: 0;
+    padding-left: 18px;
+    color: var(--cb-danger);
+}
+
+table.cb-grid > tbody > tr.cb-row-error > td {
+    background: var(--cb-danger-bg);
+}
+
+.cb-report-pick {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.cb-report-pick .form-select {
+    max-width: 420px;
+}
+
+.cb-report-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+}
+
+.cb-report-card {
+    padding: 20px;
+    text-decoration: none;
+    color: var(--cb-text);
+    display: block;
+    transition: border-color .15s, box-shadow .15s;
+}
+
+.cb-report-card:hover, .cb-report-card:focus-visible {
+    border-color: var(--cb-action);
+    box-shadow: 0 0 0 3px var(--bs-focus-ring-color);
+    color: var(--cb-text);
+}
+
+.cb-report-card i {
+    font-size: 24px;
+    color: var(--cb-action);
+    display: block;
+    margin-bottom: 10px;
+}
+
+.cb-report-card p {
+    margin: 0;
+    color: var(--cb-muted);
+    font-size: 13px;
+}
+
+.cb-report {
+    background: #fff;
+    border: 1px solid var(--cb-border);
+    border-radius: var(--bs-border-radius);
+}
+
+.cb-report-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 20px 12px;
+    border-bottom: 2px solid var(--cb-navy);
+}
+
+.cb-report-gov {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--cb-muted);
+}
+
+.cb-report-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 2px 0;
+    color: var(--cb-navy);
+}
+
+.cb-report-meta {
+    font-size: 13px;
+    color: var(--cb-muted);
+}
+
+.cb-report-note {
+    margin: 16px 20px 0;
+}
+
+.cb-report .cb-grid-wrap {
+    margin: 12px 0 0;
+    border: 0;
+}
+
+.cb-report-table {
+    font-size: 12.5px;
+}
+
+/* Ten money columns have to fit a laptop: headers wrap, cells stay tight, the name column keeps its width. */
+table.cb-grid.cb-report-table > thead > tr > th {
+    white-space: normal;
+    line-height: 1.2;
+    vertical-align: bottom;
+    padding: 8px 8px;
+}
+
+table.cb-grid.cb-report-table > tbody > tr > td,
+table.cb-grid.cb-report-table > tbody > tr > th,
+table.cb-grid.cb-report-table > tfoot > tr > td,
+table.cb-grid.cb-report-table > tfoot > tr > th {
+    padding: 6px 8px;
+}
+
+.cb-report-table th[scope="row"] {
+    min-width: 200px;
+}
+
+.cb-report-table th.cb-col-strong, .cb-report-table td.cb-col-strong {
+    font-weight: 600;
+    background: var(--cb-canvas);
+}
+
+.cb-report-note-inline {
+    white-space: normal;
+    max-width: 48ch;
+}
+
+.cb-report-filter {
+    width: auto;
+    min-width: 200px;
+}
+
+.cb-report-foot {
+    padding: 10px 20px 14px;
+    font-size: 12px;
+    color: var(--cb-muted);
+    border-top: 1px solid var(--cb-border);
+}
+
+@media print {
+    .cb-sidebar, .cb-topbar, .cb-page-header, .cb-toast-host, .cb-report-note, .cb-report-filter {
+        display: none !important;
+    }
+
+    .cb-shell {
+        display: block;
+    }
+
+    .cb-main {
+        padding: 0;
+        max-width: none;
+    }
+
+    .cb-report {
+        border: 0;
+    }
+
+    .cb-report .cb-grid-wrap {
+        overflow: visible;
+    }
+
+    table.cb-grid > thead > tr > th {
+        position: static;
+    }
+
+    table.cb-grid > tbody > tr.cb-group > td,
+    .cb-report-table {
+    font-size: 12.5px;
+}
+
+/* Ten money columns have to fit a laptop: headers wrap, cells stay tight, the name column keeps its width. */
+table.cb-grid.cb-report-table > thead > tr > th {
+    white-space: normal;
+    line-height: 1.2;
+    vertical-align: bottom;
+    padding: 8px 8px;
+}
+
+table.cb-grid.cb-report-table > tbody > tr > td,
+table.cb-grid.cb-report-table > tbody > tr > th,
+table.cb-grid.cb-report-table > tfoot > tr > td,
+table.cb-grid.cb-report-table > tfoot > tr > th {
+    padding: 6px 8px;
+}
+
+.cb-report-table th[scope="row"] {
+    min-width: 200px;
+}
+
+.cb-report-table th.cb-col-strong, .cb-report-table td.cb-col-strong {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    a[href]::after {
+        content: "";
+    }
+
+    @page {
+        margin: 14mm;
+    }
+}
+
+/* ==========================================================================
    Public transparency portal. Same tokens, larger type (citizens read, staff scan), and no
    dependence on JavaScript: the "$ | %" toggle is two links, tables are always in the HTML.
    ========================================================================== */
