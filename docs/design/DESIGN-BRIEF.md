@@ -140,11 +140,12 @@ Principles from the research, in priority order:
 Palette: the same tokens with `--cb-sidebar` as a header band and white content; the categorical
 chart palette above; larger type (16px base) because citizens read, staff scan.
 
-## 5. Mockups to produce before implementation
+## 5. Mockups
 
-Admin: login; overview; budget workspace (by account line, with fund panel and stepper); users
-list; adopt dialog. Portal: overview; fund drill-down; phone view of the overview. Produced as a
-design canvas artifact for review; approval unlocks implementation.
+Eight screens in [mockups.html](mockups.html) (also published as a Claude artifact for review):
+login; admin overview; budget workspace with stepper and fund rail; adopt dialog in Warn mode;
+users; portal overview; portal fund drill-down; portal on a phone. The mockup CSS uses the tokens
+above verbatim, so approved styles move into `app.css` rather than being re-created.
 
 ## 6. Implementation plan (Phase 4.5) and acceptance criteria
 

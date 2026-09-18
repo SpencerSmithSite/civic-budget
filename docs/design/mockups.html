@@ -1,0 +1,571 @@
+<title>CivicBudget Mockups</title>
+<style>
+  /* Page chrome (the review page around the mockups) respects the viewer's theme. */
+  :root {
+    --pg-bg: #eef1f5; --pg-text: #1f2937; --pg-muted: #5b6b7b; --pg-rule: #d5dce5; --pg-accent: #1f4e79;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --pg-bg: #14181e; --pg-text: #e6eaf0; --pg-muted: #9aa7b6; --pg-rule: #2b333d; --pg-accent: #8fb3d9; }
+  }
+  :root[data-theme="dark"] { --pg-bg: #14181e; --pg-text: #e6eaf0; --pg-muted: #9aa7b6; --pg-rule: #2b333d; --pg-accent: #8fb3d9; }
+
+  /* CivicBudget product tokens (from docs/design/DESIGN-BRIEF.md). The mockups are always light. */
+  :root {
+    --cb-navy: #1F4E79; --cb-action: #1565C0; --cb-navy-hover: #2B6CB0; --cb-sidebar: #0F2A44; --cb-teal: #0B7285;
+    --cb-success: #1E7E4A; --cb-success-bg: #E6F4EC; --cb-warning: #9A5B00; --cb-warning-bg: #FFF4E0;
+    --cb-danger: #B42318; --cb-danger-bg: #FDECEA; --cb-info: #175CD3; --cb-info-bg: #E8F0FC;
+    --cb-text: #1F2937; --cb-muted: #5B6B7B; --cb-canvas: #F6F8FA; --cb-surface: #fff; --cb-border: #E3E8EF;
+    --cb-row-hover: #F1F5F9; --cb-subtotal: #EAF1F8;
+    --cb-c1: #1F4E79; --cb-c2: #0B7285; --cb-c3: #C8873A; --cb-c4: #6B4C9A; --cb-c5: #2E8B57; --cb-c6: #B5545C; --cb-c7: #7A8B99;
+    --font: "Segoe UI", -apple-system, "Helvetica Neue", Roboto, system-ui, sans-serif;
+  }
+
+  body { background: var(--pg-bg); color: var(--pg-text); font-family: var(--font); padding-inline: 16px; padding-block: 24px 48px; }
+  .intro { max-width: 72ch; margin: 0 auto 24px; }
+  .intro h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -.01em; }
+  .intro p { margin: 0 0 8px; color: var(--pg-muted); line-height: 1.5; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; }
+  .sw { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--pg-muted); }
+  .sw i { width: 18px; height: 18px; border-radius: 4px; border: 1px solid rgba(0,0,0,.12); display: inline-block; }
+
+  .screen { max-width: 1240px; margin: 0 auto 40px; }
+  .screen > h2 { font-size: 15px; margin: 0 0 6px; color: var(--pg-text); }
+  .screen > p.note { margin: 0 0 12px; font-size: 13px; color: var(--pg-muted); max-width: 90ch; line-height: 1.5; }
+  .frame-wrap { overflow-x: auto; border: 1px solid var(--pg-rule); border-radius: 8px; background: var(--cb-canvas); }
+  .frame { width: 1200px; min-height: 620px; color: var(--cb-text); background: var(--cb-canvas); font-size: 14px; line-height: 1.45; position: relative; }
+  .frame * { box-sizing: border-box; }
+  .frame.phone { width: 390px; min-height: 780px; margin: 0 auto; border-radius: 28px; overflow: hidden; border: 6px solid #1a1d22; }
+
+  /* ---------- Admin shell ---------- */
+  .shell { display: grid; grid-template-columns: 240px 1fr; min-height: 620px; }
+  .sidebar { background: var(--cb-sidebar); color: rgba(255,255,255,.82); padding: 14px 0; display: flex; flex-direction: column; }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 4px 16px 14px; border-bottom: 1px solid rgba(255,255,255,.08); }
+  .seal { width: 28px; height: 28px; border-radius: 50%; background: var(--cb-teal); display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 12px; }
+  .brand b { color: #fff; font-size: 15px; display: block; line-height: 1.1; }
+  .brand small { font-size: 11px; color: rgba(255,255,255,.6); }
+  .group { padding: 12px 16px 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: rgba(255,255,255,.45); }
+  .nav a { display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 16px; color: inherit; text-decoration: none; font-size: 13.5px; border-left: 3px solid transparent; }
+  .nav a.active { background: rgba(255,255,255,.1); color: #fff; border-left-color: var(--cb-teal); }
+  .nav svg { width: 16px; height: 16px; flex: none; }
+  .sidebar .foot { margin-top: auto; padding: 12px 16px; font-size: 12px; color: rgba(255,255,255,.55); border-top: 1px solid rgba(255,255,255,.08); }
+  .topbar { height: 48px; background: var(--cb-surface); border-bottom: 1px solid var(--cb-border); display: flex; align-items: center; padding: 0 20px; gap: 16px; }
+  .crumbs { font-size: 13px; color: var(--cb-muted); display: flex; gap: 8px; }
+  .crumbs b { color: var(--cb-text); font-weight: 600; }
+  .topbar .spacer { flex: 1; }
+  .fysel { border: 1px solid var(--cb-border); border-radius: 6px; padding: 4px 10px; font-size: 13px; background: #fff; }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--cb-navy); color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 600; }
+  .user { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .user small { display: block; color: var(--cb-muted); font-size: 11px; }
+  .main { padding: 20px 24px; }
+  .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--cb-muted); font-weight: 600; }
+  .ph { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
+  .ph h1 { font-size: 20px; font-weight: 600; margin: 2px 0 0; display: flex; align-items: center; gap: 10px; }
+  .ph .sub { color: var(--cb-muted); font-size: 13px; margin-top: 2px; }
+  .ph .actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 6px; font-size: 13.5px; font-weight: 600; border: 1px solid transparent; cursor: pointer; font-family: inherit; }
+  .btn.primary { background: var(--cb-action); color: #fff; }
+  .btn.outline { background: #fff; color: var(--cb-navy); border-color: #c9d3df; }
+  .btn.success { background: var(--cb-success); color: #fff; }
+  .btn.danger-outline { background: #fff; color: var(--cb-danger); border-color: #e7b3ae; }
+  .btn.sm { height: 28px; padding: 0 10px; font-size: 12.5px; }
+  .btn svg { width: 14px; height: 14px; }
+  .pill { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px; border-radius: 999px; font-size: 11.5px; font-weight: 600; letter-spacing: .02em; }
+  .pill.draft { background: #e9edf2; color: #3b4a5a; }
+  .pill.proposed { background: var(--cb-info-bg); color: var(--cb-info); }
+  .pill.adopted, .pill.ok { background: var(--cb-success-bg); color: var(--cb-success); }
+  .pill.warn { background: var(--cb-warning-bg); color: var(--cb-warning); }
+  .pill.bad { background: var(--cb-danger-bg); color: var(--cb-danger); }
+  .pill i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; display: inline-block; }
+
+  /* stepper */
+  .stepper { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 0 0 16px; }
+  .step { height: 30px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; background: var(--cb-border); color: var(--cb-muted); border-radius: 4px; }
+  .step.done { background: var(--cb-success); color: #fff; }
+  .step.current { background: var(--cb-navy); color: #fff; }
+  .step .n { width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,.25); display: grid; place-items: center; font-size: 11px; }
+  .step.done .n { background: rgba(255,255,255,.3); }
+  .step:not(.done):not(.current) .n { background: #fff; color: var(--cb-muted); }
+
+  /* cards */
+  .card { background: var(--cb-surface); border: 1px solid var(--cb-border); border-radius: 8px; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+  .kpi { padding: 14px 16px; border-top: 3px solid var(--cb-navy); }
+  .kpi.warn { border-top-color: var(--cb-warning); }
+  .kpi.bad { border-top-color: var(--cb-danger); }
+  .kpi.ok { border-top-color: var(--cb-success); }
+  .kpi .v { font-size: 26px; font-weight: 600; letter-spacing: -.01em; margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
+  .kpi .d { font-size: 12px; color: var(--cb-muted); }
+  .kpi .d.up { color: var(--cb-success); } .kpi .d.down { color: var(--cb-danger); }
+  .two { display: grid; grid-template-columns: 1.6fr 1fr; gap: 14px; }
+  .card h3 { font-size: 14px; font-weight: 600; margin: 0; padding: 12px 16px; border-bottom: 1px solid var(--cb-border); display: flex; align-items: center; }
+  .card h3 .r { margin-left: auto; font-weight: 500; font-size: 12.5px; color: var(--cb-teal); }
+
+  /* tables */
+  table.t { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .t th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--cb-muted); font-weight: 600; padding: 8px 12px; border-bottom: 1px solid var(--cb-border); background: #fbfcfd; }
+  .t td { padding: 0 12px; height: 34px; border-bottom: 1px solid var(--cb-border); vertical-align: middle; white-space: nowrap; }
+  .t tr:hover td { background: var(--cb-row-hover); }
+  .t .num, .t th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .t .code { color: var(--cb-muted); }
+  .t .neg { color: var(--cb-danger); }
+  .t .pos { color: var(--cb-success); }
+  .t tr.group td { background: var(--cb-subtotal); font-weight: 600; height: 30px; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--cb-navy); }
+  .t tr.sub td { font-weight: 600; background: #f8fafc; }
+  .t a { color: var(--cb-teal); text-decoration: none; }
+  .cell-edit { display: inline-block; width: 110px; height: 26px; border: 1px solid #c9d3df; border-radius: 4px; text-align: right; padding: 0 8px; line-height: 24px; background: #fff; font-variant-numeric: tabular-nums; }
+  .cell-edit.unsaved { border-color: var(--cb-info); color: var(--cb-info); box-shadow: 0 0 0 2px var(--cb-info-bg); }
+  .kebab { color: var(--cb-muted); font-weight: 700; letter-spacing: 1px; }
+
+  /* toolbar */
+  .toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--cb-border); background: #fff; border-radius: 8px 8px 0 0; }
+  .toolbar select, .toolbar input { height: 30px; border: 1px solid #c9d3df; border-radius: 6px; padding: 0 8px; font-size: 13px; background: #fff; font-family: inherit; }
+  .toolbar .grow { flex: 1; }
+  .tb { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 6px; font-size: 12.5px; font-weight: 600; color: var(--cb-navy); background: #fff; border: 1px solid #c9d3df; }
+  .tb svg { width: 14px; height: 14px; }
+
+  /* fund rail */
+  .ws { display: grid; grid-template-columns: 1fr 300px; gap: 16px; align-items: start; }
+  .fund { padding: 12px 14px; border-left: 4px solid var(--cb-success); margin-bottom: 10px; }
+  .fund.bad { border-left-color: var(--cb-danger); }
+  .fund .name { font-size: 12.5px; font-weight: 600; }
+  .fund .name span { color: var(--cb-muted); font-weight: 500; }
+  .fund .v { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; margin: 2px 0; }
+  .fund.bad .v { color: var(--cb-danger); }
+  .fund .rows { display: grid; grid-template-columns: 1fr auto; font-size: 12px; color: var(--cb-muted); gap: 2px 12px; font-variant-numeric: tabular-nums; }
+  .fund .rows b { color: var(--cb-text); font-weight: 500; }
+
+  /* dialog */
+  .backdrop { position: absolute; inset: 0; background: rgba(15,42,68,.45); display: grid; place-items: center; }
+  .dialog { width: 480px; background: #fff; border-radius: 10px; box-shadow: 0 20px 50px rgba(0,0,0,.3); overflow: hidden; }
+  .dialog header { padding: 16px 20px 10px; }
+  .dialog header h2 { font-size: 18px; font-weight: 600; margin: 0; }
+  .dialog header p { margin: 4px 0 0; color: var(--cb-muted); font-size: 13px; }
+  .dialog .body { padding: 6px 20px 16px; font-size: 13.5px; }
+  .dialog label { display: block; font-size: 12.5px; font-weight: 600; margin: 12px 0 4px; }
+  .dialog input[type=text] { width: 100%; height: 36px; border: 1px solid #c9d3df; border-radius: 6px; padding: 0 10px; font-size: 14px; font-family: inherit; }
+  .dialog footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--cb-border); background: #fbfcfd; }
+  .warnbox { background: var(--cb-warning-bg); border: 1px solid #f1d9a8; border-radius: 6px; padding: 10px 12px; font-size: 13px; margin-top: 12px; }
+  .toast { position: absolute; right: 20px; top: 62px; background: #fff; border: 1px solid var(--cb-border); border-left: 4px solid var(--cb-success); border-radius: 8px; padding: 10px 14px; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.12); display: flex; gap: 10px; align-items: center; }
+
+  /* login */
+  .login { display: grid; grid-template-columns: 1fr 1fr; min-height: 620px; }
+  .login .left { background: var(--cb-sidebar); color: #fff; padding: 48px; display: flex; flex-direction: column; }
+  .login .left h1 { font-size: 30px; margin: 40px 0 10px; font-weight: 600; letter-spacing: -.01em; }
+  .login .left p { color: rgba(255,255,255,.75); max-width: 40ch; line-height: 1.5; }
+  .login .left ul { color: rgba(255,255,255,.75); padding-left: 18px; line-height: 1.8; margin-top: 18px; }
+  .login .right { display: grid; place-items: center; background: var(--cb-canvas); }
+  .login form { width: 380px; background: #fff; border: 1px solid var(--cb-border); border-radius: 10px; padding: 28px; }
+  .login form h2 { font-size: 18px; margin: 0 0 4px; }
+  .login form p { color: var(--cb-muted); font-size: 13px; margin: 0 0 18px; }
+  .login label { display: block; font-size: 12.5px; font-weight: 600; margin: 12px 0 4px; }
+  .login input { width: 100%; height: 38px; border: 1px solid #c9d3df; border-radius: 6px; padding: 0 10px; font-size: 14px; font-family: inherit; }
+  .login .btn { width: 100%; justify-content: center; margin-top: 18px; height: 38px; }
+  .login .fine { font-size: 12px; color: var(--cb-muted); margin-top: 14px; text-align: center; }
+
+  /* timeline */
+  .tl { list-style: none; margin: 0; padding: 8px 16px 12px; }
+  .tl li { display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: start; padding: 8px 0; border-bottom: 1px solid var(--cb-border); font-size: 13px; }
+  .tl li:last-child { border-bottom: 0; }
+  .tl .av { width: 24px; height: 24px; border-radius: 50%; background: #dbe4ee; color: var(--cb-navy); font-size: 10px; font-weight: 700; display: grid; place-items: center; }
+  .tl .when { color: var(--cb-muted); font-size: 12px; white-space: nowrap; }
+  .tl code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+
+  /* ---------- Portal ---------- */
+  .portal { background: #fff; min-height: 620px; }
+  .pbar { background: var(--cb-sidebar); color: #fff; }
+  .pbar .in { max-width: 1100px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; gap: 14px; }
+  .pbar .seal { width: 40px; height: 40px; font-size: 14px; border: 2px solid rgba(255,255,255,.5); background: transparent; }
+  .pbar b { font-size: 18px; display: block; }
+  .pbar small { color: rgba(255,255,255,.7); font-size: 12.5px; }
+  .pbar nav { margin-left: auto; display: flex; gap: 18px; font-size: 13.5px; }
+  .pbar nav a { color: rgba(255,255,255,.85); text-decoration: none; padding-bottom: 4px; border-bottom: 2px solid transparent; }
+  .pbar nav a.active { border-bottom-color: var(--cb-teal); color: #fff; }
+  .pin { max-width: 1100px; margin: 0 auto; padding: 24px; }
+  .pin h1 { font-size: 26px; font-weight: 600; margin: 0 0 4px; letter-spacing: -.01em; }
+  .pin .lead { color: var(--cb-muted); max-width: 70ch; line-height: 1.55; font-size: 15px; margin: 0 0 20px; }
+  .pkpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 26px; }
+  .pkpi { border: 1px solid var(--cb-border); border-radius: 10px; padding: 18px 20px; }
+  .pkpi .v { font-size: 30px; font-weight: 600; letter-spacing: -.01em; font-variant-numeric: tabular-nums; margin: 2px 0; }
+  .pkpi p { margin: 4px 0 10px; color: var(--cb-muted); font-size: 13.5px; line-height: 1.45; }
+  .pkpi a { color: var(--cb-teal); font-weight: 600; text-decoration: none; font-size: 13.5px; }
+  .q { font-size: 20px; font-weight: 600; margin: 26px 0 4px; }
+  .q + p { color: var(--cb-muted); margin: 0 0 14px; font-size: 14px; }
+  .bars { display: grid; grid-template-columns: 220px 1fr 110px; gap: 6px 14px; align-items: center; font-size: 14px; max-width: 760px; }
+  .bars .b { height: 22px; background: var(--cb-c1); border-radius: 3px; }
+  .bars .b.rev { background: var(--cb-c2); }
+  .bars .amt { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .bars .lbl a { color: var(--cb-text); text-decoration: none; border-bottom: 1px solid #c9d3df; }
+  .segtoggle { display: inline-flex; border: 1px solid #c9d3df; border-radius: 6px; overflow: hidden; font-size: 12.5px; margin-left: 10px; vertical-align: middle; }
+  .segtoggle span { padding: 3px 10px; }
+  .segtoggle span.on { background: var(--cb-navy); color: #fff; }
+  .ptable { margin-top: 14px; }
+  .ptable summary { cursor: pointer; color: var(--cb-teal); font-weight: 600; font-size: 13.5px; }
+  .ptable table { margin-top: 8px; max-width: 760px; }
+  .ptable .t td { height: 32px; }
+  .dl { font-size: 13px; color: var(--cb-muted); margin-top: 8px; }
+  .dl a { color: var(--cb-teal); text-decoration: none; font-weight: 600; }
+  .pcrumbs { font-size: 13.5px; color: var(--cb-muted); display: flex; gap: 8px; margin-bottom: 8px; }
+  .pcrumbs a { color: var(--cb-teal); text-decoration: none; }
+  .pfoot { border-top: 1px solid var(--cb-border); margin-top: 30px; padding: 18px 24px; font-size: 12.5px; color: var(--cb-muted); display: flex; gap: 24px; flex-wrap: wrap; }
+  .pfoot a { color: var(--cb-teal); text-decoration: none; }
+  .trust { font-size: 12.5px; color: var(--cb-muted); display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+  .trust b { color: var(--cb-text); font-weight: 600; }
+
+  /* phone */
+  .phone .pbar .in { padding: 12px 16px; }
+  .phone .pbar nav { display: none; }
+  .phone .pin { padding: 16px; }
+  .phone .pin h1 { font-size: 21px; }
+  .phone .pkpis { grid-template-columns: 1fr; gap: 10px; }
+  .phone .pkpi { padding: 14px 16px; }
+  .phone .pkpi .v { font-size: 26px; }
+  .phone .bars { grid-template-columns: 1fr; gap: 2px; max-width: none; }
+  .phone .bars .lbl { font-size: 13px; margin-top: 8px; display: flex; justify-content: space-between; }
+  .phone .bars .amt { text-align: left; font-size: 12.5px; }
+  .phone .q { font-size: 17px; margin-top: 16px; }
+  .phone .tabs { display: flex; gap: 4px; margin: 0 0 12px; overflow-x: auto; }
+  .phone .tabs span { flex: none; padding: 6px 10px; border-radius: 999px; border: 1px solid #c9d3df; font-size: 12.5px; }
+  .phone .tabs span.on { background: var(--cb-navy); color: #fff; border-color: var(--cb-navy); }
+  .hamb { margin-left: auto; width: 22px; height: 16px; border-top: 2px solid #fff; border-bottom: 2px solid #fff; position: relative; }
+  .hamb:after { content: ""; position: absolute; left: 0; right: 0; top: 5px; border-top: 2px solid #fff; }
+</style>
+
+<div class="intro">
+  <h1>CivicBudget mockups</h1>
+  <p>Eight screens for the Phase 4.5 admin design pass and the Phase 5 portal, drawn from the approved design brief: a modern civic ERP that fits in next to VIP. Every number is Village of Maple Ridge seed data. Scroll each frame sideways if your window is narrower than 1200px.</p>
+  <div class="swatches">
+    <span class="sw"><i style="background:#0F2A44"></i>Sidebar #0F2A44</span>
+    <span class="sw"><i style="background:#1F4E79"></i>Navy #1F4E79</span>
+    <span class="sw"><i style="background:#1565C0"></i>Action #1565C0</span>
+    <span class="sw"><i style="background:#0B7285"></i>Teal #0B7285</span>
+    <span class="sw"><i style="background:#1E7E4A"></i>Success</span>
+    <span class="sw"><i style="background:#9A5B00"></i>Warning</span>
+    <span class="sw"><i style="background:#B42318"></i>Danger</span>
+    <span class="sw"><i style="background:#F6F8FA"></i>Canvas</span>
+  </div>
+</div>
+
+<!-- ================= 1. LOGIN ================= -->
+<section class="screen">
+  <h2>1. Login</h2>
+  <p class="note">Split layout: the navy panel states what the product is in one breath (the same panel color as the admin sidebar, so the transition after login feels continuous). No self-registration, which the copy says plainly.</p>
+  <div class="frame-wrap"><div class="frame"><div class="login">
+    <div class="left">
+      <div class="brand"><span class="seal">CB</span><div><b>CivicBudget</b><small>Village of Maple Ridge, Ohio</small></div></div>
+      <h1>The annual budget, from first draft to the public portal.</h1>
+      <p>Department heads enter their lines. The Fiscal Officer watches every fund against its estimated resources. Council adopts. Citizens see exactly what was adopted.</p>
+      <ul><li>Ohio appropriation limit checked live, per fund</li><li>Every change recorded: who, what, when</li><li>Publish an adopted budget in one click</li></ul>
+    </div>
+    <div class="right">
+      <form>
+        <h2>Sign in</h2><p>Use the account your administrator created.</p>
+        <label for="m-email">Email</label><input id="m-email" type="text" value="finance@mapleridge.example">
+        <label for="m-pw">Password</label><input id="m-pw" type="password" value="password-value">
+        <button class="btn primary" type="button">Sign in</button>
+        <div class="fine">Accounts are created by your government's administrator.</div>
+      </form>
+    </div>
+  </div></div></div>
+</section>
+
+<!-- ================= 2. OVERVIEW ================= -->
+<section class="screen">
+  <h2>2. Admin overview</h2>
+  <p class="note">The shell: dark sidebar with module groups (the VIP mental model, one generation newer), a white top bar with breadcrumb and user, KPI cards that lead with the budget in progress, then the versions table and an audit timeline. The over-limit fund is the one thing colored on the page.</p>
+  <div class="frame-wrap"><div class="frame"><div class="shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="seal">CB</span><div><b>CivicBudget</b><small>Village of Maple Ridge</small></div></div>
+      <div class="group">Budget</div>
+      <nav class="nav">
+        <a class="active" href="#"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="2" width="5" height="5"/><rect x="9" y="2" width="5" height="5"/><rect x="2" y="9" width="5" height="5"/><rect x="9" y="9" width="5" height="5"/></svg>Overview</a>
+        <a href="#"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="3" width="12" height="2"/><rect x="2" y="7" width="12" height="2"/><rect x="2" y="11" width="8" height="2"/></svg>Budget versions</a>
+        <a href="#"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="9" width="3" height="5"/><rect x="6.5" y="5" width="3" height="9"/><rect x="11" y="2" width="3" height="12"/></svg>Reports</a>
+      </nav>
+      <div class="group">Setup</div>
+      <nav class="nav">
+        <a href="#"><svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="6"/></svg>Funds</a>
+        <a href="#"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="2" width="12" height="12" rx="2"/></svg>Departments</a>
+        <a href="#"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 2h10v12H3z"/></svg>Chart of accounts</a>
+        <a href="#"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="3" width="12" height="11" rx="1"/><rect x="4" y="1" width="2" height="4" fill="#0F2A44"/><rect x="10" y="1" width="2" height="4" fill="#0F2A44"/></svg>Fiscal years</a>
+      </nav>
+      <div class="group">Administration</div>
+      <nav class="nav">
+        <a href="#"><svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3 3-5 6-5s6 2 6 5z"/></svg>Users</a>
+        <a href="#"><svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="3"/><path d="M8 1v3M8 12v3M1 8h3M12 8h3" stroke="currentColor" stroke-width="2"/></svg>Government settings</a>
+      </nav>
+      <div class="group">Public portal</div>
+      <nav class="nav">
+        <a href="#"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l7 6h-2v8H3V7H1z"/></svg>Publishing history</a>
+        <a href="#"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2c3 3 3 9 0 12M8 2c-3 3-3 9 0 12"/></svg>Open portal</a>
+      </nav>
+      <div class="foot">Ohio fund accounting · FY starts January</div>
+    </aside>
+    <div>
+      <div class="topbar">
+        <div class="crumbs"><span>Budget</span><span>›</span><b>Overview</b></div>
+        <div class="spacer"></div>
+        <span class="fysel">FY2027 ▾</span>
+        <div class="user"><span class="avatar">DW</span><div>Dana Whitfield<small>Fiscal Officer</small></div></div>
+      </div>
+      <div class="main">
+        <div class="ph"><div><div class="eyebrow">Village of Maple Ridge</div><h1>Overview</h1><div class="sub">Where the FY2027 budget stands today, September 18, 2026.</div></div>
+          <div class="actions"><span class="btn outline sm">Publishing history</span><span class="btn primary sm">Continue FY2027 draft</span></div></div>
+        <div class="kpis">
+          <div class="card kpi"><div class="eyebrow">FY2027 appropriations</div><div class="v">$3,558,162</div><div class="d up">▲ 3.6% vs FY2026 amended</div></div>
+          <div class="card kpi"><div class="eyebrow">Estimated resources</div><div class="v">$5,632,188</div><div class="d">Beginning balances + revenues</div></div>
+          <div class="card kpi bad"><div class="eyebrow">Funds over limit</div><div class="v">1 of 5</div><div class="d down">2011 Street fund, $35,908 over</div></div>
+          <div class="card kpi ok"><div class="eyebrow">Public portal</div><div class="v">FY2026</div><div class="d">Amendment 1, published Jun 16</div></div>
+        </div>
+        <div class="two">
+          <div class="card">
+            <h3>Budget versions <span class="r">All versions ›</span></h3>
+            <table class="t">
+              <thead><tr><th>Fiscal year</th><th>Version</th><th>Status</th><th>Resolution</th><th>Portal</th><th class="num">Lines</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>FY2027</td><td>Original</td><td><span class="pill draft"><i></i>Draft</span></td><td class="code">—</td><td></td><td class="num">95</td><td><a href="#">Continue</a></td></tr>
+                <tr><td>FY2026</td><td>Amendment 1</td><td><span class="pill adopted"><i></i>Adopted</span></td><td>2026-11</td><td><span class="pill ok">Published</span></td><td class="num">95</td><td><a href="#">Open</a></td></tr>
+                <tr><td>FY2026</td><td>Original</td><td><span class="pill adopted"><i></i>Adopted</span></td><td>2025-41</td><td class="code">Superseded</td><td class="num">95</td><td><a href="#">Open</a></td></tr>
+                <tr><td>FY2025</td><td>Original</td><td><span class="pill adopted"><i></i>Adopted</span></td><td>2024-38</td><td><span class="pill ok">Published</span></td><td class="num">95</td><td><a href="#">Open</a></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card">
+            <h3>Recent activity <span class="r">Audit trail ›</span></h3>
+            <ul class="tl">
+              <li><span class="av">DW</span><div><b>Dana Whitfield</b> set beginning balance for <b>2011 Street</b> <code>60,000.00 → 100,000.00</code></div><span class="when">2 min ago</span></li>
+              <li><span class="av">SO</span><div><b>Sam Okafor</b> changed <b>5520 Capital Outlay - Infrastructure</b> (2011, ST) <code>20,000.00 → 120,000.00</code></div><span class="when">Yesterday</span></li>
+              <li><span class="av">MH</span><div><b>Chief Morgan Hale</b> added a note on <b>5120 Overtime</b> (1000, PD)</div><span class="when">Sep 15</span></li>
+              <li><span class="av">DW</span><div><b>Dana Whitfield</b> published <b>FY2026 Amendment 1</b> to the portal</div><span class="when">Jun 16</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div></div></div>
+</section>
+
+<!-- ================= 3. WORKSPACE ================= -->
+<section class="screen">
+  <h2>3. Budget workspace, by account line</h2>
+  <p class="note">The stepper replaces the status bar. The fund balance panel becomes a right rail of compact cards with the projected ending balance as the big number. The worksheet has group rows per fund and department, a sticky header, no vertical rules, and inputs that look like values until focused (the one being edited shows the unsaved-blue treatment). Notes and history moved into the row's kebab menu.</p>
+  <div class="frame-wrap"><div class="frame" style="min-height:760px"><div class="shell" style="min-height:760px">
+    <aside class="sidebar">
+      <div class="brand"><span class="seal">CB</span><div><b>CivicBudget</b><small>Village of Maple Ridge</small></div></div>
+      <div class="group">Budget</div>
+      <nav class="nav"><a href="#">Overview</a><a class="active" href="#">Budget versions</a><a href="#">Reports</a></nav>
+      <div class="group">Setup</div>
+      <nav class="nav"><a href="#">Funds</a><a href="#">Departments</a><a href="#">Chart of accounts</a><a href="#">Fiscal years</a></nav>
+      <div class="group">Administration</div>
+      <nav class="nav"><a href="#">Users</a><a href="#">Government settings</a></nav>
+    </aside>
+    <div>
+      <div class="topbar">
+        <div class="crumbs"><span>Budget</span><span>›</span><span>Budget versions</span><span>›</span><b>FY2027 Original</b></div>
+        <div class="spacer"></div>
+        <div class="user"><span class="avatar">DW</span><div>Dana Whitfield<small>Fiscal Officer</small></div></div>
+      </div>
+      <div class="toast">✓ Beginning balance saved.</div>
+      <div class="main">
+        <div class="ph"><div><div class="eyebrow">Budget · Fiscal year 2027</div><h1>Original budget <span class="pill draft"><i></i>Draft</span></h1><div class="sub">Departments and the Fiscal Officer may edit. Changes save when you leave a field.</div></div>
+          <div class="actions"><span class="btn outline sm">By department</span><span class="btn outline sm" style="background:#e8f0fc;border-color:#b9cdea">By account line</span><span class="btn primary">Propose to council</span></div></div>
+        <div class="stepper">
+          <div class="step current"><span class="n">1</span>Draft</div>
+          <div class="step"><span class="n">2</span>Proposed</div>
+          <div class="step"><span class="n">3</span>Adopted</div>
+          <div class="step"><span class="n">4</span>Published</div>
+        </div>
+        <div class="ws">
+          <div class="card">
+            <div class="toolbar">
+              <input type="text" placeholder="Search account or department" style="width:220px">
+              <select><option>All funds</option></select><select><option>All departments</option></select><select><option>All types</option></select>
+              <span class="grow"></span>
+              <span class="tb">＋ Add line</span><span class="tb">Import</span><span class="tb">Export</span><span class="tb">Print</span>
+            </div>
+            <table class="t">
+              <thead><tr><th>Account</th><th>Dept</th><th class="num">FY2025 actual</th><th class="num">FY2026 budget</th><th class="num">FY2027 proposed</th><th class="num">Change $</th><th class="num">Change %</th><th></th></tr></thead>
+              <tbody>
+                <tr class="group"><td colspan="8">1000 General Fund · Revenues</td></tr>
+                <tr><td><span class="code">4110</span> Real Estate Taxes</td><td class="code">—</td><td class="num">393,600.00</td><td class="num">422,300.00</td><td class="num"><span class="cell-edit">437,081.00</span></td><td class="num pos">+14,781.00</td><td class="num">+3.5%</td><td class="kebab">···</td></tr>
+                <tr><td><span class="code">4130</span> Municipal Income Tax</td><td class="code">—</td><td class="num">1,225,000.00</td><td class="num">1,287,500.00</td><td class="num"><span class="cell-edit unsaved">1,340,000.00</span></td><td class="num pos">+52,500.00</td><td class="num">+4.1%</td><td class="kebab">···</td></tr>
+                <tr><td><span class="code">4210</span> Local Government Fund</td><td class="code">—</td><td class="num">90,250.00</td><td class="num">97,850.00</td><td class="num"><span class="cell-edit">101,275.00</span></td><td class="num pos">+3,425.00</td><td class="num">+3.5%</td><td class="kebab">···</td></tr>
+                <tr class="sub"><td colspan="2">Subtotal, revenues</td><td class="num">1,928,362.00</td><td class="num">2,004,176.00</td><td class="num">2,076,725.00</td><td class="num pos">+72,549.00</td><td class="num">+3.6%</td><td></td></tr>
+                <tr class="group"><td colspan="8">1000 General Fund · PD Police</td></tr>
+                <tr><td><span class="code">5110</span> Salaries &amp; Wages</td><td class="code">PD</td><td class="num">520,000.00</td><td class="num">535,600.00</td><td class="num"><span class="cell-edit">554,346.00</span></td><td class="num pos">+18,746.00</td><td class="num">+3.5%</td><td class="kebab">···</td></tr>
+                <tr><td><span class="code">5120</span> Overtime</td><td class="code">PD</td><td class="num">38,000.00</td><td class="num">53,000.00</td><td class="num"><span class="cell-edit">40,510.00</span></td><td class="num neg">(12,490.00)</td><td class="num neg">-23.6%</td><td class="kebab">···</td></tr>
+                <tr><td><span class="code">5510</span> Capital Outlay - Equipment</td><td class="code">PD</td><td class="num">44,550.00</td><td class="num">46,350.00</td><td class="num"><span class="cell-edit">52,000.00</span></td><td class="num pos">+5,650.00</td><td class="num">+12.2%</td><td class="kebab">···</td></tr>
+                <tr class="group"><td colspan="8">2011 Street Construction, Maintenance &amp; Repair · ST Streets &amp; Service</td></tr>
+                <tr><td><span class="code">5110</span> Salaries &amp; Wages</td><td class="code">ST</td><td class="num">145,000.00</td><td class="num">149,350.00</td><td class="num"><span class="cell-edit">154,577.00</span></td><td class="num pos">+5,227.00</td><td class="num">+3.5%</td><td class="kebab">···</td></tr>
+                <tr><td><span class="code">5520</span> Capital Outlay - Infrastructure</td><td class="code">ST</td><td class="num">20,000.00</td><td class="num">20,600.00</td><td class="num"><span class="cell-edit">120,000.00</span></td><td class="num pos">+99,400.00</td><td class="num">+482.5%</td><td class="kebab">···</td></tr>
+                <tr class="sub"><td colspan="2">Subtotal, ST Streets &amp; Service</td><td class="num">323,400.00</td><td class="num">333,102.00</td><td class="num">443,440.00</td><td class="num pos">+110,338.00</td><td class="num">+33.1%</td><td></td></tr>
+              </tbody>
+            </table>
+            <div style="padding:8px 12px;font-size:12.5px;color:var(--cb-muted);display:flex;justify-content:space-between"><span>95 lines</span><span>Page 1 of 2 · ‹ ›</span></div>
+          </div>
+          <aside>
+            <div class="eyebrow" style="margin:2px 0 8px">Fund balances · projected ending</div>
+            <div class="card fund"><div class="name">1000 <span>General Fund</span></div><div class="v">$905,406</div><div class="rows"><span>Estimated resources</span><b>$2,659,176</b><span>Appropriations</span><b>$1,753,770</b></div></div>
+            <div class="card fund bad"><div class="name">2011 <span>Street Construction, M&amp;R</span></div><div class="v">−$35,908</div><div class="rows"><span>Estimated resources</span><b>$407,532</b><span>Appropriations</span><b>$443,440</b></div><div style="margin-top:8px"><span class="pill bad">Over limit · blocks proposal</span></div></div>
+            <div class="card fund"><div class="name">4901 <span>Capital Projects</span></div><div class="v">$137,282</div><div class="rows"><span>Estimated resources</span><b>$275,869</b><span>Appropriations</span><b>$138,587</b></div></div>
+            <div class="card fund"><div class="name">5101 <span>Water</span></div><div class="v">$579,031</div><div class="rows"><span>Estimated resources</span><b>$1,193,075</b><span>Appropriations</span><b>$614,044</b></div></div>
+            <div class="card fund"><div class="name">5201 <span>Sewer</span></div><div class="v">$388,215</div><div class="rows"><span>Estimated resources</span><b>$996,536</b><span>Appropriations</span><b>$608,321</b></div></div>
+            <div style="font-size:12px;color:var(--cb-muted);line-height:1.45">Estimated resources = beginning balance + revenues + transfers in. Ohio law caps appropriations at certified estimated resources.</div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </div></div></div>
+</section>
+
+<!-- ================= 4. ADOPT DIALOG ================= -->
+<section class="screen">
+  <h2>4. Adopt dialog (Warn mode)</h2>
+  <p class="note">The same ConfirmDialog component, styled: title, one muted line, the resolution number, and the acknowledgement block that only appears when the government is in Warn mode and a fund is over its limit. Adopt stays disabled until both are satisfied.</p>
+  <div class="frame-wrap"><div class="frame" style="min-height:520px">
+    <div class="shell" style="min-height:520px;filter:blur(1px);opacity:.8">
+      <aside class="sidebar"><div class="brand"><span class="seal">CB</span><div><b>CivicBudget</b><small>Village of Maple Ridge</small></div></div></aside>
+      <div><div class="topbar"><div class="crumbs"><span>Budget</span><span>›</span><b>FY2027 Original</b></div></div>
+      <div class="main"><div class="stepper"><div class="step done"><span class="n">✓</span>Draft</div><div class="step current"><span class="n">2</span>Proposed</div><div class="step"><span class="n">3</span>Adopted</div><div class="step"><span class="n">4</span>Published</div></div></div></div>
+    </div>
+    <div class="backdrop"><div class="dialog">
+      <header><h2>Adopt this budget?</h2><p>Adoption is final. The version becomes read-only; later changes require an amendment.</p></header>
+      <div class="body">
+        <label for="m-res">Ordinance or resolution number</label><input id="m-res" type="text" value="2026-44">
+        <div class="warnbox"><b>2011 Street Construction, Maintenance &amp; Repair</b> appropriates <b>$35,908</b> more than its estimated resources.<br><label style="margin-top:8px;font-weight:500"><input type="checkbox" checked> I understand and want to continue.</label></div>
+      </div>
+      <footer><span class="btn outline">Cancel</span><span class="btn success">Adopt by resolution 2026-44</span></footer>
+    </div></div>
+  </div></div>
+</section>
+
+<!-- ================= 5. USERS ================= -->
+<section class="screen">
+  <h2>5. Users</h2>
+  <p class="note">List pages share one grid style and one 40px toolbar. Row actions collapse into a kebab; status is a pill; department chips carry codes the way UAN users read them.</p>
+  <div class="frame-wrap"><div class="frame" style="min-height:520px"><div class="shell" style="min-height:520px">
+    <aside class="sidebar">
+      <div class="brand"><span class="seal">CB</span><div><b>CivicBudget</b><small>Village of Maple Ridge</small></div></div>
+      <div class="group">Budget</div><nav class="nav"><a href="#">Overview</a><a href="#">Budget versions</a><a href="#">Reports</a></nav>
+      <div class="group">Setup</div><nav class="nav"><a href="#">Funds</a><a href="#">Departments</a><a href="#">Chart of accounts</a><a href="#">Fiscal years</a></nav>
+      <div class="group">Administration</div><nav class="nav"><a class="active" href="#">Users</a><a href="#">Government settings</a></nav>
+    </aside>
+    <div>
+      <div class="topbar"><div class="crumbs"><span>Administration</span><span>›</span><b>Users</b></div><div class="spacer"></div><div class="user"><span class="avatar">AR</span><div>Alex Rivera<small>Administrator</small></div></div></div>
+      <div class="main">
+        <div class="ph"><div><div class="eyebrow">Administration</div><h1>Users</h1><div class="sub">Five accounts. Department Heads edit only the departments assigned here.</div></div><div class="actions"><span class="btn primary">＋ New user</span></div></div>
+        <div class="card">
+          <div class="toolbar"><input type="text" placeholder="Search name or email" style="width:240px"><select><option>All roles</option></select><label style="font-size:13px;display:flex;gap:6px;align-items:center"><input type="checkbox"> Show locked</label></div>
+          <table class="t">
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Departments</th><th>Status</th><th>Last sign-in</th><th></th></tr></thead>
+            <tbody>
+              <tr><td><b>Alex Rivera</b></td><td>admin@mapleridge.example</td><td>Administrator</td><td class="code">—</td><td><span class="pill ok"><i></i>Active</span></td><td class="code">Today, 8:41</td><td class="kebab">···</td></tr>
+              <tr><td><b>Dana Whitfield</b></td><td>finance@mapleridge.example</td><td>Finance Director</td><td class="code">—</td><td><span class="pill ok"><i></i>Active</span></td><td class="code">Today, 8:12</td><td class="kebab">···</td></tr>
+              <tr><td><b>Morgan Hale</b></td><td>police@mapleridge.example</td><td>Department Head</td><td><span class="pill draft">PD</span></td><td><span class="pill ok"><i></i>Active</span></td><td class="code">Sep 15</td><td class="kebab">···</td></tr>
+              <tr><td><b>Sam Okafor</b></td><td>streets@mapleridge.example</td><td>Department Head</td><td><span class="pill draft">ST</span> <span class="pill draft">PR</span></td><td><span class="pill ok"><i></i>Active</span></td><td class="code">Yesterday</td><td class="kebab">···</td></tr>
+              <tr><td><b>Council Member Lee</b></td><td>viewer@mapleridge.example</td><td>Viewer</td><td class="code">—</td><td><span class="pill bad"><i></i>Locked</span></td><td class="code">Aug 30</td><td class="kebab">···</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div></div></div>
+</section>
+
+<!-- ================= 6. PORTAL OVERVIEW ================= -->
+<section class="screen">
+  <h2>6. Public portal, overview</h2>
+  <p class="note">Question-led sections, three KPI cards, sorted horizontal bars with direct labels and a $ | % toggle, a table twin and download on every chart, and Ohio Checkbook-style trust chrome (seal, resolution, published date, data source, glossary, accessibility statement). Larger type than the admin app: citizens read, staff scan.</p>
+  <div class="frame-wrap"><div class="frame portal">
+    <div class="pbar"><div class="in"><span class="seal">MR</span><div><b>Village of Maple Ridge, Ohio</b><small>Budget transparency portal</small></div>
+      <nav><a class="active" href="#">Overview</a><a href="#">Where it goes</a><a href="#">Where it comes from</a><a href="#">Funds</a><a href="#">Year over year</a><a href="#">Download</a></nav></div></div>
+    <div class="pin">
+      <h1>The 2026 budget</h1>
+      <p class="lead">Maple Ridge is a village of about 4,500 people. This is the budget council adopted for 2026, as amended in June. It shows what the village expects to take in, what it plans to spend, and what each fund keeps in reserve.</p>
+      <div class="trust"><span>Adopted by resolution <b>2026-11</b></span><span>Published <b>June 16, 2026</b></span><span>Version <b>Amendment 1</b></span><span>Fiscal year <b>Jan 1 to Dec 31, 2026</b></span></div>
+      <div class="pkpis">
+        <div class="pkpi"><div class="eyebrow">Revenues</div><div class="v">$3.66M</div><p>Taxes, state funding, water and sewer bills, fees, and interest the village expects to receive.</p><a href="#">Where it comes from ›</a></div>
+        <div class="pkpi"><div class="eyebrow">Expenditures</div><div class="v">$3.42M</div><p>What council authorized departments to spend, including debt payments on the water and sewer plants.</p><a href="#">Where it goes ›</a></div>
+        <div class="pkpi"><div class="eyebrow">Projected ending balance</div><div class="v">$1.79M</div><p>Money carried into 2027 across all five funds, after this year's revenues and spending.</p><a href="#">Fund balances ›</a></div>
+      </div>
+      <div class="q">Where does the money go? <span class="segtoggle"><span class="on">$</span><span>%</span></span></div>
+      <p>Expenditures by fund. Select a fund to see its departments.</p>
+      <div class="bars">
+        <div class="lbl"><a href="#">1000 General Fund</a></div><div class="b" style="width:100%"></div><div class="amt">$1,700,406</div>
+        <div class="lbl"><a href="#">5101 Water</a></div><div class="b" style="width:35%"></div><div class="amt">$594,150</div>
+        <div class="lbl"><a href="#">5201 Sewer</a></div><div class="b" style="width:34.6%"></div><div class="amt">$588,672</div>
+        <div class="lbl"><a href="#">2011 Street Construction, M&amp;R</a></div><div class="b" style="width:19.6%"></div><div class="amt">$333,102</div>
+        <div class="lbl"><a href="#">4901 Capital Projects</a></div><div class="b" style="width:7.9%"></div><div class="amt">$133,900</div>
+      </div>
+      <details class="ptable" open><summary>Show as a table</summary>
+        <table class="t"><thead><tr><th>Fund</th><th class="num">Expenditures</th><th class="num">Share</th><th class="num">Change vs 2025</th></tr></thead>
+        <tbody><tr><td>1000 General Fund</td><td class="num">$1,700,406</td><td class="num">50.8%</td><td class="num pos">+3.0%</td></tr><tr><td>5101 Water</td><td class="num">$594,150</td><td class="num">17.7%</td><td class="num pos">+3.0%</td></tr><tr><td>5201 Sewer</td><td class="num">$588,672</td><td class="num">17.6%</td><td class="num pos">+3.0%</td></tr><tr><td>2011 Street Construction, M&amp;R</td><td class="num">$333,102</td><td class="num">9.9%</td><td class="num pos">+3.0%</td></tr><tr><td>4901 Capital Projects</td><td class="num">$133,900</td><td class="num">4.0%</td><td class="num pos">+3.0%</td></tr><tr class="sub"><td>All funds</td><td class="num">$3,350,230</td><td class="num">100%</td><td class="num pos">+3.0%</td></tr></tbody></table>
+        <div class="dl">Download this table: <a href="#">CSV</a> · <a href="#">Excel</a> · Data source: adopted budget, FY2026 Amendment 1</div>
+      </details>
+    </div>
+    <div class="pfoot"><span>Village of Maple Ridge, Ohio · a fictional demonstration</span><a href="#">Glossary: what is a fund?</a><a href="#">Accessibility statement</a><a href="#">Contact the Fiscal Officer</a><a href="#">Download the full budget</a></div>
+  </div></div>
+</section>
+
+<!-- ================= 7. PORTAL DRILL-DOWN ================= -->
+<section class="screen">
+  <h2>7. Public portal, fund drill-down</h2>
+  <p class="note">Breadcrumb rail plus a "broken down by" selector, every level a stable URL. Revenue and expenditure use two hues and are also separated by position, never hue alone. The fund's plain-language description comes from the admin app's Funds screen.</p>
+  <div class="frame-wrap"><div class="frame portal">
+    <div class="pbar"><div class="in"><span class="seal">MR</span><div><b>Village of Maple Ridge, Ohio</b><small>Budget transparency portal</small></div>
+      <nav><a href="#">Overview</a><a class="active" href="#">Where it goes</a><a href="#">Where it comes from</a><a href="#">Funds</a><a href="#">Year over year</a><a href="#">Download</a></nav></div></div>
+    <div class="pin">
+      <div class="pcrumbs"><a href="#">2026 budget</a><span>›</span><a href="#">All funds</a><span>›</span><span>2011 Street Construction, Maintenance &amp; Repair</span></div>
+      <h1>Street Construction, Maintenance &amp; Repair</h1>
+      <p class="lead">State gasoline tax and vehicle license fees that, by law, may only be spent on streets. This fund pays the service department's crews, salt and asphalt, and the resurfacing program.</p>
+      <div class="pkpis">
+        <div class="pkpi"><div class="eyebrow">Revenues</div><div class="v">$335,780</div><p>Gasoline tax $252,350 · Motor vehicle license $80,340 · Interest $3,090</p></div>
+        <div class="pkpi"><div class="eyebrow">Expenditures</div><div class="v">$333,102</div><p>All in the Streets &amp; Service department</p></div>
+        <div class="pkpi"><div class="eyebrow">Ending balance</div><div class="v">$84,678</div><p>Began the year with $82,000</p></div>
+      </div>
+      <div class="q">Where does the Street fund's money go? <span class="segtoggle"><span class="on">By category</span><span>By account</span></span></div>
+      <p>Expenditures in the Streets &amp; Service department, by category.</p>
+      <div class="bars">
+        <div class="lbl"><a href="#">Personal services</a></div><div class="b" style="width:100%"></div><div class="amt">$149,350</div>
+        <div class="lbl"><a href="#">Fringe benefits</a></div><div class="b" style="width:48.6%"></div><div class="amt">$72,545</div>
+        <div class="lbl"><a href="#">Supplies &amp; materials</a></div><div class="b" style="width:37.3%"></div><div class="amt">$55,620</div>
+        <div class="lbl"><a href="#">Contractual services</a></div><div class="b" style="width:23.4%"></div><div class="amt">$35,020</div>
+        <div class="lbl"><a href="#">Capital outlay</a></div><div class="b" style="width:13.8%"></div><div class="amt">$20,600</div>
+      </div>
+      <div class="q" style="font-size:17px">Where does it come from?</div>
+      <div class="bars">
+        <div class="lbl"><a href="#">Gasoline tax (state)</a></div><div class="b rev" style="width:100%"></div><div class="amt">$252,350</div>
+        <div class="lbl"><a href="#">Motor vehicle license tax</a></div><div class="b rev" style="width:31.8%"></div><div class="amt">$80,340</div>
+        <div class="lbl"><a href="#">Interest income</a></div><div class="b rev" style="width:1.2%"></div><div class="amt">$3,090</div>
+      </div>
+      <div class="dl" style="margin-top:14px"><a href="#">Show as a table</a> · <a href="#">CSV</a> · <a href="#">Excel</a></div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ================= 8. PHONE ================= -->
+<section class="screen">
+  <h2>8. Public portal on a phone</h2>
+  <p class="note">The same overview at 375px: navigation collapses to a menu, KPI cards stack, bars keep their labels above and values beside, and the table twin still renders without JavaScript.</p>
+  <div class="frame-wrap" style="background:transparent;border:0"><div class="frame portal phone">
+    <div class="pbar"><div class="in"><span class="seal" style="width:32px;height:32px;font-size:12px">MR</span><div><b style="font-size:15px">Maple Ridge, Ohio</b><small>Budget transparency</small></div><span class="hamb"></span></div></div>
+    <div class="pin">
+      <div class="tabs"><span class="on">Overview</span><span>Where it goes</span><span>Where it comes from</span><span>Funds</span></div>
+      <h1>The 2026 budget</h1>
+      <p class="lead" style="font-size:14px">What the village expects to take in, what it plans to spend, and what each fund keeps in reserve. Adopted by resolution 2026-11, published June 16, 2026.</p>
+      <div class="pkpis">
+        <div class="pkpi"><div class="eyebrow">Revenues</div><div class="v">$3.66M</div><a href="#">Where it comes from ›</a></div>
+        <div class="pkpi"><div class="eyebrow">Expenditures</div><div class="v">$3.42M</div><a href="#">Where it goes ›</a></div>
+        <div class="pkpi"><div class="eyebrow">Projected ending balance</div><div class="v">$1.79M</div><a href="#">Fund balances ›</a></div>
+      </div>
+      <div class="q">Where does the money go?</div>
+      <div class="bars">
+        <div class="lbl"><a href="#">1000 General Fund</a><span class="amt">$1,700,406</span></div><div class="b" style="width:100%"></div>
+        <div class="lbl"><a href="#">5101 Water</a><span class="amt">$594,150</span></div><div class="b" style="width:35%"></div>
+        <div class="lbl"><a href="#">5201 Sewer</a><span class="amt">$588,672</span></div><div class="b" style="width:34.6%"></div>
+        <div class="lbl"><a href="#">2011 Street Construction</a><span class="amt">$333,102</span></div><div class="b" style="width:19.6%"></div>
+        <div class="lbl"><a href="#">4901 Capital Projects</a><span class="amt">$133,900</span></div><div class="b" style="width:7.9%"></div>
+      </div>
+      <div class="dl" style="margin-top:14px"><a href="#">Show as a table</a> · <a href="#">CSV</a></div>
+    </div>
+  </div></div>
+</section>
