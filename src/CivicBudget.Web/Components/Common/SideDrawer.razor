@@ -3,7 +3,7 @@
 @if (IsOpen)
 {
     <div class="cb-drawer-backdrop" @onclick="Close"></div>
-    <aside class="cb-drawer" role="dialog" aria-modal="true" aria-labelledby="@titleId" @onkeydown="OnKeyDown" tabindex="-1">
+    <aside class="cb-drawer" role="dialog" aria-modal="true" aria-labelledby="@titleId" @onkeydown="OnKeyDown" tabindex="-1" @ref="panel">
         <div class="cb-drawer-header">
             <h2 id="@titleId">@Title</h2>
             <button type="button" class="btn-close" aria-label="Close" @onclick="Close"></button>
@@ -28,6 +28,20 @@
 
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
+
+    private ElementReference panel;
+    private bool wasOpen;
+
+    /// <summary>Move keyboard focus into the panel the render after it opens, so Tab and Escape act on it rather than on the page behind.</summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (IsOpen && !wasOpen)
+        {
+            await panel.FocusAsync();
+        }
+
+        wasOpen = IsOpen;
+    }
 
     private Task Close() => IsOpenChanged.InvokeAsync(false);
 

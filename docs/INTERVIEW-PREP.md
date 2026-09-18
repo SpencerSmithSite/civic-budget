@@ -12,16 +12,23 @@ rejected and why.
 
 ## The 60-second pitch
 
-CivicBudget is a multi-tenant budgeting tool for local governments — think
-a village finance director building next year's appropriations — with a
-public transparency portal citizens can browse without logging in. It's
-.NET 10 and Blazor end to end: the admin side is Interactive Server because
-staff need live grids and validation; the public side is static
-server-rendered HTML because it has to be fast, cacheable, accessible, and
-cheap at scale. Data is in SQL Server through EF Core, tenancy is enforced
-in the data layer with global query filters, and the portal can only read
-immutable published snapshots — never live drafts. Infrastructure is AWS
-CDK in C#, deployed from GitHub Actions over OIDC.
+CivicBudget is a multi-tenant budgeting tool for Ohio local governments: a
+village finance director builds next year's appropriations fund by fund,
+department heads enter their lines, the app checks every fund against its
+certified estimated resources, council adopts, and the adopted budget is
+published to a public transparency portal citizens browse without logging
+in. It's .NET 10 and Blazor end to end. The admin side is Interactive
+Server because staff need live grids and validation; the public side is
+static server-rendered HTML with no JavaScript because it has to be fast,
+cacheable, and accessible at scale. Data is in SQL Server through EF Core,
+tenancy is enforced in the data layer with global query filters, every
+change is audited by an interceptor, and the portal reads only immutable
+published snapshots through a separate read-only context. Budgets round
+trip through Excel (import with a validation preview, export of every
+grid) and print as three standard reports. It ships as a container with a
+CDK stack in C# that CI synthesizes and asserts, deployed over OIDC with
+no stored AWS keys. About four hundred tests, including a real SQL Server
+in Testcontainers, and every phase is a PR with a written walkthrough.
 
 ---
 
@@ -784,3 +791,33 @@ update. The switch keeps both stories honest.
 - RDS for SQL Server does not take a `DBName`; the app creates the database
   on first migration.
 - ALB WebSockets need no configuration; stickiness is a target group attribute.
+
+## Phase 8 — Polish
+
+### Q: What changed in the final pass and why?
+**A:** Spencer's review: every screen had a title and a sentence
+explaining it, which is clutter to someone who uses the screen daily. The
+sentences are gone. Where one actually helped (what "estimated resources"
+means, how the import matches rows) it lives behind an ⓘ: a CSS-only tip
+that is keyboard focusable and whose text is its accessible name, so a
+screen reader still hears it once. Subtitles now carry data only. Same
+pass fixed a real layout bug (a sticky-header rule meant for the workspace
+made the overview's table overflow its card) and two keyboard defects
+(dialogs and the drawer did not take focus when they opened).
+**Look at:** `Components/Common/InfoTip.razor`, `ConfirmDialog.razor` (`OnAfterRenderAsync`), the `.cb-tip` block in `app.css`.
+
+### Q: How did you check accessibility?
+**A:** Three ways, none of them a badge: the accessibility tree of each
+key screen (what a screen reader is given) to find unlabeled controls,
+which turned up an unlabeled account-menu button, brand links without
+names, and amount fields labeled only by an account code that repeats
+across departments; a keyboard walk of the workflow, which found the focus
+problem in the dialogs; and the rules already in the design system
+(contrast tokens, focus rings, reduced motion, landmarks). What I did not
+do is a full audit with a screen reader user, and I'd say so.
+
+### Q: Where did the README screenshots come from?
+**A:** A Playwright script in `scripts/screenshots/` that signs in, uploads
+a sample import file, and captures each screen at 1440 px and the portal at
+390 px, so they can be regenerated after any UI change instead of drifting.
+

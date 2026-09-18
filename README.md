@@ -6,7 +6,7 @@ Blazor, EF Core, and SQL Server, with a deploy-ready AWS CDK stack.
 
 [![ci](https://github.com/SpencerSmithSite/civic-budget/actions/workflows/ci.yml/badge.svg)](https://github.com/SpencerSmithSite/civic-budget/actions/workflows/ci.yml)
 
-> **Status:** Phase 7 complete: containerized, with a CDK stack in C# that synthesizes and is asserted in CI, and an OIDC deploy workflow waiting on an account. Next: polish. See [ROADMAP.md](ROADMAP.md).
+> **Status:** Complete (Phase 8). Eight phases, each a reviewed PR with a walkthrough; see [ROADMAP.md](ROADMAP.md) and the [demo script](docs/DEMO-SCRIPT.md).
 
 **Two audiences, one solution**
 - **Admin app** — finance staff and department heads build the annual budget:
@@ -81,8 +81,15 @@ nothing is live; see [infra/README.md](infra/README.md) and [walkthrough 08](doc
 dotnet test                                 # all 404 tests; integration tests start their own SQL Server container, infra tests need Node.js
 ```
 
-Documentation: [Design brief](docs/design/DESIGN-BRIEF.md) · [Spec](docs/SPEC.md) · [Architecture](docs/ARCHITECTURE.md) ·
-[Decisions](docs/DECISIONS.md) · [Roadmap](ROADMAP.md) · [Walkthroughs](docs/walkthroughs/) · [Interview prep](docs/INTERVIEW-PREP.md)
+## How to read this repository
+
+1. [docs/SPEC.md](docs/SPEC.md) for what an Ohio budget is and what the app does (§12 maps the spec to what shipped).
+2. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the layers, render modes, tenancy, and the snapshot boundary.
+3. The walkthroughs in order, one per phase: [01 foundation](docs/walkthroughs/01-foundation.md) → [02 identity](docs/walkthroughs/02-identity-and-authorization.md) → [03 entry and audit](docs/walkthroughs/03-budget-entry-and-audit.md) → [04 workflow and publishing](docs/walkthroughs/04-workflow-and-publishing.md) → [05 design system](docs/walkthroughs/05-design-system.md) → [06 portal](docs/walkthroughs/06-public-portal.md) → [07 import and reports](docs/walkthroughs/07-import-export-reports.md) → [08 AWS](docs/walkthroughs/08-aws-deploy-ready.md) → [09 polish](docs/walkthroughs/09-polish.md).
+4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why (23 ADRs and the package table).
+5. Then the code, starting at `src/CivicBudget.Domain/Budgets/BudgetVersion.cs`.
+
+Also: [Design brief](docs/design/DESIGN-BRIEF.md) · [Demo script](docs/DEMO-SCRIPT.md) · [Interview prep](docs/INTERVIEW-PREP.md) · [Roadmap](ROADMAP.md)
 
 ## Rights
 Copyright © 2026 Spencer Smith. **All rights reserved.** This repository is

@@ -3,7 +3,7 @@
    inputs (a resolution number, an acknowledgement) and validation messages. *@
 @if (isOpen)
 {
-    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="@titleId" @onkeydown="OnKeyDown">
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="@titleId" @onkeydown="OnKeyDown" @ref="modal">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -47,10 +47,24 @@
     [Parameter]
     public Func<Task<bool>>? OnConfirm { get; set; }
 
+    private ElementReference modal;
+    private bool focusPending;
+
     public void Show()
     {
         isOpen = true;
+        focusPending = true;
         StateHasChanged();
+    }
+
+    /// <summary>Focus lands on the dialog once it exists, so Escape and Tab act on it and a screen reader announces the title.</summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (focusPending && isOpen)
+        {
+            focusPending = false;
+            await modal.FocusAsync();
+        }
     }
 
     public void Hide()

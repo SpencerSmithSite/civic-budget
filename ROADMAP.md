@@ -111,7 +111,12 @@ Design-first: this is the screen a citizen (and an interviewer) sees without log
 - [x] Spencer approves Phase 7 (2026-09-18)
 
 ## Phase 8 — Polish  `phase-8-polish`
-- [ ] README with screenshots, demo logins, badges, branch-protection guidance
-- [ ] Final visual QA across every screen at desktop and phone widths; demo data review; final accessibility check
-- [ ] Dependabot (NuGet + Actions)
-- [ ] All walkthroughs complete; CHANGELOG finalized
+Spencer's review (2026-09-18): strip title-plus-explanation clutter into tooltips; fix overlapping elements on the overview.
+- [x] `InfoTip` component (CSS only, keyboard focusable, accessible name); `Tip` on `PageHeader` and `KpiCard`; every explanatory subtitle removed or moved into a tip; subtitles carry data only
+- [x] Overview overlap fixed: the workspace-only sticky-header `overflow: visible` rule scoped to `.cb-workspace`
+- [x] Accessibility check from the accessibility tree and a keyboard walk: account menu and brand links named, amount inputs labelled with account name and department, dialogs and drawer take focus on open, access-denied page styled
+- [x] Leftover "Arrives in Phase 6" grid Export placeholder wired to the XLSX endpoint; portal section leads trimmed
+- [x] README screenshots (7) via a reproducible Playwright script (`scripts/screenshots`)
+- [x] Docs sweep: `docs/DEMO-SCRIPT.md`, spec status table (SPEC §12), 60-second pitch refreshed, walkthrough 09, interview prep Phase 8
+- [ ] Tag `v1.0.0` after merge (the deploy workflow listens for it and no-ops without an account)
+- [ ] Spencer approves Phase 8
