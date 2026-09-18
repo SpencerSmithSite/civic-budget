@@ -1,0 +1,13 @@
+{
+  "name": "civicbudget-screenshots",
+  "private": true,
+  "type": "module",
+  "description": "Captures the README screenshots from a running local app (docs/screenshots).",
+  "scripts": {
+    "setup": "npm install && npx playwright install chromium",
+    "capture": "node capture.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

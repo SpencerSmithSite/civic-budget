@@ -19,6 +19,22 @@ Blazor, EF Core, and SQL Server, with a deploy-ready AWS CDK stack.
 
 All data is fictional (Village of Maple Ridge, Ohio).
 
+## What it looks like
+
+| Budget workspace (Interactive Server) | Public portal (static SSR) |
+|---|---|
+| ![Budget workspace: grouped account lines with live fund balances](docs/screenshots/admin-workspace.png) | ![Portal overview: KPIs and where the money goes](docs/screenshots/portal-overview.png) |
+| ![Import preview with per-row results](docs/screenshots/admin-import.png) | ![Budget Summary by Fund report](docs/screenshots/admin-report-fund-summary.png) |
+
+<details>
+<summary>More screens</summary>
+
+| Admin overview | Portal fund page | Portal on a phone |
+|---|---|---|
+| ![Admin overview](docs/screenshots/admin-overview.png) | ![Portal fund drill-down](docs/screenshots/portal-fund.png) | ![Portal at phone width](docs/screenshots/portal-phone.png) |
+
+</details>
+
 ## Run locally
 
 Prerequisites: .NET SDK 10, Docker Desktop (on Apple Silicon, enable *Use Rosetta for x86_64/amd64 emulation*).
