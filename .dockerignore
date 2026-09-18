@@ -1,0 +1,16 @@
+# Keep the build context to sources and project files; everything else is noise or a secret.
+**/bin/
+**/obj/
+**/TestResults/
+**/.vs/
+**/.idea/
+.git/
+.github/
+.env
+*.user
+docs/
+infra/
+tests/
+scripts/
+node_modules/
+cdk.out/
