@@ -238,7 +238,7 @@ Every NuGet package and why. Add a row when adding a package.
 
 Planned for later phases (row confirmed when added): ClosedXML (Phase 6), Amazon.CDK.Lib + Amazon.CDK.Assertions (Phase 7, ADR-0008).
 
-Not a package: Bootstrap 5.3 CSS/JS is vendored under `src/CivicBudget.Web/wwwroot/lib/bootstrap` (ADR-0016).
+Not packages: Bootstrap 5.3 CSS/JS is vendored under `src/CivicBudget.Web/wwwroot/lib/bootstrap` (ADR-0016); Bootstrap Icons 1.13 under `wwwroot/lib/bootstrap-icons` (ADR-0020).
 
 ---
 
@@ -380,3 +380,23 @@ portal context filters to Active globally.
 
 **Consequences.** Storage grows with each publish (95 rows per village-sized budget, trivial).
 The history view can explain every past state.
+
+---
+
+## ADR-0020 — Theme as CSS variables over Bootstrap; Bootstrap Icons vendored
+**Date:** 2026-09-18 · **Status:** Accepted
+
+**Context.** Phase 4.5 gives the admin app a visual identity (docs/design/DESIGN-BRIEF.md).
+Options: compile Bootstrap from SCSS with custom variables, adopt a component library, or
+override Bootstrap's CSS variables.
+
+**Decision.** Design tokens as CSS custom properties in `app.css`, mapped onto `--bs-*`
+variables in the same `:root` block, plus component rules for the shell, grids, pills,
+stepper, cards, dialogs, toasts, and states. Bootstrap Icons 1.13 (CSS + two font files) is
+vendored under `wwwroot/lib/bootstrap-icons`; no CDN, no NuGet package.
+
+**Alternatives.** SCSS build (adds Node/Sass to a .NET solution for little gain); a
+commercial suite (rejected in ADR-0011); inline SVG icons (harder to keep consistent).
+
+**Consequences.** One file to read to understand the look; updates to Bootstrap Icons are
+manual; no dark theme yet (tokens make it a later addition).

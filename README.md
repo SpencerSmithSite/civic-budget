@@ -6,7 +6,7 @@ Blazor, EF Core, and SQL Server, with a deploy-ready AWS CDK stack.
 
 [![ci](https://github.com/SpencerSmithSite/civic-budget/actions/workflows/ci.yml/badge.svg)](https://github.com/SpencerSmithSite/civic-budget/actions/workflows/ci.yml)
 
-> **Status:** Phase 4 complete: Draft → Proposed → Adopted workflow with the Ohio appropriation check enforced, amendments, and publishing immutable snapshots for the public portal. See [ROADMAP.md](ROADMAP.md).
+> **Status:** Phase 4.5 complete: the admin app has its visual identity (a modern civic ERP that fits in next to Ohio's incumbents). Next: the public transparency portal. See [ROADMAP.md](ROADMAP.md).
 
 **Two audiences, one solution**
 - **Admin app** — finance staff and department heads build the annual budget:
@@ -47,7 +47,7 @@ To start over with fresh seed data: `docker compose down -v && docker compose up
 dotnet test                                 # all 292 tests; integration tests start their own SQL Server container
 ```
 
-Documentation: [Spec](docs/SPEC.md) · [Architecture](docs/ARCHITECTURE.md) ·
+Documentation: [Design brief](docs/design/DESIGN-BRIEF.md) · [Spec](docs/SPEC.md) · [Architecture](docs/ARCHITECTURE.md) ·
 [Decisions](docs/DECISIONS.md) · [Roadmap](ROADMAP.md) · [Walkthroughs](docs/walkthroughs/) · [Interview prep](docs/INTERVIEW-PREP.md)
 
 ## Rights
