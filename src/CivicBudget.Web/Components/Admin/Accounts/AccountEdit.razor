@@ -4,19 +4,22 @@
 @attribute [Authorize(Policy = Policies.CanMaintainSetup)]
 @inject IAccountService AccountService
 @inject NavigationManager Navigation
+@inject ToastService Toasts
 
 <PageTitle>@(Id is null ? "New account" : "Edit account")</PageTitle>
 
-<h1 class="h3">@(Id is null ? "New account" : "Edit account")</h1>
+<PageHeader Title="@(Id is null ? "New account" : "Edit account")" Eyebrow="Setup"
+            Crumbs="@([new Crumb("Setup"), new Crumb("Chart of accounts", "admin/accounts"), new Crumb(Id is null ? "New account" : "Edit account")])" />
 
 @if (notFound)
 {
-    <div class="alert alert-warning">That account was not found.</div>
+    <EmptyState Icon="bi-question-circle" Title="Not found" Text="That account was not found." />
 }
 else
 {
     <ResultAlert Result="result" />
-    <EditForm EditContext="editContext" OnSubmit="SaveAsync" class="col-lg-6">
+    <div class="card"><div class="card-body" style="max-width: 640px">
+    <EditForm EditContext="editContext" OnSubmit="SaveAsync">
         <div class="mb-3">
             <label class="form-label" for="code">Code</label>
             <InputText id="code" class="form-control" @bind-Value="model.Code" />
@@ -50,8 +53,9 @@ else
             <ValidationMessage For="() => model.Category" class="text-danger" />
         </div>
         <button type="submit" class="btn btn-primary" disabled="@saving">Save</button>
-        <a class="btn btn-link" href="admin/accounts">Cancel</a>
+        <a class="btn btn-outline-primary ms-2" href="admin/accounts">Cancel</a>
     </EditForm>
+    </div></div>
 }
 
 @code {
@@ -102,6 +106,7 @@ else
 
         if (saved.IsSuccess)
         {
+            Toasts.Success("Account saved.");
             Navigation.NavigateTo("admin/accounts");
             return;
         }

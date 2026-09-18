@@ -20,8 +20,8 @@ public class FundBalancePanelTests : BunitContext
         IRenderedComponent<FundBalancePanel> panel = Render<FundBalancePanel>(p => p
             .Add(x => x.Balances, [Balance("1000", 100m, 900m, 800m, AppropriationLimitMode.Block)]));
 
-        Assert.Contains("In balance", panel.Find(".card-header").TextContent);
-        Assert.Empty(panel.FindAll("tr.table-danger"));
+        Assert.Contains("In balance", panel.Find(".cb-eyebrow").TextContent);
+        Assert.Empty(panel.FindAll(".cb-fund.bad"));
         Assert.Contains("$1,000.00", panel.Markup); // estimated resources
         Assert.Contains("$200.00", panel.Markup);   // projected ending
     }
@@ -32,9 +32,10 @@ public class FundBalancePanelTests : BunitContext
         IRenderedComponent<FundBalancePanel> panel = Render<FundBalancePanel>(p => p
             .Add(x => x.Balances, [Balance("2011", 50m, 300m, 400m, AppropriationLimitMode.Block)]));
 
-        Assert.Contains("Over limit", panel.Find(".card-header").TextContent);
-        Assert.Single(panel.FindAll("tr.table-danger"));
-        Assert.Contains("exceed estimated resources by <strong>$50.00</strong>", panel.Markup);
+        Assert.Contains("Over limit", panel.Find(".cb-eyebrow").TextContent);
+        Assert.Single(panel.FindAll(".cb-fund.bad"));
+        Assert.Contains("Over estimated resources by <strong>$50.00</strong>", panel.Markup);
+        Assert.Contains("blocks proposal", panel.Markup);
     }
 
     [Fact]
@@ -43,9 +44,9 @@ public class FundBalancePanelTests : BunitContext
         IRenderedComponent<FundBalancePanel> panel = Render<FundBalancePanel>(p => p
             .Add(x => x.Balances, [Balance("2011", 50m, 300m, 400m, AppropriationLimitMode.Warn)]));
 
-        Assert.Contains("Warning", panel.Find(".card-header").TextContent);
-        Assert.Single(panel.FindAll("tr.table-warning"));
-        Assert.Empty(panel.FindAll("tr.table-danger"));
+        Assert.Contains("Warning", panel.Find(".cb-eyebrow").TextContent);
+        Assert.Single(panel.FindAll(".cb-fund.warn"));
+        Assert.Empty(panel.FindAll(".cb-fund.bad"));
     }
 
     [Fact]

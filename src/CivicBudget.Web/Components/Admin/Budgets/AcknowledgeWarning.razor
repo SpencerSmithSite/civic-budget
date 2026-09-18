@@ -6,7 +6,7 @@
         <ul class="mb-2">
             @foreach (var result in State.LimitResults.Where(r => r.Severity == AppropriationLimitSeverity.Warning))
             {
-                <li>Fund over by @Display.Money(result.AmountOverLimit)</li>
+                <li>A fund is over by @Display.Money(result.AmountOverLimit)</li>
             }
         </ul>
         <div class="form-check">

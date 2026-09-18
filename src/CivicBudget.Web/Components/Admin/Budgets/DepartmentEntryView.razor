@@ -2,85 +2,86 @@
    only their departments here (the service already filtered); the Finance Director sees all. *@
 @if (groups.Count == 0)
 {
-    <p class="text-secondary">No department lines to show.</p>
+    <EmptyState Icon="bi-diagram-3" Title="No department lines" Text="Lines budgeted at fund level (revenues and transfers) appear in the by-account-line view." />
 }
 else
 {
     @foreach (LineGroup department in groups)
     {
         <section class="mb-4">
-            <h2 class="h5 border-bottom pb-1">@department.Title</h2>
+            <h2 class="h6 fw-semibold d-flex align-items-baseline gap-2 mb-2"><span>@department.Title</span><span class="cb-eyebrow ms-auto">Department total @Display.Money(department.Amount)</span></h2>
             @foreach (LineGroup fund in department.Children)
             {
-                <div class="table-responsive mb-3">
-                    <table class="table table-sm align-middle mb-1 budget-lines">
-                        <caption class="caption-top fw-semibold">@fund.Title</caption>
-                        <thead class="table-light">
-                            <tr>
-                                <th scope="col" class="col-account">Account</th>
-                                <th scope="col" class="text-end">Prior year actual</th>
-                                <th scope="col" class="text-end">Current budget</th>
-                                <th scope="col" class="text-end col-amount">Proposed</th>
-                                <th scope="col" class="text-end">$ change</th>
-                                <th scope="col" class="text-end">% change</th>
-                                <th scope="col"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (LineGroup category in fund.Children)
-                            {
-                                <tr class="table-secondary">
-                                    <th scope="row" colspan="7" class="small text-uppercase">@category.Title</th>
+                <div class="card mb-3">
+                    <div class="cb-grid-wrap">
+                        <table class="cb-grid">
+                            <caption class="caption-top px-3 pt-2 pb-1 fw-semibold small">@fund.Title</caption>
+                            <thead>
+                                <tr>
+                                    <th>Account</th>
+                                    <th class="cb-num">@PriorLabel actual</th>
+                                    <th class="cb-num">@CurrentLabel budget</th>
+                                    <th class="cb-num">@ProposedLabel proposed</th>
+                                    <th class="cb-num">Change $</th>
+                                    <th class="cb-num">Change %</th>
+                                    <th></th>
                                 </tr>
-                                @foreach (BudgetLineDto line in category.Lines)
+                            </thead>
+                            <tbody>
+                                @foreach (LineGroup category in fund.Children)
                                 {
-                                    <tr>
-                                        <td class="col-account">
-                                            <span class="text-secondary">@line.AccountCode</span> @line.AccountName
-                                            @if (!string.IsNullOrEmpty(line.Justification))
-                                            {
-                                                <div class="small text-secondary fst-italic">@line.Justification</div>
-                                            }
-                                        </td>
-                                        <td class="text-end">@Display.Money(line.PriorYearActual)</td>
-                                        <td class="text-end">@Display.Money(line.CurrentYearBudget)</td>
-                                        <td class="col-amount text-end">
-                                            <AmountCell Value="line.Amount" CanEdit="line.CanEdit" Label="@($"Proposed amount for {line.AccountCode}")"
-                                                        ValueChanged="amount => OnAmountChanged.InvokeAsync((line.Id, amount))" />
-                                        </td>
-                                        <td class="text-end">@Display.SignedMoney(line.DollarChange)</td>
-                                        <td class="text-end">@Display.Percent(line.PercentChange)</td>
-                                        <td class="text-end text-nowrap">
-                                            <button type="button" class="btn btn-link btn-sm p-0" @onclick="() => OnShowHistory.InvokeAsync(line)">History</button>
-                                        </td>
+                                    <tr class="cb-group"><td colspan="7">@category.Title</td></tr>
+                                    @foreach (BudgetLineDto line in category.Lines)
+                                    {
+                                        <tr>
+                                            <td class="cb-wrap">
+                                                <span class="cb-code">@line.AccountCode</span> @line.AccountName
+                                                @if (!string.IsNullOrEmpty(line.Justification))
+                                                {
+                                                    <div class="small text-secondary fst-italic"><i class="bi bi-chat-left-text me-1" aria-hidden="true"></i>@line.Justification</div>
+                                                }
+                                            </td>
+                                            <td class="cb-num">@line.PriorYearActual.ToString("N2")</td>
+                                            <td class="cb-num">@line.CurrentYearBudget.ToString("N2")</td>
+                                            <td class="cb-num">
+                                                <AmountCell Value="line.Amount" CanEdit="line.CanEdit" Label="@($"Proposed amount for {line.AccountCode}")"
+                                                            ValueChanged="amount => OnAmountChanged.InvokeAsync((line.Id, amount))" />
+                                            </td>
+                                            <td class="cb-num @(line.DollarChange < 0 ? "cb-neg" : line.DollarChange > 0 ? "cb-pos" : "")">@Display.SignedChange(line.DollarChange)</td>
+                                            <td class="cb-num @(line.PercentChange < 0 ? "cb-neg" : "")">@Display.Percent(line.PercentChange)</td>
+                                            <td class="text-end">
+                                                <RowMenu Label="@($"Actions for {line.AccountCode}")">
+                                                    <li><button type="button" class="dropdown-item" @onclick="() => OnShowHistory.InvokeAsync(line)"><i class="bi bi-clock-history me-2" aria-hidden="true"></i>History</button></li>
+                                                </RowMenu>
+                                            </td>
+                                        </tr>
+                                    }
+                                    <tr class="cb-subtotal">
+                                        <td>Subtotal, @category.Title</td>
+                                        <td class="cb-num">@category.PriorYearActual.ToString("N2")</td>
+                                        <td class="cb-num">@category.CurrentYearBudget.ToString("N2")</td>
+                                        <td class="cb-num">@category.Amount.ToString("N2")</td>
+                                        <td class="cb-num">@Display.SignedChange(category.DollarChange)</td>
+                                        <td class="cb-num">@Display.Percent(category.PercentChange)</td>
+                                        <td></td>
                                     </tr>
                                 }
-                                <tr class="fw-semibold">
-                                    <td class="text-end">Subtotal, @category.Title</td>
-                                    <td class="text-end">@Display.Money(category.PriorYearActual)</td>
-                                    <td class="text-end">@Display.Money(category.CurrentYearBudget)</td>
-                                    <td class="text-end">@Display.Money(category.Amount)</td>
-                                    <td class="text-end">@Display.SignedMoney(category.DollarChange)</td>
-                                    <td class="text-end">@Display.Percent(category.PercentChange)</td>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td>Total, @fund.Title</td>
+                                    <td class="cb-num">@fund.PriorYearActual.ToString("N2")</td>
+                                    <td class="cb-num">@fund.CurrentYearBudget.ToString("N2")</td>
+                                    <td class="cb-num">@fund.Amount.ToString("N2")</td>
+                                    <td class="cb-num">@Display.SignedChange(fund.DollarChange)</td>
+                                    <td class="cb-num">@Display.Percent(fund.PercentChange)</td>
                                     <td></td>
                                 </tr>
-                            }
-                        </tbody>
-                        <tfoot class="table-light fw-bold">
-                            <tr>
-                                <td class="text-end">Total, @fund.Title</td>
-                                <td class="text-end">@Display.Money(fund.PriorYearActual)</td>
-                                <td class="text-end">@Display.Money(fund.CurrentYearBudget)</td>
-                                <td class="text-end">@Display.Money(fund.Amount)</td>
-                                <td class="text-end">@Display.SignedMoney(fund.DollarChange)</td>
-                                <td class="text-end">@Display.Percent(fund.PercentChange)</td>
-                                <td></td>
-                            </tr>
-                        </tfoot>
-                    </table>
+                            </tfoot>
+                        </table>
+                    </div>
                 </div>
             }
-            <p class="text-end fw-bold">Department total: @Display.Money(department.Amount)</p>
         </section>
     }
 }
@@ -91,11 +92,18 @@ else
     [Parameter, EditorRequired]
     public IReadOnlyList<BudgetLineDto> Lines { get; set; } = [];
 
+    [Parameter, EditorRequired]
+    public int FiscalYear { get; set; }
+
     [Parameter]
     public EventCallback<(Guid LineId, decimal Amount)> OnAmountChanged { get; set; }
 
     [Parameter]
     public EventCallback<BudgetLineDto> OnShowHistory { get; set; }
+
+    private string PriorLabel => $"FY{FiscalYear - 2}";
+    private string CurrentLabel => $"FY{FiscalYear - 1}";
+    private string ProposedLabel => $"FY{FiscalYear}";
 
     protected override void OnParametersSet() => groups = BudgetGrouping.ByDepartment(Lines);
 }

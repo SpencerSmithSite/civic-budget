@@ -1,102 +1,113 @@
 @using CivicBudget.Domain.Accounts
-@* By-account-line mode: every line in the version in one sortable, filterable grid with inline editing. *@
+@* By-account-line mode: the whole version in one sortable, filterable worksheet with inline
+   editing. Group rows per fund and department come from the sorted order, so the grid reads like a
+   printed budget without a tree control. *@
 
-<div class="row g-2 mb-2">
-    <div class="col-md-3">
-        <input class="form-control form-control-sm" placeholder="Search account or department" @bind="search" @bind:event="oninput" aria-label="Search lines" />
-    </div>
-    <div class="col-md-3">
-        <select class="form-select form-select-sm" @bind="fundFilter" aria-label="Filter by fund">
-            <option value="">All funds</option>
-            @foreach (LookupDto fund in Workspace.Funds)
-            {
-                <option value="@fund.Id">@fund.Display</option>
-            }
-        </select>
-    </div>
-    <div class="col-md-3">
-        <select class="form-select form-select-sm" @bind="departmentFilter" aria-label="Filter by department">
-            <option value="">All departments</option>
-            <option value="none">(Fund level, no department)</option>
-            @foreach (LookupDto department in Workspace.Departments)
-            {
-                <option value="@department.Id">@department.Display</option>
-            }
-        </select>
-    </div>
-    <div class="col-md-3">
-        <select class="form-select form-select-sm" @bind="typeFilter" aria-label="Filter by account type">
-            <option value="">All account types</option>
-            @foreach (AccountType type in Enum.GetValues<AccountType>())
-            {
-                <option value="@type">@Display.Enum(type)</option>
-            }
-        </select>
-    </div>
+<div class="cb-toolbar">
+    <input class="form-control" placeholder="Search account or department" @bind="search" @bind:event="oninput" aria-label="Search lines" />
+    <select class="form-select" @bind="fundFilter" aria-label="Filter by fund">
+        <option value="">All funds</option>
+        @foreach (LookupDto fund in Workspace.Funds)
+        {
+            <option value="@fund.Id">@fund.Display</option>
+        }
+    </select>
+    <select class="form-select" @bind="departmentFilter" aria-label="Filter by department">
+        <option value="">All departments</option>
+        <option value="none">Fund level (no department)</option>
+        @foreach (LookupDto department in Workspace.Departments)
+        {
+            <option value="@department.Id">@department.Display</option>
+        }
+    </select>
+    <select class="form-select" @bind="typeFilter" aria-label="Filter by account type">
+        <option value="">All types</option>
+        @foreach (AccountType type in Enum.GetValues<AccountType>())
+        {
+            <option value="@type">@Display.Enum(type)</option>
+        }
+    </select>
+    <span class="grow"></span>
+    @if (Workspace.CanAddLines)
+    {
+        <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => OnAddLine.InvokeAsync()"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add line</button>
+    }
+    <button type="button" class="btn btn-outline-primary btn-sm" disabled title="Arrives in Phase 6"><i class="bi bi-download me-1" aria-hidden="true"></i>Export</button>
 </div>
 
-<div class="table-responsive">
-@* Theme="bootstrap" (any name but "default") switches off QuickGrid's built-in cell styling so
-   Bootstrap's .table classes and app.css control the dense layout. *@
-<QuickGrid Items="Filtered" Theme="bootstrap" Class="table table-sm table-striped align-middle budget-lines" Pagination="pagination">
-    <TemplateColumn Title="Fund" Class="col-code" SortBy="GridSort<BudgetLineDto>.ByAscending(l => l.FundCode)">
-        <span title="@context.FundName">@context.FundCode</span>
-    </TemplateColumn>
-    <TemplateColumn Title="Dept" Class="col-code" SortBy="GridSort<BudgetLineDto>.ByAscending(l => l.DepartmentCode)">
-        <span title="@context.DepartmentName">@(context.DepartmentCode ?? "")</span>
-    </TemplateColumn>
-    <TemplateColumn Title="Account" Class="col-account" SortBy="GridSort<BudgetLineDto>.ByAscending(l => l.AccountCode)">
-        <span class="text-secondary">@context.AccountCode</span> @context.AccountName
-        <span class="small text-secondary">(@Display.Enum(context.Category))</span>
-    </TemplateColumn>
-    <TemplateColumn Title="Prior actual" Class="col-money" Align="Align.End" SortBy="GridSort<BudgetLineDto>.ByAscending(l => l.PriorYearActual)">
-        @Display.Money(context.PriorYearActual)
-    </TemplateColumn>
-    <TemplateColumn Title="Current" Class="col-money" Align="Align.End" SortBy="GridSort<BudgetLineDto>.ByAscending(l => l.CurrentYearBudget)">
-        @Display.Money(context.CurrentYearBudget)
-    </TemplateColumn>
-    <TemplateColumn Title="Proposed" Class="col-amount" Align="Align.End" SortBy="GridSort<BudgetLineDto>.ByAscending(l => l.Amount)">
-        <AmountCell Value="context.Amount" CanEdit="context.CanEdit" Label="@($"Proposed amount for {context.AccountCode}")"
-                    ValueChanged="amount => OnAmountChanged.InvokeAsync((context.Id, amount))" />
-    </TemplateColumn>
-    <TemplateColumn Title="$ change" Align="Align.End" SortBy="GridSort<BudgetLineDto>.ByAscending(l => l.DollarChange)">
-        @Display.SignedMoney(context.DollarChange)
-    </TemplateColumn>
-    <TemplateColumn Title="% change" Align="Align.End" SortBy="GridSort<BudgetLineDto>.ByAscending(l => l.PercentChange ?? decimal.MaxValue)">
-        @Display.Percent(context.PercentChange)
-    </TemplateColumn>
-    <TemplateColumn Title="Note" Class="col-note">
-        @* A note is rare, so the column stays narrow: a marker, and an editor only for the row being edited. *@
-        @if (editingNoteId == context.Id)
-        {
-            <input type="text" class="form-control form-control-sm" value="@context.Justification" aria-label="@($"Justification for {context.AccountCode}")"
-                   @onchange="e => SaveNoteAsync(context.Id, e.Value?.ToString())" @onblur="() => editingNoteId = null" autofocus />
-        }
-        else
-        {
-            <button type="button" class="btn btn-link btn-sm p-0" title="@context.Justification"
-                    @onclick="() => editingNoteId = context.CanEdit ? context.Id : null">
-                @(string.IsNullOrEmpty(context.Justification) ? (context.CanEdit ? "Add" : "") : "Note")
-            </button>
-        }
-    </TemplateColumn>
-    <TemplateColumn Title="" Align="Align.End">
-        <button type="button" class="btn btn-link btn-sm p-0" @onclick="() => OnShowHistory.InvokeAsync(context)">History</button>
-        @if (context.CanEdit)
-        {
-            <button type="button" class="btn btn-link btn-sm p-0 ms-2 text-danger" @onclick="() => OnRemove.InvokeAsync(context)">Remove</button>
-        }
-    </TemplateColumn>
-</QuickGrid>
+<div class="cb-grid-wrap">
+    <table class="cb-grid">
+        <thead>
+            <tr>
+                <th>Account</th>
+                <th class="cb-num">@PriorLabel actual</th>
+                <th class="cb-num">@CurrentLabel budget</th>
+                <th class="cb-num">@ProposedLabel proposed</th>
+                <th class="cb-num">Change $</th>
+                <th class="cb-num">Change %</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @{ string? lastGroup = null; }
+            @foreach (BudgetLineDto line in Filtered)
+            {
+                string group = $"{line.FundCode} {line.FundName} · {(line.DepartmentCode is null ? (line.AccountType.IsResource() ? "Revenues and transfers in" : "Fund level") : $"{line.DepartmentCode} {line.DepartmentName}")}";
+                if (group != lastGroup)
+                {
+                    lastGroup = group;
+                    <tr class="cb-group"><td colspan="7">@group</td></tr>
+                }
+                <tr>
+                    <td class="cb-wrap" title="@Display.Enum(line.Category)">
+                        <span class="cb-code">@line.AccountCode</span> @line.AccountName
+                        @if (editingNoteId == line.Id)
+                        {
+                            <input type="text" class="form-control form-control-sm mt-1" value="@line.Justification" aria-label="@($"Justification for {line.AccountCode}")"
+                                   @onchange="e => SaveNoteAsync(line.Id, e.Value?.ToString())" @onblur="() => editingNoteId = null" autofocus />
+                        }
+                        else if (!string.IsNullOrEmpty(line.Justification))
+                        {
+                            <div class="small text-secondary fst-italic text-wrap"><i class="bi bi-chat-left-text me-1" aria-hidden="true"></i>@line.Justification</div>
+                        }
+                    </td>
+                    <td class="cb-num">@line.PriorYearActual.ToString("N2")</td>
+                    <td class="cb-num">@line.CurrentYearBudget.ToString("N2")</td>
+                    <td class="cb-num">
+                        <AmountCell Value="line.Amount" CanEdit="line.CanEdit" Label="@($"Proposed amount for {line.AccountCode}")"
+                                    ValueChanged="amount => OnAmountChanged.InvokeAsync((line.Id, amount))" />
+                    </td>
+                    <td class="cb-num @(line.DollarChange < 0 ? "cb-neg" : line.DollarChange > 0 ? "cb-pos" : "")">@Display.SignedChange(line.DollarChange)</td>
+                    <td class="cb-num @(line.PercentChange < 0 ? "cb-neg" : "")">@Display.Percent(line.PercentChange)</td>
+                    <td class="text-end">
+                        <RowMenu Label="@($"Actions for {line.AccountCode}")">
+                            <li><button type="button" class="dropdown-item" @onclick="() => OnShowHistory.InvokeAsync(line)"><i class="bi bi-clock-history me-2" aria-hidden="true"></i>History</button></li>
+                            @if (line.CanEdit)
+                            {
+                                <li><button type="button" class="dropdown-item" @onclick="() => editingNoteId = line.Id"><i class="bi bi-chat-left-text me-2" aria-hidden="true"></i>@(string.IsNullOrEmpty(line.Justification) ? "Add note" : "Edit note")</button></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><button type="button" class="dropdown-item text-danger" @onclick="() => OnRemove.InvokeAsync(line)"><i class="bi bi-trash me-2" aria-hidden="true"></i>Remove line</button></li>
+                            }
+                        </RowMenu>
+                    </td>
+                </tr>
+            }
+            @if (!Filtered.Any())
+            {
+                <tr><td colspan="7"><EmptyState Icon="bi-funnel" Title="No lines match" Text="Clear a filter or the search box to see more." /></td></tr>
+            }
+        </tbody>
+    </table>
 </div>
-<Paginator State="pagination" />
+<div class="cb-grid-foot">
+    <span>@Filtered.Count() of @Workspace.Lines.Count lines</span>
+</div>
 
 @code {
     private string search = "";
     private string fundFilter = "";
     private string departmentFilter = "";
     private string typeFilter = "";
-    private readonly PaginationState pagination = new() { ItemsPerPage = 50 };
     private Guid? editingNoteId;
 
     [Parameter, EditorRequired]
@@ -114,13 +125,20 @@
     [Parameter]
     public EventCallback<BudgetLineDto> OnRemove { get; set; }
 
+    [Parameter]
+    public EventCallback OnAddLine { get; set; }
+
+    private string PriorLabel => $"FY{Workspace.Version.Year - 2}";
+    private string CurrentLabel => $"FY{Workspace.Version.Year - 1}";
+    private string ProposedLabel => $"FY{Workspace.Version.Year}";
+
     private async Task SaveNoteAsync(Guid lineId, string? note)
     {
         editingNoteId = null;
         await OnJustificationChanged.InvokeAsync((lineId, note));
     }
 
-    private IQueryable<BudgetLineDto> Filtered => Workspace.Lines
+    private IEnumerable<BudgetLineDto> Filtered => Workspace.Lines
         .Where(l => string.IsNullOrWhiteSpace(search)
             || l.AccountCode.Contains(search, StringComparison.OrdinalIgnoreCase)
             || l.AccountName.Contains(search, StringComparison.OrdinalIgnoreCase)
@@ -129,5 +147,5 @@
         .Where(l => string.IsNullOrEmpty(departmentFilter)
             || (departmentFilter == "none" ? l.DepartmentId is null : l.DepartmentId?.ToString() == departmentFilter))
         .Where(l => string.IsNullOrEmpty(typeFilter) || l.AccountType.ToString() == typeFilter)
-        .AsQueryable();
+        .OrderBy(l => l.FundCode).ThenBy(l => l.DepartmentCode is null ? 0 : 1).ThenBy(l => l.DepartmentCode).ThenBy(l => l.AccountCode);
 }

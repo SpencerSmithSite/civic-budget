@@ -4,19 +4,22 @@
 @attribute [Authorize(Policy = Policies.CanMaintainSetup)]
 @inject IDepartmentService DepartmentService
 @inject NavigationManager Navigation
+@inject ToastService Toasts
 
 <PageTitle>@(Id is null ? "New department" : "Edit department")</PageTitle>
 
-<h1 class="h3">@(Id is null ? "New department" : "Edit department")</h1>
+<PageHeader Title="@(Id is null ? "New department" : "Edit department")" Eyebrow="Setup"
+            Crumbs="@([new Crumb("Setup"), new Crumb("Departments", "admin/departments"), new Crumb(Id is null ? "New department" : "Edit department")])" />
 
 @if (notFound)
 {
-    <div class="alert alert-warning">That department was not found.</div>
+    <EmptyState Icon="bi-question-circle" Title="Not found" Text="That department was not found." />
 }
 else
 {
     <ResultAlert Result="result" />
-    <EditForm EditContext="editContext" OnSubmit="SaveAsync" class="col-lg-6">
+    <div class="card"><div class="card-body" style="max-width: 640px">
+    <EditForm EditContext="editContext" OnSubmit="SaveAsync">
         <div class="mb-3">
             <label class="form-label" for="code">Code</label>
             <InputText id="code" class="form-control" @bind-Value="model.Code" />
@@ -33,8 +36,9 @@ else
             <ValidationMessage For="() => model.Description" class="text-danger" />
         </div>
         <button type="submit" class="btn btn-primary" disabled="@saving">Save</button>
-        <a class="btn btn-link" href="admin/departments">Cancel</a>
+        <a class="btn btn-outline-primary ms-2" href="admin/departments">Cancel</a>
     </EditForm>
+    </div></div>
 }
 
 @code {
@@ -76,6 +80,7 @@ else
 
         if (saved.IsSuccess)
         {
+            Toasts.Success("Department saved.");
             Navigation.NavigateTo("admin/departments");
             return;
         }

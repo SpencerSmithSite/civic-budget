@@ -2,60 +2,75 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.CanMaintainSetup)]
 @inject IDepartmentService DepartmentService
-@inject IJSRuntime JS
+@inject ToastService Toasts
 
 <PageTitle>Departments</PageTitle>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h3 mb-0">Departments</h1>
-    <a class="btn btn-primary" href="admin/departments/new">New department</a>
-</div>
+<PageHeader Title="Departments" Eyebrow="Setup" Crumbs="@([new Crumb("Setup"), new Crumb("Departments")])">
+    <Subtitle>Organizational units. A department may have lines in several funds.</Subtitle>
+    <Actions><a class="btn btn-primary btn-sm" href="admin/departments/new"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>New department</a></Actions>
+</PageHeader>
 
-<div class="row g-2 mb-3">
-    <div class="col-md-4">
+<div class="card">
+    <div class="cb-toolbar">
         <input class="form-control" placeholder="Search code or name" @bind="search" @bind:event="oninput" aria-label="Search departments" />
-    </div>
-    <div class="col-md-4 d-flex align-items-center">
-        <div class="form-check">
+        <div class="form-check ms-2">
             <input class="form-check-input" type="checkbox" id="includeInactive" @bind="includeInactive" @bind:after="LoadAsync" />
-            <label class="form-check-label" for="includeInactive">Show inactive</label>
+            <label class="form-check-label small" for="includeInactive">Show inactive</label>
         </div>
     </div>
+    @if (departments is null)
+    {
+        <SkeletonRows Rows="5" Columns="4" />
+    }
+    else if (!Filtered.Any())
+    {
+        <EmptyState Icon="bi-diagram-3" Title="@(departments.Count == 0 ? "No departments yet" : "No departments match")" Text="@(departments.Count == 0 ? "Add the departments that will enter budget lines." : "Try a different search.")">
+            @if (departments.Count == 0) { <a class="btn btn-primary btn-sm" href="admin/departments/new">New department</a> }
+        </EmptyState>
+    }
+    else
+    {
+        <div class="cb-grid-wrap">
+            <QuickGrid Items="Filtered" Theme="bootstrap" Class="cb-grid" Pagination="pagination">
+                <PropertyColumn Property="d => d.Code" Sortable="true" />
+                <PropertyColumn Property="d => d.Name" Sortable="true" Class="cb-wrap" />
+                <TemplateColumn Title="Description" Class="cb-wrap"><span class="small text-secondary">@context.Description</span></TemplateColumn>
+                <TemplateColumn Title="Status">
+                    @if (context.IsActive) { <StatusPill Tone="success" Label="Active" /> } else { <StatusPill Label="Inactive" /> }
+                </TemplateColumn>
+                <TemplateColumn Title="" Align="Align.End">
+                    <RowMenu Label="@($"Actions for {context.Code}")">
+                        <li><a class="dropdown-item" href="admin/departments/@context.Id"><i class="bi bi-pencil me-2" aria-hidden="true"></i>Edit</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        @if (context.IsActive)
+                        {
+                            <li><button type="button" class="dropdown-item" @onclick="() => Ask(context, false)"><i class="bi bi-archive me-2" aria-hidden="true"></i>Deactivate</button></li>
+                        }
+                        else
+                        {
+                            <li><button type="button" class="dropdown-item" @onclick="() => Ask(context, true)"><i class="bi bi-arrow-counterclockwise me-2" aria-hidden="true"></i>Reactivate</button></li>
+                        }
+                    </RowMenu>
+                </TemplateColumn>
+            </QuickGrid>
+        </div>
+        <div class="cb-grid-foot"><span>@Filtered.Count() departments</span><Paginator State="pagination" /></div>
+    }
 </div>
 
-@if (departments is null)
-{
-    <p>Loading...</p>
-}
-else
-{
-    <QuickGrid Items="Filtered" Class="table table-striped table-hover" Pagination="pagination">
-        <PropertyColumn Property="d => d.Code" Sortable="true" />
-        <PropertyColumn Property="d => d.Name" Sortable="true" />
-        <PropertyColumn Property="d => d.Description" Title="Description" />
-        <TemplateColumn Title="Status">
-            @if (context.IsActive) { <span class="badge text-bg-success">Active</span> } else { <span class="badge text-bg-secondary">Inactive</span> }
-        </TemplateColumn>
-        <TemplateColumn Title="" Align="Align.End">
-            <a class="btn btn-sm btn-outline-primary" href="admin/departments/@context.Id">Edit</a>
-            @if (context.IsActive)
-            {
-                <button class="btn btn-sm btn-outline-secondary ms-1" @onclick="() => SetActiveAsync(context, false)">Deactivate</button>
-            }
-            else
-            {
-                <button class="btn btn-sm btn-outline-success ms-1" @onclick="() => SetActiveAsync(context, true)">Reactivate</button>
-            }
-        </TemplateColumn>
-    </QuickGrid>
-    <Paginator State="pagination" />
-}
+<ConfirmDialog @ref="dialog" Title="@($"{(pendingActive ? "Reactivate" : "Deactivate")} {pending?.Code} {pending?.Name}?")" ConfirmText="@(pendingActive ? "Reactivate" : "Deactivate")" ConfirmClass="@(pendingActive ? "btn-primary" : "btn-danger")" OnConfirm="ConfirmAsync">
+    <Body><p>@(pendingActive ? "The department will accept new budget lines again." : "Existing budget lines keep their history; new lines cannot use this department.")</p></Body>
+</ConfirmDialog>
 
 @code {
     private IReadOnlyList<DepartmentDto>? departments;
     private string search = "";
     private bool includeInactive;
     private readonly PaginationState pagination = new() { ItemsPerPage = 20 };
+    private ConfirmDialog dialog = default!;
+    private DepartmentDto? pending;
+    private bool pendingActive;
 
     private IQueryable<DepartmentDto> Filtered => (departments ?? [])
         .Where(d => string.IsNullOrWhiteSpace(search)
@@ -67,15 +82,31 @@ else
 
     private async Task LoadAsync() => departments = await DepartmentService.ListAsync(includeInactive);
 
-    private async Task SetActiveAsync(DepartmentDto department, bool isActive)
+    private void Ask(DepartmentDto department, bool isActive)
     {
-        string verb = isActive ? "Reactivate" : "Deactivate";
-        if (!await JS.InvokeAsync<bool>("confirm", $"{verb} department {department.Code} {department.Name}?"))
+        pending = department;
+        pendingActive = isActive;
+        dialog.Show();
+    }
+
+    private async Task<bool> ConfirmAsync()
+    {
+        if (pending is null)
         {
-            return;
+            return true;
         }
 
-        await DepartmentService.SetActiveAsync(department.Id, isActive);
+        Result result = await DepartmentService.SetActiveAsync(pending.Id, pendingActive);
+        if (result.IsSuccess)
+        {
+            Toasts.Success($"{pending.Code} {pending.Name} {(pendingActive ? "reactivated" : "deactivated")}.");
+        }
+        else
+        {
+            Toasts.Danger(result.Errors[0].Message);
+        }
+
         await LoadAsync();
+        return true;
     }
 }

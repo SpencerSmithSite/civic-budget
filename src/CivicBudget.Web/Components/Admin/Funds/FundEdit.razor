@@ -4,14 +4,16 @@
 @attribute [Authorize(Policy = Policies.CanMaintainSetup)]
 @inject IFundService FundService
 @inject NavigationManager Navigation
+@inject ToastService Toasts
 
 <PageTitle>@(Id is null ? "New fund" : "Edit fund")</PageTitle>
 
-<h1 class="h3">@(Id is null ? "New fund" : "Edit fund")</h1>
+<PageHeader Title="@(Id is null ? "New fund" : "Edit fund")" Eyebrow="Setup"
+            Crumbs="@([new Crumb("Setup"), new Crumb("Funds", "admin/funds"), new Crumb(Id is null ? "New fund" : "Edit fund")])" />
 
 @if (notFound)
 {
-    <div class="alert alert-warning">That fund was not found.</div>
+    <EmptyState Icon="bi-question-circle" Title="Not found" Text="That fund was not found." />
 }
 else
 {
@@ -19,7 +21,8 @@ else
     @* Interactive form: submit runs on the circuit, calls the service, and maps Result errors onto
        the fields via EditContextResultExtensions. No validation attributes on the model; the rules
        live in SaveFundRequestValidator in the Application layer. *@
-    <EditForm EditContext="editContext" OnSubmit="SaveAsync" class="col-lg-6">
+    <div class="card"><div class="card-body" style="max-width: 640px">
+    <EditForm EditContext="editContext" OnSubmit="SaveAsync">
         <div class="mb-3">
             <label class="form-label" for="code">Code</label>
             <InputText id="code" class="form-control" @bind-Value="model.Code" />
@@ -47,8 +50,9 @@ else
             <ValidationMessage For="() => model.Description" class="text-danger" />
         </div>
         <button type="submit" class="btn btn-primary" disabled="@saving">Save</button>
-        <a class="btn btn-link" href="admin/funds">Cancel</a>
+        <a class="btn btn-outline-primary ms-2" href="admin/funds">Cancel</a>
     </EditForm>
+    </div></div>
 }
 
 @code {
@@ -91,6 +95,7 @@ else
 
         if (saved.IsSuccess)
         {
+            Toasts.Success("Fund saved.");
             Navigation.NavigateTo("admin/funds");
             return;
         }

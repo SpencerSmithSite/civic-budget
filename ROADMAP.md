@@ -62,15 +62,17 @@ docs are updated, and Spencer has approved.
 
 ## Phase 4.5 — Admin UI design pass  `phase-4.5-admin-design`
 Spencer's review of Phase 3 (2026-09-17): functional, but bare-bones Bootstrap will not impress in an interview. This phase gives the admin app a deliberate visual identity before the public portal reuses it.
-- [ ] Design brief: palette (civic, trustworthy; sufficient contrast), typography, spacing scale, iconography (vendored Bootstrap Icons), states (empty, loading, error, success)
-- [ ] Mockups of the key screens (login, admin overview, budget workspace, fund balance panel, users) for Spencer's approval before implementation
-- [ ] Design tokens as CSS variables layered over Bootstrap (`--bs-*` overrides), one `app.css` theme, no build pipeline
-- [ ] Application shell: branded navbar, sidebar with icons and active states, page headers with breadcrumbs and actions, responsive behavior
-- [ ] Components: KPI cards on the overview, status badges, toasts instead of inline alerts, confirmation modal instead of `window.confirm`, skeleton loading, consistent form layout and validation styling
-- [ ] Budget workspace: worksheet look (sticky header, zebra rows, right-aligned numerics, change columns colored by sign, fund panel as summary cards + table)
-- [ ] Login page and home page with the product story (what CivicBudget is, who it is for)
-- [ ] Accessibility check of the new theme (contrast, focus states, keyboard navigation)
-- [ ] Walkthrough: design tokens over Bootstrap; how the theme is shared with the portal
+- [x] Research: Ohio ERP vendors, admin budgeting UIs, transparency portals (`docs/design/research-*.md`)
+- [x] Design brief approved 2026-09-18: "a modern civic ERP that fits in next to VIP" (`docs/design/DESIGN-BRIEF.md`)
+- [x] Eight mockups approved before implementation (`docs/design/mockups.html`)
+- [x] Design tokens as CSS variables over Bootstrap; Bootstrap Icons vendored (ADR-0020)
+- [x] Shell: dark sidebar with module groups and icons, top bar with breadcrumbs (`AdminPageState`) and user menu, off-canvas under 992px
+- [x] Components: `PageHeader`, `StatusPill`, `WorkflowStepper`, `KpiCard`, `ToastService`/`ToastHost`, `ConfirmDialog` (Escape), `SideDrawer`, `RowMenu`, `EmptyState`, `SkeletonRows`
+- [x] Screens restyled: workspace (stepper, fund rail, dense grid with group rows and row menus, history drawer), overview (budget KPIs, activity timeline), version list, funds, departments, accounts, fiscal years, users, settings, login, home, account pages
+- [x] `window.confirm` retired; all outcomes via toasts; every list has empty and loading states
+- [x] Accessibility pass: contrast tokens, focus rings, Escape on dialogs, landmarks, `aria-current` stepper, reduced motion
+- [x] Checked at 1440 and 390 px; walkthrough 05; interview prep
+- [ ] Spencer approves Phase 4.5
 
 ## Phase 5 — Public transparency portal  `phase-5-portal`
 Design-first: this is the screen a citizen (and an interviewer) sees without logging in.

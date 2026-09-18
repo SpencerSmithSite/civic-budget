@@ -5,74 +5,83 @@
 @inject IBudgetEntryService BudgetEntry
 @inject IBudgetWorkflowService Workflow
 @inject IPublishingService Publishing
-@inject IJSRuntime JS
+@inject ToastService Toasts
 
-<PageTitle>Budget entry</PageTitle>
+<PageTitle>@(workspace is null ? "Budget" : $"FY{workspace.Version.Year} {workspace.Version.Label}")</PageTitle>
 
 @if (notFound)
 {
-    <div class="alert alert-warning">That budget version was not found.</div>
+    <EmptyState Icon="bi-journal-x" Title="Budget version not found" Text="It may have been removed, or the link is wrong."><a class="btn btn-primary" href="admin/budgets">Budget versions</a></EmptyState>
 }
-else if (workspace is null)
+else if (workspace is null || workflowState is null)
 {
-    <p>Loading...</p>
+    <PageHeader Title="Loading budget" Eyebrow="Budget" Crumbs="@([new Crumb("Budget"), new Crumb("Budget versions", "admin/budgets"), new Crumb("…")])" />
+    <SkeletonRows Rows="8" Columns="6" />
 }
 else
 {
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+    <PageHeader Title="@($"{workspace.Version.Label} budget")" Eyebrow="@($"Budget · Fiscal year {workspace.Version.Year}")"
+                Crumbs="@([new Crumb("Budget"), new Crumb("Budget versions", "admin/budgets"), new Crumb($"FY{workspace.Version.Year} {workspace.Version.Label}")])">
+        <TitleAddon><StatusPill Budget="workspace.Version.Status" /></TitleAddon>
+        <Subtitle>
+            @if (workspace.Version.AmendmentReason is not null) { <span>@workspace.Version.AmendmentReason. </span> }
+            @(workspace.IsEditable ? "Changes save when you leave a field." : "Adopted versions are read-only; create an amendment to change them.")
+        </Subtitle>
+        <Actions>
+            @if (!isDepartmentHead)
+            {
+                <div class="btn-group btn-group-sm" role="group" aria-label="Entry mode">
+                    <button type="button" class="btn @(mode == Mode.ByDepartment ? "btn-primary" : "btn-outline-primary")" @onclick="() => mode = Mode.ByDepartment">By department</button>
+                    <button type="button" class="btn @(mode == Mode.ByAccount ? "btn-primary" : "btn-outline-primary")" @onclick="() => mode = Mode.ByAccount">By account line</button>
+                </div>
+            }
+            <WorkflowBar Version="workspace.Version" State="workflowState" ActiveSnapshot="activeSnapshot" OnChanged="LoadAsync" />
+        </Actions>
+    </PageHeader>
+
+    <WorkflowStepper Status="workspace.Version.Status" IsPublished="activeSnapshot is not null" />
+
+    <div class="cb-workspace">
         <div>
-            <h1 class="h3 mb-0">FY@(workspace.Version.Year) budget, @workspace.Version.Label <StatusBadge Status="workspace.Version.Status" /></h1>
-            <div class="text-secondary small">
-                @if (workspace.Version.AmendmentReason is not null) { <span>@workspace.Version.AmendmentReason. </span> }
-                @(workspace.IsEditable ? "Changes save when you leave a field." : "Adopted versions are read-only; create an amendment to change them.")
-            </div>
+            @if (mode == Mode.ByDepartment)
+            {
+                <DepartmentEntryView Lines="workspace.Lines" FiscalYear="workspace.Version.Year" OnAmountChanged="UpdateAmountAsync" OnShowHistory="ShowHistory" />
+                @if (workspace.CanAddLines)
+                {
+                    <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => addLineForm.Show()"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add line</button>
+                }
+            }
+            else
+            {
+                <div class="card">
+                    <AccountLineGrid Workspace="workspace" OnAmountChanged="UpdateAmountAsync" OnJustificationChanged="UpdateJustificationAsync"
+                                     OnShowHistory="ShowHistory" OnRemove="RemoveLineAsync" OnAddLine="() => addLineForm.Show()" />
+                </div>
+            }
         </div>
-        @if (!isDepartmentHead)
-        {
-            <div class="btn-group" role="group" aria-label="Entry mode">
-                <button type="button" class="btn btn-sm @(mode == Mode.ByDepartment ? "btn-primary" : "btn-outline-primary")" @onclick="() => mode = Mode.ByDepartment">By department</button>
-                <button type="button" class="btn btn-sm @(mode == Mode.ByAccount ? "btn-primary" : "btn-outline-primary")" @onclick="() => mode = Mode.ByAccount">By account line</button>
-            </div>
-        }
+        <aside>
+            <FundBalancePanel Balances="workspace.FundBalances" OnBeginningBalanceChanged="SetBeginningBalanceAsync" />
+        </aside>
     </div>
 
-    <ResultAlert Result="lastResult" />
-    <SuccessAlert Message="@savedMessage" />
+    <AddLineForm @ref="addLineForm" Workspace="workspace" OnAdd="AddLineAsync" />
 
-    @if (workflowState is not null)
-    {
-        <WorkflowBar Version="workspace.Version" State="workflowState" ActiveSnapshot="activeSnapshot" OnChanged="OnWorkflowChangedAsync" />
-    }
+    <ConfirmDialog @ref="removeDialog" Title="Remove this line?" ConfirmText="Remove line" ConfirmClass="btn-danger" OnConfirm="ConfirmRemoveAsync">
+        <Body>
+            @if (lineToRemove is not null)
+            {
+                <p><b>@lineToRemove.AccountCode @lineToRemove.AccountName</b> in @lineToRemove.FundCode @lineToRemove.FundName@(lineToRemove.DepartmentCode is null ? "" : $", {lineToRemove.DepartmentCode}") will be removed from this version. The audit trail keeps a record.</p>
+            }
+        </Body>
+    </ConfirmDialog>
 
-    <div class="mb-3">
-        <FundBalancePanel Balances="workspace.FundBalances" OnBeginningBalanceChanged="SetBeginningBalanceAsync" />
-    </div>
-
-    @if (workspace.CanAddLines && mode == Mode.ByAccount)
-    {
-        <AddLineForm Workspace="workspace" OnAdd="AddLineAsync" />
-    }
-
-    @if (mode == Mode.ByDepartment)
-    {
-        <DepartmentEntryView Lines="workspace.Lines" OnAmountChanged="UpdateAmountAsync" OnShowHistory="ShowHistory" />
-        @if (workspace.CanAddLines)
+    <SideDrawer IsOpen="historyLine is not null" IsOpenChanged="open => { if (!open) historyLine = null; }" Title="@(historyLine is null ? "" : $"History: {historyLine.AccountCode} {historyLine.AccountName}")">
+        @if (historyLine is not null)
         {
-            <AddLineForm Workspace="workspace" OnAdd="AddLineAsync" />
+            <div class="px-3 pt-2 small text-secondary">@historyLine.FundCode @historyLine.FundName@(historyLine.DepartmentCode is null ? "" : $" · {historyLine.DepartmentCode} {historyLine.DepartmentName}")</div>
+            <LineHistory Line="historyLine" Version="historyVersion" />
         }
-    }
-    else
-    {
-        <AccountLineGrid Workspace="workspace" OnAmountChanged="UpdateAmountAsync" OnJustificationChanged="UpdateJustificationAsync"
-                         OnShowHistory="ShowHistory" OnRemove="RemoveLineAsync" />
-    }
-
-    @if (historyLine is not null)
-    {
-        <div class="mt-3">
-            <LineHistory Line="historyLine" Version="historyVersion" OnClose="() => historyLine = null" />
-        </div>
-    }
+    </SideDrawer>
 }
 
 @code {
@@ -90,10 +99,11 @@ else
     private Mode mode = Mode.ByDepartment;
     private bool notFound;
     private bool isDepartmentHead;
-    private Result? lastResult;
-    private string? savedMessage;
     private BudgetLineDto? historyLine;
     private int historyVersion;
+    private AddLineForm addLineForm = default!;
+    private ConfirmDialog removeDialog = default!;
+    private BudgetLineDto? lineToRemove;
 
     protected override async Task OnInitializedAsync()
     {
@@ -128,7 +138,7 @@ else
         ApplyAsync(() => BudgetEntry.UpdateLineAmountAsync(VersionId, change.LineId, change.Amount), "Amount saved.");
 
     private Task UpdateJustificationAsync((Guid LineId, string? Justification) change) =>
-        ApplyAsync(() => BudgetEntry.UpdateLineJustificationAsync(VersionId, change.LineId, change.Justification), "Justification saved.");
+        ApplyAsync(() => BudgetEntry.UpdateLineJustificationAsync(VersionId, change.LineId, change.Justification), "Note saved.");
 
     private Task SetBeginningBalanceAsync((Guid FundId, decimal Amount) change) =>
         ApplyAsync(() => BudgetEntry.SetBeginningBalanceAsync(VersionId, change.FundId, change.Amount), "Beginning balance saved.");
@@ -138,36 +148,41 @@ else
         Result<Guid> added = await BudgetEntry.AddLineAsync(request);
         if (added.IsSuccess)
         {
-            savedMessage = "Line added.";
-            lastResult = null;
+            Toasts.Success("Line added.");
             await LoadAsync();
         }
 
         return added;
     }
 
-    private async Task RemoveLineAsync(BudgetLineDto line)
+    private void RemoveLineAsync(BudgetLineDto line)
     {
-        if (!await JS.InvokeAsync<bool>("confirm", $"Remove {line.AccountCode} {line.AccountName} from {line.FundCode}?"))
+        lineToRemove = line;
+        removeDialog.Show();
+    }
+
+    private async Task<bool> ConfirmRemoveAsync()
+    {
+        if (lineToRemove is not null)
         {
-            return;
+            await ApplyAsync(() => BudgetEntry.RemoveLineAsync(VersionId, lineToRemove.Id), "Line removed.");
         }
 
-        await ApplyAsync(() => BudgetEntry.RemoveLineAsync(VersionId, line.Id), "Line removed.");
+        return true;
     }
 
     private async Task ApplyAsync(Func<Task<Result>> action, string successMessage)
     {
         Result result = await action();
-        lastResult = result.IsSuccess ? null : result;
-        savedMessage = result.IsSuccess ? successMessage : null;
-        await LoadAsync();
-    }
+        if (result.IsSuccess)
+        {
+            Toasts.Success(successMessage);
+        }
+        else
+        {
+            Toasts.Danger(result.Errors[0].Message);
+        }
 
-    private async Task OnWorkflowChangedAsync(string message)
-    {
-        savedMessage = message;
-        lastResult = null;
         await LoadAsync();
     }
 

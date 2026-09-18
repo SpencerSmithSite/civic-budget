@@ -1,0 +1,28 @@
+@* A labeled number with an optional one-line delta or context. Tone colors only the top rule. *@
+<div class="card cb-kpi @Tone">
+    <div class="cb-eyebrow">@Label</div>
+    <div class="v">@Value</div>
+    @if (Detail is not null)
+    {
+        <div class="d @DetailTone">@Detail</div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string Value { get; set; } = "";
+
+    [Parameter]
+    public string? Detail { get; set; }
+
+    /// <summary>"ok", "warn", "bad", or empty for navy.</summary>
+    [Parameter]
+    public string Tone { get; set; } = "";
+
+    /// <summary>"up", "down", or empty.</summary>
+    [Parameter]
+    public string DetailTone { get; set; } = "";
+}

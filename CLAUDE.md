@@ -58,6 +58,7 @@ Actions · AWS CDK (C#) deploy-ready (no account — see ADR-0008).
 - Never call `IgnoreQueryFilters()` in application code (tests may).
 - Identity tables are the one thing outside the tenant filter; `UserAdminService` scopes by government explicitly (ADR-0015).
 - Admin pages: `@rendermode InteractiveServer` + `[Authorize(Policy = Policies.X)]`; Account pages are static SSR.
+- UI: use `PageHeader` (sets breadcrumbs), `StatusPill`, `KpiCard`, `ConfirmDialog`, `RowMenu`, `EmptyState`, `SkeletonRows`, `ToastService`; grids use `table.cb-grid` inside `.cb-grid-wrap` (QuickGrid with `Theme="bootstrap"`). Tokens live in `wwwroot/app.css`; see `docs/design/DESIGN-BRIEF.md`. Never `window.confirm`.
 - Mark financial entities `[Audited]`; the interceptor does the rest. Use `AuditEntry.Event(...)` for named actions.
 - Domain invariants throw `DomainException`; user-input problems return a
   `Result` with errors.

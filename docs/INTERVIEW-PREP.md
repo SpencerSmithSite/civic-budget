@@ -471,3 +471,55 @@ inputs and validation. The workflow bar owns six of them.
   through an existing root (ADR-0018).
 - **Cache invalidation hook:** `IPublishedSnapshotCacheInvalidator` is
   called on publish/unpublish today and is a no-op until Phase 5.
+
+---
+
+## Phase 4.5 — Design pass
+
+### Q: How did you decide what it should look like?
+**A:** Research first. Three passes: which products Ohio governments
+actually run (UAN, VIP, Tyler Munis, OpenGov, Springbrook, BS&A, with
+named Ohio customers), what modern budgeting UIs do (Questica, Workday
+Adaptive, OpenGov), and what transparency portals do well and badly (Ohio
+Checkbook, OpenGov, ClearGov, Socrata). The brief distilled that into
+"a modern civic ERP that fits in next to VIP": module navigation, dense
+worksheets, toolbars, breadcrumbs, a workflow stepper, blue as the trust
+color, executed with one primary and one accent, white cards on grey,
+tabular numerals, one icon set, and designed states. Mockups were approved
+before any UI code.
+**Look at:** `docs/design/DESIGN-BRIEF.md`, `docs/design/research-*.md`, `docs/design/mockups.html`.
+
+### Q: How is the theme implemented without a front-end build?
+**A:** CSS custom properties for the tokens, mapped onto Bootstrap 5's own
+`--bs-*` variables in the same `:root` block, plus a handful of component
+rules. Bootstrap picks up the theme through its variables; there is no
+Sass, Node, or bundler. Bootstrap Icons is vendored as CSS and font files.
+**Look at:** `src/CivicBudget.Web/wwwroot/app.css` (first 60 lines).
+
+### Q: How does a page set the breadcrumb in the layout?
+**A:** Blazor parameters only flow down, so a scoped `AdminPageState`
+service carries the crumbs: `PageHeader` sets them, the layout subscribes
+to a `Changed` event and re-renders. Same pattern for toasts
+(`ToastService` and a `ToastHost` in the layout).
+**Look at:** `Components/Common/AdminPageState.cs`, `AdminLayout.razor`.
+
+### Q: Why is the sticky grid header conditional on screen width?
+**A:** A sticky header inside an `overflow-x: auto` wrapper sticks to the
+wrapper rather than the page and hides the first rows. Above 1200px the
+wrapper is `overflow: visible` and the header sticks under the top bar;
+below it the wrapper scrolls sideways and the header does not stick.
+**Look at:** `.cb-grid-wrap` in `app.css`.
+
+### Q: What did you do for accessibility?
+**A:** Tokens chosen for AA contrast, visible focus rings, Escape on
+dialogs and the drawer, labelled landmarks and menus, `aria-current` on
+the stepper, decorative icons hidden from assistive tech, reduced-motion
+respected. A screen-reader pass is scheduled for Phase 8.
+
+### General information worth having ready
+- Bootstrap 5.3 exposes most of its theme as CSS variables; overriding
+  `--bs-*` at `:root` is the supported no-build customization path.
+- QuickGrid's `Theme` parameter: any value other than `default` disables
+  its built-in styling.
+- `prefers-reduced-motion` is a media query; respect it for anything that
+  animates continuously (skeleton shimmer).

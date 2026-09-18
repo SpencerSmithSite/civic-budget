@@ -1,0 +1,42 @@
+@using CivicBudget.Domain.Budgets
+@using CivicBudget.Domain.Publishing
+@* One pill for every status in the system, so the same word always gets the same color. *@
+<span class="cb-pill @Css">@Text</span>
+
+@code {
+    [Parameter]
+    public BudgetStatus? Budget { get; set; }
+
+    [Parameter]
+    public SnapshotStatus? Snapshot { get; set; }
+
+    /// <summary>Free-form: "success", "warning", "danger", "info", or null for neutral.</summary>
+    [Parameter]
+    public string? Tone { get; set; }
+
+    [Parameter]
+    public string? Label { get; set; }
+
+    private string Text => Label ?? Budget?.ToString() ?? Snapshot?.ToString() ?? "";
+
+    private string Css => Budget switch
+    {
+        BudgetStatus.Draft => "",
+        BudgetStatus.Proposed => "cb-pill-info",
+        BudgetStatus.Adopted => "cb-pill-success",
+        _ => Snapshot switch
+        {
+            SnapshotStatus.Active => "cb-pill-success",
+            SnapshotStatus.Superseded => "",
+            SnapshotStatus.Unpublished => "cb-pill-warning",
+            _ => Tone switch
+            {
+                "success" => "cb-pill-success",
+                "warning" => "cb-pill-warning",
+                "danger" => "cb-pill-danger",
+                "info" => "cb-pill-info",
+                _ => "",
+            },
+        },
+    };
+}

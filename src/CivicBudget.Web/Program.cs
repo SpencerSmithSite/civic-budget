@@ -4,6 +4,7 @@ using CivicBudget.Infrastructure.Persistence;
 using CivicBudget.Infrastructure.Seed;
 using CivicBudget.Web.Components;
 using CivicBudget.Web.Components.Account;
+using CivicBudget.Web.Components.Common;
 using CivicBudget.Web.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -68,6 +69,8 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 builder.Services.AddScoped<CircuitHandler, CurrentUserCircuitHandler>();
+builder.Services.AddScoped<AdminPageState>();
+builder.Services.AddScoped<ToastService>();
 
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<CivicBudgetDbContext>("database", tags: ["ready"]);

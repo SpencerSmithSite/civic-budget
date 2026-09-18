@@ -1,22 +1,24 @@
-@* One money value that is either printed or, when the line is editable, an input that saves on change.
-   Typing is local; nothing is sent until the field loses focus or Enter is pressed, so the grid stays
-   responsive over the circuit. *@
+@* One money value. Read-only lines print it; editable lines render an input that looks like the
+   value until hovered or focused and saves on change. Typing is local: nothing crosses the circuit
+   until the field loses focus or Enter is pressed. While the save round-trip runs the value shows
+   in "unsaved" blue (a convention from planning tools like Adaptive). *@
 @if (CanEdit)
 {
     <input type="text" inputmode="decimal"
-           class="form-control form-control-sm text-end @(invalid ? "is-invalid" : "")"
+           class="cb-amount-input @(invalid ? "is-invalid" : "") @(saving ? "cb-saving" : "")"
            value="@Value.ToString("N2", Culture)"
            aria-label="@Label"
            @onchange="OnChangedAsync" />
 }
 else
 {
-    <span class="text-end d-block">@Display.Money(Value)</span>
+    <span class="cb-num d-block">@Display.Money(Value)</span>
 }
 
 @code {
     private static readonly System.Globalization.CultureInfo Culture = System.Globalization.CultureInfo.GetCultureInfo("en-US");
     private bool invalid;
+    private bool saving;
 
     [Parameter, EditorRequired]
     public decimal Value { get; set; }
@@ -40,9 +42,19 @@ else
         }
 
         invalid = false;
-        if (parsed != Value)
+        if (parsed == Value)
+        {
+            return;
+        }
+
+        saving = true;
+        try
         {
             await ValueChanged.InvokeAsync(parsed);
+        }
+        finally
+        {
+            saving = false;
         }
     }
 }

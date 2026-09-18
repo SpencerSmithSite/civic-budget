@@ -1,31 +1,126 @@
 @inherits LayoutComponentBase
-@layout MainLayout
+@implements IDisposable
+@inject AdminPageState PageState
+@inject IGovernmentSettingsService SettingsService
+@using CivicBudget.Application.Setup
 
-@* Two-column admin shell: a navigation column and the page. Links are shown per policy so a Viewer
-   never sees a "Users" link they cannot use (the pages are still protected server-side). *@
-<div class="d-flex flex-column flex-md-row gap-4">
-    <nav class="admin-nav" aria-label="Admin navigation">
-        <ul class="nav nav-pills flex-column">
-            <li class="nav-item"><NavLink class="nav-link" href="admin" Match="NavLinkMatch.All">Overview</NavLink></li>
-            <AuthorizeView Policy="@Policies.CanViewBudget">
-                <li class="nav-item mt-2 small text-uppercase text-secondary px-3">Budget</li>
-                <li class="nav-item"><NavLink class="nav-link" href="admin/budgets">Budget versions</NavLink></li>
+@* The admin shell: a dark sidebar of module groups, a white top bar with the page's breadcrumb
+   trail and the signed-in user, and the page. Links are shown per policy so a Viewer never sees
+   a "Users" link they cannot use (the pages are still protected server-side). Under 992px the
+   sidebar slides in over the page from a hamburger button. *@
+<div class="cb-shell">
+    <aside class="cb-sidebar @(menuOpen ? "open" : "")" id="admin-sidebar">
+        <a class="cb-brand" href="admin">
+            <span class="cb-seal" aria-hidden="true">CB</span>
+            <span><b>CivicBudget</b><small>@(governmentName ?? "")</small></span>
+        </a>
+
+        <AuthorizeView Policy="@Policies.CanViewBudget">
+            <div class="cb-navgroup">Budget</div>
+            <nav class="nav cb-nav flex-column" aria-label="Budget">
+                <NavLink class="nav-link" href="admin" Match="NavLinkMatch.All" @onclick="CloseMenu"><i class="bi bi-grid-1x2" aria-hidden="true"></i>Overview</NavLink>
+                <NavLink class="nav-link" href="admin/budgets" @onclick="CloseMenu"><i class="bi bi-journal-text" aria-hidden="true"></i>Budget versions</NavLink>
+            </nav>
+        </AuthorizeView>
+        <AuthorizeView Policy="@Policies.CanMaintainSetup">
+            <div class="cb-navgroup">Setup</div>
+            <nav class="nav cb-nav flex-column" aria-label="Setup">
+                <NavLink class="nav-link" href="admin/funds" @onclick="CloseMenu"><i class="bi bi-bank" aria-hidden="true"></i>Funds</NavLink>
+                <NavLink class="nav-link" href="admin/departments" @onclick="CloseMenu"><i class="bi bi-diagram-3" aria-hidden="true"></i>Departments</NavLink>
+                <NavLink class="nav-link" href="admin/accounts" @onclick="CloseMenu"><i class="bi bi-list-columns" aria-hidden="true"></i>Chart of accounts</NavLink>
+                <NavLink class="nav-link" href="admin/fiscal-years" @onclick="CloseMenu"><i class="bi bi-calendar3" aria-hidden="true"></i>Fiscal years</NavLink>
+            </nav>
+        </AuthorizeView>
+        <AuthorizeView Policy="@Policies.CanManageUsers">
+            <div class="cb-navgroup">Administration</div>
+            <nav class="nav cb-nav flex-column" aria-label="Administration">
+                <NavLink class="nav-link" href="admin/users" @onclick="CloseMenu"><i class="bi bi-people" aria-hidden="true"></i>Users</NavLink>
+                <NavLink class="nav-link" href="admin/settings" @onclick="CloseMenu"><i class="bi bi-sliders" aria-hidden="true"></i>Government settings</NavLink>
+            </nav>
+        </AuthorizeView>
+        <div class="cb-navgroup">Public portal</div>
+        <nav class="nav cb-nav flex-column" aria-label="Public portal">
+            <NavLink class="nav-link" href="admin/budgets#publishing" @onclick="CloseMenu"><i class="bi bi-megaphone" aria-hidden="true"></i>Publishing history</NavLink>
+            <a class="nav-link" href="transparency/@publicSlug" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>Open portal</a>
+        </nav>
+        <div class="cb-sidebar-foot">Ohio fund accounting · @fiscalYearNote</div>
+    </aside>
+
+    @if (menuOpen)
+    {
+        <div class="cb-drawer-backdrop d-lg-none" @onclick="CloseMenu"></div>
+    }
+
+    <div>
+        <header class="cb-topbar">
+            <button type="button" class="btn btn-outline-primary btn-sm cb-menu-toggle" aria-controls="admin-sidebar" aria-expanded="@menuOpen" @onclick="() => menuOpen = !menuOpen">
+                <i class="bi bi-list" aria-hidden="true"></i><span class="visually-hidden">Menu</span>
+            </button>
+            <ol class="cb-crumbs" aria-label="Breadcrumb">
+                @foreach (Crumb crumb in PageState.Crumbs)
+                {
+                    <li>@if (crumb.Href is not null) { <a href="@crumb.Href">@crumb.Text</a> } else { @crumb.Text }</li>
+                }
+            </ol>
+            <div class="flex-grow-1"></div>
+            <AuthorizeView>
+                <div class="dropdown">
+                    <button type="button" class="btn btn-link text-decoration-none p-0 cb-user" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span class="cb-avatar" aria-hidden="true">@Initials(context.User.FindFirst(ClaimNames.DisplayName)?.Value)</span>
+                        <span class="d-none d-sm-block text-start text-body">@context.User.FindFirst(ClaimNames.DisplayName)?.Value<small>@string.Join(", ", context.User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => Roles.DisplayName(c.Value)))</small></span>
+                        <i class="bi bi-chevron-down small text-body" aria-hidden="true"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="Account/Manage"><i class="bi bi-person me-2" aria-hidden="true"></i>Profile</a></li>
+                        <li><a class="dropdown-item" href="Account/Manage/ChangePassword"><i class="bi bi-key me-2" aria-hidden="true"></i>Change password</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form action="Account/Logout" method="post">
+                                <AntiforgeryToken />
+                                <input type="hidden" name="ReturnUrl" value="" />
+                                <button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-right me-2" aria-hidden="true"></i>Log out</button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
             </AuthorizeView>
-            <AuthorizeView Policy="@Policies.CanMaintainSetup">
-                <li class="nav-item mt-2 small text-uppercase text-secondary px-3">Setup</li>
-                <li class="nav-item"><NavLink class="nav-link" href="admin/funds">Funds</NavLink></li>
-                <li class="nav-item"><NavLink class="nav-link" href="admin/departments">Departments</NavLink></li>
-                <li class="nav-item"><NavLink class="nav-link" href="admin/accounts">Chart of accounts</NavLink></li>
-                <li class="nav-item"><NavLink class="nav-link" href="admin/fiscal-years">Fiscal years</NavLink></li>
-            </AuthorizeView>
-            <AuthorizeView Policy="@Policies.CanManageUsers">
-                <li class="nav-item mt-2 small text-uppercase text-secondary px-3">Administration</li>
-                <li class="nav-item"><NavLink class="nav-link" href="admin/users">Users</NavLink></li>
-                <li class="nav-item"><NavLink class="nav-link" href="admin/settings">Government settings</NavLink></li>
-            </AuthorizeView>
-        </ul>
-    </nav>
-    <div class="admin-main">
-        @Body
+        </header>
+        <main class="cb-main">
+            @Body
+        </main>
     </div>
 </div>
+<ToastHost />
+
+@code {
+    private bool menuOpen;
+    private string? governmentName;
+    private string publicSlug = "";
+    private string fiscalYearNote = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        PageState.Changed += OnPageStateChanged;
+        GovernmentSettingsDto government = await SettingsService.GetAsync();
+        governmentName = government.Name;
+        publicSlug = government.PublicSlug;
+        fiscalYearNote = "FY starts " + System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(government.FiscalYearStartMonth);
+    }
+
+    private void OnPageStateChanged() => InvokeAsync(StateHasChanged);
+
+    private void CloseMenu() => menuOpen = false;
+
+    private static string Initials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return "?";
+        }
+
+        string[] parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Where(p => char.IsLetter(p[0])).ToArray();
+        return parts.Length >= 2 ? $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant() : name[..1].ToUpperInvariant();
+    }
+
+    public void Dispose() => PageState.Changed -= OnPageStateChanged;
+}

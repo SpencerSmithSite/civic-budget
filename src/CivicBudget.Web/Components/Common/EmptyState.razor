@@ -1,0 +1,20 @@
+<div class="cb-empty">
+    <i class="bi @Icon" aria-hidden="true"></i>
+    <h2>@Title</h2>
+    <p>@Text</p>
+    @ChildContent
+</div>
+
+@code {
+    [Parameter]
+    public string Icon { get; set; } = "bi-inbox";
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public string? Text { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

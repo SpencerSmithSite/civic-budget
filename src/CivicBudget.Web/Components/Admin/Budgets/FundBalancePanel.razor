@@ -1,69 +1,54 @@
-@* Per-fund estimated resources vs. appropriations, with the appropriation limit result. The
-   numbers come from the service; this component only prints and colors them. *@
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <span>Fund balances</span>
-        @if (Balances.Any(b => b.Limit.BlocksWorkflow))
-        {
-            <span class="badge text-bg-danger">Over limit</span>
-        }
-        else if (Balances.Any(b => b.Limit.Severity == AppropriationLimitSeverity.Warning))
-        {
-            <span class="badge text-bg-warning">Warning</span>
-        }
-        else
-        {
-            <span class="badge text-bg-success">In balance</span>
-        }
+@* Per-fund cards: the projected ending balance is the number that matters, so it is the big one;
+   resources and appropriations sit under it. The colored rule and pill carry the limit result. *@
+<div class="cb-fund-rail">
+    <div class="cb-eyebrow mb-2 d-flex align-items-center">
+        <span>Fund balances · projected ending</span>
+        <span class="ms-auto">
+            @if (Balances.Any(b => b.Limit.BlocksWorkflow))
+            {
+                <StatusPill Tone="danger" Label="Over limit" />
+            }
+            else if (Balances.Any(b => b.Limit.Severity == AppropriationLimitSeverity.Warning))
+            {
+                <StatusPill Tone="warning" Label="Warning" />
+            }
+            else
+            {
+                <StatusPill Tone="success" Label="In balance" />
+            }
+        </span>
     </div>
-    <div class="table-responsive">
-        <table class="table table-sm mb-0 fund-balance-table">
-            <thead>
-                <tr>
-                    <th scope="col">Fund</th>
-                    <th scope="col" class="text-end">Beginning balance</th>
-                    <th scope="col" class="text-end">Revenues + transfers in</th>
-                    <th scope="col" class="text-end">Estimated resources</th>
-                    <th scope="col" class="text-end">Appropriations</th>
-                    <th scope="col" class="text-end">Projected ending</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (FundBalanceDto fund in Balances)
-                {
-                    string rowClass = fund.Limit.Severity switch
-                    {
-                        AppropriationLimitSeverity.Error => "table-danger",
-                        AppropriationLimitSeverity.Warning => "table-warning",
-                        _ => "",
-                    };
-                    <tr class="@rowClass">
-                        <th scope="row">
-                            @fund.FundCode @fund.FundName
-                            @if (!fund.Summary.IsWithinAppropriationLimit)
-                            {
-                                <div class="small fw-normal">
-                                    Appropriations exceed estimated resources by <strong>@Display.Money(fund.Limit.AmountOverLimit)</strong>.
-                                </div>
-                            }
-                        </th>
-                        <td>
-                            <AmountCell Value="fund.Summary.BeginningBalance" CanEdit="fund.CanEditBeginningBalance"
-                                        Label="@($"Beginning balance for {fund.FundCode}")"
-                                        ValueChanged="amount => OnBeginningBalanceChanged.InvokeAsync((fund.FundId, amount))" />
-                        </td>
-                        <td class="text-end">@Display.Money(fund.Summary.Revenues + fund.Summary.TransfersIn)</td>
-                        <td class="text-end fw-semibold">@Display.Money(fund.Summary.EstimatedResources)</td>
-                        <td class="text-end fw-semibold">@Display.Money(fund.Summary.Appropriations)</td>
-                        <td class="text-end @(fund.Summary.ProjectedEndingBalance < 0 ? "text-danger fw-bold" : "")">@Display.Money(fund.Summary.ProjectedEndingBalance)</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-    <div class="card-footer small text-secondary">
-        Estimated resources = beginning balance + revenues + transfers in. Appropriations = expenditures + transfers out.
-        Ohio law caps appropriations at certified estimated resources.
+    @foreach (FundBalanceDto fund in Balances)
+    {
+        string tone = fund.Limit.Severity switch
+        {
+            AppropriationLimitSeverity.Error => "bad",
+            AppropriationLimitSeverity.Warning => "warn",
+            _ => "",
+        };
+        <div class="card cb-fund @tone">
+            <div class="name">@fund.FundCode <span>@fund.FundName</span></div>
+            <div class="v">@Display.SignedOrPlain(fund.Summary.ProjectedEndingBalance)</div>
+            <div class="rows">
+                <span>Beginning balance</span>
+                <span>
+                    <AmountCell Value="fund.Summary.BeginningBalance" CanEdit="fund.CanEditBeginningBalance"
+                                Label="@($"Beginning balance for {fund.FundCode}")"
+                                ValueChanged="amount => OnBeginningBalanceChanged.InvokeAsync((fund.FundId, amount))" />
+                </span>
+                <span>Estimated resources</span><b>@Display.Money(fund.Summary.EstimatedResources)</b>
+                <span>Appropriations</span><b>@Display.Money(fund.Summary.Appropriations)</b>
+            </div>
+            @if (!fund.Summary.IsWithinAppropriationLimit)
+            {
+                <div class="mt-2 small">
+                    Over estimated resources by <strong>@Display.Money(fund.Limit.AmountOverLimit)</strong>@(fund.Limit.BlocksWorkflow ? "; blocks proposal and adoption." : ".")
+                </div>
+            }
+        </div>
+    }
+    <div class="small text-secondary lh-sm">
+        Estimated resources = beginning balance + revenues + transfers in. Appropriations = expenditures + transfers out. Ohio law caps appropriations at certified estimated resources.
     </div>
 </div>
 

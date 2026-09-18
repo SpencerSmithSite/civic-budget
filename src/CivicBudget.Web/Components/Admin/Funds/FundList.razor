@@ -2,64 +2,79 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.CanMaintainSetup)]
 @inject IFundService FundService
-@inject IJSRuntime JS
+@inject ToastService Toasts
 
 <PageTitle>Funds</PageTitle>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h3 mb-0">Funds</h1>
-    <a class="btn btn-primary" href="admin/funds/new">New fund</a>
-</div>
+<PageHeader Title="Funds" Eyebrow="Setup" Crumbs="@([new Crumb("Setup"), new Crumb("Funds")])">
+    <Subtitle>Self-balancing sets of accounts. Codes follow the Ohio UAN chart so they read naturally to fiscal officers.</Subtitle>
+    <Actions><a class="btn btn-primary btn-sm" href="admin/funds/new"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>New fund</a></Actions>
+</PageHeader>
 
-<div class="row g-2 mb-3">
-    <div class="col-md-4">
+<div class="card">
+    <div class="cb-toolbar">
         <input class="form-control" placeholder="Search code or name" @bind="search" @bind:event="oninput" aria-label="Search funds" />
-    </div>
-    <div class="col-md-4 d-flex align-items-center">
-        <div class="form-check">
+        <div class="form-check ms-2">
             <input class="form-check-input" type="checkbox" id="includeInactive" @bind="includeInactive" @bind:after="LoadAsync" />
-            <label class="form-check-label" for="includeInactive">Show inactive</label>
+            <label class="form-check-label small" for="includeInactive">Show inactive</label>
         </div>
     </div>
+    @if (funds is null)
+    {
+        <SkeletonRows Rows="5" Columns="5" />
+    }
+    else if (!Filtered.Any())
+    {
+        <EmptyState Icon="bi-bank" Title="@(funds.Count == 0 ? "No funds yet" : "No funds match")" Text="@(funds.Count == 0 ? "Create the General fund first; every government has one." : "Try a different search.")">
+            @if (funds.Count == 0) { <a class="btn btn-primary btn-sm" href="admin/funds/new">New fund</a> }
+        </EmptyState>
+    }
+    else
+    {
+        <div class="cb-grid-wrap">
+            <QuickGrid Items="Filtered" Theme="bootstrap" Class="cb-grid" Pagination="pagination">
+                <PropertyColumn Property="f => f.Code" Sortable="true" />
+                <PropertyColumn Property="f => f.Name" Sortable="true" Class="cb-wrap" />
+                <TemplateColumn Title="Category" SortBy="GridSort<FundDto>.ByAscending(f => f.Category)">
+                    @Display.Enum(context.Category) <span class="cb-code">(@context.Group)</span>
+                </TemplateColumn>
+                <TemplateColumn Title="Description" Class="cb-wrap"><span class="small text-secondary">@context.Description</span></TemplateColumn>
+                <TemplateColumn Title="Status">
+                    @if (context.IsActive) { <StatusPill Tone="success" Label="Active" /> } else { <StatusPill Label="Inactive" /> }
+                </TemplateColumn>
+                <TemplateColumn Title="" Align="Align.End">
+                    <RowMenu Label="@($"Actions for {context.Code}")">
+                        <li><a class="dropdown-item" href="admin/funds/@context.Id"><i class="bi bi-pencil me-2" aria-hidden="true"></i>Edit</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        @if (context.IsActive)
+                        {
+                            <li><button type="button" class="dropdown-item" @onclick="() => Ask(context, false)"><i class="bi bi-archive me-2" aria-hidden="true"></i>Deactivate</button></li>
+                        }
+                        else
+                        {
+                            <li><button type="button" class="dropdown-item" @onclick="() => Ask(context, true)"><i class="bi bi-arrow-counterclockwise me-2" aria-hidden="true"></i>Reactivate</button></li>
+                        }
+                    </RowMenu>
+                </TemplateColumn>
+            </QuickGrid>
+        </div>
+        <div class="cb-grid-foot"><span>@Filtered.Count() funds</span><Paginator State="pagination" /></div>
+    }
 </div>
 
-@if (funds is null)
-{
-    <p>Loading...</p>
-}
-else
-{
-    <QuickGrid Items="Filtered" Class="table table-striped table-hover" Pagination="pagination">
-        <PropertyColumn Property="f => f.Code" Sortable="true" />
-        <PropertyColumn Property="f => f.Name" Sortable="true" />
-        <TemplateColumn Title="Category" SortBy="GridSort<FundDto>.ByAscending(f => f.Category)">
-            @Display.Enum(context.Category) <span class="text-secondary small">(@context.Group)</span>
-        </TemplateColumn>
-        <TemplateColumn Title="Status">
-            @if (context.IsActive) { <span class="badge text-bg-success">Active</span> } else { <span class="badge text-bg-secondary">Inactive</span> }
-        </TemplateColumn>
-        <TemplateColumn Title="" Align="Align.End">
-            <a class="btn btn-sm btn-outline-primary" href="admin/funds/@context.Id">Edit</a>
-            @if (context.IsActive)
-            {
-                <button class="btn btn-sm btn-outline-secondary ms-1" @onclick="() => SetActiveAsync(context, false)">Deactivate</button>
-            }
-            else
-            {
-                <button class="btn btn-sm btn-outline-success ms-1" @onclick="() => SetActiveAsync(context, true)">Reactivate</button>
-            }
-        </TemplateColumn>
-    </QuickGrid>
-    <Paginator State="pagination" />
-}
+<ConfirmDialog @ref="dialog" Title="@($"{(pendingActive ? "Reactivate" : "Deactivate")} {pending?.Code} {pending?.Name}?")" ConfirmText="@(pendingActive ? "Reactivate" : "Deactivate")" ConfirmClass="@(pendingActive ? "btn-primary" : "btn-danger")" OnConfirm="ConfirmAsync">
+    <Body><p>@(pendingActive ? "The fund will accept new budget lines again." : "Existing budget lines keep their history; new lines cannot use this fund.")</p></Body>
+</ConfirmDialog>
 
 @code {
     private IReadOnlyList<FundDto>? funds;
     private string search = "";
     private bool includeInactive;
     private readonly PaginationState pagination = new() { ItemsPerPage = 20 };
+    private ConfirmDialog dialog = default!;
+    private FundDto? pending;
+    private bool pendingActive;
 
-    // QuickGrid wants an IQueryable; filtering in memory is fine for a chart of accounts (tens of rows, not thousands).
     private IQueryable<FundDto> Filtered => (funds ?? [])
         .Where(f => string.IsNullOrWhiteSpace(search)
             || f.Code.Contains(search, StringComparison.OrdinalIgnoreCase)
@@ -70,15 +85,31 @@ else
 
     private async Task LoadAsync() => funds = await FundService.ListAsync(includeInactive);
 
-    private async Task SetActiveAsync(FundDto fund, bool isActive)
+    private void Ask(FundDto fund, bool isActive)
     {
-        string verb = isActive ? "Reactivate" : "Deactivate";
-        if (!await JS.InvokeAsync<bool>("confirm", $"{verb} fund {fund.Code} {fund.Name}?"))
+        pending = fund;
+        pendingActive = isActive;
+        dialog.Show();
+    }
+
+    private async Task<bool> ConfirmAsync()
+    {
+        if (pending is null)
         {
-            return;
+            return true;
         }
 
-        await FundService.SetActiveAsync(fund.Id, isActive);
+        Result result = await FundService.SetActiveAsync(pending.Id, pendingActive);
+        if (result.IsSuccess)
+        {
+            Toasts.Success($"{pending.Code} {pending.Name} {(pendingActive ? "reactivated" : "deactivated")}.");
+        }
+        else
+        {
+            Toasts.Danger(result.Errors[0].Message);
+        }
+
         await LoadAsync();
+        return true;
     }
 }

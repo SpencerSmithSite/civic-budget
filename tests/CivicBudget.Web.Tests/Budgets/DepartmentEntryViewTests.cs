@@ -17,6 +17,7 @@ public class DepartmentEntryViewTests : BunitContext
     public void Renders_category_subtotals_and_fund_totals()
     {
         IRenderedComponent<DepartmentEntryView> view = Render<DepartmentEntryView>(p => p
+            .Add(x => x.FiscalYear, 2027)
             .Add(x => x.Lines,
             [
                 Line("5110", ReportingCategory.PersonalServices, 300m, 280m, canEdit: false),
@@ -26,10 +27,10 @@ public class DepartmentEntryViewTests : BunitContext
 
         Assert.Contains("PD Police", view.Find("h2").TextContent);
         Assert.Contains("Subtotal, Personal Services", view.Markup);
-        Assert.Contains("$350.00", view.Markup);                         // category subtotal
+        Assert.Contains("350.00", view.Markup);                          // category subtotal
         Assert.Contains("Total, 1000 General Fund", view.Markup);
-        Assert.Contains("$370.00", view.Markup);                         // fund total
-        Assert.Contains("Department total: $370.00", view.Markup);
+        Assert.Contains("370.00", view.Markup);                          // fund total
+        Assert.Contains("Department total $370.00", view.Markup);
         Assert.Empty(view.FindAll("input"));                              // nothing editable
     }
 
@@ -39,6 +40,7 @@ public class DepartmentEntryViewTests : BunitContext
         (Guid LineId, decimal Amount)? received = null;
         BudgetLineDto line = Line("5110", ReportingCategory.PersonalServices, 300m, 280m, canEdit: true);
         IRenderedComponent<DepartmentEntryView> view = Render<DepartmentEntryView>(p => p
+            .Add(x => x.FiscalYear, 2027)
             .Add(x => x.Lines, [line])
             .Add(x => x.OnAmountChanged, change => received = change));
 

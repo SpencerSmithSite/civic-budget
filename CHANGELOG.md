@@ -5,6 +5,16 @@ All notable changes to CivicBudget. Format loosely follows
 
 ## [Unreleased]
 
+## Phase 4.5 — 2026-09-18
+### Added
+- Design research (Ohio vendors, admin budgeting UIs, transparency portals), design brief, and eight approved mockups under `docs/design/`.
+- Theme: design tokens as CSS variables over Bootstrap; Bootstrap Icons vendored.
+- Admin shell with dark module sidebar, breadcrumb top bar, user menu, and off-canvas navigation on small screens.
+- Components: page header, status pills, workflow stepper, KPI cards, toasts, restyled confirm dialog, side drawer, row menus, empty and skeleton states.
+### Changed
+- Every admin screen restyled: workspace with fund rail and grouped worksheet, overview with budget KPIs and activity, all lists, users, settings, login, home, account pages.
+- `window.confirm` removed; outcomes reported with toasts.
+
 ## Phase 4 — 2026-09-17
 ### Added
 - Workflow: Propose, Return to draft, Adopt with resolution number; Ohio appropriation limit enforced at transitions (Block refuses, Warn requires acknowledgement); audit events per transition.

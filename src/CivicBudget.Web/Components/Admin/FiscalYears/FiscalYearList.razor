@@ -2,59 +2,77 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.CanMaintainSetup)]
 @inject IFiscalYearService FiscalYearService
-@inject IJSRuntime JS
+@inject ToastService Toasts
 
 <PageTitle>Fiscal years</PageTitle>
 
-<h1 class="h3">Fiscal years</h1>
+<PageHeader Title="Fiscal years" Eyebrow="Setup" Crumbs="@([new Crumb("Setup"), new Crumb("Fiscal years")])">
+    <Subtitle>Dates follow the government's fiscal year start month. Closed years accept no new budget versions.</Subtitle>
+</PageHeader>
 
-<div class="row">
+<div class="row g-3">
     <div class="col-lg-8">
-        @if (fiscalYears is null)
-        {
-            <p>Loading...</p>
-        }
-        else
-        {
-            <QuickGrid Items="fiscalYears.AsQueryable()" Class="table table-striped">
-                <PropertyColumn Property="fy => fy.Label" Title="Year" />
-                <PropertyColumn Property="fy => fy.StartDate" Title="Starts" Format="MMM d, yyyy" />
-                <PropertyColumn Property="fy => fy.EndDate" Title="Ends" Format="MMM d, yyyy" />
-                <PropertyColumn Property="fy => fy.VersionCount" Title="Budget versions" Align="Align.End" />
-                <TemplateColumn Title="Status">
-                    @if (context.IsClosed) { <span class="badge text-bg-secondary">Closed</span> } else { <span class="badge text-bg-success">Open</span> }
-                </TemplateColumn>
-                <TemplateColumn Title="" Align="Align.End">
-                    @if (context.IsClosed)
-                    {
-                        <button class="btn btn-sm btn-outline-success" @onclick="() => SetClosedAsync(context, false)">Reopen</button>
-                    }
-                    else
-                    {
-                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => SetClosedAsync(context, true)">Close</button>
-                    }
-                </TemplateColumn>
-            </QuickGrid>
-        }
+        <div class="card">
+            @if (fiscalYears is null)
+            {
+                <SkeletonRows Rows="4" Columns="5" />
+            }
+            else
+            {
+                <div class="cb-grid-wrap">
+                    <table class="cb-grid">
+                        <thead><tr><th>Year</th><th>Starts</th><th>Ends</th><th class="cb-num">Budget versions</th><th>Status</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (FiscalYearDto fy in fiscalYears)
+                            {
+                                <tr>
+                                    <td class="fw-semibold">@fy.Label</td>
+                                    <td>@fy.StartDate.ToString("MMM d, yyyy")</td>
+                                    <td>@fy.EndDate.ToString("MMM d, yyyy")</td>
+                                    <td class="cb-num">@fy.VersionCount</td>
+                                    <td>@if (fy.IsClosed) { <StatusPill Label="Closed" /> } else { <StatusPill Tone="success" Label="Open" /> }</td>
+                                    <td class="text-end">
+                                        <RowMenu Label="@($"Actions for {fy.Label}")">
+                                            @if (fy.IsClosed)
+                                            {
+                                                <li><button type="button" class="dropdown-item" @onclick="() => Ask(fy, false)"><i class="bi bi-unlock me-2" aria-hidden="true"></i>Reopen</button></li>
+                                            }
+                                            else
+                                            {
+                                                <li><button type="button" class="dropdown-item" @onclick="() => Ask(fy, true)"><i class="bi bi-lock me-2" aria-hidden="true"></i>Close</button></li>
+                                            }
+                                        </RowMenu>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
     </div>
     <div class="col-lg-4">
         <div class="card">
+            <div class="card-header">Add a fiscal year</div>
             <div class="card-body">
-                <h2 class="h5">Add a fiscal year</h2>
-                <p class="text-secondary small">Dates follow the government's fiscal year start month. Closed years accept no new budget versions.</p>
                 <ResultAlert Result="result" />
                 <EditForm EditContext="editContext" OnSubmit="CreateAsync">
                     <div class="mb-3">
-                        <label class="form-label" for="year">Year</label>
+                        <label class="form-label fw-semibold" for="year">Year</label>
                         <InputNumber id="year" class="form-control" @bind-Value="model.Year" />
                         <ValidationMessage For="() => model.Year" class="text-danger" />
+                        <div class="form-text">The label year is the calendar year in which the fiscal year ends.</div>
                     </div>
-                    <button type="submit" class="btn btn-primary">Add</button>
+                    <button type="submit" class="btn btn-primary">Add year</button>
                 </EditForm>
             </div>
         </div>
     </div>
 </div>
+
+<ConfirmDialog @ref="dialog" Title="@($"{(pendingClosed ? "Close" : "Reopen")} {pending?.Label}?")" ConfirmText="@(pendingClosed ? "Close year" : "Reopen year")" ConfirmClass="@(pendingClosed ? "btn-danger" : "btn-primary")" OnConfirm="ConfirmAsync">
+    <Body><p>@(pendingClosed ? "No new budget versions can be created for this year. Existing versions are unaffected." : "New budget versions can be created for this year again.")</p></Body>
+</ConfirmDialog>
 
 @code {
     private IReadOnlyList<FiscalYearDto>? fiscalYears;
@@ -62,6 +80,9 @@
     private EditContext editContext = default!;
     private ValidationMessageStore messages = default!;
     private Result? result;
+    private ConfirmDialog dialog = default!;
+    private FiscalYearDto? pending;
+    private bool pendingClosed;
 
     protected override async Task OnInitializedAsync()
     {
@@ -79,21 +100,38 @@
         editContext.ApplyErrors(messages, created);
         if (created.IsSuccess)
         {
+            Toasts.Success($"FY{model.Year} added.");
             model.Year++;
             await LoadAsync();
         }
     }
 
-    private async Task SetClosedAsync(FiscalYearDto fiscalYear, bool isClosed)
+    private void Ask(FiscalYearDto fiscalYear, bool isClosed)
     {
-        string verb = isClosed ? "Close" : "Reopen";
-        if (!await JS.InvokeAsync<bool>("confirm", $"{verb} {fiscalYear.Label}?"))
+        pending = fiscalYear;
+        pendingClosed = isClosed;
+        dialog.Show();
+    }
+
+    private async Task<bool> ConfirmAsync()
+    {
+        if (pending is null)
         {
-            return;
+            return true;
         }
 
-        await FiscalYearService.SetClosedAsync(fiscalYear.Id, isClosed);
+        Result changed = await FiscalYearService.SetClosedAsync(pending.Id, pendingClosed);
+        if (changed.IsSuccess)
+        {
+            Toasts.Success($"{pending.Label} {(pendingClosed ? "closed" : "reopened")}.");
+        }
+        else
+        {
+            Toasts.Danger(changed.Errors[0].Message);
+        }
+
         await LoadAsync();
+        return true;
     }
 
     private sealed class FormModel
