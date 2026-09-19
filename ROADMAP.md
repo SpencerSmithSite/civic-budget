@@ -133,12 +133,14 @@ there. Full account numbers read the Ohio way (fund-department-object, e.g. `100
 UAN village or `101-110-5100` for a county), and permissions follow the department assignment.
 
 ## Phase 9a — Ohio account numbers  `phase-9a-account-numbers`
-- [ ] Research note: UAN structure (fund-program-object for appropriations, fund-receipt for revenues; fund ranges by type), county/VIP-style variants; `docs/research/ohio-account-numbers.md`
-- [ ] `AccountNumberFormat` per government (segment widths, separator, middle-segment name "Program" or "Department"); `AccountNumber` value object that composes and parses `1000-725-121`, and `1000-110` for revenue lines
-- [ ] Full account number everywhere a line appears: workspace grids, line history, reports, exports, portal tables and search; search by full or partial number
-- [ ] Import accepts an `Account Number` column as an alternative to Fund/Department/Account
-- [ ] Seed: Maple Ridge as a UAN village (4-3-3), Pine Hollow with county-style 3-3-4 to show the format is per government
-- [ ] Tests for compose/parse/validate and the import column; walkthrough 10; ADR
+- [x] Research note: UAN structure (fund-program-object for appropriations, fund-receipt for revenues; fund ranges by type), county/VIP-style variants; `docs/research/ohio-account-numbers.md`
+- [x] `AccountNumberFormat` per government (segment widths, separator, middle-segment name "Program" or "Department"); `AccountNumber` value object that composes and parses `1000-725-121`, and `1000-110` for revenue lines; editable under Government settings with a live example
+- [x] Full account number everywhere a line appears: workspace grids, reports, exports, portal tables and download, portal and workspace search by full or partial number
+- [x] Import accepts an `Account Number` column as an alternative to Fund/Department/Account; the export writes both
+- [x] Seed: Maple Ridge department codes are UAN program numbers (110 Police, 620 Streets, 725 Finance); Pine Hollow uses a dotted "Department" format
+- [x] Snapshot lines store the composed number; migration backfills existing ones
+- [x] Tests: compose/parse/validate (Domain), parser column (Application), settings round trip, snapshot and search (integration); walkthrough 10; ADR-0024
+- [ ] Spencer approves Phase 9a
 
 ## Phase 9b — The chart comes from the ERP  `phase-9b-erp-chart`
 - [ ] `IErpChartSource` in Application: an adapter boundary for the parent ERP; first implementation reads VIP-style export files (funds, departments, objects with types and categories; optional prior-year actuals and current budgets)

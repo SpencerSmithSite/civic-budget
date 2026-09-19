@@ -543,3 +543,36 @@ runs sequentially because JSII is one process per test host); CI gained a `cdk-s
 Docker build. The Dockerfile must copy `.editorconfig` for the migration analyzer exemptions.
 Nothing here has been deployed; it has been synthesized and asserted on every commit.
 
+## ADR-0024 — Full account numbers are composed from the three stored codes under a per-government format
+**Date:** 2026-09-19 · **Status:** Accepted
+
+**Context.** v1.1 reframes CivicBudget as a plug-in beside the government's ERP. Staff think in
+full account numbers (`1000-725-121`, `101-110-5100`), and the ERP's chart decides how those are
+written (see `docs/research/ohio-account-numbers.md`). The model already stores fund, department,
+and object codes separately, and every rule (a department per expenditure line, revenue at fund
+level) hangs off those separate ids.
+
+**Decision.** Keep the three codes as the source of truth and compose the full number:
+- `AccountNumberFormat` is a value object owned by `Government` (five columns on its row):
+  segment widths, separator, and the middle segment's name. Editable in Government settings;
+  Phase 9b will populate it from the ERP chart.
+- `AccountNumber.Compose` and `TryParse` are pure functions in Domain. Composition pads numeric
+  codes to the width; parsing accepts any common separator or none and refuses text that is not
+  a number (fund must be numeric), so a search box can try the number first and fall back to names.
+- Every line DTO carries `AccountNumber`; the workspace DTO carries the format so screens use the
+  government's word ("Program" or "Department"). Published snapshot lines store the composed
+  number at publish time, backfilled by the migration for existing snapshots.
+- The import accepts an `Account Number` column as an alternative to the three code columns and
+  the export writes both, so the round trip works either way.
+- Seed department codes became UAN program numbers (110 Police, 620 Streets, 725 Finance) so the
+  demo reads like a real chart; Pine Hollow uses a dotted "Department" format to show the setting.
+
+**Alternatives.** Storing the full number on `BudgetLine` (duplicates three codes and drifts when
+a code is renamed); a single `Account` entity keyed by the full number (loses the fund and
+department as first-class things the rules and permissions depend on); a fixed 4-3-4 layout
+(would not fit a county ERP's chart, which is the point of the plug-in).
+
+**Consequences.** Numbers are computed, so a chart rename is reflected everywhere except in
+snapshots, which is intended. A fourth (cost-center) segment is not modelled; the value object is
+the place to add it.
+
