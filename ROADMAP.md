@@ -140,7 +140,7 @@ UAN village or `101-110-5100` for a county), and permissions follow the departme
 - [x] Seed: Maple Ridge department codes are UAN program numbers (110 Police, 620 Streets, 725 Finance); Pine Hollow uses a dotted "Department" format
 - [x] Snapshot lines store the composed number; migration backfills existing ones
 - [x] Tests: compose/parse/validate (Domain), parser column (Application), settings round trip, snapshot and search (integration); walkthrough 10; ADR-0024
-- [ ] Spencer approves Phase 9a
+- [x] Spencer approves Phase 9a (2026-09-19)
 
 ## Phase 9b — The chart comes from the ERP  `phase-9b-erp-chart`
 - [ ] `IErpChartSource` in Application: an adapter boundary for the parent ERP; first implementation reads VIP-style export files (funds, departments, objects with types and categories; optional prior-year actuals and current budgets)
