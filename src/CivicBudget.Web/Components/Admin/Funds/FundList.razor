@@ -2,12 +2,16 @@
 @attribute [Authorize(Policy = Policies.CanMaintainSetup)]
 @inject IFundService FundService
 @inject ToastService Toasts
+@inject CivicBudget.Application.Erp.IChartSyncService ChartSync
+@using CivicBudget.Web.Components.Admin.Chart
 
 <PageTitle>Funds</PageTitle>
 
 <PageHeader Title="Funds" Eyebrow="Setup" Crumbs="@([new Crumb("Setup"), new Crumb("Funds")])" Tip="Codes follow Ohio's UAN chart (1000 General, 2011 Street). An inactive fund keeps its history and takes no new lines.">
-    <Actions><a class="btn btn-outline-primary btn-sm" href="admin/export/setup/funds.xlsx"><i class="bi bi-file-earmark-spreadsheet me-1" aria-hidden="true"></i>Export XLSX</a><a class="btn btn-primary btn-sm" href="admin/funds/new"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>New fund</a></Actions>
+    <Actions><a class="btn btn-outline-primary btn-sm" href="admin/export/setup/funds.xlsx"><i class="bi bi-file-earmark-spreadsheet me-1" aria-hidden="true"></i>Export XLSX</a>@if (!erpManaged) { <a class="btn btn-primary btn-sm" href="admin/funds/new"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>New fund</a> }</Actions>
 </PageHeader>
+
+<ChartSourceBanner Status="chartStatus" />
 
 <div class="card">
     <div class="cb-toolbar">
@@ -41,6 +45,7 @@
                     @if (context.IsActive) { <StatusPill Tone="success" Label="Active" /> } else { <StatusPill Label="Inactive" /> }
                 </TemplateColumn>
                 <TemplateColumn Title="" Align="Align.End">
+                    @if (!erpManaged) {
                     <RowMenu Label="@($"Actions for {context.Code}")">
                         <li><a class="dropdown-item" href="admin/funds/@context.Id"><i class="bi bi-pencil me-2" aria-hidden="true"></i>Edit</a></li>
                         <li><hr class="dropdown-divider"></li>
@@ -53,6 +58,7 @@
                             <li><button type="button" class="dropdown-item" @onclick="() => Ask(context, true)"><i class="bi bi-arrow-counterclockwise me-2" aria-hidden="true"></i>Reactivate</button></li>
                         }
                     </RowMenu>
+                    }
                 </TemplateColumn>
             </QuickGrid>
         </div>
@@ -65,6 +71,9 @@
 </ConfirmDialog>
 
 @code {
+    private CivicBudget.Application.Erp.ChartSourceStatusDto? chartStatus;
+    private bool erpManaged => chartStatus?.Source == CivicBudget.Domain.Erp.ChartSource.Erp;
+
     private IReadOnlyList<FundDto>? funds;
     private string search = "";
     private bool includeInactive;
@@ -79,7 +88,11 @@
             || f.Name.Contains(search, StringComparison.OrdinalIgnoreCase))
         .AsQueryable();
 
-    protected override Task OnInitializedAsync() => LoadAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        chartStatus = await ChartSync.StatusAsync();
+        await LoadAsync();
+    }
 
     private async Task LoadAsync() => funds = await FundService.ListAsync(includeInactive);
 

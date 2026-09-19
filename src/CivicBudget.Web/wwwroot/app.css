@@ -1365,6 +1365,25 @@ table.cb-grid > thead > tr > th .cb-tip {
     }
 }
 
+/* "Managed by the ERP" notice on the setup lists. */
+.cb-erp-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    border: 1px solid #bfd3ee;
+    border-left: 4px solid var(--cb-info);
+    background: var(--cb-info-bg);
+    border-radius: var(--bs-border-radius);
+    font-size: 0.875rem;
+}
+
+.cb-erp-banner .bi {
+    color: var(--cb-info);
+    font-size: 1.125rem;
+}
+
 /* Government settings: the account number format fields in one row. */
 .cb-number-format legend {
     font-size: inherit;

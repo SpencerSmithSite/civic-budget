@@ -1,0 +1,29 @@
+@using CivicBudget.Application.Erp
+@using CivicBudget.Domain.Erp
+
+@* A one-line notice on the setup lists when the ERP owns the chart: what that means, when it was
+   last synced, and the way to bring changes in. Nothing is rendered when the chart is local. *@
+@if (Status?.Source == ChartSource.Erp)
+{
+    <div class="cb-erp-banner" role="status">
+        <i class="bi bi-cloud-download" aria-hidden="true"></i>
+        <span>
+            <b>Managed by the ERP.</b>
+            @if (Status.LastSyncedAtUtc is { } at)
+            {
+                <span> Last synced @at.ToLocalTime().ToString("MMM d, yyyy h:mm tt") by @Status.LastSyncedBy.</span>
+            }
+            else
+            {
+                <span> Not synced yet.</span>
+            }
+            <span> Changes come from the next sync, not from this screen.</span>
+        </span>
+        <a class="btn btn-outline-primary btn-sm ms-auto" href="admin/chart-sync"><i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>Sync</a>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public ChartSourceStatusDto? Status { get; set; }
+}
