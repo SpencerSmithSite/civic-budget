@@ -884,6 +884,91 @@ table.cb-grid th.col-justify-end .col-header-content {
 }
 
 /* --------------------------------------------------------------------------
+   Department entry (Phase 9d)
+   -------------------------------------------------------------------------- */
+
+/* The running total under the fund tables: one line, money first, change second. */
+.cb-dept-total {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 12px 18px;
+    border: 1px solid var(--cb-border);
+    border-left: 4px solid var(--cb-navy);
+    border-radius: 8px;
+    background: var(--cb-surface);
+    font-size: 0.875rem;
+}
+
+.cb-dept-total b {
+    font-size: 1.25rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.cb-narrative textarea {
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    resize: vertical;
+}
+
+.cb-narrative-text {
+    white-space: pre-line;
+    line-height: 1.55;
+    font-size: 0.9375rem;
+}
+
+/* The department board's status column: pill on the first line, who and when under it. */
+.cb-dept-status small {
+    display: block;
+    color: var(--cb-muted);
+    margin-top: 2px;
+}
+
+/* Workspace strip: one chip per department, its status carried by the dot color. */
+.cb-dept-strip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 10px 16px;
+    margin-bottom: 20px;
+    border: 1px solid var(--cb-border);
+    border-radius: 8px;
+    background: var(--cb-surface);
+    font-size: 0.8125rem;
+}
+
+.cb-dept-strip .name {
+    font-weight: 600;
+    margin-right: 4px;
+}
+
+.cb-dept-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border: 1px solid var(--cb-border);
+    border-radius: 999px;
+    color: var(--cb-text);
+    text-decoration: none;
+    background: var(--cb-canvas);
+}
+
+.cb-dept-chip:hover { border-color: var(--cb-navy); color: var(--cb-navy); }
+
+.cb-dept-chip .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--cb-border);
+}
+
+.cb-dept-chip.submitted .dot { background: var(--cb-success); }
+.cb-dept-chip.returned .dot { background: var(--cb-warning); }
+
+/* --------------------------------------------------------------------------
    Fund balance rail
    -------------------------------------------------------------------------- */
 
@@ -1549,6 +1634,20 @@ table.cb-grid.cb-report-table > tfoot > tr > th {
     max-width: 48ch;
 }
 
+/* The department's narrative under its heading on the Department Detail report. */
+.cb-report-table tr.cb-report-narrative > td {
+    white-space: normal;
+    padding: 10px 14px 14px;
+    background: var(--cb-canvas);
+    border-bottom: 1px solid var(--cb-border);
+}
+
+.cb-report-table tr.cb-report-narrative p {
+    max-width: 80ch;
+    margin-top: 4px;
+    font-size: 0.875rem;
+}
+
 .cb-report-filter {
     width: auto;
     min-width: 200px;
@@ -1841,6 +1940,24 @@ table.cb-grid.cb-report-table > tfoot > tr > th {
     font-size: 1.25rem;
     font-weight: 600;
     margin: 0;
+}
+
+/* The department's own words, set apart from the figures. */
+.pt-narrative { margin: 28px 0; }
+
+.pt-quote {
+    margin: 10px 0 0;
+    padding: 14px 18px;
+    border-left: 4px solid var(--cb-teal);
+    background: var(--cb-canvas);
+    border-radius: 0 8px 8px 0;
+    max-width: 76ch;
+}
+
+.pt-quote p {
+    margin: 0;
+    white-space: pre-line;
+    line-height: 1.6;
 }
 
 .pt-toggle {

@@ -9,7 +9,7 @@ namespace CivicBudget.Web.Security;
 public sealed class BudgetLineEditRequirement : IAuthorizationRequirement;
 
 /// <summary>What the handler needs to know about the line being edited. A DTO, so callers do not need a tracked entity.</summary>
-public sealed record BudgetLineResource(BudgetStatus VersionStatus, Guid? DepartmentId);
+public sealed record BudgetLineResource(BudgetStatus VersionStatus, Guid? DepartmentId, bool DepartmentSubmitted = false);
 
 /// <summary>
 /// Resource-based authorization: <c>authorizationService.AuthorizeAsync(user, resource, Policies.CanEditBudgetLine)</c>.
@@ -26,7 +26,7 @@ public sealed class BudgetLineEditHandler : AuthorizationHandler<BudgetLineEditR
         BudgetLineResource resource)
     {
         var user = new ClaimsPrincipalUser(context.User);
-        if (BudgetLinePermissions.CanEdit(user, resource.VersionStatus, resource.DepartmentId))
+        if (BudgetLinePermissions.CanEdit(user, resource.VersionStatus, resource.DepartmentId, resource.DepartmentSubmitted))
         {
             context.Succeed(requirement);
         }

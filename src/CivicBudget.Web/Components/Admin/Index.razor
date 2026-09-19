@@ -5,6 +5,7 @@
 @inject IPublishingService Publishing
 @inject IAuditQueryService AuditQuery
 @inject IFundService Funds
+@inject NavigationManager Navigation
 
 <PageTitle>Overview</PageTitle>
 
@@ -120,8 +121,18 @@ else
     private IReadOnlyList<AuditEntryDto>? activity;
     private int overLimit;
 
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
     protected override async Task OnInitializedAsync()
     {
+        // A department user's home is their department, not the government-wide overview (Phase 9d).
+        if ((await AuthenticationState).User.IsInRole(Roles.DepartmentHead))
+        {
+            Navigation.NavigateTo("admin/my-department", replace: true);
+            return;
+        }
+
         government = await SettingsService.GetAsync();
         versions = await BudgetEntry.ListVersionsAsync();
         snapshots = await Publishing.ListAsync();

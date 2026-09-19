@@ -18,6 +18,14 @@ else if (department is not null)
     }
     <p class="pt-lead">@MoneyShort.Format(department.Expenditures) budgeted for @Year in this fund.</p>
 
+    @if (department.Narrative is not null)
+    {
+        <section class="pt-section pt-narrative" aria-labelledby="narrative">
+            <h2 id="narrative" class="pt-q">From the department</h2>
+            <blockquote class="pt-quote"><p>@department.Narrative</p></blockquote>
+        </section>
+    }
+
     <Breakdown Title="By category" Data="department.ByCategory" ItemHeader="Category" Open="true"
                ShowPercent="ShowPercent" PageHref="@($"{Root}/funds/{FundCode}/departments/{DepartmentCode}")" />
 

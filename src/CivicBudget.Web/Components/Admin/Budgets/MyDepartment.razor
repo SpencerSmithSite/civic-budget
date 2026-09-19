@@ -1,0 +1,43 @@
+@page "/admin/my-department"
+@attribute [Authorize(Policy = Policies.CanViewBudget)]
+@inject IBudgetEntryService BudgetEntry
+@inject NavigationManager Navigation
+
+@* Phase 9d: where a department user lands after signing in. It finds the budget in progress and
+   sends the user straight to their department when they hold exactly one; otherwise to the
+   department board for that version, which lists the ones they may enter. *@
+<PageTitle>My department</PageTitle>
+
+@if (noOpenVersion)
+{
+    <PageHeader Title="My department" Eyebrow="Budget" Crumbs="@([new Crumb("Budget"), new Crumb("My department")])" />
+    <EmptyState Icon="bi-calendar-x" Title="No budget in progress" Text="There is nothing to enter right now. The fiscal officer opens the next year's budget or an amendment; adopted budgets are under Budget versions.">
+        <a class="btn btn-outline-primary" href="admin/budgets">Budget versions</a>
+    </EmptyState>
+}
+else
+{
+    <PageHeader Title="My department" Eyebrow="Budget" Crumbs="@([new Crumb("Budget"), new Crumb("My department")])" />
+    <SkeletonRows Rows="6" Columns="4" />
+}
+
+@code {
+    private bool noOpenVersion;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Versions come newest first; the one not yet adopted is the one being worked on.
+        BudgetVersionSummaryDto? open = (await BudgetEntry.ListVersionsAsync()).FirstOrDefault(v => v.Status != BudgetStatus.Adopted);
+        if (open is null)
+        {
+            noOpenVersion = true;
+            return;
+        }
+
+        BudgetWorkspaceDto? workspace = await BudgetEntry.GetWorkspaceAsync(open.Id);
+        string target = workspace?.DepartmentRequests.Count == 1
+            ? $"admin/budgets/{open.Id}/departments/{workspace.DepartmentRequests[0].DepartmentId}"
+            : $"admin/budgets/{open.Id}/departments";
+        Navigation.NavigateTo(target, replace: true);
+    }
+}

@@ -1,0 +1,425 @@
+@page "/admin/budgets/{VersionId:guid}/departments/{DepartmentId:guid}"
+@attribute [Authorize(Policy = Policies.CanViewBudget)]
+@using CivicBudget.Domain.Accounts
+@inject IBudgetEntryService BudgetEntry
+@inject IDepartmentRequestService Requests
+@inject ToastService Toasts
+
+@* Phase 9d: the department's own view of one budget version. A fire chief sees every account in
+   the fire department across its funds, enters the request, writes the narrative, and submits to
+   the fiscal officer. The officer sees the same page for any department and can return a request.
+   Everything the page may do arrives already decided in the DTO (CanEdit, CanSubmit, CanReturn). *@
+<PageTitle>@(request is null ? "Department" : $"{request.DepartmentName}, FY{workspace!.Version.Year}")</PageTitle>
+
+@if (notFound)
+{
+    <EmptyState Icon="bi-building-x" Title="Department not found" Text="This department has no place in that budget version, or you are not assigned to it.">
+        <a class="btn btn-primary" href="admin/my-department">My department</a>
+    </EmptyState>
+}
+else if (workspace is null || request is null)
+{
+    <PageHeader Title="Loading department" Eyebrow="Budget" Crumbs="@([new Crumb("Budget"), new Crumb("Departments"), new Crumb("…")])" />
+    <SkeletonRows Rows="8" Columns="6" />
+}
+else
+{
+    <PageHeader Title="@request.DepartmentName" Eyebrow="@($"{workspace.NumberFormat.DepartmentLabel} {request.DepartmentCode} · FY{workspace.Version.Year} {workspace.Version.Label}")"
+                Crumbs="@([new Crumb("Budget"), new Crumb("Departments", $"admin/budgets/{VersionId}/departments"), new Crumb(request.DepartmentName)])"
+                Tip="@(request.CanEditNarrative ? "Enter each account's request; it saves when you leave the field. Write the narrative, then submit the whole request to the fiscal officer." : "This request is read-only for you right now.")">
+        <TitleAddon><StatusPill Request="request.Status" /></TitleAddon>
+        <Actions>
+            <div class="dropdown">
+                <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-tools me-1" aria-hidden="true"></i>Tools</button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="admin/reports/@VersionId/department-detail?department=@DepartmentId"><i class="bi bi-file-earmark-text me-2" aria-hidden="true"></i>Department detail report</a></li>
+                    <li><a class="dropdown-item" href="admin/export/budgets/@VersionId/lines.xlsx"><i class="bi bi-file-earmark-spreadsheet me-2" aria-hidden="true"></i>Export lines (XLSX)</a></li>
+                    <AuthorizeView Policy="@Policies.CanAdvanceWorkflow">
+                        <li><hr class="dropdown-divider" /></li>
+                        <li><a class="dropdown-item" href="admin/budgets/@VersionId"><i class="bi bi-journal-text me-2" aria-hidden="true"></i>Whole budget workspace</a></li>
+                    </AuthorizeView>
+                </ul>
+            </div>
+            @if (request.CanReturn)
+            {
+                <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => returnDialog.Show()"><i class="bi bi-arrow-return-left me-1" aria-hidden="true"></i>Return to department</button>
+            }
+            @if (request.CanSubmit)
+            {
+                <button type="button" class="btn btn-primary btn-sm" @onclick="() => submitDialog.Show()" disabled="@(request.LineCount == 0)"><i class="bi bi-send me-1" aria-hidden="true"></i>Submit to fiscal officer</button>
+            }
+        </Actions>
+    </PageHeader>
+
+    @if (request.Status == DepartmentRequestStatus.Returned)
+    {
+        <div class="alert alert-warning d-flex gap-3 align-items-start" role="status">
+            <i class="bi bi-arrow-return-left fs-5" aria-hidden="true"></i>
+            <div>
+                <b>Returned by the fiscal officer</b> <span class="text-secondary">@(request.ReturnedAtUtc is { } returned ? Display.Relative(returned) : "")</span>
+                <div class="mt-1">@request.ReturnNote</div>
+                <div class="small text-secondary mt-1">Make the changes, then submit again.</div>
+            </div>
+        </div>
+    }
+    else if (request.Status == DepartmentRequestStatus.Submitted)
+    {
+        <div class="alert alert-success d-flex gap-3 align-items-start" role="status">
+            <i class="bi bi-check2-circle fs-5" aria-hidden="true"></i>
+            <div>
+                <b>Submitted</b> by @request.SubmittedByUserName @(request.SubmittedAtUtc is { } submitted ? Display.Relative(submitted) : "").
+                <span class="text-secondary">Amounts and the narrative are locked for the department until the fiscal officer returns the request.</span>
+            </div>
+        </div>
+    }
+
+    <div class="cb-kpis">
+        <KpiCard Label="@($"FY{workspace.Version.Year} request")" Value="@Display.Money(request.Amount)" Detail="@($"{request.LineCount} lines across {lineGroups.Count} fund{(lineGroups.Count == 1 ? "" : "s")}")" />
+        <KpiCard Label="@($"FY{workspace.Version.Year - 1} budget")" Value="@Display.Money(request.CurrentYearBudget)" Detail="@($"FY{workspace.Version.Year - 2} actual {Display.Money(request.PriorYearActual)}")" />
+        <KpiCard Label="Change" Value="@Display.SignedChange(request.DollarChange)" Detail="@Display.Percent(request.PercentChange)"
+                 Tone="@(request.DollarChange > 0 ? "warn" : "ok")" DetailTone="@(request.DollarChange < 0 ? "down" : request.DollarChange > 0 ? "up" : "")"
+                 Tip="Appropriation lines only; revenue credited to the department is listed separately below." />
+    </div>
+
+    <div class="cb-workspace">
+        <div>
+            @if (request.LineCount == 0)
+            {
+                <EmptyState Icon="bi-list-columns" Title="Nothing budgeted yet" Text="Add the first account line for this department to start its request.">
+                    @if (workspace.CanAddLines && request.Status != DepartmentRequestStatus.Submitted)
+                    {
+                        <button type="button" class="btn btn-primary" @onclick="() => addLineForm.Show()"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add line</button>
+                    }
+                </EmptyState>
+            }
+            else
+            {
+                @foreach (FundGroup fund in lineGroups)
+                {
+                    <div class="card mb-3">
+                        <div class="cb-grid-wrap">
+                            <table class="cb-grid cb-dept-grid">
+                                <caption class="caption-top px-3 pt-2 pb-1 fw-semibold small"><span class="cb-code">@fund.Code</span> @fund.Name</caption>
+                                <thead>
+                                    <tr>
+                                        <th>Account</th>
+                                        <th class="cb-num">FY@(workspace.Version.Year - 2) actual</th>
+                                        <th class="cb-num">FY@(workspace.Version.Year - 1) budget</th>
+                                        <th class="cb-num">FY@(workspace.Version.Year) request</th>
+                                        <th class="cb-num">Change $</th>
+                                        <th class="cb-num">Change %</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (BudgetLineDto line in fund.Lines)
+                                    {
+                                        <tr>
+                                            <td class="cb-wrap">
+                                                <span class="cb-code">@line.AccountNumber</span> @line.AccountName
+                                                @if (editingNoteId == line.Id)
+                                                {
+                                                    <input type="text" class="form-control form-control-sm mt-1" value="@line.Justification" aria-label="@($"Justification for {line.AccountNumber}")"
+                                                           @onchange="e => SaveNoteAsync(line.Id, e.Value?.ToString())" @onblur="() => editingNoteId = null" autofocus />
+                                                }
+                                                else if (!string.IsNullOrEmpty(line.Justification))
+                                                {
+                                                    <div class="small text-secondary fst-italic text-wrap"><i class="bi bi-chat-left-text me-1" aria-hidden="true"></i>@line.Justification</div>
+                                                }
+                                            </td>
+                                            <td class="cb-num">@line.PriorYearActual.ToString("N2")</td>
+                                            <td class="cb-num">@line.CurrentYearBudget.ToString("N2")</td>
+                                            <td class="cb-num">
+                                                <AmountCell Value="line.Amount" CanEdit="line.CanEdit" Label="@($"FY{workspace.Version.Year} request for {line.AccountNumber} {line.AccountName}")"
+                                                            ValueChanged="amount => UpdateAmountAsync(line.Id, amount)" />
+                                            </td>
+                                            <td class="cb-num @(line.DollarChange < 0 ? "cb-neg" : line.DollarChange > 0 ? "cb-pos" : "")">@Display.SignedChange(line.DollarChange)</td>
+                                            <td class="cb-num @(line.PercentChange < 0 ? "cb-neg" : "")">@Display.Percent(line.PercentChange)</td>
+                                            <td class="text-end">
+                                                <RowMenu Label="@($"Actions for {line.AccountNumber}")">
+                                                    @if (line.CanEdit)
+                                                    {
+                                                        <li><button type="button" class="dropdown-item" @onclick="() => editingNoteId = line.Id"><i class="bi bi-chat-left-text me-2" aria-hidden="true"></i>@(string.IsNullOrEmpty(line.Justification) ? "Add note" : "Edit note")</button></li>
+                                                    }
+                                                    <li><button type="button" class="dropdown-item" @onclick="() => ShowHistory(line)"><i class="bi bi-clock-history me-2" aria-hidden="true"></i>History</button></li>
+                                                    @if (line.CanEdit)
+                                                    {
+                                                        <li><hr class="dropdown-divider" /></li>
+                                                        <li><button type="button" class="dropdown-item text-danger" @onclick="() => AskRemove(line)"><i class="bi bi-trash me-2" aria-hidden="true"></i>Remove line</button></li>
+                                                    }
+                                                </RowMenu>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td>Total, @fund.Name</td>
+                                        <td class="cb-num">@fund.PriorYearActual.ToString("N2")</td>
+                                        <td class="cb-num">@fund.CurrentYearBudget.ToString("N2")</td>
+                                        <td class="cb-num">@fund.Amount.ToString("N2")</td>
+                                        <td class="cb-num">@Display.SignedChange(fund.Amount - fund.CurrentYearBudget)</td>
+                                        <td class="cb-num">@Display.Percent(Domain.Common.Money.PercentChange(fund.CurrentYearBudget, fund.Amount))</td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                }
+
+                <div class="cb-dept-total">
+                    <span>Department total, FY@(workspace.Version.Year) request</span>
+                    <b>@Display.Money(request.Amount)</b>
+                    <span class="@(request.DollarChange < 0 ? "cb-neg" : request.DollarChange > 0 ? "cb-pos" : "text-secondary")">@Display.SignedChange(request.DollarChange) (@Display.Percent(request.PercentChange)) vs FY@(workspace.Version.Year - 1)</span>
+                </div>
+
+                @if (revenueLines.Count > 0)
+                {
+                    <div class="card mt-3">
+                        <div class="cb-grid-wrap">
+                            <table class="cb-grid">
+                                <caption class="caption-top px-3 pt-2 pb-1 fw-semibold small">Revenue credited to this @workspace.NumberFormat.DepartmentLabel.ToLowerInvariant() <InfoTip Text="Fines, fees, and charges the department collects. They belong to the fund, not to the appropriation total above." /></caption>
+                                <thead><tr><th>Account</th><th class="cb-num">FY@(workspace.Version.Year - 1) budget</th><th class="cb-num">FY@(workspace.Version.Year) estimate</th><th></th></tr></thead>
+                                <tbody>
+                                    @foreach (BudgetLineDto line in revenueLines)
+                                    {
+                                        <tr>
+                                            <td class="cb-wrap"><span class="cb-code">@line.AccountNumber</span> @line.AccountName <small class="text-secondary">· @line.FundCode</small></td>
+                                            <td class="cb-num">@line.CurrentYearBudget.ToString("N2")</td>
+                                            <td class="cb-num"><AmountCell Value="line.Amount" CanEdit="line.CanEdit" Label="@($"FY{workspace.Version.Year} estimate for {line.AccountNumber} {line.AccountName}")" ValueChanged="amount => UpdateAmountAsync(line.Id, amount)" /></td>
+                                            <td class="text-end"><RowMenu Label="@($"Actions for {line.AccountNumber}")"><li><button type="button" class="dropdown-item" @onclick="() => ShowHistory(line)"><i class="bi bi-clock-history me-2" aria-hidden="true"></i>History</button></li></RowMenu></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                }
+
+                @if (workspace.CanAddLines && request.Status != DepartmentRequestStatus.Submitted)
+                {
+                    <button type="button" class="btn btn-outline-primary btn-sm mt-3" @onclick="() => addLineForm.Show()"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add line</button>
+                }
+            }
+        </div>
+
+        <aside>
+            <div class="card cb-narrative">
+                <div class="card-header d-flex align-items-center gap-2">
+                    Narrative
+                    <InfoTip Text="The department's budget message: what the request pays for and what changed from this year. It prints on the Department Detail report and on the public portal once the budget is adopted and published." />
+                </div>
+                <div class="card-body">
+                    @if (request.CanEditNarrative)
+                    {
+                        <textarea id="narrative" class="form-control" rows="12" maxlength="@DepartmentRequest.NarrativeMaxLength" @bind="narrativeDraft" @bind:event="oninput"
+                                  aria-label="@($"Narrative for {request.DepartmentName}")" placeholder="Explain the request in plain language: staffing, projects, what changed, and why."></textarea>
+                        <div class="d-flex align-items-center mt-2">
+                            <small class="text-secondary">@(narrativeDraft?.Length ?? 0) / @DepartmentRequest.NarrativeMaxLength</small>
+                            <button type="button" class="btn btn-primary btn-sm ms-auto" @onclick="SaveNarrativeAsync" disabled="@(!NarrativeChanged)">Save narrative</button>
+                        </div>
+                    }
+                    else if (string.IsNullOrEmpty(request.Narrative))
+                    {
+                        <p class="text-secondary small mb-0">No narrative was written.</p>
+                    }
+                    else
+                    {
+                        <p class="cb-narrative-text mb-0">@request.Narrative</p>
+                    }
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <AddLineForm @ref="addLineForm" Workspace="workspace" FixedDepartment="fixedDepartment" OnAdd="AddLineAsync" />
+
+    <ConfirmDialog @ref="submitDialog" Title="Submit this request?" ConfirmText="Submit to fiscal officer" OnConfirm="ConfirmSubmitAsync">
+        <Body>
+            <p><b>@request.DepartmentName</b> will hand its FY@(workspace.Version.Year) request of <b>@Display.Money(request.Amount)</b> to the fiscal officer.</p>
+            <p class="mb-0 text-secondary">Amounts and the narrative lock for the department until the fiscal officer returns the request. Unsaved narrative text is saved first.</p>
+        </Body>
+    </ConfirmDialog>
+
+    <ConfirmDialog @ref="returnDialog" Title="Return this request?" ConfirmText="Return to department" ConfirmClass="btn-warning" OnConfirm="ConfirmReturnAsync" ConfirmDisabled="@string.IsNullOrWhiteSpace(returnNote)">
+        <Body>
+            <p>The department will see your note and can edit and submit again.</p>
+            <label class="form-label fw-semibold" for="return-note">What should change?</label>
+            <textarea id="return-note" class="form-control" rows="4" maxlength="@DepartmentRequest.ReturnNoteMaxLength" @bind="returnNote" @bind:event="oninput"></textarea>
+        </Body>
+    </ConfirmDialog>
+
+    <ConfirmDialog @ref="removeDialog" Title="Remove this line?" ConfirmText="Remove line" ConfirmClass="btn-danger" OnConfirm="ConfirmRemoveAsync">
+        <Body>
+            @if (lineToRemove is not null)
+            {
+                <p><b>@lineToRemove.AccountNumber @lineToRemove.AccountName</b> will be removed from this version. The audit trail keeps a record.</p>
+            }
+        </Body>
+    </ConfirmDialog>
+
+    <SideDrawer IsOpen="historyLine is not null" IsOpenChanged="open => { if (!open) historyLine = null; }" Title="@(historyLine is null ? "" : $"History: {historyLine.AccountNumber}")">
+        @if (historyLine is not null)
+        {
+            <div class="px-3 pt-2 small text-secondary">@historyLine.AccountName · @historyLine.FundCode @historyLine.FundName</div>
+            <LineHistory Line="historyLine" Version="historyVersion" />
+        }
+    </SideDrawer>
+}
+
+@code {
+    /// <summary>The department's appropriation lines in one fund, with the fund subtotal.</summary>
+    private sealed record FundGroup(string Code, string Name, IReadOnlyList<BudgetLineDto> Lines)
+    {
+        public decimal PriorYearActual => Lines.Sum(l => l.PriorYearActual);
+        public decimal CurrentYearBudget => Lines.Sum(l => l.CurrentYearBudget);
+        public decimal Amount => Lines.Sum(l => l.Amount);
+    }
+
+    [Parameter]
+    public Guid VersionId { get; set; }
+
+    [Parameter]
+    public Guid DepartmentId { get; set; }
+
+    private BudgetWorkspaceDto? workspace;
+    private DepartmentRequestDto? request;
+    private LookupDto? fixedDepartment;
+    private IReadOnlyList<FundGroup> lineGroups = [];
+    private IReadOnlyList<BudgetLineDto> revenueLines = [];
+    private bool notFound;
+    private string? narrativeDraft;
+    private string? returnNote;
+    private Guid? editingNoteId;
+    private BudgetLineDto? historyLine;
+    private int historyVersion;
+    private BudgetLineDto? lineToRemove;
+    private AddLineForm addLineForm = default!;
+    private ConfirmDialog submitDialog = default!;
+    private ConfirmDialog returnDialog = default!;
+    private ConfirmDialog removeDialog = default!;
+
+    private bool NarrativeChanged => (narrativeDraft ?? "").Trim() != (request?.Narrative ?? "");
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        workspace = await BudgetEntry.GetWorkspaceAsync(VersionId);
+        request = workspace?.DepartmentRequests.FirstOrDefault(r => r.DepartmentId == DepartmentId);
+        notFound = request is null;
+        if (workspace is null || request is null)
+        {
+            return;
+        }
+
+        fixedDepartment = new LookupDto(request.DepartmentId, request.DepartmentCode, request.DepartmentName);
+        List<BudgetLineDto> mine = workspace.Lines.Where(l => l.DepartmentId == DepartmentId).ToList();
+        lineGroups = mine
+            .Where(l => l.AccountType is AccountType.Expenditure or AccountType.TransferOut)
+            .GroupBy(l => (l.FundCode, l.FundName))
+            .OrderBy(g => g.Key.FundCode)
+            .Select(g => new FundGroup(g.Key.FundCode, g.Key.FundName, g.OrderBy(l => l.AccountCode).ToList()))
+            .ToList();
+        revenueLines = mine.Where(l => l.AccountType is AccountType.Revenue or AccountType.TransferIn).OrderBy(l => l.FundCode).ThenBy(l => l.AccountCode).ToList();
+
+        // Keep what the user is typing across reloads caused by amount edits; take the saved text otherwise.
+        if (narrativeDraft is null || !NarrativeChanged)
+        {
+            narrativeDraft = request.Narrative;
+        }
+
+        if (historyLine is not null)
+        {
+            historyLine = mine.FirstOrDefault(l => l.Id == historyLine.Id);
+            historyVersion++;
+        }
+    }
+
+    private Task UpdateAmountAsync(Guid lineId, decimal amount) =>
+        ApplyAsync(() => BudgetEntry.UpdateLineAmountAsync(VersionId, lineId, amount), "Amount saved.");
+
+    private Task SaveNoteAsync(Guid lineId, string? note)
+    {
+        editingNoteId = null;
+        return ApplyAsync(() => BudgetEntry.UpdateLineJustificationAsync(VersionId, lineId, note), "Note saved.");
+    }
+
+    private Task SaveNarrativeAsync() =>
+        ApplyAsync(() => Requests.SaveNarrativeAsync(VersionId, DepartmentId, narrativeDraft), "Narrative saved.");
+
+    private async Task<bool> ConfirmSubmitAsync()
+    {
+        if (NarrativeChanged)
+        {
+            Result saved = await Requests.SaveNarrativeAsync(VersionId, DepartmentId, narrativeDraft);
+            if (saved.IsFailure)
+            {
+                Toasts.Danger(saved.Errors[0].Message);
+                return false;
+            }
+        }
+
+        await ApplyAsync(() => Requests.SubmitAsync(VersionId, DepartmentId), "Request submitted to the fiscal officer.");
+        return true;
+    }
+
+    private async Task<bool> ConfirmReturnAsync()
+    {
+        await ApplyAsync(() => Requests.ReturnAsync(VersionId, DepartmentId, returnNote ?? ""), "Request returned to the department.");
+        returnNote = null;
+        return true;
+    }
+
+    private async Task<Result> AddLineAsync(AddBudgetLineRequest add)
+    {
+        Result<Guid> added = await BudgetEntry.AddLineAsync(add);
+        if (added.IsSuccess)
+        {
+            Toasts.Success("Line added.");
+            await LoadAsync();
+        }
+
+        return added;
+    }
+
+    private void AskRemove(BudgetLineDto line)
+    {
+        lineToRemove = line;
+        removeDialog.Show();
+    }
+
+    private async Task<bool> ConfirmRemoveAsync()
+    {
+        if (lineToRemove is not null)
+        {
+            await ApplyAsync(() => BudgetEntry.RemoveLineAsync(VersionId, lineToRemove.Id), "Line removed.");
+        }
+
+        return true;
+    }
+
+    private void ShowHistory(BudgetLineDto line)
+    {
+        historyLine = line;
+        historyVersion++;
+    }
+
+    private async Task ApplyAsync(Func<Task<Result>> action, string successMessage)
+    {
+        Result result = await action();
+        if (result.IsSuccess)
+        {
+            Toasts.Success(successMessage);
+        }
+        else
+        {
+            Toasts.Danger(result.Errors[0].Message);
+        }
+
+        await LoadAsync();
+        // Dialog confirmations arrive through a Func, not an EventCallback, so the page must ask to re-render itself.
+        StateHasChanged();
+    }
+}
