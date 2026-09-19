@@ -95,12 +95,15 @@ public class WorkflowAndPublishingTests(SqlServerFixture fixture) : IAsyncLifeti
     }
 
     [Fact]
-    public async Task Only_the_finance_director_moves_the_workflow()
+    public async Task Only_the_fiscal_authority_moves_the_workflow()
     {
         await using AsyncServiceScope fd = As(Roles.FinanceDirector);
         await FixStreetFundAsync(fd.ServiceProvider);
 
-        foreach (string role in new[] { Roles.Admin, Roles.DepartmentHead, Roles.Viewer })
+        await using AsyncServiceScope admin = As(Roles.Admin);
+        Assert.True((await admin.ServiceProvider.GetRequiredService<IBudgetWorkflowService>().GetStateAsync(_draft2027))!.CanPropose); // the Administrator may
+
+        foreach (string role in new[] { Roles.DepartmentHead, Roles.Viewer })
         {
             await using AsyncServiceScope scope = As(role);
             IBudgetWorkflowService workflow = scope.ServiceProvider.GetRequiredService<IBudgetWorkflowService>();

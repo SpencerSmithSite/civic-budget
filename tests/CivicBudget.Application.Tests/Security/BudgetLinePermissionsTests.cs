@@ -41,22 +41,31 @@ public class BudgetLinePermissionsTests
     }
 
     [Theory]
-    [InlineData(Roles.Admin)]
     [InlineData(Roles.Viewer)]
     [InlineData(null)]
-    public void Admins_viewers_and_anonymous_never_edit_lines(string? role)
+    public void Viewers_and_anonymous_never_edit_lines(string? role)
     {
         var user = new FakeUser(role, Police);
         Assert.False(BudgetLinePermissions.CanEdit(user, BudgetStatus.Draft, Police));
     }
 
     [Fact]
-    public void Only_the_finance_director_edits_beginning_balances_and_not_after_adoption()
+    public void An_administrator_edits_like_the_fiscal_officer()
+    {
+        var admin = new FakeUser(Roles.Admin);
+        Assert.True(BudgetLinePermissions.CanEdit(admin, BudgetStatus.Draft, Police));
+        Assert.True(BudgetLinePermissions.CanEdit(admin, BudgetStatus.Proposed, Streets));
+        Assert.False(BudgetLinePermissions.CanEdit(admin, BudgetStatus.Adopted, Streets));
+        Assert.True(BudgetLinePermissions.CanEditBeginningBalances(admin, BudgetStatus.Draft));
+    }
+
+    [Fact]
+    public void Fiscal_authority_edits_beginning_balances_and_not_after_adoption()
     {
         Assert.True(BudgetLinePermissions.CanEditBeginningBalances(new FakeUser(Roles.FinanceDirector), BudgetStatus.Draft));
         Assert.True(BudgetLinePermissions.CanEditBeginningBalances(new FakeUser(Roles.FinanceDirector), BudgetStatus.Proposed));
         Assert.False(BudgetLinePermissions.CanEditBeginningBalances(new FakeUser(Roles.FinanceDirector), BudgetStatus.Adopted));
         Assert.False(BudgetLinePermissions.CanEditBeginningBalances(new FakeUser(Roles.DepartmentHead, Police), BudgetStatus.Draft));
-        Assert.False(BudgetLinePermissions.CanEditBeginningBalances(new FakeUser(Roles.Admin), BudgetStatus.Draft));
+        Assert.False(BudgetLinePermissions.CanEditBeginningBalances(new FakeUser(Roles.Viewer), BudgetStatus.Draft));
     }
 }

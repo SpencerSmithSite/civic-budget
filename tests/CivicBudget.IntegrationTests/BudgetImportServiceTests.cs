@@ -138,12 +138,12 @@ public class BudgetImportServiceTests(SqlServerFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Only_the_finance_director_may_import_and_only_into_an_editable_version()
+    public async Task Only_the_fiscal_authority_may_import_and_only_into_an_editable_version()
     {
         await using AsyncServiceScope head = As(Roles.DepartmentHead, _policeDept);
         Result<ImportPreviewDto> denied = await head.ServiceProvider.GetRequiredService<IBudgetImportService>()
             .PreviewAsync(_draft2027, "lines.csv", Csv("Fund,Department,Account,Amount", "4901,110,5420,750"));
-        Assert.Contains("Finance Director", denied.Errors.Single().Message, StringComparison.Ordinal);
+        Assert.Contains("Fiscal Officer", denied.Errors.Single().Message, StringComparison.Ordinal);
 
         await using AsyncServiceScope director = As(Roles.FinanceDirector);
         Result<ImportPreviewDto> adopted = await director.ServiceProvider.GetRequiredService<IBudgetImportService>()
