@@ -54,6 +54,33 @@ public sealed record FundBalanceDto(
     AppropriationLimitResult Limit,
     bool CanEditBeginningBalance);
 
+/// <summary>
+/// Where one department stands in a version: its request status, who submitted it, and its narrative.
+/// One per department with lines in the version, whether or not it has started a request.
+/// </summary>
+public sealed record DepartmentRequestDto(
+    Guid DepartmentId,
+    string DepartmentCode,
+    string DepartmentName,
+    DepartmentRequestStatus Status,
+    string? Narrative,
+    DateTimeOffset? SubmittedAtUtc,
+    string? SubmittedByUserName,
+    string? ReturnNote,
+    DateTimeOffset? ReturnedAtUtc,
+    int LineCount,
+    decimal PriorYearActual,
+    decimal CurrentYearBudget,
+    decimal Amount,
+    /// <summary>Decided for the current user, like <see cref="BudgetLineDto.CanEdit"/>, so pages show buttons without rule logic.</summary>
+    bool CanEditNarrative,
+    bool CanSubmit,
+    bool CanReturn)
+{
+    public decimal DollarChange => Amount - CurrentYearBudget;
+    public decimal? PercentChange => Domain.Common.Money.PercentChange(CurrentYearBudget, Amount);
+}
+
 /// <summary>Everything the budget entry screens need for one version, in one round trip.</summary>
 public sealed record BudgetWorkspaceDto(
     BudgetVersionSummaryDto Version,
@@ -65,10 +92,13 @@ public sealed record BudgetWorkspaceDto(
     IReadOnlyList<FundBalanceDto> FundBalances,
     IReadOnlyList<LookupDto> Funds,
     IReadOnlyList<LookupDto> Departments,
-    IReadOnlyList<AccountLookupDto> Accounts)
+    IReadOnlyList<AccountLookupDto> Accounts,
+    /// <summary>Every department with lines in the version (the user's own, for a department user) and where its request stands.</summary>
+    IReadOnlyList<DepartmentRequestDto> DepartmentRequests)
 {
     public bool AnyFundBlocksWorkflow => FundBalances.Any(f => f.Limit.BlocksWorkflow);
     public bool AnyFundOverLimit => FundBalances.Any(f => !f.Summary.IsWithinAppropriationLimit);
+    public int DepartmentsSubmitted => DepartmentRequests.Count(r => r.Status == DepartmentRequestStatus.Submitted);
 }
 
 public sealed record LookupDto(Guid Id, string Code, string Name)

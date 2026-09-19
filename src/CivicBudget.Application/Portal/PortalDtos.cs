@@ -69,6 +69,8 @@ public sealed record PortalDepartmentDto(
     string? Description,
     string? FundCode,
     string? FundName,
+    /// <summary>The department's own budget message, as published; null when it wrote none.</summary>
+    string? Narrative,
     decimal Expenditures,
     BreakdownDto ByCategory,
     IReadOnlyList<PortalLineDto> Lines);

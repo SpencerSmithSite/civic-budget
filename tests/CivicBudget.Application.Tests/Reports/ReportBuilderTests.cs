@@ -32,7 +32,10 @@ public class ReportBuilderTests
             Balance(Street, "2011", "Street", FundCategory.SpecialRevenue, beginning: 5m, revenues: 0m, transfersIn: 50m, expenditures: 100m, transfersOut: 0m),
             Balance(General, "1000", "General", FundCategory.General, beginning: 500m, revenues: 310m, transfersIn: 0m, expenditures: 70m, transfersOut: 50m),
         ],
-        [], [], []);
+        [], [], [],
+        [
+            new DepartmentRequestDto(Police, "110", "Police", DepartmentRequestStatus.Submitted, "Overtime covers two officers on leave.", DateTimeOffset.UnixEpoch, "Chief Hale", null, null, 3, 50m, 60m, 70m, false, false, true),
+        ]);
 
     [Fact]
     public void Fund_summary_orders_by_code_carries_the_certificate_arithmetic_and_totals()
@@ -67,6 +70,8 @@ public class ReportBuilderTests
         Assert.Equal(170m, report.TotalAmount);
         Assert.Equal(["110", "620"], report.AvailableDepartments.Select(d => d.Code));
         Assert.Null(report.SelectedDepartmentId);
+        Assert.Equal("Overtime covers two officers on leave.", police.Narrative); // the department's message prints under its heading
+        Assert.Null(report.Departments[1].Narrative);                             // Streets wrote none
     }
 
     [Fact]

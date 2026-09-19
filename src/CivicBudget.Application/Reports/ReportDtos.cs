@@ -63,6 +63,8 @@ public sealed record DepartmentDetailDto(
     Guid DepartmentId,
     string DepartmentCode,
     string DepartmentName,
+    /// <summary>The department's budget message for this version, printed under its heading.</summary>
+    string? Narrative,
     IReadOnlyList<DetailLineDto> Lines)
 {
     public decimal PriorYearActual => Lines.Where(l => l.AccountType == AccountType.Expenditure).Sum(l => l.PriorYearActual);

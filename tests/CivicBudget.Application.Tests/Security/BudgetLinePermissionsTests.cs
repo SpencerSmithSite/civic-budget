@@ -68,4 +68,46 @@ public class BudgetLinePermissionsTests
         Assert.False(BudgetLinePermissions.CanEditBeginningBalances(new FakeUser(Roles.DepartmentHead, Police), BudgetStatus.Draft));
         Assert.False(BudgetLinePermissions.CanEditBeginningBalances(new FakeUser(Roles.Viewer), BudgetStatus.Draft));
     }
+
+    // ---- Phase 9d: department requests -------------------------------------------------------------
+
+    [Fact]
+    public void Submitting_locks_the_department_for_its_users_but_not_for_the_fiscal_authority()
+    {
+        var chief = new FakeUser(Roles.DepartmentHead, Police);
+        var officer = new FakeUser(Roles.FinanceDirector);
+
+        Assert.False(BudgetLinePermissions.CanEdit(chief, BudgetStatus.Draft, Police, departmentSubmitted: true));
+        Assert.False(BudgetLinePermissions.CanAddLine(chief, BudgetStatus.Draft, Police, departmentSubmitted: true));
+        Assert.False(BudgetLinePermissions.CanEditNarrative(chief, BudgetStatus.Draft, Police, departmentSubmitted: true));
+        Assert.True(BudgetLinePermissions.CanEditNarrative(chief, BudgetStatus.Draft, Police, departmentSubmitted: false));
+
+        Assert.True(BudgetLinePermissions.CanEdit(officer, BudgetStatus.Draft, Police, departmentSubmitted: true));
+        Assert.True(BudgetLinePermissions.CanEditNarrative(officer, BudgetStatus.Proposed, Police, departmentSubmitted: true));
+    }
+
+    [Theory]
+    [InlineData(DepartmentRequestStatus.InProgress, true)]
+    [InlineData(DepartmentRequestStatus.Returned, true)]
+    [InlineData(DepartmentRequestStatus.Submitted, false)]
+    public void A_department_user_submits_own_department_while_draft_and_not_twice(DepartmentRequestStatus status, bool expected)
+    {
+        var chief = new FakeUser(Roles.DepartmentHead, Police);
+
+        Assert.Equal(expected, BudgetLinePermissions.CanSubmitDepartment(chief, BudgetStatus.Draft, Police, status));
+        Assert.False(BudgetLinePermissions.CanSubmitDepartment(chief, BudgetStatus.Draft, Streets, status));
+        Assert.False(BudgetLinePermissions.CanSubmitDepartment(chief, BudgetStatus.Proposed, Police, status));
+        Assert.False(BudgetLinePermissions.CanSubmitDepartment(new FakeUser(Roles.Viewer), BudgetStatus.Draft, Police, status));
+    }
+
+    [Fact]
+    public void Only_the_fiscal_authority_returns_and_only_a_submitted_request()
+    {
+        Assert.True(BudgetLinePermissions.CanReturnDepartment(new FakeUser(Roles.FinanceDirector), BudgetStatus.Draft, DepartmentRequestStatus.Submitted));
+        Assert.True(BudgetLinePermissions.CanReturnDepartment(new FakeUser(Roles.Admin), BudgetStatus.Draft, DepartmentRequestStatus.Submitted));
+        Assert.True(BudgetLinePermissions.CanSubmitDepartment(new FakeUser(Roles.Admin), BudgetStatus.Draft, Streets, DepartmentRequestStatus.InProgress)); // on a department's behalf
+        Assert.False(BudgetLinePermissions.CanReturnDepartment(new FakeUser(Roles.FinanceDirector), BudgetStatus.Draft, DepartmentRequestStatus.InProgress));
+        Assert.False(BudgetLinePermissions.CanReturnDepartment(new FakeUser(Roles.FinanceDirector), BudgetStatus.Proposed, DepartmentRequestStatus.Submitted));
+        Assert.False(BudgetLinePermissions.CanReturnDepartment(new FakeUser(Roles.DepartmentHead, Police), BudgetStatus.Draft, DepartmentRequestStatus.Submitted));
+    }
 }

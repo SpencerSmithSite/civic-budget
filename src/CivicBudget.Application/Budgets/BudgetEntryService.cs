@@ -55,7 +55,7 @@ public sealed class BudgetEntryService(
 
         List<BudgetLineDto> lines = visible
             .OrderBy(l => l.Fund.Code).ThenBy(l => l.Department?.Code).ThenBy(l => l.Account.Code)
-            .Select(l => ToDto(l, government.AccountNumberFormat, BudgetLinePermissions.CanEdit(currentUser, version.Status, l.DepartmentId)))
+            .Select(l => ToDto(l, government.AccountNumberFormat, CanEdit(version, l)))
             .ToList();
 
         // Fund balances always use every line in the version, not just the visible ones: a Department
@@ -91,13 +91,32 @@ public sealed class BudgetEntryService(
             departments = departments.Where(d => currentUser.DepartmentIds.Contains(d.Id)).ToList();
         }
 
+        // Per-department status for every department the user can see: the active ones they may add
+        // to, plus any inactive one that still has lines here. A department with no lines yet is
+        // "in progress" with nothing in it, which is exactly what the fiscal officer wants to notice.
+        ILookup<Guid, BudgetLine> linesByDepartment = visible.Where(l => l.Department is not null).ToLookup(l => l.Department!.Id);
+        List<Department> visibleDepartments = await db.Departments
+            .Where(d => d.IsActive || linesByDepartment.Select(g => g.Key).Contains(d.Id))
+            .OrderBy(d => d.Code)
+            .ToListAsync(ct);
+        if (isDepartmentHead)
+        {
+            visibleDepartments = visibleDepartments.Where(d => currentUser.DepartmentIds.Contains(d.Id)).ToList();
+        }
+
+        List<DepartmentRequestDto> requests = visibleDepartments
+            .Select(d => ToRequestDto(currentUser, version, d, linesByDepartment[d.Id].ToList()))
+            .ToList();
+
+        // A department user who has submitted every department they hold has nothing left to add to.
         bool canAddLines = version.IsEditable
-            && (currentUser.IsFiscalAuthority() || (isDepartmentHead && version.Status == BudgetStatus.Draft));
+            && (currentUser.IsFiscalAuthority()
+                || (isDepartmentHead && version.Status == BudgetStatus.Draft && departments.Any(d => !version.IsDepartmentSubmitted(d.Id))));
 
         return new BudgetWorkspaceDto(
             ToSummary(version, fiscalYear.Year, version.Lines.Count),
             government.AccountNumberFormat,
-            version.IsEditable, canAddLines, lines, balances, funds, departments, accounts);
+            version.IsEditable, canAddLines, lines, balances, funds, departments, accounts, requests);
     }
 
     public async Task<Result> UpdateLineAmountAsync(Guid versionId, Guid lineId, decimal amount, CancellationToken ct = default)
@@ -155,7 +174,8 @@ public sealed class BudgetEntryService(
             return Result.Failure<Guid>("Budget version was not found.");
         }
 
-        if (!BudgetLinePermissions.CanAddLine(currentUser, version.Status, request.DepartmentId))
+        if (!BudgetLinePermissions.CanAddLine(currentUser, version.Status, request.DepartmentId,
+                request.DepartmentId is { } requestDepartment && version.IsDepartmentSubmitted(requestDepartment)))
         {
             return Result.Failure<Guid>(NotAllowed);
         }
@@ -233,6 +253,7 @@ public sealed class BudgetEntryService(
             .Include(v => v.Lines).ThenInclude(l => l.Department)
             .Include(v => v.Lines).ThenInclude(l => l.Account)
             .Include(v => v.BeginningBalances)
+            .Include(v => v.DepartmentRequests)
             .FirstOrDefaultAsync(v => v.Id == versionId, ct);
 
     /// <summary>Loads version and line, and returns a failed Result when the user may not edit that line.</summary>
@@ -246,12 +267,38 @@ public sealed class BudgetEntryService(
             return (null!, null!, Result.Failure("Budget line was not found."));
         }
 
-        if (!BudgetLinePermissions.CanEdit(currentUser, version.Status, line.DepartmentId))
+        if (!CanEdit(version, line))
         {
             return (version, line, Result.Failure(NotAllowed));
         }
 
         return (version, line, null);
+    }
+
+    /// <summary>The shared rule, with "has this line's department submitted?" answered from the aggregate.</summary>
+    private bool CanEdit(BudgetVersion version, BudgetLine line) =>
+        BudgetLinePermissions.CanEdit(currentUser, version.Status, line.DepartmentId,
+            line.DepartmentId is { } departmentId && version.IsDepartmentSubmitted(departmentId));
+
+    /// <summary>Shared with <see cref="DepartmentRequestService"/> so both screens describe a department the same way.</summary>
+    internal static DepartmentRequestDto ToRequestDto(ICurrentUser user, BudgetVersion version, Department department, IReadOnlyList<BudgetLine> lines)
+    {
+        DepartmentRequest? request = version.GetDepartmentRequest(department.Id);
+        DepartmentRequestStatus status = request?.Status ?? DepartmentRequestStatus.InProgress;
+        List<BudgetLine> expenditures = lines.Where(l => l.Account.Type == AccountType.Expenditure).ToList();
+        return new DepartmentRequestDto(
+            department.Id, department.Code, department.Name,
+            status,
+            request?.Narrative,
+            request?.SubmittedAtUtc, request?.SubmittedByUserName,
+            request?.ReturnNote, request?.ReturnedAtUtc,
+            lines.Count,
+            expenditures.Sum(l => l.PriorYearActual),
+            expenditures.Sum(l => l.CurrentYearBudget),
+            expenditures.Sum(l => l.Amount),
+            CanEditNarrative: BudgetLinePermissions.CanEditNarrative(user, version.Status, department.Id, request?.IsSubmitted == true),
+            CanSubmit: BudgetLinePermissions.CanSubmitDepartment(user, version.Status, department.Id, status),
+            CanReturn: BudgetLinePermissions.CanReturnDepartment(user, version.Status, status));
     }
 
     private static BudgetVersionSummaryDto ToSummary(BudgetVersion v, int year, int lineCount) =>

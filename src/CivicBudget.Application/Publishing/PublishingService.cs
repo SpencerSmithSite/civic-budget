@@ -44,6 +44,7 @@ public sealed class PublishingService(
             .Include(v => v.Lines).ThenInclude(l => l.Department)
             .Include(v => v.Lines).ThenInclude(l => l.Account)
             .Include(v => v.BeginningBalances)
+            .Include(v => v.DepartmentRequests)
             .FirstOrDefaultAsync(v => v.Id == versionId, ct);
         if (version is null)
         {
