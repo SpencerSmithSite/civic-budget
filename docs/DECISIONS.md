@@ -231,6 +231,51 @@ all behavior is code we can explain.
 
 ---
 
+## ADR-0027 — Department requests live on the budget version; submitting locks the department, not the version
+**Date:** 2026-09-19 · **Status:** Accepted
+
+**Context.** v1.1's last step: a fire chief signs in, lands in the fire department, enters the
+request against its accounts, writes a narrative, and hands it to the fiscal officer, who
+assembles the whole budget and can send a department's request back. The existing workflow
+(Draft → Proposed → Adopted) is the *version's* state; the department round happens inside Draft.
+
+**Decision.**
+- **A `DepartmentRequest` child of `BudgetVersion`**, one per department that has written a
+  narrative or submitted: `InProgress`, `Submitted` (who and when), `Returned` (the officer's
+  note and when). Departments with no row are simply in progress. The aggregate owns the rules:
+  submit only while Draft and only with lines; return only what was submitted, with a note;
+  submitting again clears the note. Amendments copy narratives (they still describe the year)
+  but start a new round.
+- **Submitting locks the department for department users, not the version.** The one rule in
+  `BudgetLinePermissions.CanEdit` gains a `departmentSubmitted` argument; the fiscal authority
+  is unaffected. `CanSubmitDepartment` / `CanReturnDepartment` sit beside it, so the
+  authorization handler, the services, and the DTO flags (`CanEditNarrative`, `CanSubmit`,
+  `CanReturn`) all come from one place.
+- **The workspace DTO carries the round.** `BudgetWorkspaceDto.DepartmentRequests` lists every
+  department the user can see with status, totals, and narrative, so the department page, the
+  board, the workspace strip, and the Department Detail report read one shape and the reports
+  builder stays pure.
+- **The narrative is published.** `PublishedBudgetSnapshotDepartment` freezes each department's
+  narrative with the snapshot, mapped by both contexts like the fund rows; the portal's
+  department page shows it as "From the department".
+- **A department user's home is their department.** Sign-in lands in the app; `/admin` forwards
+  department users to `/admin/my-department`, which resolves the open version and sends them to
+  their one department or to the board when they hold several.
+
+**Alternatives.** A per-department status column on `BudgetLine` (one status copied across a
+dozen lines, and nowhere to keep the narrative); a separate `DepartmentBudget` aggregate holding
+the department's lines (would split the appropriation check, which needs every line of the
+fund); blocking Propose until every department submits (the officer decides when the round is
+over; a department that never submits should not hold council up); publishing narratives per
+line (4,000 characters times every line).
+
+**Consequences.** Two tables, one migration, no change to the version workflow or the
+appropriation check. `BudgetLineResource` (the authorization handler's input) gains a flag with
+a default, so callers that do not know about submissions keep working. Tests: domain rules
+(`DepartmentRequestTests`), the permission matrix (`BudgetLinePermissionsTests`), the services
+end to end with the seeded mid-round FY2027 (`DepartmentRequestServiceTests`), the published
+narrative (`SnapshotQueryServiceTests`), and the pages (`DepartmentPagesTests`).
+
 ## Packages
 
 Every NuGet package and why. Add a row when adding a package.

@@ -43,7 +43,7 @@ static SSR (compare the admin pages, which each declare
 | Render mode | `@rendermode InteractiveServer` | `[ExcludeFromInteractiveRouting]` (static SSR) |
 | Per-visitor server state | A circuit: component tree + DI scope + WebSocket | None; the request ends when the HTML is sent |
 | Interactivity | `@onclick`, `EditForm`, live fund-balance panel | Links, `<details>`, a GET form |
-| Data source | `CivicBudgetDbContext` (tenant-filtered, all tables) | `PublicPortalDbContext` (three snapshot tables, Active only) |
+| Data source | `CivicBudgetDbContext` (tenant-filtered, all tables) | `PublicPortalDbContext` (snapshot tables only, Active only) |
 | Authorization | Policies on every page | Anonymous by design |
 | Cacheable | No (personal, stateful) | Yes: 6 hours server side, 10 minutes in the browser |
 

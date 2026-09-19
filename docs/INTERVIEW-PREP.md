@@ -27,8 +27,14 @@ published snapshots through a separate read-only context. Budgets round
 trip through Excel (import with a validation preview, export of every
 grid) and print as three standard reports. It ships as a container with a
 CDK stack in C# that CI synthesizes and asserts, deployed over OIDC with
-no stored AWS keys. About four hundred tests, including a real SQL Server
-in Testcontainers, and every phase is a PR with a written walkthrough.
+no stored AWS keys. Version 1.1 reframed it as a plug-in beside a
+government ERP: the chart of accounts comes from the ERP through an
+adapter, account numbers read the Ohio way (`1000-725-121`), an
+administrator creates the logons, and a fire chief who signs in lands in
+the fire department, enters the request against its accounts, writes the
+narrative, and submits it to the fiscal officer. About 480 tests,
+including a real SQL Server in Testcontainers, and every phase is a PR
+with a written walkthrough.
 
 ---
 
@@ -441,7 +447,7 @@ superseded but never changed.
 ### Q: How does publishing work, and what stops the portal showing a draft?
 **A:** Publishing captures an adopted version into three denormalized
 tables with every name copied. The portal reads those through
-`PublicPortalDbContext`, which maps only those three tables, filters to
+`PublicPortalDbContext`, which maps only the snapshot tables (four, since 9d), filters to
 active snapshots globally, and throws on `SaveChanges`. So a draft is
 unreachable by construction: not in the tables, not in the model, not in
 the filter. Unpublish flips a status and keeps the rows.
@@ -547,7 +553,7 @@ adds `[ExcludeFromInteractiveRouting]`, the admin pages declare
 ### Q: How do you guarantee the portal can never show a draft?
 **A:** Structurally, not by a filter someone could forget. The portal
 reads only through `ISnapshotQueryService`, whose one implementation uses
-`PublicPortalDbContext`, which maps just the three snapshot tables with an
+`PublicPortalDbContext`, which maps just the snapshot tables with an
 Active-only query filter and throws on `SaveChanges`. There is no code
 path from a portal page to `BudgetVersions`. The integration test
 `Unpublishing_removes_the_government_from_the_portal_immediately` shows
@@ -821,3 +827,112 @@ do is a full audit with a screen reader user, and I'd say so.
 a sample import file, and captures each screen at 1440 px and the portal at
 390 px, so they can be regenerated after any UI change instead of drifting.
 
+
+## v1.1 — Plugging in beside the ERP (Phases 9a–9d)
+
+### Q: What changed in v1.1 and why?
+**A:** The framing. v1.0 was a stand-alone budgeting app that owned its
+chart of accounts. The customer I'm interviewing with sells the ERP that
+already owns the chart, so v1.1 makes CivicBudget the thing that plugs in
+beside it: the chart arrives from the ERP (9b), account numbers read the
+way an Ohio auditor writes them (9a), the government's own administrator
+creates logons and assigns each to a department (9c), and a department
+user's whole experience is their department (9d). Nothing in the fund
+accounting core changed; the edges did.
+**Look at:** `ROADMAP.md` v1.1 section; ADR-0024 to ADR-0027.
+
+### Q: How does an Ohio account number work, and how do you store it?
+**A:** Three ideas: fund, then program (what UAN calls the department for
+appropriations) or receipt for revenues, then object. A village on UAN
+writes `1000-725-121`: General Fund, Clerk/Treasurer, Salary; a revenue
+line is two segments, `1000-110`. Counties and vendor ERPs write the same
+three ideas with their own widths and words. So I store the three codes on
+the line, as before, and compose the full number under a per-government
+`AccountNumberFormat` (widths, separator, what the middle segment is
+called). `AccountNumber.Compose` and `TryParse` are the whole of it.
+Published snapshot lines freeze the composed number so a later format
+change cannot rewrite what citizens saw.
+**Look at:** `Domain/Accounts/AccountNumber.cs`, `AccountNumberFormat.cs`, `docs/research/ohio-account-numbers.md`, ADR-0024.
+
+### Q: You don't have the ERP's export format. What did you build?
+**A:** An adapter boundary and one honest implementation. `IErpChartSource`
+returns an `ErpChart` (funds, departments, objects with code, name, type,
+category, active). `ErpChartFileSource` reads a one-row-per-code CSV or
+XLSX, forgiving about column order and spelling, and is the single class
+to replace when the real layout is known. Everything after the adapter is
+independent of it: a pure `ChartDiff` classifies each code as add, update,
+deactivate, reactivate, or unchanged; `ChartSyncService` previews, then
+applies through the entities so the audit interceptor records every field;
+it never deletes, and it warns when a file would deactivate more than a
+quarter of the chart, which usually means a partial export. Under
+`ChartSource = Erp` the setup screens go read-only and the services refuse
+writes, so there is one owner of the chart at a time.
+**Look at:** `Application/Erp/` (`IErpChartSource`, `ChartDiff`, `ChartSyncService`, `ChartOwnership`), ADR-0025.
+
+### Q: How does "the fire chief only sees the fire department" actually work?
+**A:** Assignment is a claim. The administrator assigns departments to a
+user; the claims factory puts each as a `department_id` claim in the
+cookie; `ICurrentUser.DepartmentIds` reads them; and one pure function,
+`BudgetLinePermissions.CanEdit`, decides for a line. Reads are scoped in
+the services, not the pages: the workspace, reports, exports, search, and
+the audit trail all filter by those ids. There is no `if (role ==
+DepartmentHead)` in a component; components get `CanEdit` on each DTO.
+**Look at:** `Application/Security/BudgetLinePermissions.cs`, `BudgetEntryService.GetWorkspaceAsync`, `AuditQueryService`, `PermissionsTests`.
+
+### Q: How do administrators set passwords without knowing them?
+**A:** They set a temporary one. Creating an account or resetting a password
+sets `MustChangePassword`; the claims factory turns it into a claim;
+middleware redirects any request carrying the claim to the change-password
+page (except the account pages and static assets); the page clears the
+flag and refreshes the sign-in so the cookie loses the claim. A reset also
+rotates the security stamp, ending any session the user had. A claim
+rather than a database lookup keeps the middleware free of I/O.
+**Look at:** `Web/Security/MustChangePasswordMiddleware.cs`, `ChangePassword.razor`, `UserAdminService`, ADR-0026.
+
+### Q: Why is "Administrator" a superset of the fiscal officer?
+**A:** Because the customer said "complete and total access", and nothing
+in a village or county's world needs a super-admin who cannot enter a
+budget line. The change was mechanical: one helper,
+`IsFiscalAuthority()`, replaced every `IsInRole(FinanceDirector)` in the
+services, and the four fiscal policies include Admin. Role values in the
+database did not change; the display names became the customer's words.
+**Look at:** `CurrentUserExtensions.cs`, `AuthorizationPolicies.cs`, `AuthorizationPolicyTests`.
+
+### Q: Walk me through the department round in 9d.
+**A:** A `DepartmentRequest` row per department lives on the budget
+version: in progress, submitted (who, when), or returned (the officer's
+note). The version owns the rules: submit only while Draft and only with
+lines; return only what was submitted, with a note; amendments copy the
+narrative but start a new round. Submitting locks the department's lines
+and narrative for department users through the same `CanEdit` rule, with
+one more argument; the fiscal officer is unaffected. The workspace DTO
+lists every department with its status and three flags decided for the
+current user, so the department page, the board, the strip above the
+grid, and the detail report read one shape. Submit and return are audited
+as named events on the version.
+**Look at:** `Domain/Budgets/DepartmentRequest.cs`, the department section of `BudgetVersion.cs`, `DepartmentRequestService.cs`, `DepartmentEntry.razor`, ADR-0027.
+
+### Q: Why lock the department rather than block Propose until everyone submits?
+**A:** Because the fiscal officer decides when the round is over. A
+department that never submits should not hold council up, and the officer
+can enter on a department's behalf. Locking the department instead gives
+the officer a stable request to review and a Return action to reopen it,
+which is what happens on paper: the request comes back with a note.
+**Look at:** `BudgetVersion.SubmitDepartment` / `ReturnDepartment`; the alternatives paragraph of ADR-0027.
+
+### Q: Where does the narrative go?
+**A:** With the numbers, everywhere they go. It prints under the
+department's heading on the Department Budget Detail report; it is frozen
+into the published snapshot as one row per department
+(`PublishedBudgetSnapshotDepartments`, mapped by the read-only portal
+context too); and the portal's department page shows it as "From the
+department". The seed writes narratives before FY2026 is adopted so they
+travel through the amendment to the portal.
+**Look at:** `PublishedBudgetSnapshot.Capture`, `SnapshotQueryService.GetDepartmentAsync`, `PortalDepartment.razor`.
+
+### Q: What would you ask the customer before shipping this?
+**A:** Three things I assumed. The ERP's real chart export layout (I built
+against a stand-in and isolated it to one class). Whether the middle
+segment is per government or per fund (I made it per government). Whether
+a department's narrative should be public at all (I publish it, because
+budget books do, but that is a policy question for the fiscal officer).

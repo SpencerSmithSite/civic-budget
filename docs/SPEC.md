@@ -269,10 +269,21 @@ Razor components display the validation results; they never contain rules.
 
    Line-level checks (department ownership + version status) are
    **resource-based** authorization handlers, not just role checks.
+
+   Phase 9d (v1.1): each department hands its request to the fiscal officer.
+   A department user may submit their own department while the version is
+   Draft; once submitted, its lines and narrative are locked for department
+   users until the fiscal officer returns the request with a note. The
+   Administrator and Fiscal Officer may edit, submit on a department's
+   behalf, and return at any time before adoption. A department user's home
+   is their department, not the overview.
 3. **Budget entry — two modes**, both showing prior-year actual, current
    budget, proposed amount, $ change, % change:
    - *By department:* a department head sees only their departments' lines,
-     grouped by fund then category, with subtotals.
+     grouped by fund then category, with subtotals. Since v1.1 each
+     department also has its own entry page (accounts across funds as full
+     numbers, running totals, a narrative) and a per-department request
+     status the fiscal officer sees on a board.
    - *By account line:* the finance director works in a filterable, sortable
      `QuickGrid` across all funds and departments with inline editing.
 4. **Fund balance panel:** live per-fund summary (§3.9) with the appropriation
@@ -393,7 +404,7 @@ None blocking. Items to confirm as they come up:
 
 ---
 
-## 12. Status against this spec (2026-09-18)
+## 12. Status against this spec (2026-09-19)
 
 | Section | Delivered | Notes |
 |---|---|---|
@@ -408,6 +419,7 @@ None blocking. Items to confirm as they come up:
 | §7.3 Visual design | Phase 4.5, 8 | Tokens over Bootstrap (ADR-0020); Phase 8 moved explanations into info tips |
 | §8 Non-functional | Phase 1–7 | JSON logging, health endpoints, no secrets in the repo, OIDC deploy, 400+ tests |
 | AWS (ADR-0008) | Phase 7 | Deploy-ready: Dockerfile, CDK in C#, assertion tests, gated `deploy.yml`; not deployed (no account) |
+| v1.1 Plugging into the ERP | Phase 9a–9d | Ohio account numbers (ADR-0024), chart from the ERP (ADR-0025), Administrator superset and temporary passwords (ADR-0026), department requests with narrative, submit, return, and a department-first landing (ADR-0027) |
 
 Open questions from §11 were resolved as assumed: Viewers see the fund
 balance panel; the Finance Director may edit while Proposed, Department

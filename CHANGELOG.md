@@ -5,6 +5,17 @@ All notable changes to CivicBudget. Format loosely follows
 
 ## [Unreleased]
 
+## Phase 9d — 2026-09-19 (v1.1)
+### Added
+- Department-first budgeting: sign-in lands in the app, and a department user's home is **My department**, which opens their department for the budget in progress (or a board of their departments).
+- Department entry page: every account of the department across its funds as full numbers with prior actual, current budget, request, and change; fund subtotals and a running department total; revenue credited to the department shown apart; a narrative editor; Submit to the fiscal officer.
+- Per-department request status on a version (in progress / submitted / returned). Submitting locks the department's lines and narrative for department users; the fiscal officer can return a request with a note. Both are audited.
+- Department board (`/admin/budgets/{id}/departments`) showing every department's status and totals, with Return; a chip per department above the workspace grid.
+- The department narrative prints on the Department Budget Detail report and on the public portal ("From the department"); snapshots freeze it (`PublishedBudgetSnapshotDepartments`).
+### Changed
+- Seed: FY2026 narratives reach the portal; FY2027 is mid-round (Police submitted, Parks returned). Reseed with `docker compose down -v && docker compose up -d`.
+- Migration `AddDepartmentRequests`.
+
 ## Phase 9c — 2026-09-19 (v1.1)
 ### Changed
 - Administrator has complete access: everything the Fiscal Officer can do plus users and settings.

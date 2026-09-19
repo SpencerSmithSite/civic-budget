@@ -44,6 +44,21 @@ Sign in as `finance@mapleridge.example`. Overview → **Continue FY2027**.
   that's a resource-based authorization handler, not a filter in the page."
 - Hover the ⓘ next to the title. "Explanations live behind these so the
   screen stays a screen."
+- Point at the chips above the grid: "2 of 8 submitted. Each department
+  enters its own request and hands it in; this is where the fiscal officer
+  sees who is in." Click **All departments**: the board, with a Return
+  action on the submitted ones.
+
+## 2b. The fire chief's view (1 min)
+
+In a private window sign in as `police@mapleridge.example`. "No overview,
+no other departments: the chief lands in the police department for the
+budget in progress." Every police account across its funds as full
+numbers, the request column, the running total, the narrative. It is
+already submitted, so it is locked; back in the officer's window, return
+it with a note, refresh the chief's page: the note is there and the
+amounts are editable again. "One rule decides who may edit a line, with
+one more argument for 'submitted'; the officer is never locked out."
 
 ## 3. The limit and the workflow (1.5 min)
 
@@ -77,7 +92,7 @@ In the editor, in this order:
    "The rules are here, not in pages."
 2. `Infrastructure/Persistence/CivicBudgetDbContext.cs` — the tenant query
    filter loop and the interceptor order.
-3. `Infrastructure/Persistence/PublicPortalDbContext.cs` — three tables,
+3. `Infrastructure/Persistence/PublicPortalDbContext.cs` — four tables,
    `SaveChanges` throws.
 4. `Web/Caching/PortalOutputCachePolicy.cs` — twenty lines that make the
    portal cheap.

@@ -52,7 +52,7 @@ public static class DependencyInjection
             ServiceLifetime.Scoped);
         services.AddScoped<ICivicBudgetDbContextFactory, CivicBudgetDbContextFactoryAdapter>();
 
-        // The portal's read-only context: same database, three tables, no tracking, no interceptors.
+        // The portal's read-only context: same database, four snapshot tables, no tracking, no interceptors.
         // Singleton factory is fine here because nothing per-scope flows into it (tenant comes from the URL slug).
         services.AddDbContextFactory<PublicPortalDbContext>(options =>
             options
