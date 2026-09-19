@@ -667,7 +667,7 @@ table.cb-grid > tfoot > tr > td {
 
 table.cb-grid td.cb-wrap {
     white-space: normal;
-    min-width: 14rem;
+    min-width: 17rem; /* room for a full account number ("1000-110-5110") plus most names on one line */
 }
 
 table.cb-grid .cb-num, table.cb-grid th.cb-num {
@@ -1271,6 +1271,20 @@ table.cb-grid > thead > tr > th .cb-tip {
     .cb-tip-text {
         transition: none;
     }
+}
+
+/* Government settings: the account number format fields in one row. */
+.cb-number-format legend {
+    font-size: inherit;
+    float: none;
+    width: auto;
+}
+
+.cb-number-format-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+    max-width: 720px;
 }
 
 /* ==========================================================================

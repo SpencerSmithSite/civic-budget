@@ -4,7 +4,7 @@
    printed budget without a tree control. *@
 
 <div class="cb-toolbar">
-    <input class="form-control" placeholder="Search account or department" @bind="search" @bind:event="oninput" aria-label="Search lines" />
+    <input class="form-control" placeholder="Search number, account, or department" @bind="search" @bind:event="oninput" aria-label="Search lines" />
     <select class="form-select" @bind="fundFilter" aria-label="Filter by fund">
         <option value="">All funds</option>
         @foreach (LookupDto fund in Workspace.Funds)
@@ -13,8 +13,8 @@
         }
     </select>
     <select class="form-select" @bind="departmentFilter" aria-label="Filter by department">
-        <option value="">All departments</option>
-        <option value="none">Fund level (no department)</option>
+        <option value="">All @Workspace.NumberFormat.DepartmentLabel.ToLowerInvariant()s</option>
+        <option value="none">Fund level (no @Workspace.NumberFormat.DepartmentLabel.ToLowerInvariant())</option>
         @foreach (LookupDto department in Workspace.Departments)
         {
             <option value="@department.Id">@department.Display</option>
@@ -60,7 +60,7 @@
                 }
                 <tr>
                     <td class="cb-wrap" title="@Display.Enum(line.Category)">
-                        <span class="cb-code">@line.AccountCode</span> @line.AccountName
+                        <span class="cb-code">@line.AccountNumber</span> @line.AccountName
                         @if (editingNoteId == line.Id)
                         {
                             <input type="text" class="form-control form-control-sm mt-1" value="@line.Justification" aria-label="@($"Justification for {line.AccountCode}")"
@@ -138,9 +138,17 @@
         await OnJustificationChanged.InvokeAsync((lineId, note));
     }
 
+    /// <summary>"1000-110", "1000.110", "1000 110", or "1000110" all find the same lines; separators are ignored on both sides.</summary>
+    private static bool MatchesNumber(string number, string search)
+    {
+        string compact = search.Replace("-", "").Replace(".", "").Replace(" ", "");
+        return compact.Length >= 3 && number.Replace("-", "").Replace(".", "").Contains(compact, StringComparison.OrdinalIgnoreCase);
+    }
+
     private IEnumerable<BudgetLineDto> Filtered => Workspace.Lines
         .Where(l => string.IsNullOrWhiteSpace(search)
             || l.AccountCode.Contains(search, StringComparison.OrdinalIgnoreCase)
+            || MatchesNumber(l.AccountNumber, search)
             || l.AccountName.Contains(search, StringComparison.OrdinalIgnoreCase)
             || (l.DepartmentName?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false))
         .Where(l => string.IsNullOrEmpty(fundFilter) || l.FundId.ToString() == fundFilter)

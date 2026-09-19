@@ -55,7 +55,7 @@ else
                         @foreach (DetailLineDto l in d.Lines)
                         {
                             <tr>
-                                <th scope="row" class="fw-normal ps-4">@l.AccountCode @l.AccountName@if (l.AccountType != AccountType.Expenditure) { <span class="text-secondary small ms-1">(@Display.Enum(l.AccountType).ToLowerInvariant())</span> }@if (l.Justification is not null) { <div class="text-secondary small cb-report-note-inline">@l.Justification</div> }</th>
+                                <th scope="row" class="fw-normal ps-4"><span class="cb-code">@l.AccountNumber</span> @l.AccountName@if (l.AccountType != AccountType.Expenditure) { <span class="text-secondary small ms-1">(@Display.Enum(l.AccountType).ToLowerInvariant())</span> }@if (l.Justification is not null) { <div class="text-secondary small cb-report-note-inline">@l.Justification</div> }</th>
                                 <td>@l.FundCode</td>
                                 <td class="cb-wrap">@Labels.Category(l.Category)</td>
                                 <td class="cb-num">@Display.Money(l.PriorYearActual)</td>
