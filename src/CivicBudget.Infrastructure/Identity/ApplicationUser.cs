@@ -18,7 +18,13 @@ public sealed class ApplicationUser : IdentityUser
 
     public string DisplayName { get; set; } = string.Empty;
 
-    /// <summary>Departments a Department Head may edit. Empty for other roles.</summary>
+    /// <summary>
+    /// Set when an administrator creates the account or resets its password: the password they
+    /// typed is temporary, and the user is sent to change it before seeing anything else.
+    /// </summary>
+    public bool MustChangePassword { get; set; }
+
+    /// <summary>Departments a department user may edit. Empty for other roles.</summary>
     public ICollection<UserDepartment> Departments { get; } = [];
 }
 

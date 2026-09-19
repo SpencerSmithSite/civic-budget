@@ -2,6 +2,7 @@ using CivicBudget.Application.Common;
 using CivicBudget.Application.Security;
 using CivicBudget.Application.Tenancy;
 using CivicBudget.Application.Users;
+using CivicBudget.Domain.Auditing;
 using CivicBudget.Infrastructure.Persistence;
 using FluentValidation;
 using Microsoft.AspNetCore.Identity;
@@ -22,7 +23,8 @@ public sealed class UserAdminService(
     ICurrentUser currentUser,
     IValidator<CreateUserRequest> createValidator,
     IValidator<UpdateUserRequest> updateValidator,
-    IValidator<ResetPasswordRequest> resetValidator) : IUserAdminService
+    IValidator<ResetPasswordRequest> resetValidator,
+    TimeProvider clock) : IUserAdminService
 {
     public async Task<IReadOnlyList<UserSummaryDto>> ListAsync(CancellationToken ct = default)
     {
@@ -64,6 +66,7 @@ public sealed class UserAdminService(
             EmailConfirmed = true, // no email flow in this app; admins create accounts directly
             DisplayName = request.DisplayName.Trim(),
             GovernmentId = governmentId,
+            MustChangePassword = true, // the administrator's password is temporary
         };
         foreach (Guid departmentId in request.DepartmentIds.Distinct())
         {
@@ -77,9 +80,13 @@ public sealed class UserAdminService(
         }
 
         IdentityResult roleAdded = await userManager.AddToRoleAsync(user, request.Role);
-        return roleAdded.Succeeded
-            ? Result.Success(user.Id)
-            : Result.Failure<string>(ToErrors(roleAdded, nameof(request.Role)));
+        if (!roleAdded.Succeeded)
+        {
+            return Result.Failure<string>(ToErrors(roleAdded, nameof(request.Role)));
+        }
+
+        await AuditAsync(user, $"Created user {user.Email} as {Roles.DisplayName(request.Role)}{DepartmentsNote(request.DepartmentIds)}", ct);
+        return Result.Success(user.Id);
     }
 
     public async Task<Result> UpdateAsync(UpdateUserRequest request, CancellationToken ct = default)
@@ -126,6 +133,7 @@ public sealed class UserAdminService(
 
         // Changing the stamp makes existing sessions re-sign-in, so new claims take effect promptly.
         await userManager.UpdateSecurityStampAsync(user);
+        await AuditAsync(user, $"Updated user {user.Email}: {Roles.DisplayName(request.Role)}{DepartmentsNote(request.DepartmentIds)}", ct);
         return Result.Success();
     }
 
@@ -145,7 +153,17 @@ public sealed class UserAdminService(
         // The token path is Identity's supported way to set a password without knowing the old one.
         string token = await userManager.GeneratePasswordResetTokenAsync(user);
         IdentityResult reset = await userManager.ResetPasswordAsync(user, token, request.NewPassword);
-        return reset.Succeeded ? Result.Success() : Result.Failure(ToErrors(reset, nameof(request.NewPassword)));
+        if (!reset.Succeeded)
+        {
+            return Result.Failure(ToErrors(reset, nameof(request.NewPassword)));
+        }
+
+        // The administrator knows this password, so it is temporary; the stamp change ends any open session.
+        user.MustChangePassword = true;
+        await userManager.UpdateAsync(user);
+        await userManager.UpdateSecurityStampAsync(user);
+        await AuditAsync(user, $"Reset the password for {user.Email} (temporary, must be changed at sign-in)", ct);
+        return Result.Success();
     }
 
     public async Task<Result> SetLockedOutAsync(string id, bool isLockedOut, CancellationToken ct = default)
@@ -173,10 +191,27 @@ public sealed class UserAdminService(
             await userManager.UpdateSecurityStampAsync(user);
         }
 
+        await AuditAsync(user, isLockedOut ? $"Locked {user.Email}; they can no longer sign in" : $"Unlocked {user.Email}", ct);
+
         return Result.Success();
     }
 
     // ---- helpers ------------------------------------------------------------------------------
+
+    /// <summary>
+    /// User accounts are not [Audited] entities (Identity owns them), so administration is recorded
+    /// as named events on the government's trail, in the acting administrator's name.
+    /// </summary>
+    private async Task AuditAsync(ApplicationUser user, string description, CancellationToken ct)
+    {
+        await using CivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
+        db.AuditEntries.Add(AuditEntry.Event(user.GovernmentId, "User", Guid.TryParse(user.Id, out Guid id) ? id : Guid.Empty, description,
+            currentUser.UserId ?? "system", currentUser.DisplayName ?? "system", clock.GetUtcNow()));
+        await db.SaveChangesAsync(ct);
+    }
+
+    private static string DepartmentsNote(IReadOnlyList<Guid> departmentIds) =>
+        departmentIds.Count == 0 ? "" : $", {departmentIds.Count} department{(departmentIds.Count == 1 ? "" : "s")}";
 
     /// <summary>
     /// One query, projected to the DTO with the role name and department codes as correlated

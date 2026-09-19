@@ -47,8 +47,8 @@ public sealed class BudgetEntryService(
         FiscalYear fiscalYear = await db.FiscalYears.SingleAsync(fy => fy.Id == version.FiscalYearId, ct);
         Government government = await db.Governments.SingleAsync(g => g.Id == version.GovernmentId, ct);
 
-        // Department Heads see only their departments' lines; everyone else sees the whole version.
-        bool isDepartmentHead = currentUser.IsInRole(Roles.DepartmentHead);
+        // department users see only their departments' lines; everyone else sees the whole version.
+        bool isDepartmentHead = currentUser.IsDepartmentUser();
         IEnumerable<BudgetLine> visible = isDepartmentHead
             ? version.Lines.Where(l => l.DepartmentId is { } d && currentUser.DepartmentIds.Contains(d))
             : version.Lines;
@@ -92,7 +92,7 @@ public sealed class BudgetEntryService(
         }
 
         bool canAddLines = version.IsEditable
-            && (currentUser.IsInRole(Roles.FinanceDirector) || (isDepartmentHead && version.Status == BudgetStatus.Draft));
+            && (currentUser.IsFiscalAuthority() || (isDepartmentHead && version.Status == BudgetStatus.Draft));
 
         return new BudgetWorkspaceDto(
             ToSummary(version, fiscalYear.Year, version.Lines.Count),
@@ -210,7 +210,7 @@ public sealed class BudgetEntryService(
 
         if (!BudgetLinePermissions.CanEditBeginningBalances(currentUser, version.Status))
         {
-            return Result.Failure("Only the Finance Director can set beginning balances, and only before adoption.");
+            return Result.Failure("Only an Administrator or the Fiscal Officer can set beginning balances, and only before adoption.");
         }
 
         Fund? fund = await db.Funds.FirstOrDefaultAsync(f => f.Id == fundId, ct);

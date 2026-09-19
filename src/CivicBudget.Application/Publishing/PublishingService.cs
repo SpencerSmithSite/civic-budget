@@ -18,7 +18,7 @@ public sealed class PublishingService(
     TimeProvider clock,
     IPublishedSnapshotCacheInvalidator cacheInvalidator) : IPublishingService
 {
-    private const string NotAllowed = "Only the Finance Director can publish or unpublish a budget.";
+    private const string NotAllowed = "Only an Administrator or the Fiscal Officer can publish or unpublish a budget.";
 
     public async Task<IReadOnlyList<SnapshotSummaryDto>> ListAsync(CancellationToken ct = default)
     {
@@ -33,7 +33,7 @@ public sealed class PublishingService(
 
     public async Task<Result<Guid>> PublishAsync(Guid versionId, CancellationToken ct = default)
     {
-        if (!currentUser.IsInRole(Roles.FinanceDirector))
+        if (!currentUser.IsFiscalAuthority())
         {
             return Result.Failure<Guid>(NotAllowed);
         }
@@ -91,7 +91,7 @@ public sealed class PublishingService(
 
     public async Task<Result> UnpublishAsync(Guid snapshotId, CancellationToken ct = default)
     {
-        if (!currentUser.IsInRole(Roles.FinanceDirector))
+        if (!currentUser.IsFiscalAuthority())
         {
             return Result.Failure(NotAllowed);
         }

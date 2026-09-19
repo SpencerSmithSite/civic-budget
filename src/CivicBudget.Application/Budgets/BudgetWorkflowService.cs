@@ -14,7 +14,7 @@ public sealed class BudgetWorkflowService(
     ICurrentUser currentUser,
     TimeProvider clock) : IBudgetWorkflowService
 {
-    private const string NotAllowed = "Only the Finance Director can move a budget through the workflow.";
+    private const string NotAllowed = "Only an Administrator or the Fiscal Officer can move a budget through the workflow.";
 
     public async Task<WorkflowStateDto?> GetStateAsync(Guid versionId, CancellationToken ct = default)
     {
@@ -26,7 +26,7 @@ public sealed class BudgetWorkflowService(
         }
 
         Government government = await db.Governments.SingleAsync(g => g.Id == version.GovernmentId, ct);
-        bool isFd = currentUser.IsInRole(Roles.FinanceDirector);
+        bool isFd = currentUser.IsFiscalAuthority();
         bool hasOpenSibling = await db.BudgetVersions.AnyAsync(v => v.FiscalYearId == version.FiscalYearId && v.Id != version.Id && v.Status != BudgetStatus.Adopted, ct);
 
         return new WorkflowStateDto(
@@ -63,7 +63,7 @@ public sealed class BudgetWorkflowService(
 
     public async Task<Result<Guid>> CreateAmendmentAsync(Guid adoptedVersionId, string reason, CancellationToken ct = default)
     {
-        if (!currentUser.IsInRole(Roles.FinanceDirector))
+        if (!currentUser.IsFiscalAuthority())
         {
             return Result.Failure<Guid>(NotAllowed);
         }
@@ -110,7 +110,7 @@ public sealed class BudgetWorkflowService(
         bool checkLimit = true,
         Func<ICivicBudgetDbContext, BudgetVersion, CancellationToken, Task>? afterTransition = null)
     {
-        if (!currentUser.IsInRole(Roles.FinanceDirector))
+        if (!currentUser.IsFiscalAuthority())
         {
             return Result.Failure(NotAllowed);
         }

@@ -29,10 +29,10 @@ public sealed class CreateUserRequestValidator : AbstractValidator<CreateUserReq
         RuleFor(r => r.Role).Must(Roles.All.Contains).WithMessage("Choose one of the four roles.");
         RuleFor(r => r.DepartmentIds).NotEmpty()
             .When(r => r.Role == Roles.DepartmentHead)
-            .WithMessage("A Department Head must be assigned at least one department.");
+            .WithMessage("A department user must be assigned at least one department.");
         RuleFor(r => r.DepartmentIds).Empty()
             .When(r => r.Role != Roles.DepartmentHead)
-            .WithMessage("Only Department Heads are assigned departments.");
+            .WithMessage("Only department users are assigned departments.");
     }
 }
 
@@ -45,10 +45,10 @@ public sealed class UpdateUserRequestValidator : AbstractValidator<UpdateUserReq
         RuleFor(r => r.Role).Must(Roles.All.Contains).WithMessage("Choose one of the four roles.");
         RuleFor(r => r.DepartmentIds).NotEmpty()
             .When(r => r.Role == Roles.DepartmentHead)
-            .WithMessage("A Department Head must be assigned at least one department.");
+            .WithMessage("A department user must be assigned at least one department.");
         RuleFor(r => r.DepartmentIds).Empty()
             .When(r => r.Role != Roles.DepartmentHead)
-            .WithMessage("Only Department Heads are assigned departments.");
+            .WithMessage("Only department users are assigned departments.");
     }
 }
 

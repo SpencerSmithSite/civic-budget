@@ -21,7 +21,7 @@ public sealed record WorkflowStateDto(
 }
 
 /// <summary>
-/// Draft → Proposed → Adopted, plus amendments. Every transition is Finance Director only, checks
+/// Draft → Proposed → Adopted, plus amendments. Every transition is Administrator or Fiscal Officer only, checks
 /// the appropriation limit in the government's mode (SPEC section 5.1), and writes an audit event.
 /// </summary>
 public interface IBudgetWorkflowService

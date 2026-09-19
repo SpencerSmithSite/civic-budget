@@ -136,7 +136,7 @@ public sealed class ChartSyncService(
 
     private sealed record Local(IReadOnlyList<LocalFund> Funds, IReadOnlyList<LocalDepartment> Departments, IReadOnlyList<LocalObject> Objects);
 
-    private bool CanSync() => currentUser.IsInRole(Roles.Admin) || currentUser.IsInRole(Roles.FinanceDirector);
+    private bool CanSync() => currentUser.IsFiscalAuthority();
 
     private async Task<Government> GovernmentAsync(ICivicBudgetDbContext db, CancellationToken ct) =>
         await db.Governments.SingleAsync(g => g.Id == currentUser.GovernmentId, ct);

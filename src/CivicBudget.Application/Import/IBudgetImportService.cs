@@ -4,7 +4,7 @@ namespace CivicBudget.Application.Import;
 
 /// <summary>
 /// CSV/XLSX import of budget lines into an editable version, in two steps so nothing is written
-/// until a person has seen the preview. Finance Director only (<c>Policies.CanImport</c>).
+/// until a person has seen the preview. Administrator or Fiscal Officer only (<c>Policies.CanImport</c>).
 /// <para>
 /// File contract: a header row with Fund, Department, Account, Amount, and optionally Prior Year
 /// Actual, Current Year Budget, Justification (any order, case-insensitive). Codes, not ids, so a

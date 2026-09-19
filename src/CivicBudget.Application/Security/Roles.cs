@@ -17,8 +17,8 @@ public static class Roles
     public static string DisplayName(string role) => role switch
     {
         Admin => "Administrator",
-        FinanceDirector => "Finance Director",
-        DepartmentHead => "Department Head",
+        FinanceDirector => "Fiscal Officer",
+        DepartmentHead => "Department User",
         Viewer => "Viewer",
         _ => role,
     };

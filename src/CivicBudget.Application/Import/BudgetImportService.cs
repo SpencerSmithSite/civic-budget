@@ -140,9 +140,9 @@ public sealed class BudgetImportService(
     /// <summary>Loads the version and every code the government has, then runs the pure analyser.</summary>
     private async Task<Result<Analysis>> AnalyzeAsync(ICivicBudgetDbContext db, Guid budgetVersionId, IReadOnlyList<ImportRowInput> rows, CancellationToken ct)
     {
-        if (!currentUser.IsInRole(Roles.FinanceDirector))
+        if (!currentUser.IsFiscalAuthority())
         {
-            return Result.Failure<Analysis>("Only the Finance Director can import budget lines.");
+            return Result.Failure<Analysis>("Only an Administrator or the Fiscal Officer can import budget lines.");
         }
 
         BudgetVersion? version = await db.BudgetVersions

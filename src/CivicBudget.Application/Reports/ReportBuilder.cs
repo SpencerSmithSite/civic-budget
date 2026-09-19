@@ -30,7 +30,7 @@ public static class ReportBuilder
 
     public static DepartmentDetailReportDto DepartmentDetail(ReportHeaderDto header, BudgetWorkspaceDto workspace, Guid? departmentId)
     {
-        // The workspace already hides other departments from a Department Head, so grouping its lines is the filter.
+        // The workspace already hides other departments from a department user, so grouping its lines is the filter.
         List<DepartmentDetailDto> departments = workspace.Lines
             .Where(l => l.DepartmentId is not null && (departmentId is null || l.DepartmentId == departmentId))
             .GroupBy(l => (l.DepartmentId!.Value, l.DepartmentCode!, l.DepartmentName!))

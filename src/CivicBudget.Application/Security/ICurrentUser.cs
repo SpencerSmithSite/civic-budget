@@ -19,7 +19,7 @@ public interface ICurrentUser
 
     IReadOnlyCollection<string> Roles { get; }
 
-    /// <summary>Departments a Department Head may edit. Empty for other roles.</summary>
+    /// <summary>Departments a department user may edit. Empty for other roles.</summary>
     IReadOnlyCollection<Guid> DepartmentIds { get; }
 
     bool IsInRole(string role);
