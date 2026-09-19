@@ -132,6 +132,7 @@ if (app.Environment.IsDevelopment() || app.Configuration["HTTPS_PORT"] is not nu
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<CurrentUserMiddleware>();
+app.UseMiddleware<MustChangePasswordMiddleware>();
 app.UseMiddleware<PortalResponseMiddleware>();
 app.UseOutputCache();
 app.UseAntiforgery();
