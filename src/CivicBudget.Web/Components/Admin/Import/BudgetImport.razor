@@ -1,5 +1,4 @@
 @page "/admin/budgets/{VersionId:guid}/import"
-@rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.CanImport)]
 @using CivicBudget.Application.Import
 @inject IBudgetEntryService BudgetEntry

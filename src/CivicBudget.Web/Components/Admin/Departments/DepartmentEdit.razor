@@ -1,6 +1,5 @@
 @page "/admin/departments/new"
 @page "/admin/departments/{Id:guid}"
-@rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.CanMaintainSetup)]
 @inject IDepartmentService DepartmentService
 @inject NavigationManager Navigation

@@ -44,10 +44,10 @@ internal static class PortalEndpoints
         IReadOnlyList<PortalLineDto> lines = await snapshots.GetLinesAsync(slug, year, ct);
         return new ExportTable(
             $"FY{year} {budget.VersionLabel}",
-            ["Fund code", "Fund", "Department code", "Department", "Account code", "Account", "Type", "Category", $"FY{year} budget", $"FY{year - 1} budget", $"FY{year - 2} actual"],
+            ["Account number", "Fund code", "Fund", "Department code", "Department", "Account code", "Account", "Type", "Category", $"FY{year} budget", $"FY{year - 1} budget", $"FY{year - 2} actual"],
             lines.Select(l => new object?[]
             {
-                l.FundCode, l.FundName, l.DepartmentCode, l.DepartmentName, l.AccountCode, l.AccountName,
+                l.AccountNumber, l.FundCode, l.FundName, l.DepartmentCode, l.DepartmentName, l.AccountCode, l.AccountName,
                 CivicBudget.Web.Components.Common.Display.Enum(l.AccountType), CivicBudget.Web.Components.Common.Display.Enum(l.Category), l.Amount, l.CurrentYearBudget, l.PriorYearActual,
             }).ToList());
     }

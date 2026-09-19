@@ -2,18 +2,27 @@
 @implements IDisposable
 @inject AdminPageState PageState
 @inject IGovernmentSettingsService SettingsService
+@inject IJSRuntime JS
+@inject PersistentComponentState ApplicationState
 @using CivicBudget.Application.Setup
 
 @* The admin shell: a dark sidebar of module groups, a white top bar with the page's breadcrumb
    trail and the signed-in user, and the page. Links are shown per policy so a Viewer never sees
    a "Users" link they cannot use (the pages are still protected server-side). Under 992px the
-   sidebar slides in over the page from a hamburger button. *@
-<div class="cb-shell">
+   sidebar slides in over the page from a hamburger button; above it the sidebar can collapse to
+   an icon rail (the choice is kept in a cookie so the prerender already knows it). *@
+<div class="cb-shell @(collapsed ? "collapsed" : "")">
     <aside class="cb-sidebar @(menuOpen ? "open" : "")" id="admin-sidebar">
-        <a class="cb-brand" href="admin" aria-label="CivicBudget overview">
-            <span class="cb-seal" aria-hidden="true">CB</span>
-            <span><b>CivicBudget</b><small>@(governmentName ?? "")</small></span>
-        </a>
+        <div class="cb-sidebar-head">
+            <a class="cb-brand" href="admin" aria-label="CivicBudget overview">
+                <span class="cb-seal" aria-hidden="true">CB</span>
+                <span><b>CivicBudget</b><small>@(governmentName ?? "")</small></span>
+            </a>
+            <button type="button" class="cb-collapse" @onclick="ToggleCollapsedAsync" aria-expanded="@(!collapsed)" aria-controls="admin-sidebar"
+                    title="@(collapsed ? "Expand menu" : "Collapse menu")" aria-label="@(collapsed ? "Expand menu" : "Collapse menu")">
+                <i class="bi @(collapsed ? "bi-chevron-double-right" : "bi-chevron-double-left")" aria-hidden="true"></i>
+            </button>
+        </div>
 
         <AuthorizeView Policy="@Policies.CanViewBudget">
             <div class="cb-navgroup">Budget</div>
@@ -95,7 +104,14 @@
 <ToastHost />
 
 @code {
+    private const string CollapsedCookie = "cb.sidebar";
+
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
     private bool menuOpen;
+    private bool collapsed;
+    private PersistingComponentStateSubscription persisting;
     private string? governmentName;
     private string publicSlug = "";
     private string fiscalYearNote = "";
@@ -103,6 +119,17 @@
     protected override async Task OnInitializedAsync()
     {
         PageState.Changed += OnPageStateChanged;
+        // During prerender the request is available and the cookie says whether the user collapsed the
+        // menu last time. The interactive circuit has no request, so the value is handed over through
+        // persistent component state; without that hand-off the rail would flash open on every page.
+        persisting = ApplicationState.RegisterOnPersisting(() =>
+        {
+            ApplicationState.PersistAsJson(CollapsedCookie, collapsed);
+            return Task.CompletedTask;
+        });
+        collapsed = ApplicationState.TryTakeFromJson(CollapsedCookie, out bool persisted)
+            ? persisted
+            : HttpContext?.Request.Cookies[CollapsedCookie] == "1";
         GovernmentSettingsDto government = await SettingsService.GetAsync();
         governmentName = government.Name;
         publicSlug = government.PublicSlug;
@@ -112,6 +139,12 @@
     private void OnPageStateChanged() => InvokeAsync(StateHasChanged);
 
     private void CloseMenu() => menuOpen = false;
+
+    private async Task ToggleCollapsedAsync()
+    {
+        collapsed = !collapsed;
+        await JS.InvokeVoidAsync("civicBudget.setCookie", CollapsedCookie, collapsed ? "1" : "0");
+    }
 
     private static string Initials(string? name)
     {
@@ -124,5 +157,9 @@
         return parts.Length >= 2 ? $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant() : name[..1].ToUpperInvariant();
     }
 
-    public void Dispose() => PageState.Changed -= OnPageStateChanged;
+    public void Dispose()
+    {
+        PageState.Changed -= OnPageStateChanged;
+        persisting.Dispose();
+    }
 }

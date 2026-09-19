@@ -11,13 +11,13 @@ namespace CivicBudget.Application.Reports;
 /// </summary>
 public static class ReportTables
 {
-    /// <summary>The workspace lines in the import's column layout, so an export can be edited and imported back.</summary>
+    /// <summary>The workspace lines in the import's column layout (full number first, then the codes), so an export can be edited and imported back.</summary>
     public static ExportTable Lines(BudgetWorkspaceDto workspace) => new(
         $"FY{workspace.Version.Year} {workspace.Version.Label}",
         ImportFileParser.Headers,
         workspace.Lines.Select(l => new object?[]
         {
-            l.FundCode, l.DepartmentCode, l.AccountCode, l.Amount, l.PriorYearActual, l.CurrentYearBudget, l.Justification,
+            l.AccountNumber, l.FundCode, l.DepartmentCode, l.AccountCode, l.AccountName, l.Amount, l.PriorYearActual, l.CurrentYearBudget, l.Justification,
         }).ToList());
 
     public static ExportTable FundSummary(FundSummaryReportDto report) => new(
@@ -31,10 +31,10 @@ public static class ReportTables
 
     public static ExportTable DepartmentDetail(DepartmentDetailReportDto report) => new(
         "Department budget detail",
-        ["Department", "Fund", "Account", "Account name", "Type", "Category", "Prior year actual", "Current year budget", "Amount", "Change", "Change %", "Justification"],
+        ["Department", "Account number", "Fund", "Account name", "Type", "Category", "Prior year actual", "Current year budget", "Amount", "Change", "Change %", "Justification"],
         report.Departments.SelectMany(d => d.Lines.Select(l => new object?[]
         {
-            $"{d.DepartmentCode} {d.DepartmentName}", $"{l.FundCode} {l.FundName}", l.AccountCode, l.AccountName,
+            $"{d.DepartmentCode} {d.DepartmentName}", l.AccountNumber, $"{l.FundCode} {l.FundName}", l.AccountName,
             Labels.AccountType(l.AccountType), Labels.Category(l.Category),
             l.PriorYearActual, l.CurrentYearBudget, l.Amount, l.DollarChange, l.PercentChange, l.Justification,
         })).ToList());

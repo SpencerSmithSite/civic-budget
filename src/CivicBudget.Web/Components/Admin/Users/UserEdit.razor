@@ -1,6 +1,5 @@
 @page "/admin/users/new"
 @page "/admin/users/{Id}"
-@rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.CanManageUsers)]
 @inject IUserAdminService UserAdmin
 @inject IDepartmentService DepartmentService

@@ -19,13 +19,14 @@ public class ReportBuilderTests
 
     private static BudgetWorkspaceDto Workspace() => new(
         new BudgetVersionSummaryDto(Header.BudgetVersionId, 2027, 1, "Original", BudgetStatus.Draft, null, null, 5),
+        AccountNumberFormat.UanVillage,
         true, true,
         [
-            Line(Street, "2011", "Street", Streets, "ST", "Streets", "5100", "Salaries", AccountType.Expenditure, ReportingCategory.PersonalServices, 100m, 90m, 80m),
-            Line(General, "1000", "General", Police, "PD", "Police", "5200", "Overtime", AccountType.Expenditure, ReportingCategory.PersonalServices, 50m, 40m, 30m),
-            Line(General, "1000", "General", Police, "PD", "Police", "5300", "Fuel", AccountType.Expenditure, ReportingCategory.SuppliesAndMaterials, 20m, 20m, 20m),
+            Line(Street, "2011", "Street", Streets, "620", "Streets", "5100", "Salaries", AccountType.Expenditure, ReportingCategory.PersonalServices, 100m, 90m, 80m),
+            Line(General, "1000", "General", Police, "110", "Police", "5200", "Overtime", AccountType.Expenditure, ReportingCategory.PersonalServices, 50m, 40m, 30m),
+            Line(General, "1000", "General", Police, "110", "Police", "5300", "Fuel", AccountType.Expenditure, ReportingCategory.SuppliesAndMaterials, 20m, 20m, 20m),
             Line(General, "1000", "General", null, null, null, "4100", "Property tax", AccountType.Revenue, ReportingCategory.Taxes, 300m, 250m, 0m),
-            Line(General, "1000", "General", Police, "PD", "Police", "4500", "Police fines", AccountType.Revenue, ReportingCategory.FinesAndForfeitures, 10m, 0m, 0m),
+            Line(General, "1000", "General", Police, "110", "Police", "4500", "Police fines", AccountType.Revenue, ReportingCategory.FinesAndForfeitures, 10m, 0m, 0m),
         ],
         [
             Balance(Street, "2011", "Street", FundCategory.SpecialRevenue, beginning: 5m, revenues: 0m, transfersIn: 50m, expenditures: 100m, transfersOut: 0m),
@@ -56,7 +57,7 @@ public class ReportBuilderTests
     {
         DepartmentDetailReportDto report = ReportBuilder.DepartmentDetail(Header, Workspace(), departmentId: null);
 
-        Assert.Equal(["PD", "ST"], report.Departments.Select(d => d.DepartmentCode));
+        Assert.Equal(["110", "620"], report.Departments.Select(d => d.DepartmentCode));
         DepartmentDetailDto police = report.Departments[0];
         Assert.Equal(["4500", "5200", "5300"], police.Lines.Select(l => l.AccountCode)); // revenue first, then expenditures by code
         Assert.Equal(70m, police.Amount);                    // fines are revenue and stay out of the expenditure subtotal
@@ -64,7 +65,7 @@ public class ReportBuilderTests
         Assert.Equal(10m, police.DollarChange);
         Assert.Equal(16.7m, Math.Round(police.PercentChange!.Value, 1));
         Assert.Equal(170m, report.TotalAmount);
-        Assert.Equal(["PD", "ST"], report.AvailableDepartments.Select(d => d.Code));
+        Assert.Equal(["110", "620"], report.AvailableDepartments.Select(d => d.Code));
         Assert.Null(report.SelectedDepartmentId);
     }
 
@@ -73,7 +74,7 @@ public class ReportBuilderTests
     {
         DepartmentDetailReportDto report = ReportBuilder.DepartmentDetail(Header, Workspace(), Streets);
 
-        Assert.Equal(["ST"], report.Departments.Select(d => d.DepartmentCode));
+        Assert.Equal(["620"], report.Departments.Select(d => d.DepartmentCode));
         Assert.Equal(Streets, report.SelectedDepartmentId);
         Assert.Equal(2, report.AvailableDepartments.Count);
     }
@@ -102,7 +103,8 @@ public class ReportBuilderTests
         ExportTable summary = ReportTables.FundSummary(ReportBuilder.FundSummary(Header, workspace));
         ExportTable category = ReportTables.RevenueVsExpenditure(ReportBuilder.RevenueVsExpenditure(Header, workspace));
 
-        Assert.Equal(["Fund", "Department", "Account", "Amount", "Prior Year Actual", "Current Year Budget", "Justification"], lines.Headers);
+        Assert.Equal(["Account Number", "Fund", "Department", "Account", "Account Name", "Amount", "Prior Year Actual", "Current Year Budget", "Justification"], lines.Headers);
+        Assert.Equal("2011-620-5100", lines.Rows[0][0]);
         Assert.Equal(5, lines.Rows.Count);
         Assert.Equal(4, detail.Rows.Count);        // the fund-only revenue line has no department
         Assert.Equal(3, summary.Rows.Count);       // two funds plus the total
@@ -115,7 +117,7 @@ public class ReportBuilderTests
 
     private static BudgetLineDto Line(Guid fundId, string fundCode, string fundName, Guid? deptId, string? deptCode, string? deptName,
         string accountCode, string accountName, AccountType type, ReportingCategory category, decimal amount, decimal current, decimal prior) =>
-        new(Guid.NewGuid(), fundId, fundCode, fundName, deptId, deptCode, deptName, Guid.NewGuid(), accountCode, accountName, type, category,
+        new(Guid.NewGuid(), fundId, fundCode, fundName, deptId, deptCode, deptName, Guid.NewGuid(), accountCode, accountName, deptCode is null ? $"{fundCode}-{accountCode}" : $"{fundCode}-{deptCode}-{accountCode}", type, category,
             amount, prior, current, null, true);
 
     private static FundBalanceDto Balance(Guid fundId, string code, string name, FundCategory category,

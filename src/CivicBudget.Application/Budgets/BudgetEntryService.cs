@@ -55,7 +55,7 @@ public sealed class BudgetEntryService(
 
         List<BudgetLineDto> lines = visible
             .OrderBy(l => l.Fund.Code).ThenBy(l => l.Department?.Code).ThenBy(l => l.Account.Code)
-            .Select(l => ToDto(l, BudgetLinePermissions.CanEdit(currentUser, version.Status, l.DepartmentId)))
+            .Select(l => ToDto(l, government.AccountNumberFormat, BudgetLinePermissions.CanEdit(currentUser, version.Status, l.DepartmentId)))
             .ToList();
 
         // Fund balances always use every line in the version, not just the visible ones: a Department
@@ -96,6 +96,7 @@ public sealed class BudgetEntryService(
 
         return new BudgetWorkspaceDto(
             ToSummary(version, fiscalYear.Year, version.Lines.Count),
+            government.AccountNumberFormat,
             version.IsEditable, canAddLines, lines, balances, funds, departments, accounts);
     }
 
@@ -256,10 +257,12 @@ public sealed class BudgetEntryService(
     private static BudgetVersionSummaryDto ToSummary(BudgetVersion v, int year, int lineCount) =>
         new(v.Id, year, v.VersionNumber, v.Label, v.Status, v.AmendmentReason, v.ResolutionNumber, lineCount);
 
-    private static BudgetLineDto ToDto(BudgetLine l, bool canEdit) => new(
+    private static BudgetLineDto ToDto(BudgetLine l, AccountNumberFormat format, bool canEdit) => new(
         l.Id,
         l.FundId, l.Fund.Code, l.Fund.Name,
         l.DepartmentId, l.Department?.Code, l.Department?.Name,
-        l.AccountId, l.Account.Code, l.Account.Name, l.Account.Type, l.Account.Category,
+        l.AccountId, l.Account.Code, l.Account.Name,
+        AccountNumber.Compose(format, l.Fund.Code, l.Department?.Code, l.Account.Code),
+        l.Account.Type, l.Account.Category,
         l.Amount, l.PriorYearActual, l.CurrentYearBudget, l.Justification, canEdit);
 }

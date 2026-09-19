@@ -8,11 +8,11 @@ public class CsvReaderTests
     [Fact]
     public void Reads_headers_and_rows_with_quotes_commas_and_crlf()
     {
-        TabularFile file = Read("Fund,Department,Account,Amount\r\n1000,PD,\"5100\",\"1,250.00\"\r\n2011,,4100,\"Say \"\"hi\"\"\"\r\n");
+        TabularFile file = Read("Fund,Department,Account,Amount\r\n1000,110,\"5100\",\"1,250.00\"\r\n2011,,4100,\"Say \"\"hi\"\"\"\r\n");
 
         Assert.Equal(["Fund", "Department", "Account", "Amount"], file.Headers);
         Assert.Equal(2, file.Rows.Count);
-        Assert.Equal<string?[]>(["1000", "PD", "5100", "1,250.00"], file.Rows[0]);
+        Assert.Equal<string?[]>(["1000", "110", "5100", "1,250.00"], file.Rows[0]);
         Assert.Equal<string?[]>(["2011", "", "4100", "Say \"hi\""], file.Rows[1]);
     }
 

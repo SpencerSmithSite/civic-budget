@@ -1,6 +1,5 @@
 @page "/admin/funds/new"
 @page "/admin/funds/{Id:guid}"
-@rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.CanMaintainSetup)]
 @inject IFundService FundService
 @inject NavigationManager Navigation

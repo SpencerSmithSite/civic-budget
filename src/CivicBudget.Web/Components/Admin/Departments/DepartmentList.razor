@@ -1,5 +1,4 @@
 @page "/admin/departments"
-@rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.CanMaintainSetup)]
 @inject IDepartmentService DepartmentService
 @inject ToastService Toasts

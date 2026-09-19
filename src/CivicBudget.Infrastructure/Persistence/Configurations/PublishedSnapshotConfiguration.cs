@@ -45,6 +45,7 @@ public static class PublishedSnapshotModel
             line.Property(l => l.DepartmentName).HasMaxLength(150);
             line.Property(l => l.AccountCode).HasMaxLength(20);
             line.Property(l => l.AccountName).HasMaxLength(150);
+            line.Property(l => l.AccountNumber).HasMaxLength(70);
             line.HasIndex(l => new { l.SnapshotId, l.FundCode, l.DepartmentCode, l.AccountCode });
         });
 

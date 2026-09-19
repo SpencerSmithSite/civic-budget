@@ -117,7 +117,7 @@ cache by tag.
 
 | Area | Mode | Why |
 |---|---|---|
-| Admin app | `InteractiveServer` | Stateful grids with inline editing, live fund-balance panel, confirmation dialogs. Server-side keeps the domain and EF Core off the client and makes authorization simple. |
+| Admin app (layout included) | `InteractiveServer`, applied to `Routes` in `App.razor` | Stateful grids with inline editing, live fund-balance panel, confirmation dialogs, toasts, a collapsible menu. Server-side keeps the domain and EF Core off the client and makes authorization simple. |
 | Public portal | Static SSR (no interactivity) | Each citizen visit is a plain HTTP request: cacheable, crawlable, tiny payload, no SignalR connection to hold open per visitor. Core tables work with JavaScript disabled. |
 | Portal charts and search | Static SSR, no JavaScript at all | Bars are CSS with the value beside each one and a `<details>` table twin; the `$ \| %` toggle is two links; search is a GET form. Nothing to enhance, nothing to break. |
 

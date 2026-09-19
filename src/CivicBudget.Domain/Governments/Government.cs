@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using CivicBudget.Domain.Accounts;
 using CivicBudget.Domain.Common;
 
 namespace CivicBudget.Domain.Governments;
@@ -29,6 +30,9 @@ public sealed partial class Government : Entity
 
     /// <summary>Plain-language introduction shown to citizens on the portal.</summary>
     public string? Description { get; private set; }
+
+    /// <summary>How this government writes "1000-725-121". Comes from the parent ERP's chart; defaults to the UAN village layout.</summary>
+    public AccountNumberFormat AccountNumberFormat { get; private set; } = AccountNumberFormat.UanVillage;
 
     public Government(
         string name,
@@ -65,6 +69,8 @@ public sealed partial class Government : Entity
     public void SetFiscalYearStartMonth(int month) => FiscalYearStartMonth = ValidateMonth(month);
 
     public void SetPublicSlug(string slug) => PublicSlug = ValidateSlug(slug);
+
+    public void SetAccountNumberFormat(AccountNumberFormat format) => AccountNumberFormat = format ?? throw new ArgumentNullException(nameof(format));
 
     private static string ValidateState(string state)
     {

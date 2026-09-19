@@ -5,6 +5,14 @@ All notable changes to CivicBudget. Format loosely follows
 
 ## [Unreleased]
 
+## Phase 9a — 2026-09-19 (v1.1)
+### Added
+- Full Ohio-style account numbers (`1000-725-121`, `1000-110` for revenue) composed under a per-government `AccountNumberFormat` (widths, separator, Program/Department), shown in grids, reports, exports, the portal, and searchable everywhere; import accepts an `Account Number` column.
+- Government settings: account number format with a live example.
+### Changed
+- Seed department codes are UAN program numbers; Pine Hollow demonstrates a dotted county-style format. Reseed with `docker compose down -v && docker compose up -d`.
+- Published snapshot lines store the composed number (`AddAccountNumberFormat` migration backfills).
+
 ## Phase 8 — 2026-09-18
 ### Changed
 - Explanatory subtitles removed across the admin app; the useful ones are info tips beside titles and KPI labels. Portal section leads trimmed.

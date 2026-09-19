@@ -46,6 +46,7 @@ public sealed record DetailLineDto(
     string FundName,
     string AccountCode,
     string AccountName,
+    string AccountNumber,
     AccountType AccountType,
     ReportingCategory Category,
     decimal PriorYearActual,

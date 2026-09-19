@@ -18,7 +18,7 @@ public class PublishedSnapshotTests
         var year = new FiscalYear(government.Id, 2027, 1);
         Fund general = new(government.Id, "1000", "General", FundCategory.General, "Day-to-day services.");
         Fund street = new(government.Id, "2011", "SCM&R", FundCategory.SpecialRevenue);
-        var police = new Domain.Departments.Department(government.Id, "PD", "Police", "Patrol and Mayor's Court.");
+        var police = new Domain.Departments.Department(government.Id, "110", "Police", "Patrol and Mayor's Court.");
         var tax = new Domain.Accounts.Account(government.Id, "4110", "Real Estate Taxes", Domain.Accounts.AccountType.Revenue, Domain.Accounts.ReportingCategory.Taxes);
         var salaries = new Domain.Accounts.Account(government.Id, "5110", "Salaries", Domain.Accounts.AccountType.Expenditure, Domain.Accounts.ReportingCategory.PersonalServices);
 
@@ -48,7 +48,7 @@ public class PublishedSnapshotTests
 
         Assert.Equal(2, snapshot.Lines.Count);
         PublishedBudgetSnapshotLine salaries = snapshot.Lines.Single(l => l.AccountCode == "5110");
-        Assert.Equal("PD", salaries.DepartmentCode);
+        Assert.Equal("110", salaries.DepartmentCode);
         Assert.Equal("Patrol and Mayor's Court.", salaries.DepartmentDescription);
         Assert.Equal("General", salaries.FundName);
         Assert.Equal(300_000m, salaries.Amount);

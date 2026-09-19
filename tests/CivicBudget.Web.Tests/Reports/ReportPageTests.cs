@@ -68,12 +68,12 @@ public class ReportPageTests : BunitContext
     {
         Guid police = Guid.CreateVersion7();
         _reports.DepartmentDetail = new DepartmentDetailReportDto(Header,
-            [new(police, "PD", "Police", [new("1000", "General Fund", "5120", "Overtime", Domain.Accounts.AccountType.Expenditure, Domain.Accounts.ReportingCategory.PersonalServices, 30m, 40m, 58m, "Contract")])],
-            [(police, "PD", "Police"), (Guid.CreateVersion7(), "ST", "Streets")], null);
+            [new(police, "110", "Police", [new("1000", "General Fund", "5120", "Overtime", "1000-110-5120", Domain.Accounts.AccountType.Expenditure, Domain.Accounts.ReportingCategory.PersonalServices, 30m, 40m, 58m, "Contract")])],
+            [(police, "110", "Police"), (Guid.CreateVersion7(), "620", "Streets")], null);
 
         IRenderedComponent<DepartmentDetailReport> page = Render<DepartmentDetailReport>(p => p.Add(x => x.VersionId, VersionId));
 
-        page.WaitForAssertion(() => Assert.Contains("PD Police", page.Find("tr.cb-group").TextContent));
+        page.WaitForAssertion(() => Assert.Contains("110 Police", page.Find("tr.cb-group").TextContent));
         Assert.Equal(3, page.FindAll("select option").Count); // All + two departments
         Assert.Contains("Contract", page.Markup);
         Assert.Contains("Police expenditures", page.Find("tr.cb-subtotal").TextContent);

@@ -12,14 +12,34 @@
     <link rel="stylesheet" href="@Assets["CivicBudget.Web.styles.css"]" />
     <ImportMap />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
-    <HeadOutlet />
+    <HeadOutlet @rendermode="PageRenderMode" />
 </head>
 
 <body>
-    <Routes />
+    @* Interactive Server for the whole admin app, layout included: with per-page render modes the
+       layout stays static, so nothing in the sidebar or the toast host could react to anything.
+       The portal and the account pages opt out with [ExcludeFromInteractiveRouting]; for those
+       requests PageRenderMode is null and the page is plain static SSR with no circuit (ADR-0002). *@
+    <Routes @rendermode="PageRenderMode" />
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="@Assets["lib/bootstrap/js/bootstrap.bundle.min.js"]"></script>
+    <script>
+        // The admin app's only bespoke JavaScript: remember a UI preference (the collapsed menu) in a
+        // cookie, so the server can prerender the page the way the user left it.
+        window.civicBudget = {
+            setCookie: (name, value) => { document.cookie = `${name}=${value};path=/;max-age=31536000;SameSite=Lax`; }
+        };
+    </script>
 </body>
 
 </html>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    /// <summary>Interactive Server unless the routed page carries [ExcludeFromInteractiveRouting].</summary>
+    private IComponentRenderMode? PageRenderMode =>
+        HttpContext.AcceptsInteractiveRouting() ? RenderMode.InteractiveServer : null;
+}

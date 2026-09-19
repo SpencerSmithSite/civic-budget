@@ -28,7 +28,7 @@ public class ReportServiceTests(SqlServerFixture fixture) : IAsyncLifetime
         _mapleRidge = (await db.Governments.SingleAsync(g => g.PublicSlug == "maple-ridge-oh")).Id;
         await using CivicBudgetDbContext scoped = _database.CreateContext(_mapleRidge);
         _draft2027 = (await scoped.BudgetVersions.SingleAsync(v => v.Status == Domain.Budgets.BudgetStatus.Draft)).Id;
-        _policeDept = (await scoped.Departments.SingleAsync(d => d.Code == "PD")).Id;
+        _policeDept = (await scoped.Departments.SingleAsync(d => d.Code == "110")).Id;
     }
 
     public Task DisposeAsync() => Task.CompletedTask;
@@ -78,8 +78,8 @@ public class ReportServiceTests(SqlServerFixture fixture) : IAsyncLifetime
         DepartmentDetailReportDto filtered = (await director.ServiceProvider.GetRequiredService<IReportService>().DepartmentDetailAsync(_draft2027, _policeDept))!;
 
         Assert.True(all.Departments.Count > 1);
-        Assert.Equal("PD", Assert.Single(mine.Departments).DepartmentCode);
-        Assert.Equal("PD", Assert.Single(mine.AvailableDepartments).Code);
+        Assert.Equal("110", Assert.Single(mine.Departments).DepartmentCode);
+        Assert.Equal("110", Assert.Single(mine.AvailableDepartments).Code);
         Assert.Equal(mine.TotalAmount, filtered.TotalAmount);
         Assert.Equal(all.AvailableDepartments.Count, filtered.AvailableDepartments.Count); // the picker still lists everyone for the director
     }

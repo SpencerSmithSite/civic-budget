@@ -42,7 +42,7 @@ public class ValidatorTests
     public void Settings_request_checks_the_public_slug_format(string slug, bool expected)
     {
         var validator = new UpdateGovernmentSettingsRequestValidator();
-        Assert.Equal(expected, validator.Validate(new UpdateGovernmentSettingsRequest("Village", slug, AppropriationLimitMode.Block, null)).IsValid);
+        Assert.Equal(expected, validator.Validate(new UpdateGovernmentSettingsRequest("Village", slug, AppropriationLimitMode.Block, null, 4, 3, 4, "-", "Program")).IsValid);
     }
 
     [Fact]

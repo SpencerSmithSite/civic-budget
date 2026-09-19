@@ -1,6 +1,5 @@
 @page "/admin/accounts/new"
 @page "/admin/accounts/{Id:guid}"
-@rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.CanMaintainSetup)]
 @inject IAccountService AccountService
 @inject NavigationManager Navigation

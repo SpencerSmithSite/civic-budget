@@ -32,7 +32,7 @@ else if (department is not null)
                     {
                         decimal? change = Domain.Common.Money.PercentChange(line.CurrentYearBudget, line.Amount);
                         <tr>
-                            <th scope="row" class="fw-normal"><span class="cb-code">@line.AccountCode</span> @line.AccountName</th>
+                            <th scope="row" class="fw-normal"><span class="cb-code">@line.AccountNumber</span> @line.AccountName</th>
                             <td>@Display.Enum(line.Category)</td>
                             <td class="cb-num">@Display.Money(line.Amount)</td>
                             <td class="cb-num">@Display.Money(line.CurrentYearBudget)</td>

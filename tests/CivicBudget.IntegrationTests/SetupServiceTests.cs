@@ -103,13 +103,17 @@ public class SetupServiceTests(SqlServerFixture fixture) : IAsyncLifetime
         await using AsyncServiceScope scope = _database.CreateScope(tenant: _pineHollow);
         IGovernmentSettingsService settings = scope.ServiceProvider.GetRequiredService<IGovernmentSettingsService>();
 
-        Result taken = await settings.UpdateAsync(new UpdateGovernmentSettingsRequest("Pine Hollow Township", "maple-ridge-oh", AppropriationLimitMode.Warn, null));
-        Result ok = await settings.UpdateAsync(new UpdateGovernmentSettingsRequest("Pine Hollow Township", "pine-hollow", AppropriationLimitMode.Block, "A small township."));
+        Result taken = await settings.UpdateAsync(new UpdateGovernmentSettingsRequest("Pine Hollow Township", "maple-ridge-oh", AppropriationLimitMode.Warn, null, 4, 3, 4, "-", "Program"));
+        Result badFormat = await settings.UpdateAsync(new UpdateGovernmentSettingsRequest("Pine Hollow Township", "pine-hollow", AppropriationLimitMode.Block, null, 4, 3, 4, "--", "Department"));
+        Assert.True(badFormat.IsFailure);
+
+        Result ok = await settings.UpdateAsync(new UpdateGovernmentSettingsRequest("Pine Hollow Township", "pine-hollow", AppropriationLimitMode.Block, "A small township.", 3, 3, 4, "-", "Department"));
 
         Assert.True(taken.IsFailure);
         Assert.Equal(nameof(UpdateGovernmentSettingsRequest.PublicSlug), taken.Errors.Single().PropertyName);
         Assert.True(ok.IsSuccess);
         GovernmentSettingsDto after = await settings.GetAsync();
+        Assert.Equal(new AccountNumberFormat(3, 3, 4, "-", "Department"), after.AccountNumberFormat); // a county-style chart, saved as a value
         Assert.Equal("pine-hollow", after.PublicSlug);
         Assert.Equal(AppropriationLimitMode.Block, after.AppropriationLimitMode);
     }

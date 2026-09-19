@@ -1,5 +1,4 @@
 @page "/admin/settings"
-@rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.CanManageUsers)]
 @inject IGovernmentSettingsService SettingsService
 @inject ToastService Toasts
@@ -54,6 +53,23 @@ else
             </InputSelect>
             <div class="form-text">Ohio law caps appropriations at certified estimated resources; Block is the safe default.</div>
         </div>
+        <fieldset class="mb-3 cb-number-format">
+            <legend class="form-label">Account number format <InfoTip Text="How the parent ERP writes a full account number: fund, then the program or department, then the object. A UAN village writes 1000-725-121 (4-3-3); many county charts write 101-110-5100 (3-3-4). Revenue lines skip the middle segment." /></legend>
+            <div class="cb-number-format-row">
+                <div><label class="form-label small" for="fundWidth">Fund digits</label><InputNumber id="fundWidth" class="form-control" @bind-Value="model.FundWidth" min="1" max="8" /></div>
+                <div><label class="form-label small" for="deptWidth">@model.DepartmentLabel digits</label><InputNumber id="deptWidth" class="form-control" @bind-Value="model.DepartmentWidth" min="1" max="8" /></div>
+                <div><label class="form-label small" for="objWidth">Object digits</label><InputNumber id="objWidth" class="form-control" @bind-Value="model.ObjectWidth" min="1" max="8" /></div>
+                <div><label class="form-label small" for="separator">Separator</label><InputText id="separator" class="form-control" @bind-Value="model.Separator" maxlength="1" /></div>
+                <div><label class="form-label small" for="deptLabel">Middle segment is called</label>
+                    <InputSelect id="deptLabel" class="form-select" @bind-Value="model.DepartmentLabel">
+                        <option value="Program">Program (UAN)</option>
+                        <option value="Department">Department</option>
+                    </InputSelect>
+                </div>
+            </div>
+            <div class="form-text">Looks like: <span class="cb-code">@Example</span> for an expenditure and <span class="cb-code">@RevenueExample</span> for a revenue.</div>
+            <ValidationMessage For="() => model.Separator" class="text-danger" />
+        </fieldset>
         <div class="mb-3">
             <label class="form-label" for="description">Introduction shown to citizens on the public portal</label>
             <InputTextArea id="description" class="form-control" rows="4" @bind-Value="model.Description" />
@@ -82,12 +98,21 @@ else
         model.PublicSlug = current.PublicSlug;
         model.AppropriationLimitMode = current.AppropriationLimitMode;
         model.Description = current.Description;
+        model.FundWidth = current.AccountNumberFormat.FundWidth;
+        model.DepartmentWidth = current.AccountNumberFormat.DepartmentWidth;
+        model.ObjectWidth = current.AccountNumberFormat.ObjectWidth;
+        model.Separator = current.AccountNumberFormat.Separator;
+        model.DepartmentLabel = current.AccountNumberFormat.DepartmentLabel;
     }
+
+    private string Example => string.Join(model.Separator, new[] { new string('1', model.FundWidth), new string('7', model.DepartmentWidth), new string('5', model.ObjectWidth) });
+    private string RevenueExample => string.Join(model.Separator, new[] { new string('1', model.FundWidth), new string('4', model.ObjectWidth) });
 
     private async Task SaveAsync()
     {
         saving = true;
-        Result saved = await SettingsService.UpdateAsync(new UpdateGovernmentSettingsRequest(model.Name, model.PublicSlug, model.AppropriationLimitMode, model.Description));
+        Result saved = await SettingsService.UpdateAsync(new UpdateGovernmentSettingsRequest(model.Name, model.PublicSlug, model.AppropriationLimitMode, model.Description,
+            model.FundWidth, model.DepartmentWidth, model.ObjectWidth, model.Separator, model.DepartmentLabel));
         saving = false;
 
         result = saved.IsSuccess ? null : saved;
@@ -105,5 +130,10 @@ else
         public string PublicSlug { get; set; } = "";
         public AppropriationLimitMode AppropriationLimitMode { get; set; }
         public string? Description { get; set; }
+        public int FundWidth { get; set; } = 4;
+        public int DepartmentWidth { get; set; } = 3;
+        public int ObjectWidth { get; set; } = 4;
+        public string Separator { get; set; } = "-";
+        public string DepartmentLabel { get; set; } = "Program";
     }
 }

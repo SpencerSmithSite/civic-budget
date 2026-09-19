@@ -10,8 +10,8 @@ public class DepartmentEntryViewTests : BunitContext
     private static readonly Guid Police = Guid.CreateVersion7();
 
     private static BudgetLineDto Line(string account, ReportingCategory category, decimal amount, decimal current, bool canEdit) =>
-        new(Guid.CreateVersion7(), General, "1000", "General Fund", Police, "PD", "Police",
-            Guid.CreateVersion7(), account, "Account " + account, AccountType.Expenditure, category, amount, 0m, current, null, canEdit);
+        new(Guid.CreateVersion7(), General, "1000", "General Fund", Police, "110", "Police",
+            Guid.CreateVersion7(), account, "Account " + account, $"1000-110-{account}", AccountType.Expenditure, category, amount, 0m, current, null, canEdit);
 
     [Fact]
     public void Renders_category_subtotals_and_fund_totals()
@@ -25,7 +25,7 @@ public class DepartmentEntryViewTests : BunitContext
                 Line("5410", ReportingCategory.SuppliesAndMaterials, 20m, 20m, canEdit: false),
             ]));
 
-        Assert.Contains("PD Police", view.Find("h2").TextContent);
+        Assert.Contains("110 Police", view.Find("h2").TextContent);
         Assert.Contains("Subtotal, Personal Services", view.Markup);
         Assert.Contains("350.00", view.Markup);                          // category subtotal
         Assert.Contains("Total, 1000 General Fund", view.Markup);

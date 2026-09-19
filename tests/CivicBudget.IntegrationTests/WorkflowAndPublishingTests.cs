@@ -80,7 +80,7 @@ public class WorkflowAndPublishingTests(SqlServerFixture fixture) : IAsyncLifeti
     {
         await using AsyncServiceScope scope = As(Roles.FinanceDirector);
         await scope.ServiceProvider.GetRequiredService<IGovernmentSettingsService>().UpdateAsync(
-            new UpdateGovernmentSettingsRequest("Village of Maple Ridge", "maple-ridge-oh", AppropriationLimitMode.Warn, null));
+            new UpdateGovernmentSettingsRequest("Village of Maple Ridge", "maple-ridge-oh", AppropriationLimitMode.Warn, null, 4, 3, 4, "-", "Program"));
         IBudgetWorkflowService workflow = scope.ServiceProvider.GetRequiredService<IBudgetWorkflowService>();
 
         WorkflowStateDto state = (await workflow.GetStateAsync(_draft2027))!;
@@ -233,7 +233,7 @@ public class WorkflowAndPublishingTests(SqlServerFixture fixture) : IAsyncLifeti
         Assert.Equal(95, fy2026.Lines.Count);
         Assert.Equal(5, fy2026.Funds.Count);
         Assert.Equal(620_000m, fy2026.Funds.Single(f => f.Code == "1000").BeginningBalance);
-        Assert.Equal(53_000m, fy2026.Lines.Single(l => l.DepartmentCode == "PD" && l.AccountCode == "5120").Amount); // the amended overtime
+        Assert.Equal(53_000m, fy2026.Lines.Single(l => l.DepartmentCode == "110" && l.AccountCode == "5120").Amount); // the amended overtime
         Assert.Contains("gasoline tax", fy2026.Funds.Single(f => f.Code == "2011").Description, StringComparison.OrdinalIgnoreCase);
         Assert.Equal("Village of Maple Ridge", fy2026.GovernmentName);
     }

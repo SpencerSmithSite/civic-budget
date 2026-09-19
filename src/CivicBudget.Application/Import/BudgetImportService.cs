@@ -8,6 +8,7 @@ using CivicBudget.Domain.Budgets;
 using CivicBudget.Domain.Common;
 using CivicBudget.Domain.Departments;
 using CivicBudget.Domain.Funds;
+using CivicBudget.Domain.Governments;
 using Microsoft.EntityFrameworkCore;
 
 namespace CivicBudget.Application.Import;
@@ -23,13 +24,14 @@ public sealed class BudgetImportService(
 
     public async Task<Result<ImportPreviewDto>> PreviewAsync(Guid budgetVersionId, string fileName, Stream content, CancellationToken ct = default)
     {
-        Result<IReadOnlyList<ImportRowInput>> parsed = ReadFile(fileName, content);
+        await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
+        Government government = await db.Governments.SingleAsync(g => g.Id == currentUser.GovernmentId, ct);
+        Result<IReadOnlyList<ImportRowInput>> parsed = ReadFile(fileName, content, government.AccountNumberFormat);
         if (parsed.IsFailure)
         {
             return Result.Failure<ImportPreviewDto>(parsed.Errors);
         }
 
-        await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
         Result<Analysis> analysed = await AnalyzeAsync(db, budgetVersionId, parsed.Value, ct);
         return analysed.IsFailure
             ? Result.Failure<ImportPreviewDto>(analysed.Errors)
@@ -109,7 +111,7 @@ public sealed class BudgetImportService(
 
     private sealed record Analysis(BudgetVersion Version, IReadOnlyList<ImportRowDto> Rows, Lookups Lookups);
 
-    private Result<IReadOnlyList<ImportRowInput>> ReadFile(string fileName, Stream content)
+    private Result<IReadOnlyList<ImportRowInput>> ReadFile(string fileName, Stream content, AccountNumberFormat format)
     {
         string extension = Path.GetExtension(fileName).ToLowerInvariant();
         TabularFile file;
@@ -132,7 +134,7 @@ public sealed class BudgetImportService(
             return Result.Failure<IReadOnlyList<ImportRowInput>>($"The file has more than {MaxRows:N0} rows.");
         }
 
-        return ImportFileParser.Parse(file);
+        return ImportFileParser.Parse(file, format);
     }
 
     /// <summary>Loads the version and every code the government has, then runs the pure analyser.</summary>

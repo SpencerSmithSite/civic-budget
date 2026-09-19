@@ -60,7 +60,7 @@ public class UserAdminServiceTests(SqlServerFixture fixture) : IAsyncLifetime
         Assert.DoesNotContain(users, u => u.Email.EndsWith("pinehollow.example", StringComparison.Ordinal));
         UserSummaryDto streets = users.Single(u => u.Email == "streets@mapleridge.example");
         Assert.Equal(Roles.DepartmentHead, streets.Role);
-        Assert.Equal(["PR", "ST"], streets.DepartmentCodes);
+        Assert.Equal(["310", "620"], streets.DepartmentCodes);
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public class UserAdminServiceTests(SqlServerFixture fixture) : IAsyncLifetime
     {
         await using AsyncServiceScope scope = AsMapleAdmin();
         IUserAdminService service = scope.ServiceProvider.GetRequiredService<IUserAdminService>();
-        Guid police = await DepartmentIdAsync("PD");
+        Guid police = await DepartmentIdAsync("110");
 
         Result<string> created = await service.CreateAsync(new CreateUserRequest(
             "sergeant@mapleridge.example", "Sgt. Casey Nguyen", Password, Roles.DepartmentHead, [police]));
@@ -93,7 +93,7 @@ public class UserAdminServiceTests(SqlServerFixture fixture) : IAsyncLifetime
         UserSummaryDto? user = await service.GetAsync(created.Value);
         Assert.NotNull(user);
         Assert.Equal(Roles.DepartmentHead, user.Role);
-        Assert.Equal(["PD"], user.DepartmentCodes);
+        Assert.Equal(["110"], user.DepartmentCodes);
 
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         ApplicationUser stored = (await userManager.FindByIdAsync(created.Value))!;
@@ -108,7 +108,7 @@ public class UserAdminServiceTests(SqlServerFixture fixture) : IAsyncLifetime
         IUserAdminService service = scope.ServiceProvider.GetRequiredService<IUserAdminService>();
 
         await using CivicBudgetDbContext db = _database.CreateContext(_pineHollow);
-        Guid pineRoad = (await db.Departments.SingleAsync(d => d.Code == "RD")).Id;
+        Guid pineRoad = (await db.Departments.SingleAsync(d => d.Code == "610")).Id;
 
         Result<string> created = await service.CreateAsync(new CreateUserRequest(
             "smuggler@mapleridge.example", "Smuggler", Password, Roles.DepartmentHead, [pineRoad]));
