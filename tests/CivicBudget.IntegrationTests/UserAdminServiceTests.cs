@@ -99,6 +99,11 @@ public class UserAdminServiceTests(SqlServerFixture fixture) : IAsyncLifetime
         ApplicationUser stored = (await userManager.FindByIdAsync(created.Value))!;
         Assert.Equal(_mapleRidge, stored.GovernmentId);
         Assert.True(await userManager.CheckPasswordAsync(stored, Password));
+        Assert.True(stored.MustChangePassword); // the administrator's password is temporary
+
+        // Administration is audited under the acting administrator's name.
+        await using CivicBudgetDbContext db = _database.CreateContext(_mapleRidge);
+        Assert.True(await db.AuditEntries.AnyAsync(a => a.EntityName == "User" && a.Description!.Contains("Created user sergeant@mapleridge.example as Department User")));
     }
 
     [Fact]
@@ -160,7 +165,11 @@ public class UserAdminServiceTests(SqlServerFixture fixture) : IAsyncLifetime
 
         Result reset = await service.ResetPasswordAsync(new ResetPasswordRequest(viewer.Id, Password));
         Assert.True(reset.IsSuccess, string.Join("; ", reset.Errors.Select(e => e.Message)));
-        Assert.True(await userManager.CheckPasswordAsync((await userManager.FindByIdAsync(viewer.Id))!, Password));
+        ApplicationUser afterReset = (await userManager.FindByIdAsync(viewer.Id))!;
+        Assert.True(await userManager.CheckPasswordAsync(afterReset, Password));
+        Assert.True(afterReset.MustChangePassword);                                           // a reset password is temporary too
+        ClaimsPrincipal principal = await scope.ServiceProvider.GetRequiredService<IUserClaimsPrincipalFactory<ApplicationUser>>().CreateAsync(afterReset);
+        Assert.True(principal.HasClaim(ClaimNames.MustChangePassword, "1"));                    // and the claim carries it to the middleware
 
         Assert.True((await service.SetLockedOutAsync(viewer.Id, true)).IsSuccess);
         Assert.True((await service.GetAsync(viewer.Id))!.IsLockedOut);

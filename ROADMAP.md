@@ -152,11 +152,13 @@ UAN village or `101-110-5100` for a county), and permissions follow the departme
 - [x] Spencer approves Phase 9b (2026-09-19)
 
 ## Phase 9c — Users, logons, and permissions  `phase-9c-users-permissions`
-- [ ] Admin is a superset: may enter lines, set balances, run the workflow, publish, import, and manage users (today Admin cannot touch budget lines)
-- [ ] Role names as the customer says them: Administrator, Fiscal Officer, Department User, Viewer (DB values unchanged)
-- [ ] Admin user management completeness: create with a temporary password, force change at first sign-in, reset, lock/unlock, change role, assign one or more departments, deactivate; all audited
-- [ ] Department assignment drives access automatically: a user assigned to Fire sees Fire and nothing else, across workspace, reports, exports, and search
-- [ ] Authorization tests for every role and every surface (pages, services, export endpoints)
+- [x] Administrator is a superset: `IsFiscalAuthority()` in every service, the four fiscal policies include Admin (may enter lines, set balances, run the workflow, publish, import, sync the chart, and manage users)
+- [x] Role names as the customer says them: Administrator, Fiscal Officer, Department User, Viewer (DB values unchanged)
+- [x] Temporary passwords: set on create and on admin reset (`MustChangePassword`), carried as a claim, enforced by `MustChangePasswordMiddleware`, cleared by the change-password page which then sends the user into the app
+- [x] User administration audited: created, updated, password reset, locked, unlocked, in the acting administrator's name
+- [x] Department assignment bounds every read: workspace, reports, exports, search, and now the audit trail (recent activity and line history)
+- [x] Tests: policy matrix with Admin, middleware, permissions per role through the services, audit scoping, user admin flag and audit; ADR-0026; walkthrough 12
+- [ ] Spencer approves Phase 9c
 
 ## Phase 9d — Department-first budgeting  `phase-9d-department-entry`
 - [ ] After sign-in a department user lands on "My department" for the open version (a picker when assigned to several)

@@ -5,6 +5,15 @@ All notable changes to CivicBudget. Format loosely follows
 
 ## [Unreleased]
 
+## Phase 9c — 2026-09-19 (v1.1)
+### Changed
+- Administrator has complete access: everything the Fiscal Officer can do plus users and settings.
+- Role names shown as Administrator, Fiscal Officer, Department User, Viewer.
+- A department user's audit trail (recent activity, line history) is limited to their own departments' lines.
+### Added
+- Temporary passwords: accounts created or reset by an administrator must change their password at the next sign-in (`MustChangePassword`, claim, middleware).
+- User administration is audited (create, update, reset, lock, unlock).
+
 ## Phase 9b — 2026-09-19 (v1.1)
 ### Added
 - Chart of accounts sync from the parent ERP: upload its export, preview adds/updates/deactivations, apply; sync log with a change drawer; audit event. Never deletes.

@@ -39,10 +39,10 @@ else
                 @if (IsNew)
                 {
                     <div class="mb-3">
-                        <label class="form-label" for="password">Initial password</label>
+                        <label class="form-label" for="password">Temporary password</label>
                         <InputText id="password" type="password" class="form-control" @bind-Value="model.Password" autocomplete="new-password" />
                         <ValidationMessage For="() => model.Password" class="text-danger" />
-                        <div class="form-text">At least 10 characters with upper, lower, digit, and symbol. Share it out of band; the user can change it after signing in.</div>
+                        <div class="form-text">At least 10 characters with upper, lower, digit, and symbol. Share it out of band; the user is asked to choose their own at first sign-in.</div>
                     </div>
                 }
                 <div class="mb-3">
@@ -87,7 +87,7 @@ else
                         <ResultAlert Result="resetResult" />
                         <EditForm EditContext="resetContext" OnSubmit="ResetPasswordAsync">
                             <div class="mb-3">
-                                <label class="form-label" for="newPassword">New password</label>
+                                <label class="form-label" for="newPassword">Temporary password</label>
                                 <InputText id="newPassword" type="password" class="form-control" @bind-Value="resetModel.NewPassword" autocomplete="new-password" />
                                 <ValidationMessage For="() => resetModel.NewPassword" class="text-danger" />
                             </div>
@@ -160,7 +160,7 @@ else
     private async Task SaveAsync()
     {
         saving = true;
-        // Departments only mean something for a Department Head; clear them otherwise so the validator does not complain.
+        // Departments only mean something for a department user; clear them otherwise so the validator does not complain.
         List<Guid> departmentIds = model.Role == Roles.DepartmentHead ? model.DepartmentIds.ToList() : [];
         Result saved = IsNew
             ? await UserAdmin.CreateAsync(new CreateUserRequest(model.Email, model.DisplayName, model.Password, model.Role, departmentIds))
@@ -187,7 +187,7 @@ else
         if (reset.IsSuccess)
         {
             resetModel.NewPassword = "";
-            resetMessage = "Password reset. Share the new password with the user out of band.";
+            resetMessage = "Password reset. Share it with the user out of band; they must choose their own at their next sign-in.";
         }
     }
 

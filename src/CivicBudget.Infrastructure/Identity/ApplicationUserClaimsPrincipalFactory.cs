@@ -26,6 +26,10 @@ public sealed class ApplicationUserClaimsPrincipalFactory(
 
         identity.AddClaim(new Claim(ClaimNames.GovernmentId, user.GovernmentId.ToString()));
         identity.AddClaim(new Claim(ClaimNames.DisplayName, user.DisplayName));
+        if (user.MustChangePassword)
+        {
+            identity.AddClaim(new Claim(ClaimNames.MustChangePassword, "1"));
+        }
 
         await using CivicBudgetDbContext db = await dbFactory.CreateDbContextAsync();
         List<Guid> departmentIds = await db.UserDepartments

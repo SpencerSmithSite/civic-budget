@@ -30,7 +30,7 @@ public sealed class ReportService(
         return loaded is null ? null : ReportBuilder.RevenueVsExpenditure(loaded.Value.header, loaded.Value.workspace);
     }
 
-    /// <summary>The workspace read carries the tenant filter and the Department Head visibility rule; the header needs only the government's name.</summary>
+    /// <summary>The workspace read carries the tenant filter and the department user visibility rule; the header needs only the government's name.</summary>
     private async Task<(ReportHeaderDto, BudgetWorkspaceDto)?> LoadAsync(Guid budgetVersionId, CancellationToken ct)
     {
         BudgetWorkspaceDto? workspace = await entry.GetWorkspaceAsync(budgetVersionId, ct);

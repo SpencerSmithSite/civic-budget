@@ -16,7 +16,7 @@ public sealed record SnapshotSummaryDto(
 
 /// <summary>
 /// Publish an adopted version to the public portal as an immutable snapshot, or withdraw one.
-/// Finance Director only. Publishing a fiscal year that already has an active snapshot supersedes
+/// Administrator or Fiscal Officer only. Publishing a fiscal year that already has an active snapshot supersedes
 /// it, so citizens always see exactly one budget per year and history is never lost.
 /// </summary>
 public interface IPublishingService

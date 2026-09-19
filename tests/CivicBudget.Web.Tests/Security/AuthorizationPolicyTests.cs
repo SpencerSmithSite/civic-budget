@@ -57,10 +57,11 @@ public class AuthorizationPolicyTests
         Row(Policies.CanManageUsers, Roles.Admin);
         Row(Policies.CanMaintainSetup, Roles.Admin, Roles.FinanceDirector);
         Row(Policies.CanViewBudget, Roles.Admin, Roles.FinanceDirector, Roles.DepartmentHead, Roles.Viewer);
-        Row(Policies.CanEditBeginningBalances, Roles.FinanceDirector);
-        Row(Policies.CanAdvanceWorkflow, Roles.FinanceDirector);
-        Row(Policies.CanPublish, Roles.FinanceDirector);
-        Row(Policies.CanImport, Roles.FinanceDirector);
+        // An Administrator is a superset of the Fiscal Officer (v1.1, Phase 9c).
+        Row(Policies.CanEditBeginningBalances, Roles.Admin, Roles.FinanceDirector);
+        Row(Policies.CanAdvanceWorkflow, Roles.Admin, Roles.FinanceDirector);
+        Row(Policies.CanPublish, Roles.Admin, Roles.FinanceDirector);
+        Row(Policies.CanImport, Roles.Admin, Roles.FinanceDirector);
         Row(Policies.CanViewAudit, Roles.Admin, Roles.FinanceDirector, Roles.DepartmentHead);
         return data;
     }
@@ -99,5 +100,8 @@ public class AuthorizationPolicyTests
         Assert.True((await authorization.AuthorizeAsync(fd, new BudgetLineResource(BudgetStatus.Proposed, Streets), Policies.CanEditBudgetLine)).Succeeded);
         Assert.False((await authorization.AuthorizeAsync(fd, new BudgetLineResource(BudgetStatus.Adopted, Streets), Policies.CanEditBudgetLine)).Succeeded);
         Assert.False((await authorization.AuthorizeAsync(User(Roles.Viewer), new BudgetLineResource(BudgetStatus.Draft, Police), Policies.CanEditBudgetLine)).Succeeded);
+        // The Administrator edits any line the Fiscal Officer could.
+        Assert.True((await authorization.AuthorizeAsync(User(Roles.Admin), new BudgetLineResource(BudgetStatus.Proposed, Streets), Policies.CanEditBudgetLine)).Succeeded);
+        Assert.False((await authorization.AuthorizeAsync(User(Roles.Admin), new BudgetLineResource(BudgetStatus.Adopted, Streets), Policies.CanEditBudgetLine)).Succeeded);
     }
 }

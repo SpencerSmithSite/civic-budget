@@ -75,7 +75,7 @@ public sealed record DepartmentDetailDto(
 public sealed record DepartmentDetailReportDto(
     ReportHeaderDto Header,
     IReadOnlyList<DepartmentDetailDto> Departments,
-    /// <summary>Every department the user may pick, for the filter; Department Heads see only their own.</summary>
+    /// <summary>Every department the user may pick, for the filter; department users see only their own.</summary>
     IReadOnlyList<(Guid Id, string Code, string Name)> AvailableDepartments,
     Guid? SelectedDepartmentId)
 {

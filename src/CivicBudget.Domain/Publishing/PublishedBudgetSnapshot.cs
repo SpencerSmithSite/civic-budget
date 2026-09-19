@@ -15,7 +15,7 @@ public enum SnapshotStatus
     /// <summary>Replaced by a later publish of the same fiscal year (an amendment). Kept for history.</summary>
     Superseded = 2,
 
-    /// <summary>Withdrawn by the Finance Director. Kept for history.</summary>
+    /// <summary>Withdrawn by the Administrator or Fiscal Officer. Kept for history.</summary>
     Unpublished = 3,
 }
 

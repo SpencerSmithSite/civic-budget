@@ -51,13 +51,13 @@ else if (State.Status != BudgetStatus.Adopted && State.RequiresAcknowledgement)
 
 <ConfirmDialog @ref="proposeDialog" Title="Propose this budget to council?" ConfirmText="Propose" OnConfirm="ProposeAsync" ConfirmDisabled="@(State.RequiresAcknowledgement && !acknowledged)">
     <Body>
-        <p>Department Heads will no longer be able to edit. The Finance Director can still adjust lines until adoption, or return the budget to draft.</p>
+        <p>Department users will no longer be able to edit. The Fiscal Officer can still adjust lines until adoption, or return the budget to draft.</p>
         <AcknowledgeWarning State="State" @bind-Acknowledged="acknowledged" />
     </Body>
 </ConfirmDialog>
 
 <ConfirmDialog @ref="returnDialog" Title="Return this budget to draft?" ConfirmText="Return to draft" ConfirmClass="btn-outline-primary" OnConfirm="ReturnAsync">
-    <Body><p>Department Heads will be able to edit their lines again.</p></Body>
+    <Body><p>Department users will be able to edit their lines again.</p></Body>
 </ConfirmDialog>
 
 <ConfirmDialog @ref="adoptDialog" Title="Adopt this budget?" ConfirmText="@AdoptText" ConfirmClass="btn-success" OnConfirm="AdoptAsync"

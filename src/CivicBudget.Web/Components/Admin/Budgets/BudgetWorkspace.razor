@@ -118,7 +118,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // Finance Directors (and admins/viewers) default to the grid; Department Heads only have the grouped view.
+        // Administrators and the Fiscal Officer (and viewers) default to the grid; department users only have the grouped view.
         AuthenticationState state = await AuthenticationState;
         isDepartmentHead = state.User.IsInRole(Roles.DepartmentHead);
         if (!isDepartmentHead)

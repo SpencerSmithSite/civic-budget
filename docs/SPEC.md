@@ -246,18 +246,26 @@ Razor components display the validation results; they never contain rules.
    accounts, fiscal years, users & role/department assignments.
 2. **Roles** (policy-based authorization, all tested):
 
-   | Capability | Admin | Finance Director | Department Head | Viewer |
+   | Capability | Administrator | Fiscal Officer | Department User | Viewer |
    |---|:-:|:-:|:-:|:-:|
    | Manage users & government settings | ✓ | | | |
-   | Maintain funds / departments / accounts / fiscal years | ✓ | ✓ | | |
+   | Maintain funds / departments / accounts / fiscal years (when the chart is local); sync the chart from the ERP | ✓ | ✓ | | |
    | View budget versions & reports | ✓ | ✓ | own departments | ✓ |
-   | Edit budget lines | | ✓ (Draft/Proposed) | own departments, Draft only | |
-   | Edit beginning balances | | ✓ | | |
-   | Advance / return workflow, adopt, create amendment | | ✓ | | |
-   | Publish / unpublish | | ✓ | | |
-   | Import lines | | ✓ | | |
+   | Edit budget lines | ✓ (Draft/Proposed) | ✓ (Draft/Proposed) | own departments, Draft only | |
+   | Edit beginning balances | ✓ | ✓ | | |
+   | Advance / return workflow, adopt, create amendment | ✓ | ✓ | | |
+   | Publish / unpublish | ✓ | ✓ | | |
+   | Import lines | ✓ | ✓ | | |
    | Export grids & reports | ✓ | ✓ | ✓ | ✓ |
-   | View audit history | ✓ | ✓ | own departments | |
+   | View audit history | ✓ | ✓ | own departments' lines | |
+
+   Revised 2026-09-19 (v1.1, Phase 9c): the Administrator is a superset of the
+   Fiscal Officer ("complete and total access"); role names are the customer's
+   words (the database values `Admin`, `FinanceDirector`, `DepartmentHead`,
+   `Viewer` are unchanged). A department user's assignment is the whole of what
+   they see: workspace, reports, exports, search, and the audit trail.
+   Passwords set by an administrator (at creation or reset) are temporary and
+   must be changed at the next sign-in.
 
    Line-level checks (department ownership + version status) are
    **resource-based** authorization handlers, not just role checks.

@@ -13,7 +13,7 @@ public sealed record BudgetLineResource(BudgetStatus VersionStatus, Guid? Depart
 
 /// <summary>
 /// Resource-based authorization: <c>authorizationService.AuthorizeAsync(user, resource, Policies.CanEditBudgetLine)</c>.
-/// Role checks alone cannot answer "may this Department Head edit *this* line", because the answer
+/// Role checks alone cannot answer "may this department user edit *this* line", because the answer
 /// depends on the line's department and the version's status. The rule itself lives in
 /// <see cref="BudgetLinePermissions"/> so services and tests share it; this class only adapts the
 /// ASP.NET Core principal to that rule.

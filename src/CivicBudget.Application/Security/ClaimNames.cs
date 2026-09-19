@@ -9,8 +9,11 @@ public static class ClaimNames
     /// <summary>The user's government (tenant). Exactly one per user.</summary>
     public const string GovernmentId = "government_id";
 
-    /// <summary>One claim per department the user may edit. Only Department Heads have these.</summary>
+    /// <summary>One claim per department the user may edit. Only department users have these.</summary>
     public const string DepartmentId = "department_id";
 
     public const string DisplayName = "display_name";
+
+    /// <summary>Present (value "1") while the user must replace a temporary password; the middleware keeps them on that page.</summary>
+    public const string MustChangePassword = "pwd_change";
 }
