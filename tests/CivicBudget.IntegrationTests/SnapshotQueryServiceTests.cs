@@ -143,17 +143,18 @@ public class SnapshotQueryServiceTests(SqlServerFixture fixture) : IAsyncLifetim
         await using AsyncServiceScope scope = _database.CreateScope();
         ISnapshotQueryService portal = scope.ServiceProvider.GetRequiredService<ISnapshotQueryService>();
 
-        PortalDepartmentDto police = (await portal.GetDepartmentAsync(Maple, 2026, "1000", "PD"))!;
+        PortalDepartmentDto police = (await portal.GetDepartmentAsync(Maple, 2026, "1000", "110"))!;
 
         Assert.Equal("Police", police.Name);
         Assert.Equal("1000", police.FundCode);
+        Assert.Equal("1000-110-5120", police.Lines.Single(l => l.AccountCode == "5120").AccountNumber); // the UAN-style full number, frozen at publish
         Assert.Equal(53_000m, police.Lines.Single(l => l.AccountCode == "5120").Amount); // the amended overtime line
         Assert.Equal(police.Lines.Where(l => l.AccountType == AccountType.Expenditure).Sum(l => l.Amount), police.Expenditures);
         Assert.Equal(police.Expenditures, police.ByCategory.Total);
         Assert.Equal(
             police.Lines.OrderBy(l => l.AccountType).ThenBy(l => l.Category).ThenBy(l => l.AccountCode, StringComparer.Ordinal),
             police.Lines);
-        Assert.Null(await portal.GetDepartmentAsync(Maple, 2026, "2011", "PD")); // no police lines in the Street fund
+        Assert.Null(await portal.GetDepartmentAsync(Maple, 2026, "2011", "110")); // no police lines in the Street fund
     }
 
     [Fact]
@@ -184,9 +185,11 @@ public class SnapshotQueryServiceTests(SqlServerFixture fixture) : IAsyncLifetim
         IReadOnlyList<PortalSearchHitDto> overtime = await portal.SearchAsync(Maple, 2026, "5120");
 
         PortalSearchHitDto department = Assert.Single(police, h => h.Kind == "Department");
-        Assert.Equal("/transparency/maple-ridge-oh/2026/funds/1000/departments/PD", department.Url);
+        Assert.Equal("/transparency/maple-ridge-oh/2026/funds/1000/departments/110", department.Url);
         Assert.Contains(street, h => h.Kind == "Fund" && h.Url == "/transparency/maple-ridge-oh/2026/funds/2011"); // case-insensitive
         Assert.Contains(overtime, h => h.Kind == "Account" && h.Amount == 53_000m);
+        Assert.Contains(await portal.SearchAsync(Maple, 2026, "1000-110"), h => h.Kind == "Account" && h.Label.StartsWith("1000-110-", StringComparison.Ordinal)); // by full number
+        Assert.Contains(await portal.SearchAsync(Maple, 2026, "1000110"), h => h.Kind == "Account");                                                                  // separators optional
         Assert.Empty(await portal.SearchAsync(Maple, 2026, "p"));   // too short to be useful
         Assert.Empty(await portal.SearchAsync(Maple, 2026, "zzz")); // nothing matches
     }

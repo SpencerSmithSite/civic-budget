@@ -23,10 +23,10 @@ internal static class TestData
         new(governmentId ?? GovernmentId, "2011", "Street Construction, Maintenance & Repair", FundCategory.SpecialRevenue);
 
     public static Department Police(Guid? governmentId = null) =>
-        new(governmentId ?? GovernmentId, "PD", "Police");
+        new(governmentId ?? GovernmentId, "110", "Police");
 
     public static Department Streets(Guid? governmentId = null) =>
-        new(governmentId ?? GovernmentId, "ST", "Streets & Service");
+        new(governmentId ?? GovernmentId, "620", "Streets & Service");
 
     public static Account Salaries(Guid? governmentId = null) =>
         new(governmentId ?? GovernmentId, "5100", "Salaries", AccountType.Expenditure, ReportingCategory.PersonalServices);

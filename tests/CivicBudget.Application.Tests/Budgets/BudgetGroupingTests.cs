@@ -13,16 +13,16 @@ public class BudgetGroupingTests
 
     private static BudgetLineDto Line(Guid fund, string fundCode, Guid? dept, string? deptCode, string account, AccountType type, ReportingCategory category, decimal amount, decimal current) =>
         new(Guid.CreateVersion7(), fund, fundCode, fundCode + " Fund", dept, deptCode, deptCode is null ? null : deptCode + " Dept",
-            Guid.CreateVersion7(), account, "Account " + account, type, category, amount, 0m, current, null, true);
+            Guid.CreateVersion7(), account, "Account " + account, deptCode is null ? $"{fundCode}-{account}" : $"{fundCode}-{deptCode}-{account}", type, category, amount, 0m, current, null, true);
 
     private static readonly BudgetLineDto[] Lines =
     [
         Line(General, "1000", null, null, "4110", AccountType.Revenue, ReportingCategory.Taxes, 500m, 480m),          // fund-level, no department
-        Line(General, "1000", Police, "PD", "5110", AccountType.Expenditure, ReportingCategory.PersonalServices, 300m, 280m),
-        Line(General, "1000", Police, "PD", "5120", AccountType.Expenditure, ReportingCategory.PersonalServices, 50m, 40m),
-        Line(General, "1000", Police, "PD", "5410", AccountType.Expenditure, ReportingCategory.SuppliesAndMaterials, 20m, 20m),
-        Line(Street, "2011", Streets, "ST", "5110", AccountType.Expenditure, ReportingCategory.PersonalServices, 100m, 90m),
-        Line(General, "1000", Streets, "ST", "5320", AccountType.Expenditure, ReportingCategory.ContractualServices, 30m, 25m),
+        Line(General, "1000", Police, "110", "5110", AccountType.Expenditure, ReportingCategory.PersonalServices, 300m, 280m),
+        Line(General, "1000", Police, "110", "5120", AccountType.Expenditure, ReportingCategory.PersonalServices, 50m, 40m),
+        Line(General, "1000", Police, "110", "5410", AccountType.Expenditure, ReportingCategory.SuppliesAndMaterials, 20m, 20m),
+        Line(Street, "2011", Streets, "620", "5110", AccountType.Expenditure, ReportingCategory.PersonalServices, 100m, 90m),
+        Line(General, "1000", Streets, "620", "5320", AccountType.Expenditure, ReportingCategory.ContractualServices, 30m, 25m),
     ];
 
     [Fact]
@@ -30,7 +30,7 @@ public class BudgetGroupingTests
     {
         IReadOnlyList<LineGroup> tree = BudgetGrouping.ByDepartment(Lines);
 
-        Assert.Equal(["PD PD Dept", "ST ST Dept"], tree.Select(g => g.Title));
+        Assert.Equal(["110 110 Dept", "620 620 Dept"], tree.Select(g => g.Title));
 
         LineGroup police = tree[0];
         LineGroup policeGeneral = Assert.Single(police.Children);
@@ -70,8 +70,8 @@ public class BudgetGroupingTests
     {
         BudgetLineDto[] transfers =
         [
-            Line(General, "1000", Police, "PD", "4910", AccountType.TransferIn, ReportingCategory.Transfers, 10m, 10m),
-            Line(General, "1000", Police, "PD", "5910", AccountType.TransferOut, ReportingCategory.Transfers, 5m, 5m),
+            Line(General, "1000", Police, "110", "4910", AccountType.TransferIn, ReportingCategory.Transfers, 10m, 10m),
+            Line(General, "1000", Police, "110", "5910", AccountType.TransferOut, ReportingCategory.Transfers, 5m, 5m),
         ];
 
         IReadOnlyList<LineGroup> categories = BudgetGrouping.ByCategory(transfers);

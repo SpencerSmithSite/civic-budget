@@ -1,6 +1,7 @@
 using CivicBudget.Application.Budgets;
 using CivicBudget.Application.Common;
 using CivicBudget.Application.Import;
+using CivicBudget.Domain.Accounts;
 using CivicBudget.Domain.Budgets;
 using CivicBudget.Web.Components.Admin.Import;
 using CivicBudget.Web.Components.Common;
@@ -44,9 +45,9 @@ public class BudgetImportTests : BunitContext
     {
         _import.Preview = Result.Success(new ImportPreviewDto(VersionId, "lines.csv",
         [
-            new(2, "1000", "PD", "5120", "General Fund", "Police", "Overtime", 58_000m, null, null, "Settlement", 40_510m, ImportRowAction.Update, []),
-            new(3, "4901", "PD", "5420", "Capital Projects", "Police", "Fuel", 750m, null, null, null, null, ImportRowAction.Add, []),
-            new(4, "1000", "PD", "9999", "General Fund", "Police", null, 10m, null, null, null, null, ImportRowAction.Error, ["No account has the code \"9999\"."]),
+            new(2, "1000", "110", "5120", "General Fund", "Police", "Overtime", 58_000m, null, null, "Settlement", 40_510m, ImportRowAction.Update, []),
+            new(3, "4901", "110", "5420", "Capital Projects", "Police", "Fuel", 750m, null, null, null, null, ImportRowAction.Add, []),
+            new(4, "1000", "110", "9999", "General Fund", "Police", null, 10m, null, null, null, null, ImportRowAction.Error, ["No account has the code \"9999\"."]),
         ], []));
         IRenderedComponent<BudgetImport> page = Render<BudgetImport>(p => p.Add(x => x.VersionId, VersionId));
         page.WaitForAssertion(() => page.Find("input#importFile"));
@@ -65,7 +66,7 @@ public class BudgetImportTests : BunitContext
     public async Task A_clean_preview_enables_the_import_button_with_the_change_count()
     {
         _import.Preview = Result.Success(new ImportPreviewDto(VersionId, "lines.csv",
-            [new(2, "4901", "PD", "5420", "Capital Projects", "Police", "Fuel", 750m, null, null, null, null, ImportRowAction.Add, [])], []));
+            [new(2, "4901", "110", "5420", "Capital Projects", "Police", "Fuel", 750m, null, null, null, null, ImportRowAction.Add, [])], []));
         IRenderedComponent<BudgetImport> page = Render<BudgetImport>(p => p.Add(x => x.VersionId, VersionId));
         page.WaitForAssertion(() => page.Find("input#importFile"));
 
@@ -101,7 +102,7 @@ public class BudgetImportTests : BunitContext
     {
         public Task<BudgetWorkspaceDto?> GetWorkspaceAsync(Guid versionId, CancellationToken ct = default) =>
             Task.FromResult<BudgetWorkspaceDto?>(new BudgetWorkspaceDto(
-                new BudgetVersionSummaryDto(versionId, 2027, 1, "Original", BudgetStatus.Draft, null, null, 0), true, true, [], [], [], [], []));
+                new BudgetVersionSummaryDto(versionId, 2027, 1, "Original", BudgetStatus.Draft, null, null, 0), AccountNumberFormat.UanVillage, true, true, [], [], [], [], []));
 
         public Task<IReadOnlyList<BudgetVersionSummaryDto>> ListVersionsAsync(CancellationToken ct = default) => throw new NotSupportedException();
         public Task<Result> UpdateLineAmountAsync(Guid versionId, Guid lineId, decimal amount, CancellationToken ct = default) => throw new NotSupportedException();

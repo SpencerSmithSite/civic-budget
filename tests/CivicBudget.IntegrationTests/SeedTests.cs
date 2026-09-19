@@ -99,7 +99,7 @@ public class SeedTests(SqlServerFixture fixture) : IAsyncLifetime
         await using CivicBudgetDbContext db = _database.CreateContext(_mapleRidge);
 
         Assert.False(await db.Funds.AnyAsync(f => f.Code == "2031"));
-        Assert.False(await db.Departments.AnyAsync(d => d.Code == "TR"));
+        Assert.False(await db.Departments.AnyAsync(d => d.Code == "710"));
     }
 
     [Fact]

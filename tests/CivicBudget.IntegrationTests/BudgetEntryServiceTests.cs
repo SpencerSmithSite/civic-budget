@@ -38,8 +38,8 @@ public class BudgetEntryServiceTests(SqlServerFixture fixture) : IAsyncLifetime
         _adopted2025 = (await scoped.BudgetVersions
             .Join(scoped.FiscalYears, v => v.FiscalYearId, fy => fy.Id, (v, fy) => new { v, fy })
             .Where(x => x.fy.Year == 2025).Select(x => x.v).SingleAsync()).Id;
-        _streetsDept = (await scoped.Departments.SingleAsync(d => d.Code == "ST")).Id;
-        _policeDept = (await scoped.Departments.SingleAsync(d => d.Code == "PD")).Id;
+        _streetsDept = (await scoped.Departments.SingleAsync(d => d.Code == "620")).Id;
+        _policeDept = (await scoped.Departments.SingleAsync(d => d.Code == "110")).Id;
     }
 
     public Task DisposeAsync() => Task.CompletedTask;

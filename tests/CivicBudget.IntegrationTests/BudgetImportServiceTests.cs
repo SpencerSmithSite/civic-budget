@@ -41,7 +41,7 @@ public class BudgetImportServiceTests(SqlServerFixture fixture) : IAsyncLifetime
         _adopted2025 = (await scoped.BudgetVersions
             .Join(scoped.FiscalYears, v => v.FiscalYearId, fy => fy.Id, (v, fy) => new { v, fy })
             .Where(x => x.fy.Year == 2025).Select(x => x.v).SingleAsync()).Id;
-        _policeDept = (await scoped.Departments.SingleAsync(d => d.Code == "PD")).Id;
+        _policeDept = (await scoped.Departments.SingleAsync(d => d.Code == "110")).Id;
     }
 
     public Task DisposeAsync() => Task.CompletedTask;
@@ -51,14 +51,14 @@ public class BudgetImportServiceTests(SqlServerFixture fixture) : IAsyncLifetime
     {
         await using AsyncServiceScope scope = As(Roles.FinanceDirector);
         IBudgetImportService import = scope.ServiceProvider.GetRequiredService<IBudgetImportService>();
-        BudgetLineDto overtime = await LineAsync(scope, "1000", "PD", "5120");
+        BudgetLineDto overtime = await LineAsync(scope, "1000", "110", "5120");
 
         Result<ImportPreviewDto> result = await import.PreviewAsync(_draft2027, "lines.csv", Csv(
             "Fund,Department,Account,Amount,Justification",
-            $"1000,PD,5120,{overtime.Amount},",                 // same amount: unchanged
-            $"1000,PD,5120,{overtime.Amount + 1000},Duplicate", // second row for the same key
-            "4901,PD,5420,750.00,Fuel for the new truck",       // no such line yet: add
-            "1000,PD,9999,10,",                                  // unknown account
+            $"1000,110,5120,{overtime.Amount},",                 // same amount: unchanged
+            $"1000,110,5120,{overtime.Amount + 1000},Duplicate", // second row for the same key
+            "4901,110,5420,750.00,Fuel for the new truck",       // no such line yet: add
+            "1000,110,9999,10,",                                  // unknown account
             "2011,,5420,10,"));                                  // expenditure without a department
 
         Assert.True(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
@@ -76,13 +76,13 @@ public class BudgetImportServiceTests(SqlServerFixture fixture) : IAsyncLifetime
     {
         await using AsyncServiceScope scope = As(Roles.FinanceDirector);
         IBudgetImportService import = scope.ServiceProvider.GetRequiredService<IBudgetImportService>();
-        BudgetLineDto overtime = await LineAsync(scope, "1000", "PD", "5120");
+        BudgetLineDto overtime = await LineAsync(scope, "1000", "110", "5120");
         int linesBefore = (await Workspace(scope)).Lines.Count;
 
         ImportPreviewDto preview = (await import.PreviewAsync(_draft2027, "budget.csv", Csv(
             "Fund,Department,Account,Amount,Prior Year Actual,Current Year Budget,Justification",
-            $"1000,PD,5120,{overtime.Amount + 5000},,,Contract settlement",
-            "4901,PD,5420,750,700,725,Fuel for the new truck"))).Value;
+            $"1000,110,5120,{overtime.Amount + 5000},,,Contract settlement",
+            "4901,110,5420,750,700,725,Fuel for the new truck"))).Value;
         Assert.True(preview.CanCommit);
 
         Result<ImportResultDto> committed = await import.CommitAsync(_draft2027, "budget.csv", preview.Inputs);
@@ -96,7 +96,7 @@ public class BudgetImportServiceTests(SqlServerFixture fixture) : IAsyncLifetime
         Assert.Equal(overtime.Amount + 5000, updated.Amount);
         Assert.Equal(overtime.PriorYearActual, updated.PriorYearActual); // blank column left it alone
         Assert.Equal("Contract settlement", updated.Justification);
-        BudgetLineDto added = after.Lines.Single(l => l.FundCode == "4901" && l.DepartmentCode == "PD" && l.AccountCode == "5420");
+        BudgetLineDto added = after.Lines.Single(l => l.FundCode == "4901" && l.DepartmentCode == "110" && l.AccountCode == "5420");
         Assert.Equal((750m, 700m, 725m), (added.Amount, added.PriorYearActual, added.CurrentYearBudget));
 
         await using CivicBudgetDbContext db = _database.CreateContext(_mapleRidge);
@@ -106,12 +106,30 @@ public class BudgetImportServiceTests(SqlServerFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_file_of_full_account_numbers_imports_like_one_of_codes()
+    {
+        await using AsyncServiceScope scope = As(Roles.FinanceDirector);
+        IBudgetImportService import = scope.ServiceProvider.GetRequiredService<IBudgetImportService>();
+        BudgetLineDto overtime = await LineAsync(scope, "1000", "110", "5120");
+
+        ImportPreviewDto preview = (await import.PreviewAsync(_draft2027, "numbers.csv", Csv(
+            "Account Number,Amount",
+            $"1000-110-5120,{overtime.Amount}",   // unchanged
+            "4901-110-5420,750",                  // add
+            "1000-4110,1"))).Value;               // a fund-level revenue line, two segments
+
+        Assert.Equal([ImportRowAction.Unchanged, ImportRowAction.Add, ImportRowAction.Update], preview.Rows.Select(r => r.Action));
+        Assert.Equal("Fuel", preview.Rows[1].AccountName);
+        Assert.Null(preview.Rows[2].DepartmentCode);
+    }
+
+    [Fact]
     public async Task Commit_refuses_when_a_row_has_an_error_and_writes_nothing()
     {
         await using AsyncServiceScope scope = As(Roles.FinanceDirector);
         IBudgetImportService import = scope.ServiceProvider.GetRequiredService<IBudgetImportService>();
         int linesBefore = (await Workspace(scope)).Lines.Count;
-        ImportPreviewDto preview = (await import.PreviewAsync(_draft2027, "bad.csv", Csv("Fund,Department,Account,Amount", "4901,PD,5420,750", "1000,PD,9999,10"))).Value;
+        ImportPreviewDto preview = (await import.PreviewAsync(_draft2027, "bad.csv", Csv("Fund,Department,Account,Amount", "4901,110,5420,750", "1000,110,9999,10"))).Value;
 
         Result<ImportResultDto> committed = await import.CommitAsync(_draft2027, "bad.csv", preview.Inputs);
 
@@ -124,12 +142,12 @@ public class BudgetImportServiceTests(SqlServerFixture fixture) : IAsyncLifetime
     {
         await using AsyncServiceScope head = As(Roles.DepartmentHead, _policeDept);
         Result<ImportPreviewDto> denied = await head.ServiceProvider.GetRequiredService<IBudgetImportService>()
-            .PreviewAsync(_draft2027, "lines.csv", Csv("Fund,Department,Account,Amount", "4901,PD,5420,750"));
+            .PreviewAsync(_draft2027, "lines.csv", Csv("Fund,Department,Account,Amount", "4901,110,5420,750"));
         Assert.Contains("Finance Director", denied.Errors.Single().Message, StringComparison.Ordinal);
 
         await using AsyncServiceScope director = As(Roles.FinanceDirector);
         Result<ImportPreviewDto> adopted = await director.ServiceProvider.GetRequiredService<IBudgetImportService>()
-            .PreviewAsync(_adopted2025, "lines.csv", Csv("Fund,Department,Account,Amount", "4901,PD,5420,750"));
+            .PreviewAsync(_adopted2025, "lines.csv", Csv("Fund,Department,Account,Amount", "4901,110,5420,750"));
         Assert.Contains("adopted", adopted.Errors.Single().Message, StringComparison.Ordinal);
     }
 
@@ -139,7 +157,7 @@ public class BudgetImportServiceTests(SqlServerFixture fixture) : IAsyncLifetime
         await using AsyncServiceScope scope = As(Roles.FinanceDirector);
         IBudgetImportService import = scope.ServiceProvider.GetRequiredService<IBudgetImportService>();
 
-        Assert.Contains("columns named", (await import.PreviewAsync(_draft2027, "x.csv", Csv("Fund,Note", "1000,hi"))).Errors.Single().Message, StringComparison.Ordinal);
+        Assert.Contains("needs an Amount column", (await import.PreviewAsync(_draft2027, "x.csv", Csv("Fund,Note", "1000,hi"))).Errors.Single().Message, StringComparison.Ordinal);
         Assert.Contains(".csv or .xlsx", (await import.PreviewAsync(_draft2027, "x.pdf", Csv("Fund"))).Errors.Single().Message, StringComparison.Ordinal);
         Assert.Contains("Excel", (await import.PreviewAsync(_draft2027, "x.xlsx", Csv("Fund,Account,Amount", "1000,4100,1"))).Errors.Single().Message, StringComparison.Ordinal);
     }
