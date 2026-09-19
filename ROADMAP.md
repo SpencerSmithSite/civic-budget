@@ -143,10 +143,13 @@ UAN village or `101-110-5100` for a county), and permissions follow the departme
 - [x] Spencer approves Phase 9a (2026-09-19)
 
 ## Phase 9b — The chart comes from the ERP  `phase-9b-erp-chart`
-- [ ] `IErpChartSource` in Application: an adapter boundary for the parent ERP; first implementation reads VIP-style export files (funds, departments, objects with types and categories; optional prior-year actuals and current budgets)
-- [ ] `ChartSyncService`: preview (adds, renames, deactivations, no deletes) then commit, audit event, "last synced from VIP" on the setup screens
-- [ ] Government setting `ChartSource = Erp | Local`: with `Erp`, the setup screens are read-only views with an Admin override; with `Local`, today's maintenance stays
-- [ ] Sync log page; tests over a sample export; ADR on why file-first with an interface for a future API
+- [x] `ErpChart` contract and `IErpChartSource` adapter in Application; `ErpChartFileSource` reads a one-row-per-code CSV/XLSX export (Kind, Code, Name, Type, Category, Description, Active), forgiving about spelling and order
+- [x] `ChartDiff` (pure): Add, Update, Deactivate, Reactivate, Unchanged per code with before/after; `ChartSyncService` preview then commit through the entities (audit interceptor sees every field), `ChartSync` log row, audit event
+- [x] Never deletes; the confirm dialog warns when a file would deactivate more than a quarter of the chart (a partial export)
+- [x] `Government.ChartSource` Local/Erp: setup services refuse writes under Erp (`ChartOwnership`); Funds/Departments/Accounts show a "Managed by the ERP · last synced" banner and lose New/Edit; Administrator can switch back
+- [x] Chart sync page under Setup: upload, preview grid, KPIs, apply, sync history with a change drawer; ADR-0025; walkthrough 11
+- [x] Tests: 10 unit (differ, file source incl. XLSX), 4 integration (preview, commit with audit and log, guards, source switch), 1 bUnit (read-only list)
+- [ ] Spencer approves Phase 9b
 
 ## Phase 9c — Users, logons, and permissions  `phase-9c-users-permissions`
 - [ ] Admin is a superset: may enter lines, set balances, run the workflow, publish, import, and manage users (today Admin cannot touch budget lines)

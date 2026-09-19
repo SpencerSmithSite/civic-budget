@@ -589,3 +589,39 @@ department as first-class things the rules and permissions depend on); a fixed 4
 snapshots, which is intended. A fourth (cost-center) segment is not modelled; the value object is
 the place to add it.
 
+## ADR-0025 — The chart of accounts is received from the ERP through an adapter, never deleted, and owned by a switch
+**Date:** 2026-09-19 · **Status:** Accepted
+
+**Context.** v1.1 positions CivicBudget beside the government's ERP (VIP or similar), which owns
+the chart of accounts. Funds, departments, and objects must come from there, but the app must
+still work for a government with no feed, and the ERP's real interface is unknown (an export
+today, perhaps an API later).
+
+**Decision.**
+- **One contract.** `ErpChart` (Application/Erp) is everything CivicBudget wants from an ERP:
+  three code lists with the fields the domain rules need, plus optionally the account number
+  format. `IErpChartSource` is the adapter interface; `IErpChartFileSource` is the file flavour
+  and `ErpChartFileSource` reads a one-row-per-code CSV/XLSX (`Kind, Code, Name, Type, Category,
+  Description, Active`), forgiving about spelling and order. Its column names are the seam to
+  change when the ERP's real layout is known; nothing above it would move.
+- **Diff, then apply through the entities.** `ChartDiff.Compute` is pure: Add, Update,
+  Deactivate, Reactivate, Unchanged per code, with before and after text for a person to judge.
+  `ChartSyncService.CommitAsync` re-reads the file, re-diffs, and applies each change through
+  `Fund.Update`, `Department.Deactivate`, and so on, so the domain rules run and the audit
+  interceptor records every field. One `ChartSync` log row and one audit event per sync.
+- **Never delete.** A code the ERP no longer lists is deactivated: budget lines and snapshots
+  still point at it and history keeps its name. The preview warns when a file would deactivate
+  more than a quarter of the chart, the signature of a partial export.
+- **Ownership is explicit.** `Government.ChartSource` is `Local` until the first sync, then
+  `Erp`. Under `Erp` the setup services refuse writes (`ChartOwnership.RefuseIfErpManagedAsync`)
+  and the setup screens show a banner with the last sync instead of New/Edit. An Administrator
+  can switch back to `Local` for a government that maintains its own chart.
+
+**Alternatives.** Calling the ERP directly from the setup services (couples the app to an
+interface that does not exist yet); deleting codes the ERP dropped (breaks history); making the
+setup screens read-only unconditionally (a government without an ERP could not start).
+
+**Consequences.** A sync is a whole-chart operation; there is no partial sync by design. The
+sync log stores the change list as JSON for the drill-down. When an API adapter arrives, it
+implements `IErpChartSource` and the sync page gains a "Sync from VIP" button beside the upload.
+

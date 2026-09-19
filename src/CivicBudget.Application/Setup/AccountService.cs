@@ -1,4 +1,5 @@
 using CivicBudget.Application.Common;
+using CivicBudget.Application.Erp;
 using CivicBudget.Application.Persistence;
 using CivicBudget.Application.Tenancy;
 using CivicBudget.Domain.Accounts;
@@ -67,6 +68,10 @@ public sealed class AccountService(
         }
 
         await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
+        if (await ChartOwnership.RefuseIfErpManagedAsync(db, tenant.GovernmentId, ct) is { } managed)
+        {
+            return Result.Failure<Guid>(managed.Errors);
+        }
 
         string code = request.Code.Trim();
         if (await db.Accounts.AnyAsync(a => a.Code == code && a.Id != request.Id, ct))
@@ -103,6 +108,10 @@ public sealed class AccountService(
     public async Task<Result> SetActiveAsync(Guid id, bool isActive, CancellationToken ct = default)
     {
         await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
+        if (await ChartOwnership.RefuseIfErpManagedAsync(db, tenant.GovernmentId, ct) is { } managed)
+        {
+            return managed;
+        }
         Account? account = await db.Accounts.FirstOrDefaultAsync(a => a.Id == id, ct);
         if (account is null)
         {

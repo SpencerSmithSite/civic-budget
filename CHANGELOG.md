@@ -5,6 +5,12 @@ All notable changes to CivicBudget. Format loosely follows
 
 ## [Unreleased]
 
+## Phase 9b — 2026-09-19 (v1.1)
+### Added
+- Chart of accounts sync from the parent ERP: upload its export, preview adds/updates/deactivations, apply; sync log with a change drawer; audit event. Never deletes.
+- `Government.ChartSource` (Local/Erp): under Erp the setup screens are read-only with a "Managed by the ERP" banner and the services refuse writes; an Administrator can switch back.
+- `IErpChartSource` adapter boundary (ADR-0025) with a file-based first implementation.
+
 ## Phase 9a — 2026-09-19 (v1.1)
 ### Added
 - Full Ohio-style account numbers (`1000-725-121`, `1000-110` for revenue) composed under a per-government `AccountNumberFormat` (widths, separator, Program/Department), shown in grids, reports, exports, the portal, and searchable everywhere; import accepts an `Account Number` column.

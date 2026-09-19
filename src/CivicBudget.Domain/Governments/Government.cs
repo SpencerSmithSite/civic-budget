@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using CivicBudget.Domain.Accounts;
 using CivicBudget.Domain.Common;
+using CivicBudget.Domain.Erp;
 
 namespace CivicBudget.Domain.Governments;
 
@@ -33,6 +34,9 @@ public sealed partial class Government : Entity
 
     /// <summary>How this government writes "1000-725-121". Comes from the parent ERP's chart; defaults to the UAN village layout.</summary>
     public AccountNumberFormat AccountNumberFormat { get; private set; } = AccountNumberFormat.UanVillage;
+
+    /// <summary>Local until the first sync from the ERP; an Administrator may switch it back to allow manual maintenance.</summary>
+    public ChartSource ChartSource { get; private set; } = ChartSource.Local;
 
     public Government(
         string name,
@@ -71,6 +75,8 @@ public sealed partial class Government : Entity
     public void SetPublicSlug(string slug) => PublicSlug = ValidateSlug(slug);
 
     public void SetAccountNumberFormat(AccountNumberFormat format) => AccountNumberFormat = format ?? throw new ArgumentNullException(nameof(format));
+
+    public void SetChartSource(ChartSource source) => ChartSource = source;
 
     private static string ValidateState(string state)
     {

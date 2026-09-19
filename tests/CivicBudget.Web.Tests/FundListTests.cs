@@ -17,6 +17,7 @@ public class FundListTests : BunitContext
     public void Lists_funds_and_filters_by_search_text()
     {
         Services.AddSingleton<IFundService>(new FakeFundService());
+        Services.AddSingleton<CivicBudget.Application.Erp.IChartSyncService>(new Chart.FakeChartSyncService());
         Services.AddSingleton<ToastService>();
         Services.AddSingleton<AdminPageState>();
         AddAuthorization().SetAuthorized("finance");
@@ -33,6 +34,26 @@ public class FundListTests : BunitContext
         page.Find("input[placeholder='Search code or name']").Input("2011");
         page.WaitForAssertion(() => Assert.Equal(1, PopulatedRows(page)));
         Assert.DoesNotContain("General Fund", page.Markup);
+    }
+
+    [Fact]
+    public void When_the_erp_owns_the_chart_the_list_is_read_only_with_a_banner()
+    {
+        Services.AddSingleton<IFundService>(new FakeFundService());
+        Services.AddSingleton<CivicBudget.Application.Erp.IChartSyncService>(new Chart.FakeChartSyncService(Domain.Erp.ChartSource.Erp, new DateTimeOffset(2026, 9, 19, 14, 0, 0, TimeSpan.Zero)));
+        Services.AddSingleton<ToastService>();
+        Services.AddSingleton<AdminPageState>();
+        AddAuthorization().SetAuthorized("finance");
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        JSInterop.SetupModule("./_content/Microsoft.AspNetCore.Components.QuickGrid/QuickGrid.razor.js");
+
+        IRenderedComponent<FundList> page = Render<FundList>();
+
+        page.WaitForAssertion(() => Assert.Equal(2, PopulatedRows(page)));
+        Assert.Contains("Managed by the ERP", page.Find(".cb-erp-banner").TextContent);
+        Assert.Contains("Dana Whitfield", page.Find(".cb-erp-banner").TextContent);
+        Assert.Empty(page.FindAll("a[href='admin/funds/new']"));
+        Assert.Empty(page.FindAll(".cb-kebab"));
     }
 
     private static int PopulatedRows(IRenderedComponent<FundList> page) =>

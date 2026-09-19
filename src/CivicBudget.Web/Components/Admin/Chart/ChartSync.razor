@@ -1,0 +1,280 @@
+@page "/admin/chart-sync"
+@attribute [Authorize(Policy = Policies.CanMaintainSetup)]
+@using CivicBudget.Application.Erp
+@using CivicBudget.Domain.Erp
+@inject IChartSyncService Sync
+@inject ToastService Toasts
+
+@* Bring the chart of accounts in from the parent ERP: upload its export, see exactly what would
+   change, apply. Same two-step shape as the line import. Below it, the sync log. *@
+<PageTitle>Chart of accounts sync</PageTitle>
+
+<PageHeader Title="Sync the chart of accounts" Eyebrow="Setup" Crumbs="@([new Crumb("Setup"), new Crumb("Chart sync")])"
+            Tip="Upload the ERP's chart export. Codes new to CivicBudget are added, changed names or categories are updated, and codes the ERP no longer lists are deactivated so history keeps its names. Nothing is deleted.">
+    <TitleAddon>
+        @if (status is not null)
+        {
+            <StatusPill Tone="@(status.Source == ChartSource.Erp ? "info" : "")" Label="@(status.Source == ChartSource.Erp ? "Managed by the ERP" : "Maintained here")" />
+        }
+    </TitleAddon>
+    <Actions>
+        <AuthorizeView Policy="@Policies.CanManageUsers">
+            @if (status is not null)
+            {
+                <button type="button" class="btn btn-outline-primary btn-sm" @onclick="ToggleSourceAsync">
+                    @(status.Source == ChartSource.Erp ? "Maintain the chart here instead" : "Mark the chart as managed by the ERP")
+                </button>
+            }
+        </AuthorizeView>
+    </Actions>
+</PageHeader>
+
+<div class="card mb-4">
+    <div class="card-body cb-import-pick">
+        <div>
+            <label class="form-label fw-semibold" for="chartFile">ERP chart export</label>
+            <InputFile id="chartFile" class="form-control" accept=".csv,.xlsx" OnChange="OnFileChosenAsync" disabled="@busy" />
+            <div class="form-text">
+                One row per code. Columns: <code>Kind</code> (Fund, Department, Object), <code>Code</code>, <code>Name</code>, and for objects <code>Type</code> and <code>Category</code>; optional <code>Description</code> and <code>Active</code>.
+            </div>
+        </div>
+        @if (busy)
+        {
+            <div class="text-secondary small" role="status"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Comparing…</div>
+        }
+    </div>
+</div>
+
+@if (fileErrors is not null)
+{
+    <div class="alert alert-danger" role="alert">
+        <div class="fw-semibold mb-1">The file could not be read as a chart export.</div>
+        <ul class="mb-0">@foreach (string e in fileErrors) { <li>@e</li> }</ul>
+    </div>
+}
+
+@if (preview is not null)
+{
+    <div class="cb-kpis">
+        <KpiCard Label="Add" Value="@preview.Count(ChartChangeKind.Add).ToString()" Tone="ok" Detail="Codes new to CivicBudget" />
+        <KpiCard Label="Update" Value="@preview.Count(ChartChangeKind.Update).ToString()" Tone="@(preview.Count(ChartChangeKind.Update) > 0 ? "warn" : "")" Detail="Renamed or recategorized" />
+        <KpiCard Label="Deactivate" Value="@preview.Count(ChartChangeKind.Deactivate).ToString()" Tone="@(preview.Count(ChartChangeKind.Deactivate) > 0 ? "bad" : "")" Detail="No longer in the ERP" />
+        <KpiCard Label="Unchanged" Value="@preview.Count(ChartChangeKind.Unchanged).ToString()" Detail="@($"{preview.Count(ChartChangeKind.Reactivate)} reactivated")" />
+    </div>
+
+    <div class="card mb-4">
+        <div class="cb-toolbar">
+            <div class="grow"><span class="fw-semibold">What the sync would do</span> <span class="text-secondary small ms-2">@preview.FileName</span></div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="onlyChanges" @bind="onlyChanges" />
+                <label class="form-check-label small" for="onlyChanges">Hide unchanged</label>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" @onclick="() => confirmDialog.Show()" disabled="@(!preview.HasChanges || busy)">
+                <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>Apply sync
+            </button>
+        </div>
+        <div class="cb-grid-wrap">
+            <table class="cb-grid table" aria-label="Chart changes">
+                <thead><tr><th scope="col">Kind</th><th scope="col">Code</th><th scope="col">Change</th><th scope="col">Now</th><th scope="col">After sync</th></tr></thead>
+                <tbody>
+                    @foreach (ChartChange c in Visible)
+                    {
+                        <tr>
+                            <td>@c.Kind</td>
+                            <td class="cb-code">@c.Code</td>
+                            <td><StatusPill Tone="@ToneFor(c.Change)" Label="@c.Change.ToString()" /></td>
+                            <td class="cb-wrap text-secondary">@c.Before</td>
+                            <td class="cb-wrap">@c.After</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (!Visible.Any())
+        {
+            <div class="p-3 text-secondary small">Everything matches.</div>
+        }
+    </div>
+}
+
+<h2 class="h6 mb-2">Sync history</h2>
+@if (history is null)
+{
+    <SkeletonRows Rows="3" Columns="5" />
+}
+else if (history.Count == 0)
+{
+    <div class="card"><EmptyState Icon="bi-cloud-download" Title="No syncs yet" Text="Upload the ERP's chart export above to bring the chart in." /></div>
+}
+else
+{
+    <div class="card">
+        <div class="cb-grid-wrap">
+            <table class="cb-grid table" aria-label="Sync history">
+                <thead><tr><th scope="col">When</th><th scope="col">By</th><th scope="col">File</th><th scope="col" class="cb-num">Added</th><th scope="col" class="cb-num">Updated</th><th scope="col" class="cb-num">Deactivated</th><th scope="col" class="cb-num">Reactivated</th><th scope="col"></th></tr></thead>
+                <tbody>
+                    @foreach (ChartSyncDto s in history)
+                    {
+                        <tr>
+                            <td>@s.SyncedAtUtc.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</td>
+                            <td>@s.UserName</td>
+                            <td class="cb-code">@s.FileName</td>
+                            <td class="cb-num">@s.Added</td>
+                            <td class="cb-num">@s.Updated</td>
+                            <td class="cb-num">@s.Deactivated</td>
+                            <td class="cb-num">@s.Reactivated</td>
+                            <td class="text-end"><button type="button" class="btn btn-link btn-sm p-0" @onclick="() => ShowDetails(s)">Details</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<SideDrawer @bind-IsOpen="detailsOpen" Title="@(details is null ? "Sync" : $"Sync on {details.SyncedAtUtc.ToLocalTime():MMM d, yyyy}")">
+    @if (details is not null)
+    {
+        <table class="cb-grid table" aria-label="Changes in this sync">
+            <thead><tr><th scope="col">Kind</th><th scope="col">Code</th><th scope="col">Change</th><th scope="col">Before</th><th scope="col">After</th></tr></thead>
+            <tbody>
+                @foreach (ChartChange c in details.Changes)
+                {
+                    <tr><td>@c.Kind</td><td class="cb-code">@c.Code</td><td>@c.Change</td><td class="cb-wrap text-secondary">@c.Before</td><td class="cb-wrap">@c.After</td></tr>
+                }
+            </tbody>
+        </table>
+    }
+</SideDrawer>
+
+<ConfirmDialog @ref="confirmDialog" Title="Apply this sync?" ConfirmText="Apply" OnConfirm="CommitAsync">
+    <Body>
+        @if (preview is not null)
+        {
+            @if (LooksPartial)
+            {
+                <div class="alert alert-warning"><i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i><b>This file lists far fewer codes than CivicBudget has.</b> A sync deactivates every code the ERP does not list (@preview.Count(ChartChangeKind.Deactivate) here). If this is a partial export, cancel and upload the full chart.</div>
+            }
+            <p>Adds <b>@preview.Count(ChartChangeKind.Add)</b>, updates <b>@preview.Count(ChartChangeKind.Update)</b>, deactivates <b>@preview.Count(ChartChangeKind.Deactivate)</b>, and reactivates <b>@preview.Count(ChartChangeKind.Reactivate)</b> codes. From now on the chart is managed by the ERP: the Funds, Departments, and Chart of accounts screens become read-only until the next sync.</p>
+            <p class="mb-0 text-secondary small">Deactivated codes keep their history; budget lines that use them stay as they are.</p>
+        }
+    </Body>
+</ConfirmDialog>
+
+@code {
+    private const int MaxFileMb = 5;
+
+    private ChartSourceStatusDto? status;
+    private IReadOnlyList<ChartSyncDto>? history;
+    private ChartSyncPreviewDto? preview;
+    private IReadOnlyList<string>? fileErrors;
+    private byte[]? fileBytes;
+    private string fileName = "";
+    private bool busy;
+    private bool onlyChanges = true;
+    private bool detailsOpen;
+    private ChartSyncDto? details;
+    private ConfirmDialog confirmDialog = null!;
+
+    /// <summary>More than a quarter of the known codes would go: almost always a partial export rather than a real chart change.</summary>
+    private bool LooksPartial => preview is not null && preview.Changes.Count > 0 && preview.Count(ChartChangeKind.Deactivate) * 4 > preview.Changes.Count;
+
+    private IEnumerable<ChartChange> Visible => preview is null ? [] : onlyChanges ? preview.Changes.Where(c => c.Change != ChartChangeKind.Unchanged) : preview.Changes;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        status = await Sync.StatusAsync();
+        history = await Sync.HistoryAsync();
+    }
+
+    private async Task OnFileChosenAsync(InputFileChangeEventArgs e)
+    {
+        fileErrors = null;
+        preview = null;
+        busy = true;
+        try
+        {
+            await using Stream stream = e.File.OpenReadStream(MaxFileMb * 1024 * 1024);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            fileBytes = buffer.ToArray();
+            fileName = e.File.Name;
+
+            Result<ChartSyncPreviewDto> result = await Sync.PreviewAsync(fileName, new MemoryStream(fileBytes));
+            if (result.IsSuccess)
+            {
+                preview = result.Value;
+            }
+            else
+            {
+                fileErrors = result.Errors.Select(x => x.Message).ToList();
+            }
+        }
+        catch (IOException)
+        {
+            fileErrors = [$"The file is larger than {MaxFileMb} MB."];
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task<bool> CommitAsync()
+    {
+        if (fileBytes is null)
+        {
+            return true;
+        }
+
+        Result<ChartSyncDto> result = await Sync.CommitAsync(fileName, new MemoryStream(fileBytes));
+        if (result.IsFailure)
+        {
+            Toasts.Danger(string.Join(" ", result.Errors.Select(x => x.Message)));
+            return true;
+        }
+
+        Toasts.Success($"Chart synced: {result.Value.Added} added, {result.Value.Updated} updated, {result.Value.Deactivated} deactivated.");
+        preview = null;
+        fileBytes = null;
+        await LoadAsync();
+        StateHasChanged(); // the confirm runs inside the dialog's event, so the page must ask for its own re-render
+        return true;
+    }
+
+    private async Task ToggleSourceAsync()
+    {
+        if (status is null)
+        {
+            return;
+        }
+
+        ChartSource next = status.Source == ChartSource.Erp ? ChartSource.Local : ChartSource.Erp;
+        Result result = await Sync.SetChartSourceAsync(next);
+        if (result.IsFailure)
+        {
+            Toasts.Danger(result.Errors.Single().Message);
+            return;
+        }
+
+        Toasts.Success(next == ChartSource.Erp ? "The chart is now managed by the ERP." : "The chart is now maintained here.");
+        await LoadAsync();
+    }
+
+    private void ShowDetails(ChartSyncDto sync)
+    {
+        details = sync;
+        detailsOpen = true;
+    }
+
+    private static string ToneFor(ChartChangeKind kind) => kind switch
+    {
+        ChartChangeKind.Add => "success",
+        ChartChangeKind.Update => "warning",
+        ChartChangeKind.Deactivate => "danger",
+        ChartChangeKind.Reactivate => "info",
+        _ => "",
+    };
+}

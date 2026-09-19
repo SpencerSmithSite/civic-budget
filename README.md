@@ -78,7 +78,7 @@ tag once an account's role ARN is set. There is no account behind this repositor
 nothing is live; see [infra/README.md](infra/README.md) and [walkthrough 08](docs/walkthroughs/08-aws-deploy-ready.md).
 
 ```bash
-dotnet test                                 # all 428 tests; integration tests start their own SQL Server container, infra tests need Node.js
+dotnet test                                 # all 443 tests; integration tests start their own SQL Server container, infra tests need Node.js
 ```
 
 ## How to read this repository

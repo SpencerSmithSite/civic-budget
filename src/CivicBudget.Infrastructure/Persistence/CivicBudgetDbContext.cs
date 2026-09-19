@@ -6,6 +6,7 @@ using CivicBudget.Domain.Auditing;
 using CivicBudget.Domain.Budgets;
 using CivicBudget.Domain.Common;
 using CivicBudget.Domain.Departments;
+using CivicBudget.Domain.Erp;
 using CivicBudget.Domain.FiscalYears;
 using CivicBudget.Domain.Funds;
 using CivicBudget.Domain.Governments;
@@ -47,6 +48,7 @@ public sealed class CivicBudgetDbContext(DbContextOptions<CivicBudgetDbContext> 
     /// </summary>
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
     public DbSet<PublishedBudgetSnapshot> PublishedBudgetSnapshots => Set<PublishedBudgetSnapshot>();
+    public DbSet<ChartSync> ChartSyncs => Set<ChartSync>();
     public DbSet<UserDepartment> UserDepartments => Set<UserDepartment>();
 
     /// <summary>

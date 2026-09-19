@@ -2,6 +2,7 @@ using CivicBudget.Domain.Accounts;
 using CivicBudget.Domain.Auditing;
 using CivicBudget.Domain.Budgets;
 using CivicBudget.Domain.Departments;
+using CivicBudget.Domain.Erp;
 using CivicBudget.Domain.FiscalYears;
 using CivicBudget.Domain.Funds;
 using CivicBudget.Domain.Governments;
@@ -28,6 +29,7 @@ public interface ICivicBudgetDbContext : IAsyncDisposable, IDisposable
     DbSet<FundBeginningBalance> FundBeginningBalances { get; }
     DbSet<AuditEntry> AuditEntries { get; }
     DbSet<PublishedBudgetSnapshot> PublishedBudgetSnapshots { get; }
+    DbSet<ChartSync> ChartSyncs { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
