@@ -158,7 +158,7 @@ UAN village or `101-110-5100` for a county), and permissions follow the departme
 - [x] User administration audited: created, updated, password reset, locked, unlocked, in the acting administrator's name
 - [x] Department assignment bounds every read: workspace, reports, exports, search, and now the audit trail (recent activity and line history)
 - [x] Tests: policy matrix with Admin, middleware, permissions per role through the services, audit scoping, user admin flag and audit; ADR-0026; walkthrough 12
-- [ ] Spencer approves Phase 9c
+- [x] Spencer approves Phase 9c
 
 ## Phase 9d — Department-first budgeting  `phase-9d-department-entry`
 - [ ] After sign-in a department user lands on "My department" for the open version (a picker when assigned to several)
