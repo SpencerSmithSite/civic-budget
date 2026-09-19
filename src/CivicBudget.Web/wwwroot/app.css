@@ -622,9 +622,11 @@ table.cb-grid > thead > tr > th {
     overflow-x: auto;
 }
 
-@media (min-width: 1200px) {
-    /* Only the budget workspace, whose grid is the page. A grid inside a card (overview,
-       reports) keeps scrolling within its card instead of spilling over its neighbour. */
+@media (min-width: 1600px) {
+    /* Only the budget workspace, whose grid is the page, and only when the screen is wide enough
+       for the whole table beside the fund panel. A grid inside a card (overview, reports) keeps
+       scrolling within its card, and so does the workspace on a laptop: a wrapper that does not
+       scroll would let the table run under the panel. The price is no sticky header below 1600px. */
     .cb-workspace .cb-grid-wrap {
         overflow: visible;
     }
@@ -667,7 +669,7 @@ table.cb-grid > tfoot > tr > td {
 
 table.cb-grid td.cb-wrap {
     white-space: normal;
-    min-width: 17rem; /* room for a full account number ("1000-110-5110") plus most names on one line */
+    min-width: 14.5rem; /* room for a full account number ("1000-110-5110") plus most names on one line */
 }
 
 table.cb-grid .cb-num, table.cb-grid th.cb-num {
@@ -814,6 +816,20 @@ table.cb-grid th.col-justify-end .col-header-content {
     grid-template-columns: minmax(0, 1fr) 300px;
     gap: 16px;
     align-items: start;
+}
+
+/* Laptop widths: a narrower fund panel and tighter money cells let a 1440 px screen show the whole
+   table without sideways scrolling; anything narrower scrolls inside the card. */
+@media (min-width: 1200px) and (max-width: 1599.98px) {
+    .cb-workspace {
+        grid-template-columns: minmax(0, 1fr) 272px;
+    }
+
+    .cb-workspace table.cb-grid > tbody > tr > td.cb-num,
+    .cb-workspace table.cb-grid > thead > tr > th.cb-num {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
 }
 
 @media (max-width: 1199.98px) {
