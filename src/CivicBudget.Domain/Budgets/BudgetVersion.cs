@@ -18,6 +18,7 @@ public sealed class BudgetVersion : Entity, ITenantOwned
 
     private readonly List<BudgetLine> _lines = [];
     private readonly List<FundBeginningBalance> _beginningBalances = [];
+    private readonly List<DepartmentRequest> _departmentRequests = [];
 
     public Guid GovernmentId { get; private set; }
     public Guid FiscalYearId { get; private set; }
@@ -41,6 +42,9 @@ public sealed class BudgetVersion : Entity, ITenantOwned
 
     public IReadOnlyCollection<BudgetLine> Lines => _lines.AsReadOnly();
     public IReadOnlyCollection<FundBeginningBalance> BeginningBalances => _beginningBalances.AsReadOnly();
+
+    /// <summary>One per department that has written a narrative or submitted; departments without a row are simply in progress.</summary>
+    public IReadOnlyCollection<DepartmentRequest> DepartmentRequests => _departmentRequests.AsReadOnly();
 
     public bool IsAmendment => VersionNumber > 1;
     public bool IsEditable => Status != BudgetStatus.Adopted;
@@ -114,6 +118,7 @@ public sealed class BudgetVersion : Entity, ITenantOwned
         var amendment = new BudgetVersion(GovernmentId, FiscalYearId, VersionNumber + 1, trimmedReason);
         amendment._lines.AddRange(_lines.Select(l => l.CopyTo(amendment.Id)));
         amendment._beginningBalances.AddRange(_beginningBalances.Select(b => b.CopyTo(amendment.Id)));
+        amendment._departmentRequests.AddRange(_departmentRequests.Select(r => r.CopyTo(amendment.Id)));
         return amendment;
     }
 
@@ -201,6 +206,57 @@ public sealed class BudgetVersion : Entity, ITenantOwned
 
     public decimal GetBeginningBalance(Guid fundId) =>
         _beginningBalances.FirstOrDefault(b => b.FundId == fundId)?.Amount ?? 0m;
+
+    // ---- Department requests ---------------------------------------------------------------
+
+    public DepartmentRequest? GetDepartmentRequest(Guid departmentId) =>
+        _departmentRequests.FirstOrDefault(r => r.DepartmentId == departmentId);
+
+    /// <summary>True once the department has handed its request in and it has not been returned.</summary>
+    public bool IsDepartmentSubmitted(Guid departmentId) =>
+        GetDepartmentRequest(departmentId)?.IsSubmitted == true;
+
+    public void SetDepartmentNarrative(Department department, string? narrative)
+    {
+        EnsureEditable();
+        EnsureOwnDepartment(department);
+        DepartmentRequest request = GetDepartmentRequest(department.Id) ?? StartDepartmentRequest(department);
+        request.SetNarrative(narrative);
+    }
+
+    /// <summary>
+    /// The department hands its request to the fiscal officer. Only while the version is Draft: once
+    /// proposed, the officer owns the whole budget and department rounds are over. A department with
+    /// nothing budgeted has nothing to submit.
+    /// </summary>
+    public void SubmitDepartment(Department department, string userId, string userName, DateTimeOffset nowUtc)
+    {
+        Guard.Against(Status != BudgetStatus.Draft, $"Departments submit while the budget is Draft (current status: {Status}).");
+        EnsureOwnDepartment(department);
+        Guard.Against(_lines.All(l => l.DepartmentId != department.Id), $"{department.Name} has no budget lines in this version to submit.");
+        DepartmentRequest request = GetDepartmentRequest(department.Id) ?? StartDepartmentRequest(department);
+        request.Submit(userId, userName, nowUtc);
+    }
+
+    /// <summary>The fiscal officer sends a submitted request back to the department with a reason.</summary>
+    public void ReturnDepartment(Department department, string note, DateTimeOffset nowUtc)
+    {
+        Guard.Against(Status != BudgetStatus.Draft, $"Requests are returned while the budget is Draft (current status: {Status}).");
+        EnsureOwnDepartment(department);
+        DepartmentRequest request = GetDepartmentRequest(department.Id)
+            ?? throw new DomainException($"{department.Name} has not submitted a request.");
+        request.Return(note, nowUtc);
+    }
+
+    private DepartmentRequest StartDepartmentRequest(Department department)
+    {
+        var request = new DepartmentRequest(GovernmentId, Id, department.Id);
+        _departmentRequests.Add(request);
+        return request;
+    }
+
+    private void EnsureOwnDepartment(Department department) =>
+        Guard.Against(department.GovernmentId != GovernmentId, "Department belongs to a different government.");
 
     private void EnsureEditable() =>
         Guard.Against(!IsEditable, $"Budget version {Label} is Adopted and cannot be changed; create an amendment instead.");

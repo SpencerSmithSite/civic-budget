@@ -27,6 +27,7 @@ public class PublishedSnapshotTests
         version.AddLine(general, police, salaries, 300_000m, 280_000m, 290_000m, "Two officers");
         version.SetBeginningBalance(general, 120_000m);
         version.SetBeginningBalance(street, 30_000m); // balance only, no lines
+        version.SetDepartmentNarrative(police, "Two officers replace retirements; no new positions.");
         version.Propose();
         version.Adopt("2026-40", "user-fd", Now.AddMonths(-1));
         return (government, year, version, [general, street]);
@@ -58,6 +59,12 @@ public class PublishedSnapshotTests
         Assert.Equal(120_000m, snapshot.Funds.Single(f => f.Code == "1000").BeginningBalance);
         Assert.Equal(30_000m, snapshot.Funds.Single(f => f.Code == "2011").BeginningBalance);
         Assert.Equal("Day-to-day services.", snapshot.Funds.Single(f => f.Code == "1000").Description);
+
+        // The department's narrative travels with the snapshot, one row per department with lines.
+        PublishedBudgetSnapshotDepartment policeRow = Assert.Single(snapshot.Departments);
+        Assert.Equal("110", policeRow.Code);
+        Assert.Equal("Patrol and Mayor's Court.", policeRow.Description);
+        Assert.Equal("Two officers replace retirements; no new positions.", policeRow.Narrative);
     }
 
     [Fact]

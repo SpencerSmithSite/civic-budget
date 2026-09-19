@@ -39,6 +39,7 @@ public sealed class CivicBudgetDbContext(DbContextOptions<CivicBudgetDbContext> 
     public DbSet<BudgetVersion> BudgetVersions => Set<BudgetVersion>();
     public DbSet<BudgetLine> BudgetLines => Set<BudgetLine>();
     public DbSet<FundBeginningBalance> FundBeginningBalances => Set<FundBeginningBalance>();
+    public DbSet<DepartmentRequest> DepartmentRequests => Set<DepartmentRequest>();
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
 
     /// <summary>

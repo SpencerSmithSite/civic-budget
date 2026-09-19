@@ -27,6 +27,7 @@ public interface ICivicBudgetDbContext : IAsyncDisposable, IDisposable
     DbSet<BudgetVersion> BudgetVersions { get; }
     DbSet<BudgetLine> BudgetLines { get; }
     DbSet<FundBeginningBalance> FundBeginningBalances { get; }
+    DbSet<DepartmentRequest> DepartmentRequests { get; }
     DbSet<AuditEntry> AuditEntries { get; }
     DbSet<PublishedBudgetSnapshot> PublishedBudgetSnapshots { get; }
     DbSet<ChartSync> ChartSyncs { get; }

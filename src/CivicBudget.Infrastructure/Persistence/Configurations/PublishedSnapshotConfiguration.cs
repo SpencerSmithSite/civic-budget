@@ -34,6 +34,8 @@ public static class PublishedSnapshotModel
             snapshot.Navigation(s => s.Lines).UsePropertyAccessMode(PropertyAccessMode.Field).HasField("_lines");
             snapshot.HasMany(s => s.Funds).WithOne().HasForeignKey(f => f.SnapshotId).OnDelete(DeleteBehavior.Cascade);
             snapshot.Navigation(s => s.Funds).UsePropertyAccessMode(PropertyAccessMode.Field).HasField("_funds");
+            snapshot.HasMany(s => s.Departments).WithOne().HasForeignKey(d => d.SnapshotId).OnDelete(DeleteBehavior.Cascade);
+            snapshot.Navigation(s => s.Departments).UsePropertyAccessMode(PropertyAccessMode.Field).HasField("_departments");
         });
 
         builder.Entity<PublishedBudgetSnapshotLine>(line =>
@@ -56,6 +58,15 @@ public static class PublishedSnapshotModel
             fund.Property(f => f.Name).HasMaxLength(150);
             fund.HasIndex(f => new { f.SnapshotId, f.Code }).IsUnique();
         });
+
+        builder.Entity<PublishedBudgetSnapshotDepartment>(department =>
+        {
+            department.ToTable("PublishedBudgetSnapshotDepartments");
+            department.Property(d => d.Code).HasMaxLength(20);
+            department.Property(d => d.Name).HasMaxLength(150);
+            department.Property(d => d.Narrative).HasMaxLength(Domain.Budgets.DepartmentRequest.NarrativeMaxLength);
+            department.HasIndex(d => new { d.SnapshotId, d.Code }).IsUnique();
+        });
     }
 }
 
@@ -76,4 +87,10 @@ internal sealed class PublishedSnapshotFundAdminConfiguration : IEntityTypeConfi
 {
     public void Configure(EntityTypeBuilder<PublishedBudgetSnapshotFund> builder) =>
         builder.HasOne<Government>().WithMany().HasForeignKey(f => f.GovernmentId).OnDelete(DeleteBehavior.Restrict);
+}
+
+internal sealed class PublishedSnapshotDepartmentAdminConfiguration : IEntityTypeConfiguration<PublishedBudgetSnapshotDepartment>
+{
+    public void Configure(EntityTypeBuilder<PublishedBudgetSnapshotDepartment> builder) =>
+        builder.HasOne<Government>().WithMany().HasForeignKey(d => d.GovernmentId).OnDelete(DeleteBehavior.Restrict);
 }
