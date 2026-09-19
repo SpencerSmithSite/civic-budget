@@ -119,5 +119,5 @@ Spencer's review (2026-09-18): strip title-plus-explanation clutter into tooltip
 - [x] README screenshots (7) via a reproducible Playwright script (`scripts/screenshots`)
 - [x] Tests: 406 total (+2 InfoTip)
 - [x] Docs sweep: `docs/DEMO-SCRIPT.md`, spec status table (SPEC §12), 60-second pitch refreshed, walkthrough 09, interview prep Phase 8
-- [ ] Tag `v1.0.0` after merge (the deploy workflow listens for it and no-ops without an account)
-- [ ] Spencer approves Phase 8
+- [x] Tagged `v1.0.0` (2026-09-19); the deploy workflow ran and skipped as designed (no `AWS_DEPLOY_ROLE_ARN`)
+- [x] Spencer approves Phase 8 (2026-09-19)
