@@ -121,3 +121,44 @@ Spencer's review (2026-09-18): strip title-plus-explanation clutter into tooltip
 - [x] Docs sweep: `docs/DEMO-SCRIPT.md`, spec status table (SPEC §12), 60-second pitch refreshed, walkthrough 09, interview prep Phase 8
 - [x] Tagged `v1.0.0` (2026-09-19); the deploy workflow ran and skipped as designed (no `AWS_DEPLOY_ROLE_ARN`)
 - [x] Spencer approves Phase 8 (2026-09-19)
+
+---
+
+# v1.1 — Plugged into the ERP, department-first (2026-09-19)
+
+Spencer's reframing after v1.0.0: the chart of accounts, funds, and departments come from a parent
+ERP (think VIP). CivicBudget plugs in beside it: it takes the chart from the ERP, its own admins
+create logons, and each user lands in their own department to enter budget against the accounts
+there. Full account numbers read the Ohio way (fund-department-object, e.g. `1000-725-121` for a
+UAN village or `101-110-5100` for a county), and permissions follow the department assignment.
+
+## Phase 9a — Ohio account numbers  `phase-9a-account-numbers`
+- [ ] Research note: UAN structure (fund-program-object for appropriations, fund-receipt for revenues; fund ranges by type), county/VIP-style variants; `docs/research/ohio-account-numbers.md`
+- [ ] `AccountNumberFormat` per government (segment widths, separator, middle-segment name "Program" or "Department"); `AccountNumber` value object that composes and parses `1000-725-121`, and `1000-110` for revenue lines
+- [ ] Full account number everywhere a line appears: workspace grids, line history, reports, exports, portal tables and search; search by full or partial number
+- [ ] Import accepts an `Account Number` column as an alternative to Fund/Department/Account
+- [ ] Seed: Maple Ridge as a UAN village (4-3-3), Pine Hollow with county-style 3-3-4 to show the format is per government
+- [ ] Tests for compose/parse/validate and the import column; walkthrough 10; ADR
+
+## Phase 9b — The chart comes from the ERP  `phase-9b-erp-chart`
+- [ ] `IErpChartSource` in Application: an adapter boundary for the parent ERP; first implementation reads VIP-style export files (funds, departments, objects with types and categories; optional prior-year actuals and current budgets)
+- [ ] `ChartSyncService`: preview (adds, renames, deactivations, no deletes) then commit, audit event, "last synced from VIP" on the setup screens
+- [ ] Government setting `ChartSource = Erp | Local`: with `Erp`, the setup screens are read-only views with an Admin override; with `Local`, today's maintenance stays
+- [ ] Sync log page; tests over a sample export; ADR on why file-first with an interface for a future API
+
+## Phase 9c — Users, logons, and permissions  `phase-9c-users-permissions`
+- [ ] Admin is a superset: may enter lines, set balances, run the workflow, publish, import, and manage users (today Admin cannot touch budget lines)
+- [ ] Role names as the customer says them: Administrator, Fiscal Officer, Department User, Viewer (DB values unchanged)
+- [ ] Admin user management completeness: create with a temporary password, force change at first sign-in, reset, lock/unlock, change role, assign one or more departments, deactivate; all audited
+- [ ] Department assignment drives access automatically: a user assigned to Fire sees Fire and nothing else, across workspace, reports, exports, and search
+- [ ] Authorization tests for every role and every surface (pages, services, export endpoints)
+
+## Phase 9d — Department-first budgeting  `phase-9d-department-entry`
+- [ ] After sign-in a department user lands on "My department" for the open version (a picker when assigned to several)
+- [ ] Department entry page: the department's accounts across its funds as full account numbers, prior year actual, current budget, request, change; running totals; a narrative/justification for the department as a whole
+- [ ] Department submits to the fiscal officer (per-department Submitted status on the version; fiscal officer can return it); the workspace shows which departments are in
+- [ ] Portal and Department Detail report carry the department narrative
+- [ ] Tests, walkthrough, interview prep
+
+Order: 9a → 9b → 9c → 9d. Each is a PR with the usual report; approve before the next starts.
+
