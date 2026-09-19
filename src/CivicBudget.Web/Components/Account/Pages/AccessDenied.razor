@@ -1,7 +1,12 @@
 @page "/Account/AccessDenied"
+@using CivicBudget.Web.Components.Common
 
-<PageTitle>Access denied</PageTitle>
+@* Identity's cookie handler redirects here for a page the signed-in user may not open. Same look
+   as the router's Forbidden page so the two paths to "not allowed" read the same. *@
+<PageTitle>Not allowed</PageTitle>
 
-<div class="container py-5" style="max-width:640px"><h1 class="h4 text-danger">Access denied</h1>
-<p class="text-danger">You do not have access to this resource.</p>
+<div class="container py-5">
+    <EmptyState Icon="bi-shield-lock" Title="Not allowed" Text="Your account does not have permission to open this page. Ask your administrator if you think it should.">
+        <a class="btn btn-primary btn-sm" href="admin">Back to the overview</a>
+    </EmptyState>
 </div>

@@ -382,3 +382,26 @@ None blocking. Items to confirm as they come up:
 - Whether Viewers should see the fund balance panel (assumed yes).
 - Whether the FD may edit lines while *Proposed* (assumed yes; department
   heads may not).
+
+---
+
+## 12. Status against this spec (2026-09-18)
+
+| Section | Delivered | Notes |
+|---|---|---|
+| §2 Tenancy | Phase 1, 2 | Global query filters on `ITenantOwned`; interceptor verifies writes (ADR-0004, 0013); Identity outside the filter (ADR-0015) |
+| §3 Domain model | Phase 1, 3 | Guid v7 ids, `ValueGeneratedNever` (ADR-0018); revenue by fund or fund + department (§3.7) |
+| §4 Workflow, §5 Validation | Phase 4 | Block/Warn at transitions with acknowledgement; amendments copy lines and balances |
+| §6 Publishing | Phase 4, 5 | Denormalized snapshots, Active/Superseded/Unpublished (ADR-0019); read-only portal context (ADR-0006); output cache evicted by tag (ADR-0021) |
+| §7.1 Admin 1–6 | Phase 2, 3, 4 | Two entry modes, live fund panel, audit trail with per-line history |
+| §7.1 Admin 7 Import/export | Phase 6 | Preview-then-commit import (ADR-0022); XLSX of lines, reports, setup lists |
+| §7.1 Admin 8 Reports | Phase 6 | Three reports on screen, print CSS, XLSX |
+| §7.2 Portal | Phase 5 | Charts are CSS bars with table twins and no JavaScript at all (a step past "core tables work with JavaScript off") |
+| §7.3 Visual design | Phase 4.5, 8 | Tokens over Bootstrap (ADR-0020); Phase 8 moved explanations into info tips |
+| §8 Non-functional | Phase 1–7 | JSON logging, health endpoints, no secrets in the repo, OIDC deploy, 400+ tests |
+| AWS (ADR-0008) | Phase 7 | Deploy-ready: Dockerfile, CDK in C#, assertion tests, gated `deploy.yml`; not deployed (no account) |
+
+Open questions from §11 were resolved as assumed: Viewers see the fund
+balance panel; the Finance Director may edit while Proposed, Department
+Heads may not.
+

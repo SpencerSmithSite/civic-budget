@@ -32,7 +32,7 @@
     {
         <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => OnAddLine.InvokeAsync()"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add line</button>
     }
-    <button type="button" class="btn btn-outline-primary btn-sm" disabled title="Arrives in Phase 6"><i class="bi bi-download me-1" aria-hidden="true"></i>Export</button>
+    <a class="btn btn-outline-primary btn-sm" href="admin/export/budgets/@Workspace.Version.Id/lines.xlsx"><i class="bi bi-download me-1" aria-hidden="true"></i>Export</a>
 </div>
 
 <div class="cb-grid-wrap">
@@ -74,7 +74,7 @@
                     <td class="cb-num">@line.PriorYearActual.ToString("N2")</td>
                     <td class="cb-num">@line.CurrentYearBudget.ToString("N2")</td>
                     <td class="cb-num">
-                        <AmountCell Value="line.Amount" CanEdit="line.CanEdit" Label="@($"Proposed amount for {line.AccountCode}")"
+                        <AmountCell Value="line.Amount" CanEdit="line.CanEdit" Label="@($"Proposed amount for {line.AccountCode} {line.AccountName}, {line.DepartmentCode ?? line.FundCode}")"
                                     ValueChanged="amount => OnAmountChanged.InvokeAsync((line.Id, amount))" />
                     </td>
                     <td class="cb-num @(line.DollarChange < 0 ? "cb-neg" : line.DollarChange > 0 ? "cb-pos" : "")">@Display.SignedChange(line.DollarChange)</td>

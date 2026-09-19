@@ -24,9 +24,9 @@ else if (version is null)
 else
 {
     <PageHeader Title="Import budget lines" Eyebrow="@($"Budget · Fiscal year {version.Version.Year}")"
-                Crumbs="@([new Crumb("Budget"), new Crumb("Budget versions", "admin/budgets"), new Crumb($"FY{version.Version.Year} {version.Version.Label}", $"admin/budgets/{VersionId}"), new Crumb("Import")])">
+                Crumbs="@([new Crumb("Budget"), new Crumb("Budget versions", "admin/budgets"), new Crumb($"FY{version.Version.Year} {version.Version.Label}", $"admin/budgets/{VersionId}"), new Crumb("Import")])"
+                Tip="Rows match existing lines by fund, department, and account. The import adds and updates lines; it never deletes one.">
         <TitleAddon><StatusPill Budget="version.Version.Status" /></TitleAddon>
-        <Subtitle>Upload a CSV or Excel file of lines for <b>FY@(version.Version.Year) @version.Version.Label</b>. Rows match existing lines by fund, department, and account; the import adds and updates, and never deletes.</Subtitle>
         <Actions>
             <a class="btn btn-outline-primary btn-sm" href="admin/export/budgets/@VersionId/lines.xlsx"><i class="bi bi-file-earmark-spreadsheet me-1" aria-hidden="true"></i>Download current lines as a template</a>
         </Actions>
@@ -64,10 +64,10 @@ else
         {
             <div class="cb-kpis cb-import-kpis">
                 <KpiCard Label="Rows in file" Value="@preview.Rows.Count.ToString()" Detail="@preview.FileName" />
-                <KpiCard Label="Will be added" Value="@preview.AddCount.ToString()" Tone="@(preview.AddCount > 0 ? "ok" : "")" Detail="Lines that do not exist yet" />
+                <KpiCard Label="Will be added" Value="@preview.AddCount.ToString()" Tone="@(preview.AddCount > 0 ? "ok" : "")" Tip="Rows whose fund, department, and account have no line in this version yet." />
                 <KpiCard Label="Will be updated" Value="@preview.UpdateCount.ToString()" Tone="@(preview.UpdateCount > 0 ? "ok" : "")" Detail="@($"{preview.UnchangedCount} already match")" />
                 <KpiCard Label="Errors" Value="@preview.ErrorCount.ToString()" Tone="@(preview.ErrorCount > 0 ? "bad" : "ok")"
-                         Detail="@(preview.ErrorCount > 0 ? "Fix these rows in the file and upload it again" : "Every row can be applied")" />
+                         Detail="@(preview.ErrorCount > 0 ? "Fix the file and upload it again" : null)" />
             </div>
 
             <div class="card">

@@ -426,6 +426,10 @@ h1, h2, h3, h4 {
     flex-wrap: wrap;
 }
 
+.cb-page-header .cb-sub:empty {
+    display: none; /* a page may pass a subtitle that is null for this record (an original budget has no amendment reason) */
+}
+
 .cb-page-header .cb-sub {
     color: var(--cb-muted);
     font-size: 0.8125rem;
@@ -619,11 +623,13 @@ table.cb-grid > thead > tr > th {
 }
 
 @media (min-width: 1200px) {
-    .cb-grid-wrap {
+    /* Only the budget workspace, whose grid is the page. A grid inside a card (overview,
+       reports) keeps scrolling within its card instead of spilling over its neighbour. */
+    .cb-workspace .cb-grid-wrap {
         overflow: visible;
     }
 
-    .cb-grid-wrap table.cb-grid > thead > tr > th {
+    .cb-workspace .cb-grid-wrap table.cb-grid > thead > tr > th {
         position: sticky;
         top: var(--cb-topbar-height);
         z-index: 5;
@@ -1187,6 +1193,83 @@ h1:focus {
 
     body {
         background: #fff;
+    }
+}
+
+/* ==========================================================================
+   Info tips (Phase 8). Explanations live behind an "i" instead of under every heading.
+   ========================================================================== */
+
+.cb-tip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin-left: 6px;
+    color: var(--cb-muted);
+    font-size: 0.875rem;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    vertical-align: middle;
+    cursor: help;
+    border-radius: 50%;
+}
+
+.cb-tip:hover, .cb-tip:focus-visible {
+    color: var(--cb-action);
+    outline: none;
+}
+
+.cb-tip:focus-visible {
+    box-shadow: 0 0 0 3px var(--bs-focus-ring-color);
+}
+
+.cb-tip-text {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: 320px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: var(--cb-navy);
+    color: #fff;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    white-space: normal;
+    text-align: left;
+    box-shadow: 0 4px 14px rgba(15, 42, 68, .25);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .12s;
+    z-index: 30;
+    pointer-events: none;
+}
+
+.cb-tip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border: 5px solid transparent;
+    border-top-color: var(--cb-navy);
+}
+
+.cb-tip:hover .cb-tip-text, .cb-tip:focus-visible .cb-tip-text {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Inside a table header the tip sits after the column name and must not inherit the caps. */
+table.cb-grid > thead > tr > th .cb-tip {
+    margin-left: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cb-tip-text {
+        transition: none;
     }
 }
 
