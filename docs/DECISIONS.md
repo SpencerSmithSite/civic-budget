@@ -625,3 +625,39 @@ setup screens read-only unconditionally (a government without an ERP could not s
 sync log stores the change list as JSON for the drill-down. When an API adapter arrives, it
 implements `IErpChartSource` and the sync page gains a "Sync from VIP" button beside the upload.
 
+## ADR-0026 — Administrator is a superset; temporary passwords are enforced by a claim; department assignment bounds every read
+**Date:** 2026-09-19 · **Status:** Accepted
+
+**Context.** v1.1's users story: an administrator with complete access, users who land in their
+own department and see nothing else, and logons the administrator can create and reset.
+
+**Decision.**
+- **One helper answers "may this user act as the fiscal officer".** `ICurrentUser.IsFiscalAuthority()`
+  (Administrator or Fiscal Officer) replaces every `IsInRole(FinanceDirector)` in the services, and
+  the four fiscal policies (`CanEditBeginningBalances`, `CanAdvanceWorkflow`, `CanPublish`,
+  `CanImport`) include Administrator. `IsDepartmentUser()` is its counterpart. Role *values* in the
+  database are unchanged; display names are the customer's words (Administrator, Fiscal Officer,
+  Department User, Viewer).
+- **Temporary passwords.** `ApplicationUser.MustChangePassword` is set when an administrator
+  creates an account or resets its password. The claims factory turns it into a claim;
+  `MustChangePasswordMiddleware` redirects any authenticated request outside the account pages
+  and static assets to the change-password page; the page clears the flag and refreshes the
+  sign-in so the cookie loses the claim. A claim rather than a database check per request keeps
+  the middleware free of I/O; the security-stamp change on reset ends any open session.
+- **Department assignment bounds every read.** The workspace, reports, exports, and search
+  already filtered by the user's departments; the audit trail now does too
+  (`AuditQueryService` limits a department user to their own lines' history and activity).
+- **User administration is audited** as named events on the government's trail, because Identity
+  entities are not `[Audited]`: created, updated (role and departments), password reset, locked,
+  unlocked, with the acting administrator's name.
+
+**Alternatives.** A separate "SuperAdmin" role (nothing in the customer's world needs it);
+checking `MustChangePassword` in the database on every request (a query per request for a
+rare state); enforcing the change in the Login page only (a bookmarked URL would bypass it).
+
+**Consequences.** Five migrations of user data are not needed: one new column. Interactive
+navigation inside a circuit does not pass through middleware, but a flagged user never reaches
+the circuit: their first request after sign-in is redirected. Tests: policy matrix (Web),
+middleware (Web), permissions and audit scoping (integration), user admin flag and audit
+(integration).
+
