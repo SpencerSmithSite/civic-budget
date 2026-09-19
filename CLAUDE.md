@@ -49,6 +49,7 @@ Actions · AWS CDK (C#) deploy-ready (no account — see ADR-0008).
 - Razor: a variable named `code` inside `@foreach ((..., string code, ...) in ...)` trips the `@code` directive parser; name it something else. A component with a named `RenderFragment` (`<Filters>`) needs the rest wrapped in `<ChildContent>`.
 - CDK: `Amazon.CDK.Assertions` lives inside Amazon.CDK.Lib (the separate package is CDK v1). JSII is one Node process per test host, so `CivicBudget.Infra.Tests` disables xUnit parallelization. `Tags.SetTag` on a stack does not write resource tags; use `Tags.Of(this).Add`. `cdk synth` needs the app built first (`--no-build` in cdk.json).
 - Docker: the build context must include `.editorconfig` (migration analyzer exemptions) or publish fails on CA1861. `infra/`, `tests/`, `docs/`, `.env` are ignored.
+- A per-page `@rendermode` leaves the layout static (no toasts, no sidebar events). Global mode on `Routes` with static opt-outs is the pattern (ADR-0002 amendment).
 - Kestrel logs `SslStream ... Bad address` on HTTP/2 when Safari drops an HTTPS connection; harmless macOS noise, use http://localhost:5000 if it bothers you.
 
 ## Code conventions
@@ -63,7 +64,7 @@ Actions · AWS CDK (C#) deploy-ready (no account — see ADR-0008).
   per unit of work (`await using var db = await factory.CreateDbContextAsync(ct);`).
 - Never call `IgnoreQueryFilters()` in application code (tests may).
 - Identity tables are the one thing outside the tenant filter; `UserAdminService` scopes by government explicitly (ADR-0015).
-- Admin pages: `@rendermode InteractiveServer` + `[Authorize(Policy = Policies.X)]`; Account and Portal pages are static SSR (`[ExcludeFromInteractiveRouting]` in the folder `_Imports.razor`).
+- Render modes are set once in `App.razor` (`Routes`/`HeadOutlet` get Interactive Server unless the routed page has `[ExcludeFromInteractiveRouting]`). Never put `@rendermode` on a page. Admin pages: `[Authorize(Policy = Policies.X)]`; Account, Portal, and Error pages are static SSR via the attribute (folder `_Imports.razor`).
 - Import/reports: `ImportAnalyzer` and `ReportBuilder` are pure; keep rules there and tests in Application.Tests. Exports go through `ExportTable` + `ISpreadsheetExporter`; add endpoints to `AdminExportEndpoints` behind a policy.
 - Portal pages call `ISnapshotQueryService` only; shared pieces live in `Components/Portal/Common` (`Breakdown`, `PortalKpi`, `PortalCrumbs`, `PortalNotFound`, `MoneyShort`). Styles are the `.pt-*` section of `app.css`.
 - UI: use `PageHeader` (sets breadcrumbs), `StatusPill`, `KpiCard`, `ConfirmDialog`, `RowMenu`, `EmptyState`, `SkeletonRows`, `ToastService`; grids use `table.cb-grid` inside `.cb-grid-wrap` (QuickGrid with `Theme="bootstrap"`). Tokens live in `wwwroot/app.css`; see `docs/design/DESIGN-BRIEF.md`. Never `window.confirm`.

@@ -46,6 +46,19 @@ hosting.
 charts need a JS-free fallback (which WCAG wants anyway). Output caching
 becomes possible.
 
+**Amended 2026-09-19 (how the modes are applied).** The first implementation
+put `@rendermode InteractiveServer` on each admin page. That makes the page an
+interactive island while `RouteView` renders the *layout* statically, so the
+sidebar, top bar, and `ToastHost` in `AdminLayout` never had a circuit:
+toasts never showed and the menu could not react. The app now applies the
+mode once, in `App.razor`, to `Routes` and `HeadOutlet`, computed per request
+from `HttpContext.AcceptsInteractiveRouting()`: null (plain static SSR, no
+markers, no circuit) for pages marked `[ExcludeFromInteractiveRouting]`
+(portal, account, error), Interactive Server for everything else, layout
+included. Per-page `@rendermode` attributes are gone (a nested one is an
+error). Nothing about the portal's static rendering changed; the static
+pages' HTML carries no Blazor markers, which a test could assert.
+
 ---
 
 ## ADR-0003 — `IDbContextFactory` instead of scoped `DbContext` in Blazor Server

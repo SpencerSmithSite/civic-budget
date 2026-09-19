@@ -41,6 +41,7 @@
 
     --cb-radius: 6px;
     --cb-sidebar-width: 240px;
+    --cb-sidebar-rail: 64px;
     --cb-topbar-height: 48px;
 
     /* Bootstrap hooks: the theme changes Bootstrap's defaults once, here, instead of per component. */
@@ -287,6 +288,60 @@ h1, h2, h3, h4 {
     border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+/* Collapse control at the foot of the sidebar; hidden under 992px where the sidebar is a drawer. */
+.cb-collapse {
+    margin: 10px 12px 0;
+    height: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 6px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cb-collapse:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+/* The icon rail: the grid column narrows, labels and headings go, icons stay with their titles.
+   Every rule here is a "hide text" rule so the markup and the accessible names do not change. */
+.cb-shell.collapsed {
+    grid-template-columns: var(--cb-sidebar-rail) 1fr;
+}
+
+.cb-shell.collapsed .cb-brand {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.cb-shell.collapsed .cb-brand > span:not(.cb-seal),
+.cb-shell.collapsed .cb-navgroup,
+.cb-shell.collapsed .cb-sidebar-foot,
+.cb-shell.collapsed .cb-nav .nav-link > :not(.bi) {
+    display: none;
+}
+
+.cb-shell.collapsed .cb-nav .nav-link {
+    justify-content: center;
+    padding: 0;
+    font-size: 0;      /* the text node is the label; it still names the link for assistive tech */
+}
+
+.cb-shell.collapsed .cb-nav .bi {
+    font-size: 1.125rem;
+    width: auto;
+}
+
+.cb-shell.collapsed .cb-navgroup + .cb-nav {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 6px;
+    margin-top: 6px;
+}
+
 .cb-topbar {
     height: var(--cb-topbar-height);
     background: var(--cb-surface);
@@ -362,7 +417,7 @@ h1, h2, h3, h4 {
 }
 
 .cb-main {
-    padding: 20px 24px 40px;
+    padding: 28px 32px 56px;
     min-width: 0;
 }
 
@@ -411,13 +466,13 @@ h1, h2, h3, h4 {
 .cb-page-header {
     display: flex;
     align-items: flex-start;
-    gap: 16px;
+    gap: 20px;
     flex-wrap: wrap;
-    margin-bottom: 14px;
+    margin-bottom: 24px;
 }
 
 .cb-page-header h1 {
-    font-size: 1.25rem;
+    font-size: 1.375rem;
     font-weight: 600;
     margin: 2px 0 0;
     display: flex;
@@ -432,14 +487,15 @@ h1, h2, h3, h4 {
 
 .cb-page-header .cb-sub {
     color: var(--cb-muted);
-    font-size: 0.8125rem;
-    margin-top: 2px;
+    font-size: 0.875rem;
+    margin-top: 4px;
+    max-width: 72ch;
 }
 
 .cb-page-actions {
     margin-left: auto;
     display: flex;
-    gap: 8px;
+    gap: 10px;
     align-items: center;
     flex-wrap: wrap;
 }
@@ -484,8 +540,8 @@ h1, h2, h3, h4 {
 .cb-stepper {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 4px;
-    margin: 0 0 16px;
+    gap: 6px;
+    margin: 0 0 24px;
     padding: 0;
     list-style: none;
 }
@@ -532,12 +588,12 @@ h1, h2, h3, h4 {
 .cb-kpis {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 14px;
-    margin-bottom: 18px;
+    gap: 16px;
+    margin-bottom: 28px;
 }
 
 .cb-kpi {
-    padding: 14px 16px;
+    padding: 16px 18px;
     border-top: 3px solid var(--cb-navy);
 }
 
@@ -568,8 +624,8 @@ h1, h2, h3, h4 {
 .cb-toolbar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    gap: 10px;
+    padding: 12px 16px;
     border-bottom: 1px solid var(--cb-border);
     background: var(--cb-surface);
     border-radius: 8px 8px 0 0;
@@ -609,7 +665,7 @@ table.cb-grid > thead > tr > th {
     letter-spacing: 0.05em;
     color: var(--cb-muted);
     font-weight: 600;
-    padding: 8px 12px;
+    padding: 10px 12px;
     border-bottom: 1px solid var(--cb-border);
     background: #fbfcfd;
     white-space: nowrap;
@@ -641,7 +697,7 @@ table.cb-grid > thead > tr > th {
 table.cb-grid > tbody > tr > td,
 table.cb-grid > tfoot > tr > td {
     padding: 0 12px;
-    height: 34px;
+    height: 38px;
     border-bottom: 1px solid var(--cb-border);
     vertical-align: middle;
     white-space: nowrap;
@@ -654,7 +710,7 @@ table.cb-grid > tbody > tr:hover > td {
 table.cb-grid > tbody > tr.cb-group > td {
     background: var(--cb-subtotal);
     font-weight: 600;
-    height: 30px;
+    height: 34px;
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -814,7 +870,7 @@ table.cb-grid th.col-justify-end .col-header-content {
 .cb-workspace {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 300px;
-    gap: 16px;
+    gap: 24px;
     align-items: start;
 }
 
@@ -845,9 +901,9 @@ table.cb-grid th.col-justify-end .col-header-content {
 }
 
 .cb-fund {
-    padding: 12px 14px;
+    padding: 14px 16px;
     border-left: 4px solid var(--cb-success);
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }
 
 .cb-fund.warn { border-left-color: var(--cb-warning); }
@@ -1622,8 +1678,8 @@ table.cb-grid.cb-report-table > tfoot > tr > th {
 }
 
 .pt-main {
-    padding-top: 28px;
-    padding-bottom: 40px;
+    padding-top: 36px;
+    padding-bottom: 56px;
     flex: 1;
 }
 
@@ -1698,8 +1754,8 @@ table.cb-grid.cb-report-table > tfoot > tr > th {
 .pt-kpis {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 16px;
-    margin-bottom: 28px;
+    gap: 20px;
+    margin-bottom: 40px;
 }
 
 .pt-kpi {
@@ -1731,15 +1787,15 @@ table.cb-grid.cb-report-table > tfoot > tr > th {
 }
 
 .pt-section {
-    margin: 28px 0;
+    margin: 44px 0;
 }
 
 .pt-section-head {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     flex-wrap: wrap;
-    margin-bottom: 4px;
+    margin-bottom: 10px;
 }
 
 .pt-q {
@@ -1769,11 +1825,11 @@ table.cb-grid.cb-report-table > tfoot > tr > th {
 
 .pt-bars {
     display: grid;
-    grid-template-columns: minmax(160px, 240px) 1fr minmax(90px, auto);
-    gap: 8px 14px;
+    grid-template-columns: minmax(180px, 260px) 1fr minmax(90px, auto);
+    gap: 14px 18px;
     align-items: center;
-    max-width: 800px;
-    margin: 10px 0 6px;
+    max-width: 840px;
+    margin: 14px 0 10px;
 }
 
 .pt-bar-row {
@@ -1816,7 +1872,7 @@ table.cb-grid.cb-report-table > tfoot > tr > th {
 }
 
 .pt-table {
-    margin-top: 8px;
+    margin-top: 14px;
 }
 
 .pt-table summary {
@@ -1827,8 +1883,11 @@ table.cb-grid.cb-report-table > tfoot > tr > th {
 }
 
 .pt-table .cb-grid-wrap {
-    margin-top: 8px;
-    max-width: 800px;
+    margin-top: 12px;
+    max-width: 840px;
+    border: 1px solid var(--cb-border);
+    border-radius: 8px;
+    overflow: hidden;
 }
 
 table.pt-grid {

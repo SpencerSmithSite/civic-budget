@@ -1,5 +1,4 @@
 @page "/admin/reports/{VersionId:guid}/department-detail"
-@rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.CanViewBudget)]
 @using CivicBudget.Application.Reports
 @inject IReportService Reports

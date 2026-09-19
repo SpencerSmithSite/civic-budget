@@ -1,5 +1,4 @@
 @page "/admin/reports/{VersionId:guid}/fund-summary"
-@rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.CanViewBudget)]
 @using CivicBudget.Application.Reports
 @inject IReportService Reports

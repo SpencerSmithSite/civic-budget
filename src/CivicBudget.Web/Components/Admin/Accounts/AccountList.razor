@@ -1,5 +1,4 @@
 @page "/admin/accounts"
-@rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.CanMaintainSetup)]
 @inject IAccountService AccountService
 @inject ToastService Toasts

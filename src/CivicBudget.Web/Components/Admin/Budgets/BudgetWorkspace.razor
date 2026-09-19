@@ -1,5 +1,4 @@
 @page "/admin/budgets/{VersionId:guid}"
-@rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.CanViewBudget)]
 @using CivicBudget.Application.Publishing
 @inject IBudgetEntryService BudgetEntry

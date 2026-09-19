@@ -1,5 +1,4 @@
 @page "/admin/settings"
-@rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.CanManageUsers)]
 @inject IGovernmentSettingsService SettingsService
 @inject ToastService Toasts
