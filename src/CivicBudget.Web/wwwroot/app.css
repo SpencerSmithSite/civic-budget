@@ -199,12 +199,20 @@ h1, h2, h3, h4 {
     overflow-y: auto;
 }
 
+.cb-sidebar-head {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    gap: 6px;
+}
+
 .cb-brand {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 4px 16px 14px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    min-width: 0;
+    flex: 1;
     color: inherit;
     text-decoration: none;
 }
@@ -288,10 +296,12 @@ h1, h2, h3, h4 {
     border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Collapse control at the foot of the sidebar; hidden under 992px where the sidebar is a drawer. */
+/* Collapse control at the top of the sidebar, beside the brand, where people look for it. Hidden
+   under 992px, where the sidebar is a drawer with its own hamburger. */
 .cb-collapse {
-    margin: 10px 12px 0;
-    height: 32px;
+    flex: none;
+    width: 28px;
+    height: 28px;
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 6px;
     background: transparent;
@@ -299,6 +309,7 @@ h1, h2, h3, h4 {
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 0.75rem;
 }
 
 .cb-collapse:hover {
@@ -312,10 +323,15 @@ h1, h2, h3, h4 {
     grid-template-columns: var(--cb-sidebar-rail) 1fr;
 }
 
+.cb-shell.collapsed .cb-sidebar-head {
+    flex-direction: column;
+    padding: 4px 0 10px;
+    gap: 8px;
+}
+
 .cb-shell.collapsed .cb-brand {
     justify-content: center;
-    padding-left: 0;
-    padding-right: 0;
+    flex: none;
 }
 
 .cb-shell.collapsed .cb-brand > span:not(.cb-seal),
@@ -446,6 +462,10 @@ h1, h2, h3, h4 {
 
     .cb-menu-toggle {
         display: inline-flex;
+    }
+
+    .cb-collapse {
+        display: none; /* the drawer has its own hamburger */
     }
 
     .cb-main {

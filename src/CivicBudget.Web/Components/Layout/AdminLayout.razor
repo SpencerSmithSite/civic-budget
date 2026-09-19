@@ -13,10 +13,16 @@
    an icon rail (the choice is kept in a cookie so the prerender already knows it). *@
 <div class="cb-shell @(collapsed ? "collapsed" : "")">
     <aside class="cb-sidebar @(menuOpen ? "open" : "")" id="admin-sidebar">
-        <a class="cb-brand" href="admin" aria-label="CivicBudget overview">
-            <span class="cb-seal" aria-hidden="true">CB</span>
-            <span><b>CivicBudget</b><small>@(governmentName ?? "")</small></span>
-        </a>
+        <div class="cb-sidebar-head">
+            <a class="cb-brand" href="admin" aria-label="CivicBudget overview">
+                <span class="cb-seal" aria-hidden="true">CB</span>
+                <span><b>CivicBudget</b><small>@(governmentName ?? "")</small></span>
+            </a>
+            <button type="button" class="cb-collapse" @onclick="ToggleCollapsedAsync" aria-expanded="@(!collapsed)" aria-controls="admin-sidebar"
+                    title="@(collapsed ? "Expand menu" : "Collapse menu")" aria-label="@(collapsed ? "Expand menu" : "Collapse menu")">
+                <i class="bi @(collapsed ? "bi-chevron-double-right" : "bi-chevron-double-left")" aria-hidden="true"></i>
+            </button>
+        </div>
 
         <AuthorizeView Policy="@Policies.CanViewBudget">
             <div class="cb-navgroup">Budget</div>
@@ -48,10 +54,6 @@
             <a class="nav-link" href="transparency/@publicSlug" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>Open portal</a>
         </nav>
         <div class="cb-sidebar-foot">Ohio fund accounting · @fiscalYearNote</div>
-        <button type="button" class="cb-collapse" @onclick="ToggleCollapsedAsync" aria-expanded="@(!collapsed)" aria-controls="admin-sidebar"
-                title="@(collapsed ? "Expand menu" : "Collapse menu")" aria-label="@(collapsed ? "Expand menu" : "Collapse menu")">
-            <i class="bi @(collapsed ? "bi-chevron-double-right" : "bi-chevron-double-left")" aria-hidden="true"></i>
-        </button>
     </aside>
 
     @if (menuOpen)
