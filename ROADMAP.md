@@ -149,7 +149,7 @@ UAN village or `101-110-5100` for a county), and permissions follow the departme
 - [x] `Government.ChartSource` Local/Erp: setup services refuse writes under Erp (`ChartOwnership`); Funds/Departments/Accounts show a "Managed by the ERP · last synced" banner and lose New/Edit; Administrator can switch back
 - [x] Chart sync page under Setup: upload, preview grid, KPIs, apply, sync history with a change drawer; ADR-0025; walkthrough 11
 - [x] Tests: 10 unit (differ, file source incl. XLSX), 4 integration (preview, commit with audit and log, guards, source switch), 1 bUnit (read-only list)
-- [ ] Spencer approves Phase 9b
+- [x] Spencer approves Phase 9b (2026-09-19)
 
 ## Phase 9c — Users, logons, and permissions  `phase-9c-users-permissions`
 - [ ] Admin is a superset: may enter lines, set balances, run the workflow, publish, import, and manage users (today Admin cannot touch budget lines)
