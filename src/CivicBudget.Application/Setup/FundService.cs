@@ -1,4 +1,5 @@
 using CivicBudget.Application.Common;
+using CivicBudget.Application.Erp;
 using CivicBudget.Application.Persistence;
 using CivicBudget.Application.Tenancy;
 using CivicBudget.Domain.Funds;
@@ -66,6 +67,10 @@ public sealed class FundService(
         }
 
         await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
+        if (await ChartOwnership.RefuseIfErpManagedAsync(db, tenant.GovernmentId, ct) is { } managed)
+        {
+            return Result.Failure<Guid>(managed.Errors);
+        }
 
         string code = request.Code.Trim();
         bool codeTaken = await db.Funds.AnyAsync(f => f.Code == code && f.Id != request.Id, ct);
@@ -94,6 +99,10 @@ public sealed class FundService(
     public async Task<Result> SetActiveAsync(Guid id, bool isActive, CancellationToken ct = default)
     {
         await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
+        if (await ChartOwnership.RefuseIfErpManagedAsync(db, tenant.GovernmentId, ct) is { } managed)
+        {
+            return managed;
+        }
         Fund? fund = await db.Funds.FirstOrDefaultAsync(f => f.Id == id, ct);
         if (fund is null)
         {

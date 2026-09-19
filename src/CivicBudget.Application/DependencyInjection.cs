@@ -1,6 +1,7 @@
 using System.Reflection;
 using CivicBudget.Application.Auditing;
 using CivicBudget.Application.Budgets;
+using CivicBudget.Application.Erp;
 using CivicBudget.Application.Import;
 using CivicBudget.Application.Publishing;
 using CivicBudget.Application.Reports;
@@ -26,6 +27,8 @@ public static class DependencyInjection
         services.AddScoped<IPublishingService, PublishingService>();
         services.AddScoped<IBudgetImportService, BudgetImportService>();
         services.AddScoped<IReportService, ReportService>();
+        services.AddScoped<IErpChartFileSource, ErpChartFileSource>();
+        services.AddScoped<IChartSyncService, ChartSyncService>();
 
         // Validators are found by convention (any class implementing IValidator<T>) so adding one
         // is a single file, not a file plus a registration line.
