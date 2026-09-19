@@ -39,7 +39,7 @@ public static class ReportBuilder
                 g.Key.Item1, g.Key.Item2, g.Key.Item3,
                 g.OrderBy(l => l.FundCode, StringComparer.Ordinal).ThenBy(l => l.AccountType).ThenBy(l => l.AccountCode, StringComparer.Ordinal)
                     .Select(l => new DetailLineDto(
-                        l.FundCode, l.FundName, l.AccountCode, l.AccountName, l.AccountType, l.Category,
+                        l.FundCode, l.FundName, l.AccountCode, l.AccountName, l.AccountNumber, l.AccountType, l.Category,
                         l.PriorYearActual, l.CurrentYearBudget, l.Amount, l.Justification))
                     .ToList()))
             .ToList();

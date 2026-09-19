@@ -190,11 +190,16 @@ public sealed class SnapshotQueryService(IDbContextFactory<PublicPortalDbContext
                 Sum(dept, AccountType.Expenditure, l => l.Amount)));
         }
 
-        foreach (PublishedBudgetSnapshotLine line in data.Lines.Where(l => Matches(l.AccountCode, q) || Matches(l.AccountName, q)).Take(25))
+        // "1000-110" or "1000110" finds the line by its full number; "5120" or "overtime" by object code or name.
+        string compact = q.Replace("-", "", StringComparison.Ordinal).Replace(".", "", StringComparison.Ordinal).Replace(" ", "", StringComparison.Ordinal);
+        foreach (PublishedBudgetSnapshotLine line in data.Lines
+                     .Where(l => Matches(l.AccountCode, q) || Matches(l.AccountName, q)
+                         || (compact.Length >= 4 && Matches(l.AccountNumber.Replace("-", "", StringComparison.Ordinal).Replace(".", "", StringComparison.Ordinal), compact)))
+                     .Take(25))
         {
             string where = line.DepartmentCode is null ? $"{line.FundCode} {line.FundName}" : $"{line.DepartmentName}, {line.FundCode} {line.FundName}";
             string url = line.DepartmentCode is null ? $"{root}/funds/{line.FundCode}" : $"{root}/funds/{line.FundCode}/departments/{line.DepartmentCode}";
-            hits.Add(new PortalSearchHitDto("Account", $"{line.AccountCode} {line.AccountName} ({where})", url, line.Amount));
+            hits.Add(new PortalSearchHitDto("Account", $"{line.AccountNumber} {line.AccountName} ({where})", url, line.Amount));
         }
 
         return hits;
@@ -246,6 +251,6 @@ public sealed class SnapshotQueryService(IDbContextFactory<PublicPortalDbContext
     private static bool Matches(string value, string query) => value.Contains(query, StringComparison.OrdinalIgnoreCase);
 
     private static PortalLineDto ToLine(PublishedBudgetSnapshotLine l) => new(
-        l.FundCode, l.FundName, l.DepartmentCode, l.DepartmentName, l.AccountCode, l.AccountName,
+        l.FundCode, l.FundName, l.DepartmentCode, l.DepartmentName, l.AccountCode, l.AccountName, l.AccountNumber,
         l.AccountType, l.Category, l.Amount, l.PriorYearActual, l.CurrentYearBudget);
 }

@@ -2,6 +2,8 @@ using System.Text.RegularExpressions;
 using CivicBudget.Application.Common;
 using CivicBudget.Application.Persistence;
 using CivicBudget.Application.Tenancy;
+using CivicBudget.Domain.Accounts;
+using CivicBudget.Domain.Common;
 using CivicBudget.Domain.Governments;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -16,13 +18,20 @@ public sealed record GovernmentSettingsDto(
     int FiscalYearStartMonth,
     string PublicSlug,
     AppropriationLimitMode AppropriationLimitMode,
-    string? Description);
+    string? Description,
+    AccountNumberFormat AccountNumberFormat);
 
 public sealed record UpdateGovernmentSettingsRequest(
     string Name,
     string PublicSlug,
     AppropriationLimitMode AppropriationLimitMode,
-    string? Description);
+    string? Description,
+    /// <summary>How account numbers are written: 4-3-4 with "-" for a UAN village, 3-3-4 for many county charts.</summary>
+    int FundWidth,
+    int DepartmentWidth,
+    int ObjectWidth,
+    string Separator,
+    string DepartmentLabel);
 
 public sealed partial class UpdateGovernmentSettingsRequestValidator : AbstractValidator<UpdateGovernmentSettingsRequest>
 {
@@ -31,6 +40,11 @@ public sealed partial class UpdateGovernmentSettingsRequestValidator : AbstractV
         RuleFor(r => r.Name).NotEmpty().MaximumLength(Government.NameMaxLength);
         RuleFor(r => r.PublicSlug).NotEmpty().MaximumLength(Government.SlugMaxLength)
             .Matches(SlugPattern()).WithMessage("Use lowercase letters, digits, and single hyphens, e.g. maple-ridge-oh.");
+        RuleFor(r => r.FundWidth).InclusiveBetween(AccountNumberFormat.MinWidth, AccountNumberFormat.MaxWidth);
+        RuleFor(r => r.DepartmentWidth).InclusiveBetween(AccountNumberFormat.MinWidth, AccountNumberFormat.MaxWidth);
+        RuleFor(r => r.ObjectWidth).InclusiveBetween(AccountNumberFormat.MinWidth, AccountNumberFormat.MaxWidth);
+        RuleFor(r => r.Separator).NotEmpty().Length(1).WithMessage("One character, usually - or .");
+        RuleFor(r => r.DepartmentLabel).NotEmpty().MaximumLength(20);
         RuleFor(r => r.AppropriationLimitMode).IsInEnum();
         RuleFor(r => r.Description).MaximumLength(4000);
     }
@@ -60,7 +74,7 @@ public sealed class GovernmentSettingsService(
         Government government = await LoadAsync(db, ct);
         return new GovernmentSettingsDto(
             government.Id, government.Name, government.Type, government.State, government.FiscalYearStartMonth,
-            government.PublicSlug, government.AppropriationLimitMode, government.Description);
+            government.PublicSlug, government.AppropriationLimitMode, government.Description, government.AccountNumberFormat);
     }
 
     public async Task<Result> UpdateAsync(UpdateGovernmentSettingsRequest request, CancellationToken ct = default)
@@ -83,6 +97,15 @@ public sealed class GovernmentSettingsService(
         government.SetPublicSlug(request.PublicSlug);
         government.SetAppropriationLimitMode(request.AppropriationLimitMode);
         government.SetDescription(request.Description);
+        try
+        {
+            government.SetAccountNumberFormat(new AccountNumberFormat(request.FundWidth, request.DepartmentWidth, request.ObjectWidth, request.Separator, request.DepartmentLabel));
+        }
+        catch (DomainException ex)
+        {
+            return Result.Failure(nameof(request.Separator), ex.Message);
+        }
+
         await db.SaveChangesAsync(ct);
         return Result.Success();
     }

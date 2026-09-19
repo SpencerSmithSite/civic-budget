@@ -81,6 +81,7 @@ public sealed record PortalLineDto(
     string? DepartmentName,
     string AccountCode,
     string AccountName,
+    string AccountNumber,
     AccountType AccountType,
     ReportingCategory Category,
     decimal Amount,

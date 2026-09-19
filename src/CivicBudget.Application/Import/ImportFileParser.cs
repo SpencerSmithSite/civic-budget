@@ -1,5 +1,6 @@
 using CivicBudget.Application.Common;
 using CivicBudget.Application.Export;
+using CivicBudget.Domain.Accounts;
 
 namespace CivicBudget.Application.Import;
 
@@ -10,6 +11,7 @@ namespace CivicBudget.Application.Import;
 /// </summary>
 public static class ImportFileParser
 {
+    public const string AccountNumberHeader = "Account Number";
     public const string FundHeader = "Fund";
     public const string DepartmentHeader = "Department";
     public const string AccountHeader = "Account";
@@ -18,17 +20,23 @@ public static class ImportFileParser
     public const string CurrentYearBudgetHeader = "Current Year Budget";
     public const string JustificationHeader = "Justification";
 
-    /// <summary>The header row the workspace export writes and the import expects, in this order.</summary>
-    public static readonly IReadOnlyList<string> Headers =
-        [FundHeader, DepartmentHeader, AccountHeader, AmountHeader, PriorYearActualHeader, CurrentYearBudgetHeader, JustificationHeader];
+    public const string AccountNameHeader = "Account Name";
 
-    public static Result<IReadOnlyList<ImportRowInput>> Parse(TabularFile file)
+    /// <summary>
+    /// The header row the workspace export writes. The import needs either Account Number or the
+    /// three code columns, plus Amount; Account Name is written for the reader and ignored on the way in.
+    /// </summary>
+    public static readonly IReadOnlyList<string> Headers =
+        [AccountNumberHeader, FundHeader, DepartmentHeader, AccountHeader, AccountNameHeader, AmountHeader, PriorYearActualHeader, CurrentYearBudgetHeader, JustificationHeader];
+
+    public static Result<IReadOnlyList<ImportRowInput>> Parse(TabularFile file, AccountNumberFormat format)
     {
         if (file.Headers.Count == 0)
         {
             return Result.Failure<IReadOnlyList<ImportRowInput>>("The file is empty.");
         }
 
+        int number = file.IndexOf(AccountNumberHeader);
         int fund = file.IndexOf(FundHeader);
         int department = file.IndexOf(DepartmentHeader);
         int account = file.IndexOf(AccountHeader);
@@ -37,20 +45,36 @@ public static class ImportFileParser
         int current = file.IndexOf(CurrentYearBudgetHeader);
         int justification = file.IndexOf(JustificationHeader);
 
-        List<string> missing = new[] { (FundHeader, fund), (AccountHeader, account), (AmountHeader, amount) }
-            .Where(h => h.Item2 < 0).Select(h => h.Item1).ToList();
-        if (missing.Count > 0)
+        bool hasCodes = fund >= 0 && account >= 0;
+        if (amount < 0 || (number < 0 && !hasCodes))
         {
             return Result.Failure<IReadOnlyList<ImportRowInput>>(
-                $"The file needs columns named {string.Join(", ", missing)}. Found: {string.Join(", ", file.Headers)}.");
+                $"The file needs an Amount column and either an {AccountNumberHeader} column or {FundHeader}, {DepartmentHeader}, and {AccountHeader} columns. Found: {string.Join(", ", file.Headers)}.");
         }
 
         // Row numbers are the spreadsheet's (header is row 1), so an error message points at the cell the clerk sees.
+        // A full number in the row wins over the code columns; a number that does not parse is left as the
+        // raw text in the fund column so the analyser can report it against the row.
         List<ImportRowInput> rows = file.Rows
-            .Select((cells, i) => new ImportRowInput(
-                i + 2,
-                Cell(cells, fund), Cell(cells, department), Cell(cells, account),
-                Cell(cells, amount), Cell(cells, prior), Cell(cells, current), Cell(cells, justification)))
+            .Select((cells, i) =>
+            {
+                string? fundCode = Cell(cells, fund), departmentCode = Cell(cells, department), objectCode = Cell(cells, account);
+                string? full = Cell(cells, number);
+                if (full is not null)
+                {
+                    if (AccountNumber.TryParse(format, full, out string f, out string? d, out string o))
+                    {
+                        (fundCode, departmentCode, objectCode) = (f, d, o);
+                    }
+                    else
+                    {
+                        (fundCode, departmentCode, objectCode) = (full, null, null);
+                    }
+                }
+
+                return new ImportRowInput(i + 2, fundCode, departmentCode, objectCode,
+                    Cell(cells, amount), Cell(cells, prior), Cell(cells, current), Cell(cells, justification));
+            })
             .Where(r => !string.IsNullOrWhiteSpace(r.FundCode) || !string.IsNullOrWhiteSpace(r.AccountCode) || !string.IsNullOrWhiteSpace(r.Amount))
             .ToList();
 

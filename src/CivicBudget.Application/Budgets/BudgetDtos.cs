@@ -30,6 +30,8 @@ public sealed record BudgetLineDto(
     Guid AccountId,
     string AccountCode,
     string AccountName,
+    /// <summary>The full number in the government's format, "1000-725-121"; what staff type and search by.</summary>
+    string AccountNumber,
     AccountType AccountType,
     ReportingCategory Category,
     decimal Amount,
@@ -55,6 +57,8 @@ public sealed record FundBalanceDto(
 /// <summary>Everything the budget entry screens need for one version, in one round trip.</summary>
 public sealed record BudgetWorkspaceDto(
     BudgetVersionSummaryDto Version,
+    /// <summary>How this government writes account numbers; screens use its label for the middle segment.</summary>
+    AccountNumberFormat NumberFormat,
     bool IsEditable,
     bool CanAddLines,
     IReadOnlyList<BudgetLineDto> Lines,
