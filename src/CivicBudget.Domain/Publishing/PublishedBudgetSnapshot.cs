@@ -108,7 +108,7 @@ public sealed class PublishedBudgetSnapshot : Entity, ITenantOwned
 
         foreach (BudgetLine line in version.Lines)
         {
-            snapshot._lines.Add(new PublishedBudgetSnapshotLine(snapshot.Id, government.Id, line));
+            snapshot._lines.Add(new PublishedBudgetSnapshotLine(snapshot.Id, government.Id, government.AccountNumberFormat, line));
         }
 
         // One fund row per fund that appears in the budget or has a beginning balance, so the portal
@@ -162,6 +162,10 @@ public sealed class PublishedBudgetSnapshotLine : Entity, ITenantOwned
 
     public string AccountCode { get; private set; }
     public string AccountName { get; private set; }
+
+    /// <summary>The full number as the government wrote it when this was published ("1000-725-121"); frozen with the rest.</summary>
+    public string AccountNumber { get; private set; }
+
     public AccountType AccountType { get; private set; }
     public ReportingCategory Category { get; private set; }
 
@@ -169,10 +173,11 @@ public sealed class PublishedBudgetSnapshotLine : Entity, ITenantOwned
     public decimal PriorYearActual { get; private set; }
     public decimal CurrentYearBudget { get; private set; }
 
-    internal PublishedBudgetSnapshotLine(Guid snapshotId, Guid governmentId, BudgetLine line)
+    internal PublishedBudgetSnapshotLine(Guid snapshotId, Guid governmentId, AccountNumberFormat format, BudgetLine line)
     {
         SnapshotId = snapshotId;
         GovernmentId = governmentId;
+        AccountNumber = Accounts.AccountNumber.Compose(format, line.Fund.Code, line.Department?.Code, line.Account.Code);
         FundCode = line.Fund.Code;
         FundName = line.Fund.Name;
         FundCategory = line.Fund.Category;
@@ -194,6 +199,7 @@ public sealed class PublishedBudgetSnapshotLine : Entity, ITenantOwned
         FundName = null!;
         AccountCode = null!;
         AccountName = null!;
+        AccountNumber = null!;
     }
 }
 

@@ -13,8 +13,14 @@ internal static class PineHollowSeed
 {
     public const string Slug = "pine-hollow-twp-oh";
 
-    public static Government Government() =>
-        new("Pine Hollow Township", GovernmentType.Township, "OH", fiscalYearStartMonth: 7, Slug, AppropriationLimitMode.Warn);
+    public static Government Government()
+    {
+        var government = new Government("Pine Hollow Township", GovernmentType.Township, "OH", fiscalYearStartMonth: 7, Slug, AppropriationLimitMode.Warn);
+        // A different chart layout than Maple Ridge, to show the format is per government: dotted
+        // segments and "Department" for the middle one, the way many county ERPs write "1000.710.5110".
+        government.SetAccountNumberFormat(new AccountNumberFormat(4, 3, 4, ".", "Department"));
+        return government;
+    }
 
     public static IReadOnlyList<Fund> Funds(Guid governmentId) =>
     [
@@ -24,8 +30,8 @@ internal static class PineHollowSeed
 
     public static IReadOnlyList<Department> Departments(Guid governmentId) =>
     [
-        new(governmentId, "TR", "Trustees", "The three elected township trustees and the fiscal officer."),
-        new(governmentId, "RD", "Road", "Maintains 22 miles of township roads."),
+        new(governmentId, "710", "Trustees", "The three elected township trustees and the fiscal officer."),
+        new(governmentId, "610", "Road", "Maintains 22 miles of township roads."),
     ];
 
     public static IReadOnlyList<Account> Accounts(Guid governmentId) =>
@@ -44,16 +50,16 @@ internal static class PineHollowSeed
     [
         new("1000", null, "4110", 168_000m),
         new("1000", null, "4510", 2_200m),
-        new("1000", "TR", "5110", 54_000m),
-        new("1000", "TR", "5210", 7_560m),
-        new("1000", "TR", "5310", 31_000m),
-        new("1000", "TR", "5410", 4_000m),
+        new("1000", "710", "5110", 54_000m),
+        new("1000", "710", "5210", 7_560m),
+        new("1000", "710", "5310", 31_000m),
+        new("1000", "710", "5410", 4_000m),
 
         new("2031", null, "4220", 96_000m),
-        new("2031", "RD", "5110", 38_000m),
-        new("2031", "RD", "5210", 5_320m),
-        new("2031", "RD", "5410", 22_000m),
-        new("2031", "RD", "5520", 30_000m),
+        new("2031", "610", "5110", 38_000m),
+        new("2031", "610", "5210", 5_320m),
+        new("2031", "610", "5410", 22_000m),
+        new("2031", "610", "5520", 30_000m),
     ];
 
     public static IReadOnlyDictionary<(string FundCode, int Year), decimal> BeginningBalances { get; } =

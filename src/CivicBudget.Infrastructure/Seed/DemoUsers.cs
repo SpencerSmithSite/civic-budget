@@ -11,8 +11,8 @@ internal static class DemoUsers
     [
         new("admin@mapleridge.example", "Alex Rivera (Admin)", Roles.Admin),
         new("finance@mapleridge.example", "Dana Whitfield (Fiscal Officer)", Roles.FinanceDirector),
-        new("police@mapleridge.example", "Chief Morgan Hale", Roles.DepartmentHead, "PD"),
-        new("streets@mapleridge.example", "Sam Okafor (Service Director)", Roles.DepartmentHead, "ST", "PR"),
+        new("police@mapleridge.example", "Chief Morgan Hale", Roles.DepartmentHead, "110"),
+        new("streets@mapleridge.example", "Sam Okafor (Service Director)", Roles.DepartmentHead, "620", "310"),
         new("viewer@mapleridge.example", "Council Member Lee", Roles.Viewer),
     ];
 
