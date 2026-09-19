@@ -10,7 +10,7 @@
 <div class="cb-portal">
     <header class="pt-bar">
         <div class="pt-in pt-bar-in">
-            <a class="pt-brand" href="@(route?.Root ?? "/transparency")">
+            <a class="pt-brand" href="@(route?.Root ?? "/transparency")" aria-label="@($"{budget?.GovernmentName ?? "CivicBudget"} budget transparency portal home")">
                 <span class="cb-seal pt-seal" aria-hidden="true">@Initials(budget?.GovernmentName)</span>
                 <span><b>@(budget?.GovernmentName ?? "CivicBudget")</b><small>Budget transparency portal</small></span>
             </a>

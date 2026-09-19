@@ -5,6 +5,15 @@ All notable changes to CivicBudget. Format loosely follows
 
 ## [Unreleased]
 
+## Phase 8 — 2026-09-18
+### Changed
+- Explanatory subtitles removed across the admin app; the useful ones are info tips beside titles and KPI labels. Portal section leads trimmed.
+- Overview: budget versions table no longer overflows into the activity card.
+- Accessibility: named account menu and brand links, disambiguated amount input labels, dialogs and drawer take focus on open, styled access-denied page.
+- Account grid Export button now downloads the XLSX (was a placeholder).
+### Added
+- README screenshots and the Playwright script that regenerates them; demo script; spec status table; walkthrough 09.
+
 ## Phase 7 — 2026-09-18
 ### Added
 - `Dockerfile` (multi-stage, non-root, healthcheck) and `docker-compose.full.yml` for a one-command containerized demo.

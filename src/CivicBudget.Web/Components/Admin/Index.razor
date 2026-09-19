@@ -10,7 +10,6 @@
 <PageTitle>Overview</PageTitle>
 
 <PageHeader Title="Overview" Eyebrow="@(government?.Name ?? "")" Crumbs="@([new Crumb("Budget"), new Crumb("Overview")])">
-    <Subtitle>Where the budget stands today, @DateTime.Today.ToString("MMMM d, yyyy").</Subtitle>
     <Actions>
         <a class="btn btn-outline-primary btn-sm" href="admin/budgets">Budget versions</a>
         @if (openVersion is not null)
@@ -30,17 +29,18 @@ else
         @if (openWorkspace is not null)
         {
             <KpiCard Label="@($"FY{openWorkspace.Version.Year} appropriations")" Value="@Display.Money(openWorkspace.FundBalances.Sum(f => f.Summary.Appropriations))" Detail="@($"{openWorkspace.Lines.Count} lines, {openWorkspace.Version.Label.ToLowerInvariant()}, {openWorkspace.Version.Status.ToString().ToLowerInvariant()}")" />
-            <KpiCard Label="Estimated resources" Value="@Display.Money(openWorkspace.FundBalances.Sum(f => f.Summary.EstimatedResources))" Detail="Beginning balances + revenues + transfers in" />
+            <KpiCard Label="Estimated resources" Value="@Display.Money(openWorkspace.FundBalances.Sum(f => f.Summary.EstimatedResources))" Tip="Beginning balances plus revenues plus transfers in, across every fund. Ohio law caps appropriations at this figure." />
             <KpiCard Label="Funds over limit" Value="@($"{overLimit} of {openWorkspace.FundBalances.Count}")" Tone="@(overLimit > 0 ? (openWorkspace.AnyFundBlocksWorkflow ? "bad" : "warn") : "ok")"
                      Detail="@(overLimit > 0 ? string.Join(", ", openWorkspace.FundBalances.Where(f => !f.Summary.IsWithinAppropriationLimit).Select(f => $"{f.FundCode} over by {Display.Money(f.Limit.AmountOverLimit)}")) : "Every fund within estimated resources")"
                      DetailTone="@(overLimit > 0 ? "down" : "")" />
         }
         else
         {
-            <KpiCard Label="Budget in progress" Value="None" Detail="Adopt a year, then start an amendment, or add a fiscal year" />
+            <KpiCard Label="Budget in progress" Value="None" Tip="Start an amendment from an adopted budget, or add a fiscal year to begin a new one." />
         }
         <KpiCard Label="Public portal" Value="@(latestSnapshot is null ? "Nothing published" : $"FY{latestSnapshot.FiscalYear}")" Tone="@(latestSnapshot is null ? "warn" : "ok")"
-                 Detail="@(latestSnapshot is null ? "Publish an adopted version to open the portal" : $"{latestSnapshot.VersionLabel}, published {latestSnapshot.PublishedAtUtc:MMM d, yyyy}")" />
+                 Detail="@(latestSnapshot is null ? null : $"{latestSnapshot.VersionLabel}, published {latestSnapshot.PublishedAtUtc:MMM d, yyyy}")"
+                 Tip="@(latestSnapshot is null ? "Publish an adopted version to open the public portal." : null)" />
     </div>
 
     <div class="row g-3">

@@ -44,7 +44,7 @@ else
                                             <td class="cb-num">@line.PriorYearActual.ToString("N2")</td>
                                             <td class="cb-num">@line.CurrentYearBudget.ToString("N2")</td>
                                             <td class="cb-num">
-                                                <AmountCell Value="line.Amount" CanEdit="line.CanEdit" Label="@($"Proposed amount for {line.AccountCode}")"
+                                                <AmountCell Value="line.Amount" CanEdit="line.CanEdit" Label="@($"Proposed amount for {line.AccountCode} {line.AccountName}, {line.FundCode}")"
                                                             ValueChanged="amount => OnAmountChanged.InvokeAsync((line.Id, amount))" />
                                             </td>
                                             <td class="cb-num @(line.DollarChange < 0 ? "cb-neg" : line.DollarChange > 0 ? "cb-pos" : "")">@Display.SignedChange(line.DollarChange)</td>

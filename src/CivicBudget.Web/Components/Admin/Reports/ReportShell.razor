@@ -5,9 +5,8 @@
    prints at the top of the paper (government, budget, who ran it). On screen the block is the
    report's subtitle; in print CSS the sidebar and toolbar disappear and this block leads. *@
 <PageHeader Title="@Title" Eyebrow="@($"Reports · FY{Header.FiscalYear} {Header.VersionLabel}")"
-            Crumbs="@([new Crumb("Budget"), new Crumb("Reports", "admin/reports"), new Crumb(Title)])">
+            Crumbs="@([new Crumb("Budget"), new Crumb("Reports", "admin/reports"), new Crumb(Title)])" Tip="@Description">
     <TitleAddon><StatusPill Budget="Header.Status" /></TitleAddon>
-    <Subtitle>@Description</Subtitle>
     <Actions>
         @Filters
         <a class="btn btn-outline-primary btn-sm" href="@ExportHref"><i class="bi bi-file-earmark-spreadsheet me-1" aria-hidden="true"></i>Export XLSX</a>

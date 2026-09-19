@@ -10,7 +10,7 @@
    sidebar slides in over the page from a hamburger button. *@
 <div class="cb-shell">
     <aside class="cb-sidebar @(menuOpen ? "open" : "")" id="admin-sidebar">
-        <a class="cb-brand" href="admin">
+        <a class="cb-brand" href="admin" aria-label="CivicBudget overview">
             <span class="cb-seal" aria-hidden="true">CB</span>
             <span><b>CivicBudget</b><small>@(governmentName ?? "")</small></span>
         </a>
@@ -66,7 +66,8 @@
             <div class="flex-grow-1"></div>
             <AuthorizeView>
                 <div class="dropdown">
-                    <button type="button" class="btn btn-link text-decoration-none p-0 cb-user" data-bs-toggle="dropdown" aria-expanded="false">
+                    <button type="button" class="btn btn-link text-decoration-none p-0 cb-user" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="menu"
+                            aria-label="@($"Account menu, {context.User.FindFirst(ClaimNames.DisplayName)?.Value}")">
                         <span class="cb-avatar" aria-hidden="true">@Initials(context.User.FindFirst(ClaimNames.DisplayName)?.Value)</span>
                         <span class="d-none d-sm-block text-start text-body">@context.User.FindFirst(ClaimNames.DisplayName)?.Value<small>@string.Join(", ", context.User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => Roles.DisplayName(c.Value)))</small></span>
                         <i class="bi bi-chevron-down small text-body" aria-hidden="true"></i>

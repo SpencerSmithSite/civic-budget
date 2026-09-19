@@ -21,12 +21,10 @@ else if (workspace is null || workflowState is null)
 else
 {
     <PageHeader Title="@($"{workspace.Version.Label} budget")" Eyebrow="@($"Budget · Fiscal year {workspace.Version.Year}")"
-                Crumbs="@([new Crumb("Budget"), new Crumb("Budget versions", "admin/budgets"), new Crumb($"FY{workspace.Version.Year} {workspace.Version.Label}")])">
+                Crumbs="@([new Crumb("Budget"), new Crumb("Budget versions", "admin/budgets"), new Crumb($"FY{workspace.Version.Year} {workspace.Version.Label}")])"
+                Tip="@(workspace.IsEditable ? "Edit amounts in place; a change saves when you leave the field. Fund balances on the right update as you go." : "Adopted versions are read-only. Start an amendment to change them.")">
         <TitleAddon><StatusPill Budget="workspace.Version.Status" /></TitleAddon>
-        <Subtitle>
-            @if (workspace.Version.AmendmentReason is not null) { <span>@workspace.Version.AmendmentReason. </span> }
-            @(workspace.IsEditable ? "Changes save when you leave a field." : "Adopted versions are read-only; create an amendment to change them.")
-        </Subtitle>
+        <Subtitle>@workspace.Version.AmendmentReason</Subtitle>
         <Actions>
             @if (!isDepartmentHead)
             {

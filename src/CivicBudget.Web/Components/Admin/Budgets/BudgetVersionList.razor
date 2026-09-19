@@ -7,9 +7,8 @@
 
 <PageTitle>Budget versions</PageTitle>
 
-<PageHeader Title="Budget versions" Eyebrow="Budget" Crumbs="@([new Crumb("Budget"), new Crumb("Budget versions")])">
-    <Subtitle>Each fiscal year has an original budget and, after adoption, any amendments. Open a version to enter or review lines.</Subtitle>
-</PageHeader>
+<PageHeader Title="Budget versions" Eyebrow="Budget" Crumbs="@([new Crumb("Budget"), new Crumb("Budget versions")])" Tip="Each fiscal year has an original budget and, after adoption, any amendments. Open a version to enter or review its lines.">
+    </PageHeader>
 
 @if (versions is null)
 {
@@ -65,7 +64,6 @@ else
     </div>
 
     <h2 class="h6 fw-semibold" id="publishing">Publishing history</h2>
-    <p class="text-secondary small">Every snapshot ever published, including ones since replaced or withdrawn. Citizens see only the active one for each year.</p>
     @if (snapshots is { Count: > 0 })
     {
         <div class="card">
