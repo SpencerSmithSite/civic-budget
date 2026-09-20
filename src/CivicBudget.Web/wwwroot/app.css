@@ -241,6 +241,24 @@ h1, h2, h3, h4 {
     font-size: 0.9375rem;
 }
 
+/* The sidebar brand is the government, not the product: its name in two lines beside the mark. */
+.cb-brand-gov {
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.9375rem;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.cb-logo {
+    flex: none;
+    display: block;
+}
+
 .cb-brand small {
     font-size: 0.6875rem;
     color: rgba(255, 255, 255, 0.6);
@@ -335,6 +353,7 @@ h1, h2, h3, h4 {
 }
 
 .cb-shell.collapsed .cb-brand > span:not(.cb-seal),
+.cb-shell.collapsed .cb-brand-gov,
 .cb-shell.collapsed .cb-navgroup,
 .cb-shell.collapsed .cb-sidebar-foot,
 .cb-shell.collapsed .cb-nav .nav-link > :not(.bi) {
@@ -430,6 +449,29 @@ h1, h2, h3, h4 {
     font-size: 0.75rem;
     font-weight: 600;
     flex: none;
+    overflow: hidden;
+}
+
+/* A picture fills the circle; the initials underneath never show. */
+.cb-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Lists on a white surface: a pale circle with navy initials. */
+.cb-avatar-light {
+    background: #dbe4ee;
+    color: var(--cb-navy);
+}
+
+/* The profile-picture page: the picture large, with the file picker beside it. */
+.cb-avatar-lg {
+    width: 112px;
+    height: 112px;
+    font-size: 2.25rem;
+    box-shadow: 0 0 0 4px var(--cb-surface), 0 0 0 5px var(--cb-border);
 }
 
 .cb-main {
