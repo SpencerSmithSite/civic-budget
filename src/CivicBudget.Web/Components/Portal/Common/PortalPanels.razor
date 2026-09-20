@@ -1,0 +1,40 @@
+@* Two sections side by side on a sliding track, one visible at a time, switched by a pair of
+   radio buttons styled as tabs. No JavaScript: the :checked state moves the track and hides the
+   other panel (visibility, so its links leave the tab order). Both panels are in the page, so
+   "find in page" and reader modes still see everything. *@
+<div class="pt-panels">
+    <input type="radio" name="@Name" id="@(Name)-1" class="pt-panels-radio" checked="@(!SecondFirst)" />
+    <input type="radio" name="@Name" id="@(Name)-2" class="pt-panels-radio" checked="@SecondFirst" />
+    <div class="pt-panels-tabs" role="group" aria-label="@Label">
+        <label for="@(Name)-1">@FirstTitle</label>
+        <label for="@(Name)-2">@SecondTitle</label>
+    </div>
+    <div class="pt-panels-track">
+        <div class="pt-panel">@First</div>
+        <div class="pt-panel">@Second</div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Name { get; set; } = "panels";
+
+    [Parameter]
+    public string Label { get; set; } = "Section";
+
+    [Parameter, EditorRequired]
+    public string FirstTitle { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string SecondTitle { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public RenderFragment? First { get; set; }
+
+    [Parameter, EditorRequired]
+    public RenderFragment? Second { get; set; }
+
+    /// <summary>Open on the second panel (for a link that lands on it).</summary>
+    [Parameter]
+    public bool SecondFirst { get; set; }
+}

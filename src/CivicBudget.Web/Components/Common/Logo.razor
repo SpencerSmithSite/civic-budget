@@ -1,7 +1,7 @@
 @* The CivicBudget mark: a civic building (pediment, three columns, base) on a teal tile. Inline SVG
    so it scales crisply from the favicon to the sign-in page and needs no extra request. The gradient
    id is suffixed per instance because several marks can share one page. *@
-<svg class="cb-logo" width="@Size" height="@Size" viewBox="0 0 40 40" role="img" aria-label="@Label" focusable="false">
+<svg class="cb-logo" width="@Size" height="@Size" viewBox="0 0 40 40" role="@(string.IsNullOrEmpty(Label) ? "presentation" : "img")" aria-label="@(string.IsNullOrEmpty(Label) ? null : Label)" aria-hidden="@(string.IsNullOrEmpty(Label) ? "true" : null)" focusable="false">
     <defs>
         <linearGradient id="@gradientId" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stop-color="#1798A8" />
@@ -24,6 +24,7 @@
     [Parameter]
     public int Size { get; set; } = 32;
 
+    /// <summary>Accessible name; pass an empty string when the mark is decorative beside the name it stands for.</summary>
     [Parameter]
     public string Label { get; set; } = "CivicBudget";
 }

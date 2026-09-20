@@ -3,6 +3,7 @@ using CivicBudget.Application.Persistence;
 using CivicBudget.Application.Portal;
 using CivicBudget.Application.Publishing;
 using CivicBudget.Application.Security;
+using CivicBudget.Application.Setup;
 using CivicBudget.Application.Tenancy;
 using CivicBudget.Application.Users;
 using CivicBudget.Infrastructure.Export;
@@ -82,6 +83,7 @@ public static class DependencyInjection
 
         services.AddScoped<IUserAdminService, UserAdminService>();
         services.AddScoped<IUserAvatarService, UserAvatarService>();
+        services.AddScoped<IGovernmentLogoService, GovernmentLogoService>();
         services.AddScoped<DevelopmentSeeder>();
 
         return services;

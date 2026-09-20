@@ -5,8 +5,8 @@ using Microsoft.EntityFrameworkCore;
 namespace CivicBudget.Infrastructure.Persistence;
 
 /// <summary>
-/// The public portal's only door to the database (ADR-0006). It maps the four snapshot tables and
-/// nothing else: no budget lines, no users, no governments. A global query filter hides every
+/// The public portal's only door to the database (ADR-0006). It maps the four snapshot tables plus the
+/// government logo (a public image) and nothing else: no budget lines, no users, no governments. A global query filter hides every
 /// snapshot that is not <see cref="SnapshotStatus.Active"/>, and SaveChanges throws. So a bug in
 /// the portal cannot show a draft, a withdrawn budget, or another tenant's data, and cannot write.
 /// The admin context owns the migrations; this context just reads the same tables.
@@ -20,14 +20,19 @@ public sealed class PublicPortalDbContext(DbContextOptions<PublicPortalDbContext
     public DbSet<PublishedBudgetSnapshotFund> SnapshotFunds => Set<PublishedBudgetSnapshotFund>();
     public DbSet<PublishedBudgetSnapshotDepartment> SnapshotDepartments => Set<PublishedBudgetSnapshotDepartment>();
 
+    /// <summary>The one non-snapshot table: a public image, nothing else (ADR-0029).</summary>
+    public DbSet<GovernmentLogo> GovernmentLogos => Set<GovernmentLogo>();
+
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
         configurationBuilder.Properties<decimal>().HavePrecision(18, 2);
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         PublishedSnapshotModel.Configure(modelBuilder);
+        GovernmentLogoModel.Configure(modelBuilder);
 
-        foreach (Microsoft.EntityFrameworkCore.Metadata.IMutableEntityType entityType in modelBuilder.Model.GetEntityTypes())
+        foreach (Microsoft.EntityFrameworkCore.Metadata.IMutableEntityType entityType in modelBuilder.Model.GetEntityTypes()
+                     .Where(e => typeof(Domain.Common.Entity).IsAssignableFrom(e.ClrType)))
         {
             modelBuilder.Entity(entityType.ClrType).Property("Id").ValueGeneratedNever();
         }

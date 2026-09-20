@@ -30,6 +30,14 @@ internal static class PortalEndpoints
                 : Results.File(exporter.ToXlsx(table), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{slug}-fy{year}-budget.xlsx");
         });
 
+        // The government's logo for the portal header. Public like the pages, versioned by the
+        // upload time in the URL, and served only for governments with a published budget.
+        endpoints.MapGet("/transparency/{slug}/logo", async (string slug, [FromServices] ISnapshotQueryService snapshots, CancellationToken ct) =>
+        {
+            PortalLogoDto? logo = await snapshots.GetLogoAsync(slug, ct);
+            return logo is null ? Results.NotFound() : Results.Bytes(logo.Data, logo.ContentType, lastModified: logo.UpdatedAtUtc);
+        });
+
         return group;
     }
 

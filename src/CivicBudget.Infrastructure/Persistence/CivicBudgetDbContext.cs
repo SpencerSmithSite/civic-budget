@@ -52,6 +52,7 @@ public sealed class CivicBudgetDbContext(DbContextOptions<CivicBudgetDbContext> 
     public DbSet<ChartSync> ChartSyncs => Set<ChartSync>();
     public DbSet<UserDepartment> UserDepartments => Set<UserDepartment>();
     public DbSet<UserAvatar> UserAvatars => Set<UserAvatar>();
+    public DbSet<GovernmentLogo> GovernmentLogos => Set<GovernmentLogo>();
 
     /// <summary>
     /// Read by the query filters. Must be an instance member so EF Core treats it as a parameter
@@ -70,6 +71,7 @@ public sealed class CivicBudgetDbContext(DbContextOptions<CivicBudgetDbContext> 
     {
         base.OnModelCreating(builder); // Identity's tables and keys; must run first
         Configurations.PublishedSnapshotModel.Configure(builder); // shared with PublicPortalDbContext
+        Configurations.GovernmentLogoModel.Configure(builder);
         builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
         UseClientGeneratedKeys(builder);
         ApplyTenantQueryFilters(builder);

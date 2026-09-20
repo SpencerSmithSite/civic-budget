@@ -1,7 +1,9 @@
 @page "/admin/settings"
 @attribute [Authorize(Policy = Policies.CanManageUsers)]
 @inject IGovernmentSettingsService SettingsService
+@inject IGovernmentLogoService Logos
 @inject ToastService Toasts
+@using CivicBudget.Application.Portal
 
 <PageTitle>Government settings</PageTitle>
 
@@ -78,6 +80,31 @@ else
         <button type="submit" class="btn btn-primary" disabled="@saving">Save settings</button>
     </EditForm>
     </div></div>
+
+    <div class="card mt-3" style="max-width: 640px">
+        <div class="card-header d-flex align-items-center gap-2">Logo on the public portal <InfoTip Text="Shown in the portal header in place of the CivicBudget mark. Resized to 512 pixels in your browser before upload; a square or near-square image fits best." /></div>
+        <div class="card-body d-flex flex-wrap align-items-center gap-4">
+            <span class="pt-logo-preview">
+                @if (logo is not null)
+                {
+                    <img src="@LogoDataUrl" alt="Current logo" />
+                }
+                else
+                {
+                    <Logo Size="56" Label="CivicBudget mark, the default" />
+                }
+            </span>
+            <div class="flex-grow-1">
+                <ResultAlert Result="logoResult" />
+                <label class="form-label fw-semibold" for="logo">Choose an image</label>
+                <InputFile id="logo" class="form-control" accept="image/*" OnChange="UploadLogoAsync" disabled="@logoBusy" />
+                @if (logo is not null)
+                {
+                    <button type="button" class="btn btn-outline-danger btn-sm mt-3" @onclick="RemoveLogoAsync" disabled="@logoBusy"><i class="bi bi-trash me-1" aria-hidden="true"></i>Use the CivicBudget mark instead</button>
+                }
+            </div>
+        </div>
+    </div>
 }
 
 @code {
@@ -87,6 +114,11 @@ else
     private ValidationMessageStore messages = default!;
     private Result? result;
     private bool saving;
+    private PortalLogoDto? logo;
+    private Result? logoResult;
+    private bool logoBusy;
+
+    private string LogoDataUrl => logo is null ? "" : $"data:{logo.ContentType};base64,{Convert.ToBase64String(logo.Data)}";
 
     protected override async Task OnInitializedAsync()
     {
@@ -94,6 +126,7 @@ else
         messages = new ValidationMessageStore(editContext);
 
         current = await SettingsService.GetAsync();
+        logo = await Logos.GetAsync();
         model.Name = current.Name;
         model.PublicSlug = current.PublicSlug;
         model.AppropriationLimitMode = current.AppropriationLimitMode;
@@ -122,6 +155,46 @@ else
             Toasts.Success("Settings saved.");
             current = await SettingsService.GetAsync();
         }
+    }
+
+    private async Task UploadLogoAsync(InputFileChangeEventArgs e)
+    {
+        logoBusy = true;
+        logoResult = null;
+        try
+        {
+            IBrowserFile resized = await e.File.RequestImageFileAsync("image/png", 512, 512);
+            await using Stream stream = resized.OpenReadStream(20 * 1024 * 1024);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            logoResult = await Logos.SetAsync(buffer.ToArray(), "image/png");
+            if (logoResult.IsSuccess)
+            {
+                logo = await Logos.GetAsync();
+                Toasts.Success("Logo updated. The portal shows it now.");
+            }
+        }
+        catch (Exception ex) when (ex is IOException or InvalidOperationException or Microsoft.JSInterop.JSException)
+        {
+            logoResult = Result.Failure("That file could not be read as an image. Choose a PNG, JPEG, or WebP picture.");
+        }
+        finally
+        {
+            logoBusy = false;
+        }
+    }
+
+    private async Task RemoveLogoAsync()
+    {
+        logoBusy = true;
+        logoResult = await Logos.RemoveAsync();
+        if (logoResult.IsSuccess)
+        {
+            logo = null;
+            Toasts.Success("The portal shows the CivicBudget mark again.");
+        }
+
+        logoBusy = false;
     }
 
     private sealed class FormModel

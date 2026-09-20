@@ -3,7 +3,7 @@
    and value beside it. Items can link to a drill-down page. *@
 <section class="pt-section" aria-labelledby="@headingId">
     <div class="pt-section-head">
-        <h2 id="@headingId" class="pt-q">@Title</h2>
+        <h2 id="@headingId" class="pt-q @(HideTitle ? "visually-hidden" : "")">@Title</h2>
         <span class="pt-toggle" role="group" aria-label="Show amounts as">
             <a href="@ToggleHref(false)" class="@(showPercent ? "" : "on")" aria-current="@(showPercent ? null : "true")">$</a><a href="@ToggleHref(true)" class="@(showPercent ? "on" : "")" aria-current="@(showPercent ? "true" : null)">%</a>
         </span>
@@ -69,6 +69,10 @@
 </section>
 
 @code {
+    /// <summary>Inside a tabbed panel the tab already shows the title; keep it for assistive technology only.</summary>
+    [Parameter]
+    public bool HideTitle { get; set; }
+
     private readonly string headingId = "bd-" + Guid.NewGuid().ToString("N")[..6];
 
     [Parameter, EditorRequired]
@@ -104,7 +108,8 @@
 
     private bool showPercent => ShowPercent;
 
-    private string ToggleHref(bool percent) => percent ? $"{PageHref}?show=pct#{headingId}" : $"{PageHref}#{headingId}";
+    // PageHref may already carry a query (the overview's ?view=revenue), so the toggle appends rather than assumes.
+    private string ToggleHref(bool percent) => percent ? $"{PageHref}{(PageHref.Contains('?') ? "&" : "?")}show=pct#{headingId}" : $"{PageHref}#{headingId}";
 
     private string AriaSummary => $"{Title}: " + string.Join("; ", Data.Items.Take(6).Select(i => $"{i.Label} {Display.Money(i.Amount)}"));
 }
