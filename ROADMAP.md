@@ -166,7 +166,7 @@ UAN village or `101-110-5100` for a county), and permissions follow the departme
 - [x] Department submits to the fiscal officer (per-department Submitted status on the version; fiscal officer can return it); the workspace shows which departments are in
 - [x] Portal and Department Detail report carry the department narrative
 - [x] Tests (domain rules, permission matrix, services end to end, published narrative, pages), walkthrough 13, interview prep (v1.1 section), ADR-0027
-- [ ] Spencer approves Phase 9d
+- [x] Spencer approves Phase 9d (2026-09-20)
 
 Order: 9a → 9b → 9c → 9d. Each is a PR with the usual report; approve before the next starts.
 
@@ -176,5 +176,5 @@ Order: 9a → 9b → 9c → 9d. Each is a PR with the usual report; approve befo
 - [x] Profile pictures: browser-side resize, `UserAvatars` table, versioned image endpoint, `Avatar` component everywhere initials were shown, admin removal; ADR-0028
 - [x] `[NotAudited]` so submit/return bookkeeping fields stay out of the activity feed
 - [x] Tests (service scoping and permissions, components, audit opt-out); walkthrough 14; interview prep
-- [ ] Spencer approves Phase 10
+- [x] Spencer approves Phase 10 (2026-09-20)
 
