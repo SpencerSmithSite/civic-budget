@@ -966,3 +966,24 @@ twice, one of them unreadable. The attribute opts a property out when a
 named event already records the change; Status, Narrative, and the return
 note are still audited field by field.
 **Look at:** `Domain/Common/AuditedAttribute.cs`, `AuditInterceptor.IsOptedOut`.
+
+## Phase 12 — Portal polish
+
+### Q: The portal context was "snapshot tables only". Why does it map the logo table now, and is that a hole?
+**A:** A government's logo is live data the portal has to show, and copying it into every
+snapshot would mean republishing a budget to change a logo. So I made one deliberate exception
+and wrote it down: `GovernmentLogos` holds a government id, a content type, bytes, and a
+timestamp, nothing else. Mapping it read-only cannot expose a draft line, a user, or a setting.
+The lookup goes through an active snapshot's government id, so a government with nothing
+published has no public face. The integration test that lists the portal context's tables pins
+it to exactly five.
+**Look at:** `PublicPortalDbContext`, `GovernmentLogoService`, `SnapshotQueryService.GetLogoAsync`, ADR-0029.
+
+### Q: How do the sliding panels work without JavaScript?
+**A:** Two radio inputs styled as tabs and a track two panels wide. `:checked` on the second
+radio translates the track by one panel and hides the other with `visibility` (so its links
+leave the tab order) and `max-height: 0` after the slide (so the page is only as tall as the
+panel on screen). Both panels are in the HTML, so find-in-page, reader mode, and screen
+readers see everything. The $/% toggle reloads the page, so it carries `?view=revenue` to land
+on the same panel. Reduced motion turns the slide off.
+**Look at:** `Components/Portal/Common/PortalPanels.razor`, the `.pt-panels` block in `app.css`.

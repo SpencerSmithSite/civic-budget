@@ -313,6 +313,42 @@ The same phase adds `[NotAudited]` for properties whose change is already a name
 because the department round (ADR-0027) had started writing ids and timestamps into the
 activity feed.
 
+## ADR-0029 — The portal's read-only context also maps the government logo; the overview's panels slide with CSS alone
+**Date:** 2026-09-20 · **Status:** Accepted
+
+**Context.** The portal header showed the government's initials in a circle. Spencer wants the
+CivicBudget mark by default and a logo the government's administrator uploads. ADR-0006 says
+the portal context maps only snapshot tables so nothing live can leak; a logo is live data.
+Separately, the overview's two breakdowns should be one sliding section, and the portal has no
+JavaScript (ADR-0021's cacheability and the accessibility statement both depend on that).
+
+**Decision.**
+- **`GovernmentLogos` is the one non-snapshot table the portal context maps.** It holds a
+  government id, a content type, bytes, and a timestamp: a public image and nothing else, so
+  mapping it read-only cannot expose a draft, a user, or a setting. The portal looks it up
+  through an active snapshot's `GovernmentId`, so a government with nothing published has no
+  public face, and a renamed slug cannot orphan it. Uploads go through
+  `IGovernmentLogoService` (Administrator only, browser-resized to 512 px, type and size
+  checked) and evict the government's portal pages, whose header carries the logo.
+- **The header falls back to the mark**, not to initials: a product default that looks
+  designed, and no more guessing which words of "Village of Maple Ridge" to abbreviate.
+- **Panels slide with `:checked`.** `PortalPanels` renders two radio inputs styled as tabs and a
+  track two panels wide; the checked radio moves the track and hides the other panel
+  (`visibility`, so its links leave the tab order; `max-height: 0` after the slide, so the page
+  is only as tall as the panel on screen). Both panels are in the HTML, so search, reader mode,
+  and screen readers see everything, and the $/% toggle, which reloads the page, keeps the panel
+  through `?view=revenue`.
+
+**Alternatives.** Copying the logo into each snapshot (a logo change would need a republish);
+serving it through the admin context (breaks the one-door rule for no gain); a JavaScript
+carousel (the portal's no-script promise); `<details>` or `:target` for the tabs (no slide, and
+`:target` scrolls the page).
+
+**Consequences.** One table, one migration, one line in the portal-context test. The trust
+line (resolution, published, version) closes the overview instead of opening it; the glossary
+and accessibility statement are a page (`/transparency/{slug}/{year}/glossary`) instead of a
+footer under every page.
+
 ## Packages
 
 Every NuGet package and why. Add a row when adding a package.
