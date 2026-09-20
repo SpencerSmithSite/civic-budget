@@ -24,8 +24,29 @@ public sealed class ApplicationUser : IdentityUser
     /// </summary>
     public bool MustChangePassword { get; set; }
 
+    /// <summary>
+    /// When the user last uploaded a profile picture, null when they use their initials. Lives on
+    /// the user row so lists can show pictures without touching the image bytes in <see cref="UserAvatar"/>;
+    /// the ticks double as the cache-busting version in the image URL.
+    /// </summary>
+    public DateTimeOffset? AvatarUpdatedAtUtc { get; set; }
+
     /// <summary>Departments a department user may edit. Empty for other roles.</summary>
     public ICollection<UserDepartment> Departments { get; } = [];
+}
+
+/// <summary>
+/// A user's profile picture, already resized by the browser to at most 256 px. Its own table so the
+/// bytes are read only by the image endpoint, never by a user list.
+/// </summary>
+public sealed class UserAvatar
+{
+    public const int MaxBytes = 512 * 1024;
+
+    public string UserId { get; set; } = string.Empty;
+    public string ContentType { get; set; } = string.Empty;
+    public byte[] Data { get; set; } = [];
+    public DateTimeOffset UpdatedAtUtc { get; set; }
 }
 
 /// <summary>Join row: this user may edit budget lines in this department.</summary>

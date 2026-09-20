@@ -81,6 +81,7 @@ public static class DependencyInjection
             .AddClaimsPrincipalFactory<ApplicationUserClaimsPrincipalFactory>();
 
         services.AddScoped<IUserAdminService, UserAdminService>();
+        services.AddScoped<IUserAvatarService, UserAvatarService>();
         services.AddScoped<DevelopmentSeeder>();
 
         return services;

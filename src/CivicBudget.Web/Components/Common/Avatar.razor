@@ -1,0 +1,74 @@
+@using CivicBudget.Application.Users
+@implements IDisposable
+@inject IUserAvatarService Avatars
+
+@* A person in a circle: their picture when they uploaded one, their initials otherwise. Pass
+   Version when the caller already has it (user lists carry it in the DTO); otherwise the component
+   asks the scoped service, which caches per circuit. The Changed event keeps the top bar current
+   after an upload without a page reload. Decorative: the name is always printed beside it. *@
+<span class="cb-avatar @Class" style="@SizeStyle" aria-hidden="true">
+    @if (resolvedVersion is { } v && !string.IsNullOrEmpty(UserId))
+    {
+        <img src="Account/Avatar/@UserId?v=@v" alt="" loading="lazy" />
+    }
+    else
+    {
+        @Display.Initials(Name)
+    }
+</span>
+
+@code {
+    private long? resolvedVersion;
+    private bool subscribed;
+
+    [Parameter]
+    public string? UserId { get; set; }
+
+    [Parameter]
+    public string? Name { get; set; }
+
+    /// <summary>Upload ticks when the caller knows them; null means "ask the service".</summary>
+    [Parameter]
+    public long? Version { get; set; }
+
+    [Parameter]
+    public int? Size { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    private string? SizeStyle => Size is { } px ? $"width:{px}px;height:{px}px;font-size:{Math.Max(9, px * 0.4):0}px" : null;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Version is not null || string.IsNullOrEmpty(UserId))
+        {
+            resolvedVersion = Version;
+            return;
+        }
+
+        resolvedVersion = await Avatars.GetVersionAsync(UserId);
+        if (!subscribed)
+        {
+            Avatars.Changed += OnChanged;
+            subscribed = true;
+        }
+    }
+
+    private void OnChanged() => _ = InvokeAsync(async () =>
+    {
+        if (!string.IsNullOrEmpty(UserId))
+        {
+            resolvedVersion = await Avatars.GetVersionAsync(UserId);
+            StateHasChanged();
+        }
+    });
+
+    public void Dispose()
+    {
+        if (subscribed)
+        {
+            Avatars.Changed -= OnChanged;
+        }
+    }
+}

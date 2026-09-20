@@ -229,7 +229,8 @@ public sealed class UserAdminService(
             (from ur in db.UserRoles join r in db.Roles on ur.RoleId equals r.Id where ur.UserId == user.Id select r.Name!).FirstOrDefault() ?? string.Empty,
             (from ud in db.UserDepartments where ud.UserId == user.Id select ud.DepartmentId).ToList(),
             (from ud in db.UserDepartments join d in db.Departments on ud.DepartmentId equals d.Id where ud.UserId == user.Id orderby d.Code select d.Code).ToList(),
-            user.LockoutEnd != null && user.LockoutEnd > DateTimeOffset.UtcNow);
+            user.LockoutEnd != null && user.LockoutEnd > DateTimeOffset.UtcNow,
+            user.AvatarUpdatedAtUtc == null ? null : user.AvatarUpdatedAtUtc.Value.UtcTicks);
 
     private async Task<ApplicationUser?> FindInTenantAsync(string id, CancellationToken ct)
     {

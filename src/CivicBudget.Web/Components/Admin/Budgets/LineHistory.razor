@@ -15,7 +15,7 @@ else
         @foreach (AuditEntryDto entry in entries)
         {
             <li>
-                <span class="cb-avatar" aria-hidden="true">@Initials(entry.UserName)</span>
+                <Avatar UserId="@entry.UserId" Name="@entry.UserName" />
                 <div>
                     <b>@entry.UserName</b>
                     @switch (entry.Kind)
@@ -65,9 +65,4 @@ else
         entries = await AuditQuery.GetHistoryAsync(nameof(BudgetLine), Line.Id);
     }
 
-    private static string Initials(string name)
-    {
-        string[] parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Where(p => char.IsLetter(p[0])).ToArray();
-        return parts.Length >= 2 ? $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant() : name.Length > 0 ? name[..1].ToUpperInvariant() : "?";
-    }
 }

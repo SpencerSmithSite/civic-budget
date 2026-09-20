@@ -33,7 +33,7 @@
         <div class="cb-grid-wrap">
             <QuickGrid Items="Filtered" Theme="bootstrap" Class="cb-grid">
                 <TemplateColumn Title="Name" SortBy="GridSort<UserSummaryDto>.ByAscending(u => u.DisplayName)">
-                    <span class="d-inline-flex align-items-center gap-2"><span class="cb-avatar" style="width:24px;height:24px;font-size:.625rem;background:#dbe4ee;color:var(--cb-navy)" aria-hidden="true">@Initials(context.DisplayName)</span><b>@context.DisplayName</b></span>
+                    <span class="d-inline-flex align-items-center gap-2"><Avatar UserId="@context.Id" Name="@context.DisplayName" Version="context.AvatarVersion" Size="24" Class="cb-avatar-light" /><b>@context.DisplayName</b></span>
                 </TemplateColumn>
                 <PropertyColumn Property="u => u.Email" Sortable="true" />
                 <TemplateColumn Title="Role" SortBy="GridSort<UserSummaryDto>.ByAscending(u => u.Role)">@Roles.DisplayName(context.Role)</TemplateColumn>
@@ -117,9 +117,4 @@
         return true;
     }
 
-    private static string Initials(string name)
-    {
-        string[] parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Where(p => char.IsLetter(p[0])).ToArray();
-        return parts.Length >= 2 ? $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant() : name.Length > 0 ? name[..1].ToUpperInvariant() : "?";
-    }
 }

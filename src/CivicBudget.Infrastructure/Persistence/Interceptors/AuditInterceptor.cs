@@ -75,7 +75,7 @@ public sealed class AuditInterceptor(ICurrentUser currentUser, TimeProvider cloc
                     break;
 
                 case EntityState.Modified:
-                    foreach (PropertyEntry property in entry.Properties.Where(p => p.IsModified && !p.Metadata.IsPrimaryKey()))
+                    foreach (PropertyEntry property in entry.Properties.Where(p => p.IsModified && !p.Metadata.IsPrimaryKey() && !IsOptedOut(p)))
                     {
                         string? oldValue = Format(property.OriginalValue);
                         string? newValue = Format(property.CurrentValue);
@@ -99,6 +99,10 @@ public sealed class AuditInterceptor(ICurrentUser currentUser, TimeProvider cloc
         IsAuditedCache.GetOrAdd(type, t => t.GetCustomAttributes(typeof(AuditedAttribute), inherit: false).Length > 0);
 
     /// <summary>Tenant-owned entities know their government; the Government row is its own tenant.</summary>
+    /// <summary>Properties marked [NotAudited]; the domain records those changes as named events instead.</summary>
+    private static bool IsOptedOut(PropertyEntry property) =>
+        property.Metadata.PropertyInfo?.IsDefined(typeof(NotAuditedAttribute), inherit: false) == true;
+
     private static Guid? GovernmentIdOf(object entity) => entity switch
     {
         ITenantOwned owned => owned.GovernmentId,

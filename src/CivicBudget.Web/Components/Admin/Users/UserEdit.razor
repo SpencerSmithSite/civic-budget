@@ -3,6 +3,7 @@
 @attribute [Authorize(Policy = Policies.CanManageUsers)]
 @inject IUserAdminService UserAdmin
 @inject IDepartmentService DepartmentService
+@inject IUserAvatarService Avatars
 @inject NavigationManager Navigation
 @inject ToastService Toasts
 
@@ -80,6 +81,19 @@ else
         @if (!IsNew)
         {
             <div class="col-lg-5">
+                @if (avatarVersion is not null)
+                {
+                    <div class="card mb-3">
+                        <div class="card-header">Profile picture</div>
+                        <div class="card-body d-flex align-items-center gap-3">
+                            <Avatar UserId="@Id" Name="@model.DisplayName" Version="avatarVersion" Size="56" />
+                            <div>
+                                <div class="small text-secondary mb-2">Users upload their own picture; an administrator can only remove it.</div>
+                                <button type="button" class="btn btn-outline-danger btn-sm" @onclick="RemovePictureAsync"><i class="bi bi-trash me-1" aria-hidden="true"></i>Remove picture</button>
+                            </div>
+                        </div>
+                    </div>
+                }
                 <div class="card">
                     <div class="card-header">Reset password</div>
                     <div class="card-body">
@@ -119,6 +133,7 @@ else
     private ValidationMessageStore resetMessages = default!;
     private Result? resetResult;
     private string? resetMessage;
+    private long? avatarVersion;
 
     protected override async Task OnInitializedAsync()
     {
@@ -137,6 +152,8 @@ else
                 notFound = true;
                 return;
             }
+
+            avatarVersion = user.AvatarVersion;
 
             model.Email = user.Email;
             model.DisplayName = user.DisplayName;
@@ -203,5 +220,19 @@ else
     private sealed class ResetModel
     {
         public string NewPassword { get; set; } = "";
+    }
+
+    private async Task RemovePictureAsync()
+    {
+        Result removed = await Avatars.RemoveAsync(Id!);
+        if (removed.IsSuccess)
+        {
+            avatarVersion = null;
+            Toasts.Success("Profile picture removed.");
+        }
+        else
+        {
+            Toasts.Danger(removed.Errors[0].Message);
+        }
     }
 }

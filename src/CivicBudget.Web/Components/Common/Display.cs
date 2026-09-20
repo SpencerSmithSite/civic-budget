@@ -42,6 +42,18 @@ public static class Display
     /// <summary>"BudgetLine" becomes "budget line" for sentences.</summary>
     public static string EntityName(string name) => Enum(name).ToLowerInvariant();
 
+    /// <summary>"AR" for "Alex Rivera (Admin)": first letters of the first and last word that start with a letter.</summary>
+    public static string Initials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return "?";
+        }
+
+        string[] parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Where(p => char.IsLetter(p[0])).ToArray();
+        return parts.Length >= 2 ? $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant() : name.Trim()[..1].ToUpperInvariant();
+    }
+
     /// <summary>"2 min ago", "Yesterday", or a date for anything older than a week.</summary>
     public static string Relative(DateTimeOffset when, DateTimeOffset? now = null)
     {

@@ -11,7 +11,9 @@ public sealed record UserSummaryDto(
     string Role,
     IReadOnlyList<Guid> DepartmentIds,
     IReadOnlyList<string> DepartmentCodes,
-    bool IsLockedOut);
+    bool IsLockedOut,
+    /// <summary>Ticks of the last picture upload, for the image URL; null when the user shows initials.</summary>
+    long? AvatarVersion = null);
 
 public sealed record CreateUserRequest(string Email, string DisplayName, string Password, string Role, IReadOnlyList<Guid> DepartmentIds);
 

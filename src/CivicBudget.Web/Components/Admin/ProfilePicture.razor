@@ -1,0 +1,99 @@
+@page "/admin/profile-picture"
+@attribute [Authorize]
+@using CivicBudget.Application.Users
+@using System.Security.Claims
+@inject IUserAvatarService Avatars
+@inject ToastService Toasts
+
+@* Upload or remove your own profile picture. The browser does the resizing (Blazor's
+   RequestImageFileAsync draws the file onto a 256 px canvas), so the server never handles a
+   20 MB phone photo and needs no image library. *@
+<PageTitle>Profile picture</PageTitle>
+
+<PageHeader Title="Profile picture" Eyebrow="Your account" Crumbs="@([new Crumb("Your account"), new Crumb("Profile picture")])"
+            Tip="Shown beside your name in the top bar, the user list, and activity. It is resized to 256 pixels in your browser before upload." />
+
+<div class="card" style="max-width: 640px">
+    <div class="card-body d-flex flex-wrap align-items-center gap-4">
+        <Avatar UserId="@userId" Name="@displayName" Class="cb-avatar-lg" />
+        <div class="flex-grow-1">
+            <ResultAlert Result="result" />
+            <label class="form-label fw-semibold" for="picture">Choose a picture</label>
+            <InputFile id="picture" class="form-control" accept="image/*" OnChange="UploadAsync" disabled="@busy" />
+            <div class="form-text">PNG, JPEG, or WebP. Square pictures look best.</div>
+            @if (hasPicture)
+            {
+                <button type="button" class="btn btn-outline-danger btn-sm mt-3" @onclick="RemoveAsync" disabled="@busy"><i class="bi bi-trash me-1" aria-hidden="true"></i>Remove picture</button>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private const int MaxEdge = 256;
+    private const long MaxUploadBytes = 20 * 1024 * 1024; // the original, before the browser resizes it
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
+    private string? userId;
+    private string? displayName;
+    private bool hasPicture;
+    private bool busy;
+    private Result? result;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ClaimsPrincipal user = (await AuthenticationState).User;
+        userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        displayName = user.FindFirstValue(ClaimNames.DisplayName);
+        hasPicture = userId is not null && await Avatars.GetVersionAsync(userId) is not null;
+    }
+
+    private async Task UploadAsync(InputFileChangeEventArgs e)
+    {
+        busy = true;
+        result = null;
+        try
+        {
+            // The browser decodes and scales the image; anything that is not an image fails here.
+            IBrowserFile resized = await e.File.RequestImageFileAsync("image/png", MaxEdge, MaxEdge);
+            await using Stream stream = resized.OpenReadStream(MaxUploadBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+
+            result = await Avatars.SetOwnAsync(buffer.ToArray(), "image/png");
+            if (result.IsSuccess)
+            {
+                hasPicture = true;
+                Toasts.Success("Profile picture updated.");
+            }
+        }
+        catch (Exception ex) when (ex is IOException or InvalidOperationException or Microsoft.JSInterop.JSException)
+        {
+            result = Result.Failure("That file could not be read as an image. Choose a PNG, JPEG, or WebP picture.");
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task RemoveAsync()
+    {
+        if (userId is null)
+        {
+            return;
+        }
+
+        busy = true;
+        result = await Avatars.RemoveAsync(userId);
+        if (result.IsSuccess)
+        {
+            hasPicture = false;
+            Toasts.Success("Profile picture removed.");
+        }
+
+        busy = false;
+    }
+}
