@@ -355,6 +355,16 @@ graph TB
 - **Local stand-in:** `docker compose -f docker-compose.full.yml up --build` runs the same image
   against SQL Server with the same environment variables ECS would inject.
 
+### 12a. Azure: where the live demo actually runs (ADR-0030)
+
+The same image, deployed where SQL Server is free: a serverless Azure SQL database under the
+free offer (auto-pauses when idle, pauses rather than bills when the monthly limit is hit) and a
+Container App on the consumption plan (0 to 1 replica, WebSockets, TLS at the ingress). A
+scheduled Container Apps job runs the image with `--reseed` each night so the published demo
+logins can be shared freely. `infra/azure/main.bicep` declares it, `scripts/azure-setup.sh`
+creates it once, and `deploy-azure.yml` rolls every push to `main` over OIDC. The AWS stack
+above stays as the production-shaped design; this is the showcase.
+
 ---
 
 ## 13. Local development

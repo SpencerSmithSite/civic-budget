@@ -50,6 +50,7 @@ Actions · AWS CDK (C#) deploy-ready (no account — see ADR-0008).
 - CDK: `Amazon.CDK.Assertions` lives inside Amazon.CDK.Lib (the separate package is CDK v1). JSII is one Node process per test host, so `CivicBudget.Infra.Tests` disables xUnit parallelization. `Tags.SetTag` on a stack does not write resource tags; use `Tags.Of(this).Add`. `cdk synth` needs the app built first (`--no-build` in cdk.json).
 - Docker: the build context must include `.editorconfig` (migration analyzer exemptions) or publish fails on CA1861. `infra/`, `tests/`, `docs/`, `.env` are ignored.
 - A per-page `@rendermode` leaves the layout static (no toasts, no sidebar events). Global mode on `Routes` with static opt-outs is the pattern (ADR-0002 amendment).
+- The live demo is Azure (ADR-0030): free-offer serverless SQL that auto-pauses (first request after an idle hour is slow; the initializer retries for two minutes), one Container App replica, nightly `--reseed`. The AWS CDK stack is the production-shaped story, not the live one.
 - Kestrel logs `SslStream ... Bad address` on HTTP/2 when Safari drops an HTTPS connection; harmless macOS noise, use http://localhost:5000 if it bothers you.
 
 ## Code conventions
@@ -97,6 +98,9 @@ dotnet run --project src/CivicBudget.Web               # migrates + seeds in Dev
 dotnet ef migrations add <Name> -p src/CivicBudget.Infrastructure -o Persistence/Migrations --context CivicBudgetDbContext   # the portal context has no migrations
 docker compose -f docker-compose.full.yml up --build   # app + SQL Server in containers on :8080
 cd infra/CivicBudget.Infra && npx aws-cdk@2 synth      # CloudFormation from the C# CDK app (no credentials needed)
+bicep build infra/azure/main.bicep --stdout >/dev/null  # the Azure template (brew install azure/bicep/bicep); CI does the same
+./scripts/azure-setup.sh                               # once: the free Azure demo (needs az login); pushes to main deploy after that
+dotnet run --project src/CivicBudget.Web -- --reseed   # drop every table, migrate, seed (what the nightly Azure job runs)
 ./scripts/dev-setup.sh                                 # once: .env + user-secrets connection string
 dotnet format                                          # CI runs --verify-no-changes
 ```

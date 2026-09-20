@@ -5,6 +5,14 @@ All notable changes to CivicBudget. Format loosely follows
 
 ## [Unreleased]
 
+## Phase 13 — 2026-09-20 (v1.1)
+### Added
+- Azure hosting for the live demo: `infra/azure/main.bicep` (serverless Azure SQL under the free offer, Container App on the consumption plan, nightly reset job, capped Log Analytics), `scripts/azure-setup.sh` (one-time create plus GitHub OIDC wiring), `.github/workflows/deploy-azure.yml` (image to GHCR and roll on every push to `main`), and a `bicep-build` CI job.
+- `dotnet CivicBudget.Web.dll --reseed`: drops every table, migrates, and seeds (`DatabaseInitializer.ResetAsync`); the demo runs it nightly.
+- README "Live demo" section with the demo logins.
+### Changed
+- The database initializer waits up to two minutes for SQL Server (a paused serverless database resumes in about one).
+
 ## Phase 12 — 2026-09-20 (v1.1)
 ### Added
 - Portal header shows the CivicBudget mark, or the government's own logo uploaded under Government settings (`GovernmentLogos`, migration `AddGovernmentLogos`, served at `/transparency/{slug}/logo`).

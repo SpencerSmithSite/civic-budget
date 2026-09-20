@@ -1,0 +1,89 @@
+# Deploys the live demo to Azure Container Apps on every push to main: build the image, push it to
+# GitHub's registry, and point the Container App and the nightly reset job at the new tag. Signs in
+# to Azure with OIDC (no stored credentials); scripts/azure-setup.sh creates the federated identity
+# and sets the three secrets and the AZURE_DEPLOY variable this workflow keys on.
+name: deploy-azure
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write   # the OIDC token for Azure
+  contents: read
+  packages: write   # push to ghcr.io
+
+concurrency:
+  group: deploy-azure
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+  RESOURCE_GROUP: civicbudget-rg
+  APP_NAME: civicbudget-app
+  JOB_NAME: civicbudget-reset
+
+jobs:
+  # The image is built on every push to main whether or not Azure is set up, so the package exists
+  # (and can be made public) before scripts/azure-setup.sh creates the Container App that pulls it.
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Log in to GitHub's container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push the image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    # Skips cleanly until setup has run, so a push to a fork or before setup is a no-op.
+    if: ${{ vars.AZURE_DEPLOY == 'true' }}
+    needs: image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: azure-demo
+    steps:
+      - name: Log in to Azure with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Roll the site to the new image
+        run: |
+          az containerapp update --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" \
+            --image "$IMAGE:${{ github.sha }}" --output none
+          echo "url=https://$(az containerapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query properties.configuration.ingress.fqdn -o tsv)" >> "$GITHUB_OUTPUT"
+        id: site
+
+      - name: Point the nightly reset at the same image
+        run: |
+          az containerapp job update --name "$JOB_NAME" --resource-group "$RESOURCE_GROUP" \
+            --image "$IMAGE:${{ github.sha }}" --output none
+
+      - name: Wait for the new revision to answer
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 20 "${{ steps.site.outputs.url }}/health" > /dev/null; then
+              echo "Healthy: ${{ steps.site.outputs.url }}"; exit 0
+            fi
+            sleep 10
+          done
+          echo "The site did not answer within five minutes; check the Container App's revisions and logs."; exit 1

@@ -349,6 +349,43 @@ line (resolution, published, version) closes the overview instead of opening it;
 and accessibility statement are a page (`/transparency/{slug}/{year}/glossary`) instead of a
 footer under every page.
 
+## ADR-0030 — The live demo runs on Azure's free tiers; the database is rebuilt from the seed every night
+**Date:** 2026-09-20 · **Status:** Accepted
+
+**Context.** Spencer wants the app hosted for free so hiring managers can sign in and use it.
+The app needs a persistent process (Blazor Server) and SQL Server; the SQL Server container
+wants 2 GB of memory, which no free VM tier offers, and the AWS free tier no longer covers RDS
+or the NAT gateway the CDK stack uses (ADR-0008, ADR-0023).
+
+**Decision.**
+- **Azure, two always-free offers.** Azure SQL Database's free offer (serverless General
+  Purpose under `useFreeLimit`: 100,000 vCore-seconds and 32 GB a month, pausing rather than
+  billing when exhausted) is a real SQL Server, so the EF Core provider and every migration run
+  unchanged. Azure Container Apps on the consumption plan runs the existing Docker image, speaks
+  WebSockets, and scales to zero under a monthly free grant. `infra/azure/main.bicep` declares
+  both plus a Log Analytics workspace with a daily cap; `scripts/azure-setup.sh` creates them
+  once; `deploy-azure.yml` rolls the image on every push to `main` over OIDC, mirroring the AWS
+  workflow. The AWS stack stays as the production-shaped story.
+- **Nightly reset, not moderation.** Five shared logins are published in the README. Anything a
+  visitor does (change a password, adopt the draft, upload a picture) is undone at 08:00 UTC by
+  a Container Apps job that runs the same image with `--reseed`:
+  `DatabaseInitializer.ResetAsync` drops every foreign key and table, migrates from nothing, and
+  seeds. The database object is kept because on Azure it is the free-offer resource; dropping
+  and recreating it would create a billable one.
+- **Not switching to Postgres** to fit a free host: the data layer is SQL Server on purpose (the
+  employer's stack) and every migration and Testcontainers test would need redoing for a
+  hosting convenience.
+
+**Alternatives.** A tunnel from Spencer's Mac (free, but only while the Mac is awake, and SQL
+Server under Rosetta has crashed three times this week); Render or Fly with Postgres (the
+rewrite above); AWS on the new credit-based free tier (six months, and the NAT gateway alone is
+about $32 a month); a "demo mode" that blocks destructive actions (more code, worse demo).
+
+**Consequences.** The first request after an idle hour takes 30 to 60 seconds while the
+database resumes and the container starts; the startup probe allows a few minutes. One replica
+at most, which the in-process output cache already required (ADR-0021). Every session ends at
+the nightly reset. CI compiles and lints the Bicep so a template error cannot wait for a deploy.
+
 ## Packages
 
 Every NuGet package and why. Add a row when adding a package.

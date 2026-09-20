@@ -65,6 +65,9 @@ public sealed class TestDatabase
 
     public string ConnectionString { get; }
 
+    /// <summary>The root provider, for helpers that take an <see cref="IServiceProvider"/> such as <c>DatabaseInitializer</c>.</summary>
+    public IServiceProvider Services => _provider;
+
     public CivicBudgetDbContext CreateContext(Guid? tenant)
     {
         var currentUser = new CurrentUserContext();

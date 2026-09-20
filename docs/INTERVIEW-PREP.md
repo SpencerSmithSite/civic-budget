@@ -987,3 +987,30 @@ panel on screen). Both panels are in the HTML, so find-in-page, reader mode, and
 readers see everything. The $/% toggle reloads the page, so it carries `?view=revenue` to land
 on the same panel. Reduced motion turns the slide off.
 **Look at:** `Components/Portal/Common/PortalPanels.razor`, the `.pt-panels` block in `app.css`.
+
+## Phase 13 — Live demo on Azure
+
+### Q: The repo has an AWS CDK stack. Why is the live demo on Azure?
+**A:** Money and SQL Server. The app needs a real SQL Server and a persistent process, and
+Azure is the one place both are free: the Azure SQL free offer is serverless General Purpose
+under a monthly vCore-second limit, and Container Apps' consumption plan has a free grant and
+scales to zero. AWS's free tier is now a six-month credit that does not cover RDS SQL Server,
+and the NAT gateway in the CDK stack alone is about $32 a month. So the AWS stack is the
+production-shaped design, tested in CI, and Azure is the free showcase. Same image, same
+`DatabaseOptions`; the template is 150 lines of Bicep.
+**Look at:** `infra/azure/main.bicep`, `scripts/azure-setup.sh`, `.github/workflows/deploy-azure.yml`, ADR-0030.
+
+### Q: Five logins and a password are in the README. How is that safe?
+**A:** They reach the demo tenant's data and nothing else: no host, no secrets, no other
+government. Whatever a visitor does, including changing a password or locking the admin out,
+is undone by a scheduled job at 08:00 UTC that runs the same image with `--reseed`. That drops
+every table, migrates from nothing, and seeds; it keeps the database object because on Azure
+that is the free-offer resource. The demo password is used nowhere else.
+**Look at:** `DatabaseInitializer.ResetAsync`, the `resetJob` resource in `main.bicep`, `DatabaseResetTests`.
+
+### Q: What does scale-to-zero do to a Blazor Server app?
+**A:** The first request after an idle hour takes 30 to 60 seconds: the database resumes from
+auto-pause and the container starts and migrates. The startup probe allows a few minutes so
+the platform does not kill it mid-migration. Once warm it behaves normally. One replica at most,
+which the in-process output cache already required; a second replica would need a distributed
+cache and a SignalR backplane, and the ADR says so.

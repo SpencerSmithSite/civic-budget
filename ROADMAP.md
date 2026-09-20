@@ -189,3 +189,12 @@ Order: 9a → 9b → 9c → 9d. Each is a PR with the usual report; approve befo
 - [x] Glossary and accessibility statement on their own page; one-line footer
 - [x] Tests (logo service and portal read, panels component, portal table list)
 - [x] Spencer approves Phase 12 (2026-09-20)
+
+## Phase 13 — Live demo on Azure  `phase-13-azure`
+- [x] `infra/azure/main.bicep`: free-offer Azure SQL, consumption Container App, nightly reset job, capped logs; ADR-0030
+- [x] `scripts/azure-setup.sh`: create once, wire GitHub OIDC, print the URL and demo password
+- [x] `deploy-azure.yml`: image to GHCR on every push to main, roll the app and the job, wait for /health; `bicep-build` in CI
+- [x] `--reseed` entry point and `DatabaseInitializer.ResetAsync` (integration test)
+- [x] README: live demo section with the logins
+- [ ] Spencer runs the setup script and fills in the URL and password
+- [ ] Spencer approves Phase 13
