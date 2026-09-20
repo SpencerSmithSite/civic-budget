@@ -43,16 +43,16 @@ else
                  Tip="@(latestSnapshot is null ? "Publish an adopted version to open the public portal." : null)" />
     </div>
 
-    @* Side by side only from 1400px, where seven columns fit without a sideways scrollbar (which
-       would also steal height and force a vertical one); narrower screens stack the two cards. The
-       versions card stretches to the activity card's height so the row reads as one block. *@
-    <div class="row g-3">
-        <div class="col-xxl-7 d-flex flex-column gap-3">
+    @* Side by side only from 1500px (.cb-overview in app.css), where the seven-column table fits
+       its card without a sideways scrollbar (which would also steal height and force a vertical
+       one); narrower screens stack the cards. The left column stretches to the activity feed. *@
+    <div class="cb-overview">
+        <div class="d-flex flex-column gap-3">
             <div class="card flex-grow-1">
                 <div class="card-header d-flex align-items-center">Budget versions <a class="ms-auto small fw-normal" href="admin/budgets">All versions ›</a></div>
                 <div class="cb-grid-wrap flex-grow-1">
                     <table class="cb-grid">
-                        <thead><tr><th>Fiscal year</th><th>Version</th><th>Status</th><th>Resolution</th><th>Portal</th><th class="cb-num">Lines</th><th></th></tr></thead>
+                        <thead><tr><th>Year</th><th>Version</th><th>Status</th><th>Resolution</th><th>Portal</th><th class="cb-num">Lines</th><th></th></tr></thead>
                         <tbody>
                             @foreach (BudgetVersionSummaryDto version in versions.Take(6))
                             {
@@ -89,7 +89,7 @@ else
                 </dl>
             </div>
         </div>
-        <div class="col-xxl-5">
+        <div>
             <div class="card">
                 <div class="card-header">Recent activity</div>
                 @if (activity is null || activity.Count == 0)

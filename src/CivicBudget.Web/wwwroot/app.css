@@ -717,7 +717,10 @@ table.cb-grid {
     width: 100%;
     margin: 0;
     font-size: 0.8125rem;
-    border-collapse: collapse;
+    /* separate, not collapse: a collapsed table's outer border overhangs its box by half a pixel,
+       which is enough for Safari to show a horizontal scrollbar on a table that fits its card. */
+    border-collapse: separate;
+    border-spacing: 0;
 }
 
 table.cb-grid > thead > tr > th {
@@ -923,6 +926,25 @@ table.cb-grid th.col-justify-end .col-header-content {
     --bs-dropdown-link-active-bg: var(--cb-subtotal);
     --bs-dropdown-link-active-color: var(--cb-navy);
     box-shadow: 0 8px 24px rgba(15, 42, 68, 0.12);
+}
+
+/* --------------------------------------------------------------------------
+   Overview: versions and government on the left, activity on the right
+   -------------------------------------------------------------------------- */
+
+.cb-overview {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    align-items: stretch;
+}
+
+/* Bootstrap's widest breakpoint (1400px) is not wide enough for the versions table beside the
+   feed, so the split has its own threshold. */
+@media (min-width: 1500px) {
+    .cb-overview {
+        grid-template-columns: 7fr 5fr;
+    }
 }
 
 /* --------------------------------------------------------------------------
