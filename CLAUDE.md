@@ -71,7 +71,8 @@ Actions · AWS CDK (C#) deploy-ready (no account — see ADR-0008).
 - Import/reports: `ImportAnalyzer` and `ReportBuilder` are pure; keep rules there and tests in Application.Tests. Exports go through `ExportTable` + `ISpreadsheetExporter`; add endpoints to `AdminExportEndpoints` behind a policy.
 - Portal pages call `ISnapshotQueryService` only; shared pieces live in `Components/Portal/Common` (`Breakdown`, `PortalKpi`, `PortalCrumbs`, `PortalNotFound`, `MoneyShort`). Styles are the `.pt-*` section of `app.css`.
 - UI: use `PageHeader` (sets breadcrumbs), `StatusPill`, `KpiCard`, `ConfirmDialog`, `RowMenu`, `EmptyState`, `SkeletonRows`, `ToastService`; grids use `table.cb-grid` inside `.cb-grid-wrap` (QuickGrid with `Theme="bootstrap"`). Tokens live in `wwwroot/app.css`; see `docs/design/DESIGN-BRIEF.md`. Never `window.confirm`.
-- Mark financial entities `[Audited]`; the interceptor does the rest. Use `AuditEntry.Event(...)` for named actions.
+- Mark financial entities `[Audited]`; the interceptor does the rest. Use `AuditEntry.Event(...)` for named actions, and `[NotAudited]` on a property whose change that event already describes.
+- People and brand: render a person with `<Avatar UserId Name [Version] [Size]>` (never hand-rolled initials; `Display.Initials` is the one helper) and the mark with `<Logo Size>`; the sidebar brand is the government's name, not the product's.
 - Domain invariants throw `DomainException`; user-input problems return a
   `Result` with errors.
 - Naming: `*Service` (Application), `*Repository` only if it earns its keep,

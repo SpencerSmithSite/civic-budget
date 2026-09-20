@@ -936,3 +936,33 @@ against a stand-in and isolated it to one class). Whether the middle
 segment is per government or per fund (I made it per government). Whether
 a department's narrative should be public at all (I publish it, because
 budget books do, but that is a policy question for the fiscal officer).
+
+## Phase 10 — Branding and profile pictures
+
+### Q: How do profile pictures work without an image library or blob storage?
+**A:** The browser does the resizing. Blazor's `RequestImageFileAsync` draws
+the chosen file onto a canvas at 256 px and gives me a PNG; the server checks
+type and size and stores the bytes in their own table, separate from the
+user row so lists never load images. The image is served from a URL that
+carries the upload time as a version, with a year-long private cache: a new
+upload is a new URL, so nothing is stale and nothing is re-fetched. The
+endpoint requires sign-in and the read joins to the user's government, the
+same rule as every Identity read. When there is an AWS account, S3 is a
+one-class change behind `IUserAvatarService`.
+**Look at:** `ProfilePicture.razor`, `UserAvatarService.cs`, the `/Account/Avatar/{id}` endpoint in `IdentityEndpoints.cs`, ADR-0028.
+
+### Q: How does the top bar update after an upload without a reload?
+**A:** The scoped service caches versions per circuit and raises `Changed`
+after a set or remove; every `Avatar` component that asked the service for
+its version subscribes and re-queries. Lists that already carry the version
+in their DTO do not subscribe; they just render.
+**Look at:** `Components/Common/Avatar.razor`.
+
+### Q: Why is there a `[NotAudited]` attribute now?
+**A:** Because the department round writes a named event ("Police submitted
+its budget request") and, until this phase, the interceptor also wrote
+"changed Submitted by user id: seed → c199…" and a raw timestamp. Same fact
+twice, one of them unreadable. The attribute opts a property out when a
+named event already records the change; Status, Narrative, and the return
+note are still audited field by field.
+**Look at:** `Domain/Common/AuditedAttribute.cs`, `AuditInterceptor.IsOptedOut`.
