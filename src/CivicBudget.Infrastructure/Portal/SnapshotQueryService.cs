@@ -126,6 +126,7 @@ public sealed class SnapshotQueryService(IDbContextFactory<PublicPortalDbContext
         PublishedBudgetSnapshotLine first = lines[0];
         return new PortalDepartmentDto(
             first.DepartmentCode!, first.DepartmentName!, first.DepartmentDescription, first.FundCode, first.FundName,
+            data.Snapshot.Departments.FirstOrDefault(d => d.Code == departmentCode)?.Narrative,
             Sum(lines, AccountType.Expenditure, l => l.Amount),
             Breakdown("Expenditures by category", lines.Where(l => l.AccountType == AccountType.Expenditure),
                 l => l.Category.ToString(), l => Labels.Category(l.Category), _ => null),
@@ -225,7 +226,7 @@ public sealed class SnapshotQueryService(IDbContextFactory<PublicPortalDbContext
 
         int year = fiscalYear ?? years[0].FiscalYear;
         PublishedBudgetSnapshot? snapshot = await db.Snapshots
-            .Include(s => s.Lines).Include(s => s.Funds)
+            .Include(s => s.Lines).Include(s => s.Funds).Include(s => s.Departments)
             .FirstOrDefaultAsync(s => s.GovernmentSlug == slug && s.FiscalYear == year, ct);
         return snapshot is null ? null : new Loaded(snapshot, snapshot.Lines.ToList(), years);
     }

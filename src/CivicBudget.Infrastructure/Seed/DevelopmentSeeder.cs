@@ -121,9 +121,15 @@ public sealed class DevelopmentSeeder(
         fy2025.Propose();
         fy2025.Adopt("2024-38", SeedUserId, new DateTimeOffset(2024, 12, 16, 19, 30, 0, TimeSpan.Zero));
 
-        // FY2026: adopted December 2025, then amended in June 2026.
+        // FY2026: adopted December 2025, then amended in June 2026. Department narratives are written
+        // before adoption and travel into the amendment, so the published portal shows them.
         BudgetVersion fy2026 = chart.BuildVersion(2026, MapleRidgeSeed.Lines, MapleRidgeSeed.BeginningBalances,
             amount: l => l.Budget2026, prior: l => l.Actual2024, current: l => l.Budget2025);
+        foreach ((string deptCode, string narrative) in MapleRidgeSeed.Narratives)
+        {
+            fy2026.SetDepartmentNarrative(chart.Department(deptCode), narrative);
+        }
+
         fy2026.Propose();
         fy2026.Adopt("2025-41", SeedUserId, new DateTimeOffset(2025, 12, 15, 19, 30, 0, TimeSpan.Zero));
 
@@ -141,9 +147,18 @@ public sealed class DevelopmentSeeder(
         fy2026Amendment.Adopt("2026-11", SeedUserId, new DateTimeOffset(2026, 6, 15, 19, 30, 0, TimeSpan.Zero));
         fy2026.MarkSupersededBy(fy2026Amendment);
 
-        // FY2027: draft in progress. Street fund is intentionally over its appropriation limit.
+        // FY2027: draft in progress. Street fund is intentionally over its appropriation limit. The
+        // department round is mid-way: Police has submitted, Parks was returned, Streets is still writing.
         BudgetVersion fy2027 = chart.BuildVersion(2027, MapleRidgeSeed.Lines, MapleRidgeSeed.BeginningBalances,
             amount: l => l.Budget2027, prior: l => l.Actual2025, current: l => l.Budget2026);
+        foreach ((string deptCode, string narrative) in MapleRidgeSeed.Narratives)
+        {
+            fy2027.SetDepartmentNarrative(chart.Department(deptCode), narrative);
+        }
+
+        fy2027.SubmitDepartment(chart.Department("110"), SeedUserId, "Chief Morgan Hale", new DateTimeOffset(2026, 9, 14, 20, 15, 0, TimeSpan.Zero));
+        fy2027.SubmitDepartment(chart.Department("310"), SeedUserId, "Sam Okafor (Service Director)", new DateTimeOffset(2026, 9, 10, 18, 40, 0, TimeSpan.Zero));
+        fy2027.ReturnDepartment(chart.Department("310"), MapleRidgeSeed.ParksReturnNote, new DateTimeOffset(2026, 9, 11, 13, 5, 0, TimeSpan.Zero));
 
         // Fiscal years are not reachable from a version by navigation, so they are added explicitly.
         db.FiscalYears.AddRange(chart.FiscalYears);

@@ -51,6 +51,10 @@ else
                     @foreach (DepartmentDetailDto d in report.Departments)
                     {
                         <tr class="cb-group"><td colspan="8">@d.DepartmentCode @d.DepartmentName</td></tr>
+                        @if (d.Narrative is not null)
+                        {
+                            <tr class="cb-report-narrative"><td colspan="8"><span class="cb-eyebrow">Department narrative</span><p class="mb-0">@d.Narrative</p></td></tr>
+                        }
                         @foreach (DetailLineDto l in d.Lines)
                         {
                             <tr>

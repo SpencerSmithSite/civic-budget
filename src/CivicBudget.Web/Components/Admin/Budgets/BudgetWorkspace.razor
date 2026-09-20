@@ -52,6 +52,11 @@ else
 
     <WorkflowStepper Status="workspace.Version.Status" IsPublished="activeSnapshot is not null" />
 
+    @if (workspace.Version.Status == BudgetStatus.Draft)
+    {
+        <DepartmentStrip Workspace="workspace" />
+    }
+
     <div class="cb-workspace">
         <div>
             @if (mode == Mode.ByDepartment)
@@ -195,6 +200,8 @@ else
         }
 
         await LoadAsync();
+        // Dialog confirmations arrive through a Func, not an EventCallback, so the page must ask to re-render itself.
+        StateHasChanged();
     }
 
     private void ShowHistory(BudgetLineDto line)

@@ -188,5 +188,6 @@ public sealed class BudgetWorkflowService(
             .Include(v => v.Lines).ThenInclude(l => l.Fund)
             .Include(v => v.Lines).ThenInclude(l => l.Department)
             .Include(v => v.BeginningBalances)
+            .Include(v => v.DepartmentRequests)
             .FirstOrDefaultAsync(v => v.Id == versionId, ct);
 }

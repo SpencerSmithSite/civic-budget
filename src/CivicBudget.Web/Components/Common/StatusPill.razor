@@ -10,6 +10,10 @@
     [Parameter]
     public SnapshotStatus? Snapshot { get; set; }
 
+    /// <summary>A department's request within a version (Phase 9d).</summary>
+    [Parameter]
+    public DepartmentRequestStatus? Request { get; set; }
+
     /// <summary>Free-form: "success", "warning", "danger", "info", or null for neutral.</summary>
     [Parameter]
     public string? Tone { get; set; }
@@ -17,7 +21,15 @@
     [Parameter]
     public string? Label { get; set; }
 
-    private string Text => Label ?? Budget?.ToString() ?? Snapshot?.ToString() ?? "";
+    private string Text => Label ?? Budget?.ToString() ?? Snapshot?.ToString() ?? RequestText ?? "";
+
+    private string? RequestText => Request switch
+    {
+        DepartmentRequestStatus.InProgress => "In progress",
+        DepartmentRequestStatus.Submitted => "Submitted",
+        DepartmentRequestStatus.Returned => "Returned",
+        _ => null,
+    };
 
     private string Css => Budget switch
     {
@@ -29,13 +41,19 @@
             SnapshotStatus.Active => "cb-pill-success",
             SnapshotStatus.Superseded => "",
             SnapshotStatus.Unpublished => "cb-pill-warning",
-            _ => Tone switch
+            _ => Request switch
             {
-                "success" => "cb-pill-success",
-                "warning" => "cb-pill-warning",
-                "danger" => "cb-pill-danger",
-                "info" => "cb-pill-info",
-                _ => "",
+                DepartmentRequestStatus.Submitted => "cb-pill-success",
+                DepartmentRequestStatus.Returned => "cb-pill-warning",
+                DepartmentRequestStatus.InProgress => "",
+                _ => Tone switch
+                {
+                    "success" => "cb-pill-success",
+                    "warning" => "cb-pill-warning",
+                    "danger" => "cb-pill-danger",
+                    "info" => "cb-pill-info",
+                    _ => "",
+                },
             },
         },
     };

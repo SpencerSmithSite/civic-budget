@@ -56,4 +56,17 @@ await shot('admin-import', `/admin/budgets/${version}/import`, {
   },
 });
 
+// Department user (Phase 9d): a fresh context (sign-out is a POST), and sign-in lands in their department.
+const chief = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
+const p3 = await chief.newPage();
+await p3.goto(base + '/Account/Login', { waitUntil: 'networkidle' });
+await p3.fill('input[name="Input.Email"]', 'police@mapleridge.example');
+await p3.fill('input[name="Input.Password"]', pw);
+await p3.click('button[type="submit"]');
+await p3.waitForFunction(() => location.pathname.includes('/departments/'));
+await p3.waitForTimeout(2500);
+await p3.screenshot({ path: `${out}/admin-department.png` });
+console.log('wrote admin-department');
+await chief.close();
+
 await browser.close();

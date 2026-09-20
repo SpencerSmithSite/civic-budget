@@ -151,7 +151,7 @@ await using var db = await _dbFactory.CreateDbContextAsync(ct);
 ### 4.2 Two DbContexts, one database (ADR-0006)
 - `CivicBudgetDbContext` — the full admin model, Identity tables, audit,
   snapshots. Owns the migrations.
-- `PublicPortalDbContext` — maps **only** the three snapshot tables, filters to
+- `PublicPortalDbContext` — maps **only** the four snapshot tables, filters to
   Active snapshots globally, `NoTracking` by default, and `SaveChanges` throws.
   Shares `PublishedSnapshotModel.Configure` with the admin context so the two
   mappings cannot drift; owns no migrations. Used exclusively by the portal.
@@ -210,11 +210,13 @@ graph LR
   subgraph Live budget data
     BV[BudgetVersion] --> BL[BudgetLine]
     BV --> FB[FundBeginningBalance]
+    BV --> DR[DepartmentRequest - narrative, submitted/returned]
   end
   subgraph Publish
     P[PublishBudgetService] -->|reads Adopted version| BV
     P -->|writes| S[PublishedBudgetSnapshot]
     S --> SL[PublishedBudgetSnapshotLine - denormalized]
+    S --> SD[PublishedBudgetSnapshotDepartment - narrative]
     P -->|evict tag| OC[Output cache]
     P -->|append| AU[Audit trail]
   end

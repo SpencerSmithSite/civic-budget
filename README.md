@@ -6,13 +6,14 @@ Blazor, EF Core, and SQL Server, with a deploy-ready AWS CDK stack.
 
 [![ci](https://github.com/SpencerSmithSite/civic-budget/actions/workflows/ci.yml/badge.svg)](https://github.com/SpencerSmithSite/civic-budget/actions/workflows/ci.yml)
 
-> **Status:** Complete (Phase 8). Eight phases, each a reviewed PR with a walkthrough; see [ROADMAP.md](ROADMAP.md) and the [demo script](docs/DEMO-SCRIPT.md).
+> **Status:** v1.0 complete (Phase 8); v1.1 (Phases 9a–9d) reframes the app as a plug-in beside a government ERP: the chart of accounts comes from the ERP, account numbers read the Ohio way, administrators create logons, and department users land in their own department. Each phase is a reviewed PR with a walkthrough; see [ROADMAP.md](ROADMAP.md) and the [demo script](docs/DEMO-SCRIPT.md).
 
 **Two audiences, one solution**
 - **Admin app** — finance staff and department heads build the annual budget:
-  fund/department/account setup, two budget-entry modes, live fund-balance
-  checks with Ohio-style appropriation limits, Draft → Proposed → Adopted
-  workflow, amendments, audit trail, import/export, reports.
+  the chart of accounts synced from the ERP (or maintained locally), each
+  department entering and submitting its own request with a narrative, live
+  fund-balance checks with Ohio-style appropriation limits, Draft → Proposed
+  → Adopted workflow, amendments, audit trail, import/export, reports.
 - **Public transparency portal** — citizens browse the *published* budget:
   fast, accessible (WCAG 2.1 AA target), no login, works on a phone and
   without JavaScript.
@@ -24,14 +25,14 @@ All data is fictional (Village of Maple Ridge, Ohio).
 | Budget workspace (Interactive Server) | Public portal (static SSR) |
 |---|---|
 | ![Budget workspace: grouped account lines with live fund balances](docs/screenshots/admin-workspace.png) | ![Portal overview: KPIs and where the money goes](docs/screenshots/portal-overview.png) |
-| ![Import preview with per-row results](docs/screenshots/admin-import.png) | ![Budget Summary by Fund report](docs/screenshots/admin-report-fund-summary.png) |
+| ![A department user's own page: accounts across funds, request column, narrative, submitted to the fiscal officer](docs/screenshots/admin-department.png) | ![Budget Summary by Fund report](docs/screenshots/admin-report-fund-summary.png) |
 
 <details>
 <summary>More screens</summary>
 
-| Admin overview | Portal fund page | Portal on a phone |
-|---|---|---|
-| ![Admin overview](docs/screenshots/admin-overview.png) | ![Portal fund drill-down](docs/screenshots/portal-fund.png) | ![Portal at phone width](docs/screenshots/portal-phone.png) |
+| Admin overview | Import preview | Portal fund page | Portal on a phone |
+|---|---|---|---|
+| ![Admin overview](docs/screenshots/admin-overview.png) | ![Import preview with per-row results](docs/screenshots/admin-import.png) | ![Portal fund drill-down](docs/screenshots/portal-fund.png) | ![Portal at phone width](docs/screenshots/portal-phone.png) |
 
 </details>
 

@@ -102,7 +102,7 @@ public class BudgetImportTests : BunitContext
     {
         public Task<BudgetWorkspaceDto?> GetWorkspaceAsync(Guid versionId, CancellationToken ct = default) =>
             Task.FromResult<BudgetWorkspaceDto?>(new BudgetWorkspaceDto(
-                new BudgetVersionSummaryDto(versionId, 2027, 1, "Original", BudgetStatus.Draft, null, null, 0), AccountNumberFormat.UanVillage, true, true, [], [], [], [], []));
+                new BudgetVersionSummaryDto(versionId, 2027, 1, "Original", BudgetStatus.Draft, null, null, 0), AccountNumberFormat.UanVillage, true, true, [], [], [], [], [], []));
 
         public Task<IReadOnlyList<BudgetVersionSummaryDto>> ListVersionsAsync(CancellationToken ct = default) => throw new NotSupportedException();
         public Task<Result> UpdateLineAmountAsync(Guid versionId, Guid lineId, decimal amount, CancellationToken ct = default) => throw new NotSupportedException();

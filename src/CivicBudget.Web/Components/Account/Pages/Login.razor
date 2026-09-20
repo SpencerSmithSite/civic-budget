@@ -85,7 +85,8 @@
         if (result.Succeeded)
         {
             Logger.LogInformation("User {Email} logged in.", Input.Email);
-            RedirectManager.RedirectTo(ReturnUrl);
+            // Straight into the app: the overview, or for a department user their department (the overview forwards them).
+            RedirectManager.RedirectTo(ReturnUrl ?? "admin");
         }
         else if (result.IsLockedOut)
         {

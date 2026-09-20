@@ -25,14 +25,21 @@
         </div>
         <div class="mb-3">
             <label class="form-label fw-semibold" for="add-dept">@Workspace.NumberFormat.DepartmentLabel</label>
-            <select id="add-dept" class="form-select" @bind="departmentId">
-                <option value="">None (fund level, for revenues and transfers)</option>
-                @foreach (LookupDto department in Workspace.Departments)
-                {
-                    <option value="@department.Id">@department.Display</option>
-                }
-            </select>
-            <div class="form-text">Expenditure accounts need a department.</div>
+            @if (FixedDepartment is not null)
+            {
+                <input id="add-dept" class="form-control" value="@FixedDepartment.Display" readonly />
+            }
+            else
+            {
+                <select id="add-dept" class="form-select" @bind="departmentId">
+                    <option value="">None (fund level, for revenues and transfers)</option>
+                    @foreach (LookupDto department in Workspace.Departments)
+                    {
+                        <option value="@department.Id">@department.Display</option>
+                    }
+                </select>
+                <div class="form-text">Expenditure accounts need a department.</div>
+            }
         </div>
         <div class="mb-1">
             <label class="form-label fw-semibold" for="add-amount">Proposed amount</label>
@@ -56,6 +63,10 @@
     [Parameter]
     public Func<AddBudgetLineRequest, Task<Result>> OnAdd { get; set; } = default!;
 
+    /// <summary>On the department entry page the department is a given, so it is shown, not chosen.</summary>
+    [Parameter]
+    public LookupDto? FixedDepartment { get; set; }
+
     public void Show()
     {
         result = null;
@@ -76,7 +87,7 @@
             return false;
         }
 
-        Guid? department = Guid.TryParse(departmentId, out Guid d) ? d : null;
+        Guid? department = FixedDepartment?.Id ?? (Guid.TryParse(departmentId, out Guid d) ? d : null);
         result = await OnAdd(new AddBudgetLineRequest(Workspace.Version.Id, fund, department, account, amount, 0m, 0m, null));
         if (result.IsFailure)
         {

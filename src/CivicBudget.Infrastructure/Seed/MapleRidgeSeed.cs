@@ -231,4 +231,28 @@ internal static class MapleRidgeSeed
 
     public const string Amendment1Reason =
         "Supplemental appropriation for police overtime coverage and the county dispatch contract increase effective July 1.";
+
+    /// <summary>
+    /// Department narratives: the "budget message" each department head writes with the request. Set on
+    /// FY2026 (so the published amendment carries them to the portal) and again on the FY2027 draft.
+    /// </summary>
+    public static IReadOnlyDictionary<string, string> Narratives { get; } = new Dictionary<string, string>
+    {
+        ["110"] = "The department requests funding for eight sworn officers and one part-time clerk, the same staffing as this year. "
+                + "Overtime covers court appearances and two festival weekends. Capital outlay replaces the 2017 cruiser, which has "
+                + "passed 140,000 miles; the county dispatch contract increases 6% under the new three-year agreement.",
+        ["620"] = "Streets & Service proposes the same crew of four with one seasonal hire for summer paving. Salt and fuel are "
+                + "budgeted at this year's actual usage plus 5%. The capital request funds the Maple Street resurfacing project "
+                + "(Elm to Route 42) from the Street fund's gasoline tax balance.",
+        ["310"] = "Parks & Recreation asks to keep the pool open one additional week in August and to replace the community park "
+                + "playground surface, which failed its spring inspection. Program revenue from swim lessons offsets about a third "
+                + "of pool operating costs.",
+        ["530"] = "The Water Utility request holds operating costs flat except chemicals, which follow the supplier's contract "
+                + "escalator. Debt service on the treatment plant note continues on schedule; no rate change is proposed for 2027.",
+    };
+
+    /// <summary>What the fiscal officer wrote when sending the FY2027 Parks request back.</summary>
+    public const string ParksReturnNote =
+        "Council asked that the playground surface come from the Capital Projects fund, not the General Fund. Please move the "
+        + "capital outlay line and resubmit.";
 }

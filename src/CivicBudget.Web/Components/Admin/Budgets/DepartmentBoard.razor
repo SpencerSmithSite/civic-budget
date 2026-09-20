@@ -1,0 +1,161 @@
+@page "/admin/budgets/{VersionId:guid}/departments"
+@attribute [Authorize(Policy = Policies.CanViewBudget)]
+@inject IBudgetEntryService BudgetEntry
+@inject IDepartmentRequestService Requests
+@inject ToastService Toasts
+
+@* Phase 9d: where every department stands on one version. For the fiscal officer it is the
+   "who is in" board with a Return action; for a department user with several departments it is
+   the picker (the service already limits the rows to theirs). *@
+<PageTitle>@(workspace is null ? "Departments" : $"Departments, FY{workspace.Version.Year} {workspace.Version.Label}")</PageTitle>
+
+@if (notFound)
+{
+    <EmptyState Icon="bi-journal-x" Title="Budget version not found" Text="It may have been removed, or the link is wrong."><a class="btn btn-primary" href="admin/budgets">Budget versions</a></EmptyState>
+}
+else if (workspace is null)
+{
+    <PageHeader Title="Loading departments" Eyebrow="Budget" Crumbs="@([new Crumb("Budget"), new Crumb("Departments")])" />
+    <SkeletonRows Rows="8" Columns="6" />
+}
+else
+{
+    <PageHeader Title="@(workspace.NumberFormat.DepartmentLabel + "s")" Eyebrow="@($"Budget · FY{workspace.Version.Year} {workspace.Version.Label}")"
+                Crumbs="@([new Crumb("Budget"), new Crumb("Budget versions", "admin/budgets"), new Crumb($"FY{workspace.Version.Year} {workspace.Version.Label}", $"admin/budgets/{VersionId}"), new Crumb("Departments")])"
+                Tip="Each department enters its own request and submits it. Submitted requests are locked for the department; return one to reopen it with a note.">
+        <TitleAddon><StatusPill Budget="workspace.Version.Status" /></TitleAddon>
+        <Actions>
+            <AuthorizeView Policy="@Policies.CanAdvanceWorkflow">
+                <a class="btn btn-outline-primary btn-sm" href="admin/budgets/@VersionId"><i class="bi bi-journal-text me-1" aria-hidden="true"></i>Whole budget</a>
+            </AuthorizeView>
+        </Actions>
+    </PageHeader>
+
+    <div class="cb-kpis">
+        <KpiCard Label="Submitted" Value="@($"{workspace.DepartmentsSubmitted} of {workspace.DepartmentRequests.Count}")"
+                 Tone="@(workspace.DepartmentRequests.Count > 0 && workspace.DepartmentsSubmitted == workspace.DepartmentRequests.Count ? "ok" : "")"
+                 Detail="@(returned > 0 ? $"{returned} returned for changes" : inProgress > 0 ? $"{inProgress} still in progress" : "Every department is in")" />
+        <KpiCard Label="@($"FY{workspace.Version.Year} requests")" Value="@Display.Money(workspace.DepartmentRequests.Sum(r => r.Amount))" Detail="Appropriations across the departments shown" />
+        <KpiCard Label="@($"Change vs FY{workspace.Version.Year - 1}")" Value="@Display.SignedChange(totalChange)" Detail="@Display.Percent(Domain.Common.Money.PercentChange(workspace.DepartmentRequests.Sum(r => r.CurrentYearBudget), workspace.DepartmentRequests.Sum(r => r.Amount)))"
+                 DetailTone="@(totalChange < 0 ? "down" : totalChange > 0 ? "up" : "")" />
+    </div>
+
+    <div class="card">
+        <div class="cb-grid-wrap">
+            <table class="cb-grid">
+                <thead>
+                    <tr>
+                        <th>@workspace.NumberFormat.DepartmentLabel</th>
+                        <th class="cb-num">Lines</th>
+                        <th class="cb-num">FY@(workspace.Version.Year - 1) budget</th>
+                        <th class="cb-num">FY@(workspace.Version.Year) request</th>
+                        <th class="cb-num">Change</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (DepartmentRequestDto r in workspace.DepartmentRequests)
+                    {
+                        <tr>
+                            <td class="cb-wrap"><a href="admin/budgets/@VersionId/departments/@r.DepartmentId"><span class="cb-code">@r.DepartmentCode</span> @r.DepartmentName</a></td>
+                            <td class="cb-num">@r.LineCount</td>
+                            <td class="cb-num">@r.CurrentYearBudget.ToString("N2")</td>
+                            <td class="cb-num">@r.Amount.ToString("N2")</td>
+                            <td class="cb-num @(r.DollarChange < 0 ? "cb-neg" : r.DollarChange > 0 ? "cb-pos" : "")">@Display.SignedChange(r.DollarChange) <small class="text-secondary">@Display.Percent(r.PercentChange)</small></td>
+                            <td class="cb-dept-status">
+                                <StatusPill Request="r.Status" />
+                                @if (r.Status == DepartmentRequestStatus.Submitted && r.SubmittedAtUtc is { } submitted)
+                                {
+                                    <small>@r.SubmittedByUserName, @Display.Relative(submitted)</small>
+                                }
+                                else if (r.Status == DepartmentRequestStatus.Returned && r.ReturnedAtUtc is { } returnedAt)
+                                {
+                                    <small title="@r.ReturnNote">@Display.Relative(returnedAt)</small>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <RowMenu Label="@($"Actions for {r.DepartmentName}")">
+                                    <li><a class="dropdown-item" href="admin/budgets/@VersionId/departments/@r.DepartmentId"><i class="bi bi-pencil-square me-2" aria-hidden="true"></i>Open</a></li>
+                                    @if (r.CanReturn)
+                                    {
+                                        <li><button type="button" class="dropdown-item" @onclick="() => AskReturn(r)"><i class="bi bi-arrow-return-left me-2" aria-hidden="true"></i>Return to department</button></li>
+                                    }
+                                </RowMenu>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <ConfirmDialog @ref="returnDialog" Title="@(toReturn is null ? "Return this request?" : $"Return {toReturn.DepartmentName}'s request?")" ConfirmText="Return to department" ConfirmClass="btn-warning"
+                   OnConfirm="ConfirmReturnAsync" ConfirmDisabled="@string.IsNullOrWhiteSpace(returnNote)">
+        <Body>
+            <p>The department will see your note and can edit and submit again.</p>
+            <label class="form-label fw-semibold" for="board-return-note">What should change?</label>
+            <textarea id="board-return-note" class="form-control" rows="4" maxlength="@DepartmentRequest.ReturnNoteMaxLength" @bind="returnNote" @bind:event="oninput"></textarea>
+        </Body>
+    </ConfirmDialog>
+}
+
+@code {
+    [Parameter]
+    public Guid VersionId { get; set; }
+
+    private BudgetWorkspaceDto? workspace;
+    private bool notFound;
+    private int returned;
+    private int inProgress;
+    private decimal totalChange;
+    private DepartmentRequestDto? toReturn;
+    private string? returnNote;
+    private ConfirmDialog returnDialog = default!;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        workspace = await BudgetEntry.GetWorkspaceAsync(VersionId);
+        notFound = workspace is null;
+        if (workspace is null)
+        {
+            return;
+        }
+
+        returned = workspace.DepartmentRequests.Count(r => r.Status == DepartmentRequestStatus.Returned);
+        inProgress = workspace.DepartmentRequests.Count(r => r.Status == DepartmentRequestStatus.InProgress);
+        totalChange = workspace.DepartmentRequests.Sum(r => r.DollarChange);
+    }
+
+    private void AskReturn(DepartmentRequestDto request)
+    {
+        toReturn = request;
+        returnNote = null;
+        returnDialog.Show();
+    }
+
+    private async Task<bool> ConfirmReturnAsync()
+    {
+        if (toReturn is null)
+        {
+            return true;
+        }
+
+        Result result = await Requests.ReturnAsync(VersionId, toReturn.DepartmentId, returnNote ?? "");
+        if (result.IsSuccess)
+        {
+            Toasts.Success($"{toReturn.DepartmentName}'s request was returned.");
+        }
+        else
+        {
+            Toasts.Danger(result.Errors[0].Message);
+        }
+
+        toReturn = null;
+        await LoadAsync();
+        StateHasChanged(); // the dialog's Func callback does not re-render the page by itself
+        return true;
+    }
+}

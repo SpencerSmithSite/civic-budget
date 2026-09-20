@@ -1,6 +1,7 @@
 using CivicBudget.Domain.Accounts;
 using CivicBudget.Domain.Budgets;
 using CivicBudget.Domain.Common;
+using CivicBudget.Domain.Departments;
 using CivicBudget.Domain.FiscalYears;
 using CivicBudget.Domain.Funds;
 using CivicBudget.Domain.Governments;
@@ -31,6 +32,7 @@ public sealed class PublishedBudgetSnapshot : Entity, ITenantOwned
 {
     private readonly List<PublishedBudgetSnapshotLine> _lines = [];
     private readonly List<PublishedBudgetSnapshotFund> _funds = [];
+    private readonly List<PublishedBudgetSnapshotDepartment> _departments = [];
 
     public Guid GovernmentId { get; private set; }
 
@@ -58,6 +60,7 @@ public sealed class PublishedBudgetSnapshot : Entity, ITenantOwned
 
     public IReadOnlyCollection<PublishedBudgetSnapshotLine> Lines => _lines.AsReadOnly();
     public IReadOnlyCollection<PublishedBudgetSnapshotFund> Funds => _funds.AsReadOnly();
+    public IReadOnlyCollection<PublishedBudgetSnapshotDepartment> Departments => _departments.AsReadOnly();
 
     public bool IsActive => Status == SnapshotStatus.Active;
 
@@ -121,6 +124,14 @@ public sealed class PublishedBudgetSnapshot : Entity, ITenantOwned
             Fund fund = funds.FirstOrDefault(f => f.Id == fundId)
                 ?? throw new DomainException($"Fund {fundId} was not supplied for the snapshot.");
             snapshot._funds.Add(new PublishedBudgetSnapshotFund(snapshot.Id, government.Id, fund, version.GetBeginningBalance(fundId)));
+        }
+
+        // One department row per department with lines, carrying the narrative it wrote for this
+        // version. Lines already copy the department's code and name; this row exists for the text.
+        foreach (Department department in version.Lines.Where(l => l.Department is not null).Select(l => l.Department!).DistinctBy(d => d.Id))
+        {
+            snapshot._departments.Add(new PublishedBudgetSnapshotDepartment(
+                snapshot.Id, government.Id, department, version.GetDepartmentRequest(department.Id)?.Narrative));
         }
 
         return snapshot;
@@ -226,6 +237,35 @@ public sealed class PublishedBudgetSnapshotFund : Entity, ITenantOwned
     }
 
     private PublishedBudgetSnapshotFund()
+    {
+        Code = null!;
+        Name = null!;
+    }
+}
+
+/// <summary>A department as published: its description and the narrative it submitted with this budget.</summary>
+public sealed class PublishedBudgetSnapshotDepartment : Entity, ITenantOwned
+{
+    public Guid SnapshotId { get; private set; }
+    public Guid GovernmentId { get; private set; }
+    public string Code { get; private set; }
+    public string Name { get; private set; }
+    public string? Description { get; private set; }
+
+    /// <summary>The department's budget message, frozen at publish time like everything else here.</summary>
+    public string? Narrative { get; private set; }
+
+    internal PublishedBudgetSnapshotDepartment(Guid snapshotId, Guid governmentId, Department department, string? narrative)
+    {
+        SnapshotId = snapshotId;
+        GovernmentId = governmentId;
+        Code = department.Code;
+        Name = department.Name;
+        Description = department.Description;
+        Narrative = narrative;
+    }
+
+    private PublishedBudgetSnapshotDepartment()
     {
         Code = null!;
         Name = null!;

@@ -1,0 +1,35 @@
+@* One chip per department with its request status, above the workspace grid, so the fiscal
+   officer sees who has submitted without leaving the version. Each chip opens the department page. *@
+@if (Workspace.DepartmentRequests.Count > 0)
+{
+    <div class="cb-dept-strip" role="navigation" aria-label="Departments">
+        <span class="name">@Workspace.NumberFormat.DepartmentLabel@(Workspace.DepartmentRequests.Count == 1 ? "" : "s")</span>
+        <span class="text-secondary me-2">@Workspace.DepartmentsSubmitted of @Workspace.DepartmentRequests.Count submitted</span>
+        @foreach (DepartmentRequestDto r in Workspace.DepartmentRequests)
+        {
+            <a class="cb-dept-chip @Css(r.Status)" href="admin/budgets/@Workspace.Version.Id/departments/@r.DepartmentId" title="@Title(r)">
+                <span class="dot" aria-hidden="true"></span>@r.DepartmentCode <span class="visually-hidden">@r.DepartmentName, @Title(r)</span>
+            </a>
+        }
+        <a class="ms-auto small" href="admin/budgets/@Workspace.Version.Id/departments">All departments ›</a>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public BudgetWorkspaceDto Workspace { get; set; } = default!;
+
+    private static string Css(DepartmentRequestStatus status) => status switch
+    {
+        DepartmentRequestStatus.Submitted => "submitted",
+        DepartmentRequestStatus.Returned => "returned",
+        _ => "",
+    };
+
+    private static string Title(DepartmentRequestDto r) => r.Status switch
+    {
+        DepartmentRequestStatus.Submitted => $"{r.DepartmentName}: submitted by {r.SubmittedByUserName}",
+        DepartmentRequestStatus.Returned => $"{r.DepartmentName}: returned for changes",
+        _ => $"{r.DepartmentName}: in progress",
+    };
+}

@@ -161,11 +161,12 @@ UAN village or `101-110-5100` for a county), and permissions follow the departme
 - [x] Spencer approves Phase 9c
 
 ## Phase 9d — Department-first budgeting  `phase-9d-department-entry`
-- [ ] After sign-in a department user lands on "My department" for the open version (a picker when assigned to several)
-- [ ] Department entry page: the department's accounts across its funds as full account numbers, prior year actual, current budget, request, change; running totals; a narrative/justification for the department as a whole
-- [ ] Department submits to the fiscal officer (per-department Submitted status on the version; fiscal officer can return it); the workspace shows which departments are in
-- [ ] Portal and Department Detail report carry the department narrative
-- [ ] Tests, walkthrough, interview prep
+- [x] After sign-in a department user lands on "My department" for the open version (a picker when assigned to several)
+- [x] Department entry page: the department's accounts across its funds as full account numbers, prior year actual, current budget, request, change; running totals; a narrative/justification for the department as a whole
+- [x] Department submits to the fiscal officer (per-department Submitted status on the version; fiscal officer can return it); the workspace shows which departments are in
+- [x] Portal and Department Detail report carry the department narrative
+- [x] Tests (domain rules, permission matrix, services end to end, published narrative, pages), walkthrough 13, interview prep (v1.1 section), ADR-0027
+- [ ] Spencer approves Phase 9d
 
 Order: 9a → 9b → 9c → 9d. Each is a PR with the usual report; approve before the next starts.
 

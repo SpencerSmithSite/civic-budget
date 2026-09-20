@@ -37,6 +37,7 @@ public static class ReportBuilder
             .OrderBy(g => g.Key.Item2, StringComparer.Ordinal)
             .Select(g => new DepartmentDetailDto(
                 g.Key.Item1, g.Key.Item2, g.Key.Item3,
+                workspace.DepartmentRequests.FirstOrDefault(r => r.DepartmentId == g.Key.Item1)?.Narrative,
                 g.OrderBy(l => l.FundCode, StringComparer.Ordinal).ThenBy(l => l.AccountType).ThenBy(l => l.AccountCode, StringComparer.Ordinal)
                     .Select(l => new DetailLineDto(
                         l.FundCode, l.FundName, l.AccountCode, l.AccountName, l.AccountNumber, l.AccountType, l.Category,

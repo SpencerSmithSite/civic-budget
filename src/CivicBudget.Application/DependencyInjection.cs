@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<IBudgetEntryService, BudgetEntryService>();
         services.AddScoped<IAuditQueryService, AuditQueryService>();
         services.AddScoped<IBudgetWorkflowService, BudgetWorkflowService>();
+        services.AddScoped<IDepartmentRequestService, DepartmentRequestService>();
         services.AddScoped<IPublishingService, PublishingService>();
         services.AddScoped<IBudgetImportService, BudgetImportService>();
         services.AddScoped<IReportService, ReportService>();
