@@ -30,3 +30,16 @@ internal sealed class UserDepartmentConfiguration : IEntityTypeConfiguration<Use
         builder.HasOne<Department>().WithMany().HasForeignKey(ud => ud.DepartmentId).OnDelete(DeleteBehavior.Restrict);
     }
 }
+
+internal sealed class UserAvatarConfiguration : IEntityTypeConfiguration<UserAvatar>
+{
+    public void Configure(EntityTypeBuilder<UserAvatar> builder)
+    {
+        builder.ToTable("UserAvatars");
+        builder.HasKey(a => a.UserId);
+        builder.Property(a => a.UserId).HasMaxLength(450);
+        builder.Property(a => a.ContentType).HasMaxLength(64);
+        builder.Property(a => a.Data).HasMaxLength(UserAvatar.MaxBytes);
+        builder.HasOne<ApplicationUser>().WithOne().HasForeignKey<UserAvatar>(a => a.UserId).OnDelete(DeleteBehavior.Cascade);
+    }
+}

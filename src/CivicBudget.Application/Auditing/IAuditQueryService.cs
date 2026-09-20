@@ -14,7 +14,9 @@ public sealed record AuditEntryDto(
     string? OldValue,
     string? NewValue,
     string? Description,
-    string EntityName = "");
+    string EntityName = "",
+    /// <summary>Who acted, so a timeline can show their picture next to their name.</summary>
+    string UserId = "");
 
 /// <summary>Read side of the audit trail. The write side is the interceptor in Infrastructure.</summary>
 public interface IAuditQueryService
@@ -46,7 +48,7 @@ public sealed class AuditQueryService(ICivicBudgetDbContextFactory dbFactory, IC
         return await db.AuditEntries
             .Where(a => a.EntityName == entityName && a.EntityId == entityId)
             .OrderByDescending(a => a.TimestampUtc)
-            .Select(a => new AuditEntryDto(a.TimestampUtc, a.UserName, a.Kind, a.PropertyName, a.OldValue, a.NewValue, a.Description, a.EntityName))
+            .Select(a => new AuditEntryDto(a.TimestampUtc, a.UserName, a.Kind, a.PropertyName, a.OldValue, a.NewValue, a.Description, a.EntityName, a.UserId))
             .ToListAsync(ct);
     }
 
@@ -64,7 +66,7 @@ public sealed class AuditQueryService(ICivicBudgetDbContextFactory dbFactory, IC
         return await entries
             .OrderByDescending(a => a.TimestampUtc)
             .Take(count)
-            .Select(a => new AuditEntryDto(a.TimestampUtc, a.UserName, a.Kind, a.PropertyName, a.OldValue, a.NewValue, a.Description, a.EntityName))
+            .Select(a => new AuditEntryDto(a.TimestampUtc, a.UserName, a.Kind, a.PropertyName, a.OldValue, a.NewValue, a.Description, a.EntityName, a.UserId))
             .ToListAsync(ct);
     }
 

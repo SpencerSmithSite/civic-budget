@@ -21,6 +21,8 @@ public enum DepartmentRequestStatus
 /// In Ohio practice each department hands its request to the fiscal officer, who assembles the
 /// whole budget; this row records that hand-off per department so the officer can see who is in.
 /// Created and changed only through <see cref="BudgetVersion"/>, which owns the editability rule.
+/// Submit and return are recorded as named events on the version, so their bookkeeping fields are
+/// <see cref="NotAuditedAttribute">not audited</see> field by field; Status, Narrative, and ReturnNote still are.
 /// </summary>
 [Audited]
 public sealed class DepartmentRequest : Entity, ITenantOwned
@@ -37,15 +39,19 @@ public sealed class DepartmentRequest : Entity, ITenantOwned
     /// <summary>The department's own explanation of its request. Published with the budget.</summary>
     public string? Narrative { get; private set; }
 
+    [NotAudited]
     public DateTimeOffset? SubmittedAtUtc { get; private set; }
+    [NotAudited]
     public string? SubmittedByUserId { get; private set; }
 
     /// <summary>Kept as text so the workspace can say "submitted by Chief Hale" without a join to Identity.</summary>
+    [NotAudited]
     public string? SubmittedByUserName { get; private set; }
 
     /// <summary>The fiscal officer's reason for sending the request back. Cleared on the next submit.</summary>
     public string? ReturnNote { get; private set; }
 
+    [NotAudited]
     public DateTimeOffset? ReturnedAtUtc { get; private set; }
 
     public bool IsSubmitted => Status == DepartmentRequestStatus.Submitted;

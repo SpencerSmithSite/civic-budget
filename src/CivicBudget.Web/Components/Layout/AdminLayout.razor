@@ -14,9 +14,9 @@
 <div class="cb-shell @(collapsed ? "collapsed" : "")">
     <aside class="cb-sidebar @(menuOpen ? "open" : "")" id="admin-sidebar">
         <div class="cb-sidebar-head">
-            <a class="cb-brand" href="admin" aria-label="CivicBudget overview">
-                <span class="cb-seal" aria-hidden="true">CB</span>
-                <span><b>CivicBudget</b><small>@(governmentName ?? "")</small></span>
+            <a class="cb-brand" href="admin" aria-label="@($"{governmentName ?? "CivicBudget"} home")" title="@governmentName">
+                <Logo Size="36" />
+                <span class="cb-brand-gov">@(governmentName ?? "")</span>
             </a>
             <button type="button" class="cb-collapse" @onclick="ToggleCollapsedAsync" aria-expanded="@(!collapsed)" aria-controls="admin-sidebar"
                     title="@(collapsed ? "Expand menu" : "Collapse menu")" aria-label="@(collapsed ? "Expand menu" : "Collapse menu")">
@@ -81,12 +81,13 @@
                 <div class="dropdown">
                     <button type="button" class="btn btn-link text-decoration-none p-0 cb-user" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="menu"
                             aria-label="@($"Account menu, {context.User.FindFirst(ClaimNames.DisplayName)?.Value}")">
-                        <span class="cb-avatar" aria-hidden="true">@Initials(context.User.FindFirst(ClaimNames.DisplayName)?.Value)</span>
+                        <Avatar UserId="@context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value" Name="@context.User.FindFirst(ClaimNames.DisplayName)?.Value" />
                         <span class="d-none d-sm-block text-start text-body">@context.User.FindFirst(ClaimNames.DisplayName)?.Value<small>@string.Join(", ", context.User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => Roles.DisplayName(c.Value)))</small></span>
                         <i class="bi bi-chevron-down small text-body" aria-hidden="true"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li><a class="dropdown-item" href="Account/Manage"><i class="bi bi-person me-2" aria-hidden="true"></i>Profile</a></li>
+                        <li><a class="dropdown-item" href="admin/profile-picture"><i class="bi bi-person-circle me-2" aria-hidden="true"></i>Profile picture</a></li>
                         <li><a class="dropdown-item" href="Account/Manage/ChangePassword"><i class="bi bi-key me-2" aria-hidden="true"></i>Change password</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
@@ -150,16 +151,6 @@
         await JS.InvokeVoidAsync("civicBudget.setCookie", CollapsedCookie, collapsed ? "1" : "0");
     }
 
-    private static string Initials(string? name)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            return "?";
-        }
-
-        string[] parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Where(p => char.IsLetter(p[0])).ToArray();
-        return parts.Length >= 2 ? $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant() : name[..1].ToUpperInvariant();
-    }
 
     public void Dispose()
     {

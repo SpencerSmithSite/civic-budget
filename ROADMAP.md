@@ -170,3 +170,11 @@ UAN village or `101-110-5100` for a county), and permissions follow the departme
 
 Order: 9a → 9b → 9c → 9d. Each is a PR with the usual report; approve before the next starts.
 
+## Phase 10 — Branding and profile pictures  `phase-10-branding-and-avatars`
+- [x] CivicBudget logo mark (inline SVG `Logo` component, matching favicon) in place of the "CB" seal
+- [x] Sidebar brand is the government's name; the product name stays on the public header and sign-in
+- [x] Profile pictures: browser-side resize, `UserAvatars` table, versioned image endpoint, `Avatar` component everywhere initials were shown, admin removal; ADR-0028
+- [x] `[NotAudited]` so submit/return bookkeeping fields stay out of the activity feed
+- [x] Tests (service scoping and permissions, components, audit opt-out); walkthrough 14; interview prep
+- [ ] Spencer approves Phase 10
+

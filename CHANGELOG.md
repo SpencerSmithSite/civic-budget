@@ -5,6 +5,15 @@ All notable changes to CivicBudget. Format loosely follows
 
 ## [Unreleased]
 
+## Phase 10 — 2026-09-20 (v1.1)
+### Added
+- A CivicBudget logo mark (civic building on a teal tile) as inline SVG and favicon.
+- Profile pictures: upload on **Profile picture** (account menu), resized in the browser to 256 px, stored in `UserAvatars`, shown in the top bar, user list, recent activity, and line history; administrators can remove a user's picture. Migration `AddUserAvatars`.
+- `[NotAudited]` for entity properties whose change is already a named audit event.
+### Changed
+- The admin sidebar shows the government's name beside the mark instead of the product name.
+- Department request submit/return no longer write id and timestamp field changes to the activity feed.
+
 ## Phase 9d — 2026-09-19 (v1.1)
 ### Added
 - Department-first budgeting: sign-in lands in the app, and a department user's home is **My department**, which opens their department for the budget in progress (or a board of their departments).

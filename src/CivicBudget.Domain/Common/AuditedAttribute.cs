@@ -8,3 +8,11 @@ namespace CivicBudget.Domain.Common;
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]
 public sealed class AuditedAttribute : Attribute;
+
+/// <summary>
+/// Opts one property of an audited entity out of field-level auditing. For bookkeeping fields whose
+/// change is already recorded as a named event (who submitted, when it was returned), a second
+/// "changed Submitted by user id: seed → c199..." row on the timeline is noise, not evidence.
+/// </summary>
+[AttributeUsage(AttributeTargets.Property, Inherited = false)]
+public sealed class NotAuditedAttribute : Attribute;

@@ -1,0 +1,29 @@
+@* The CivicBudget mark: a civic building (pediment, three columns, base) on a teal tile. Inline SVG
+   so it scales crisply from the favicon to the sign-in page and needs no extra request. The gradient
+   id is suffixed per instance because several marks can share one page. *@
+<svg class="cb-logo" width="@Size" height="@Size" viewBox="0 0 40 40" role="img" aria-label="@Label" focusable="false">
+    <defs>
+        <linearGradient id="@gradientId" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#1798A8" />
+            <stop offset="1" stop-color="#0B7285" />
+        </linearGradient>
+    </defs>
+    <rect width="40" height="40" rx="10" fill="url(#@gradientId)" />
+    <path d="M20 8.5 8.5 16h23z" fill="#fff" />
+    <rect x="10" y="17.5" width="20" height="2" rx="1" fill="#fff" />
+    <rect x="11.5" y="21" width="3.5" height="8" rx="0.8" fill="#fff" />
+    <rect x="18.25" y="21" width="3.5" height="8" rx="0.8" fill="#fff" />
+    <rect x="25" y="21" width="3.5" height="8" rx="0.8" fill="#fff" />
+    <rect x="9" y="30.5" width="22" height="2.5" rx="1" fill="#fff" />
+</svg>
+
+@code {
+    private readonly string gradientId = "cb-logo-g-" + Guid.NewGuid().ToString("N")[..6];
+
+    /// <summary>Rendered width and height in pixels.</summary>
+    [Parameter]
+    public int Size { get; set; } = 32;
+
+    [Parameter]
+    public string Label { get; set; } = "CivicBudget";
+}

@@ -90,7 +90,7 @@ else
                         @foreach (AuditEntryDto entry in activity)
                         {
                             <li>
-                                <span class="cb-avatar" aria-hidden="true">@Initials(entry.UserName)</span>
+                                <Avatar UserId="@entry.UserId" Name="@entry.UserName" />
                                 <div><b>@entry.UserName</b> @Describe(entry)</div>
                                 <span class="when" title="@entry.TimestampUtc.ToString("u")">@Display.Relative(entry.TimestampUtc)</span>
                             </li>
@@ -156,9 +156,4 @@ else
         _ => entry.Description ?? "",
     };
 
-    private static string Initials(string name)
-    {
-        string[] parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Where(p => char.IsLetter(p[0])).ToArray();
-        return parts.Length >= 2 ? $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant() : name.Length > 0 ? name[..1].ToUpperInvariant() : "?";
-    }
 }

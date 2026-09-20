@@ -276,6 +276,43 @@ a default, so callers that do not know about submissions keep working. Tests: do
 end to end with the seeded mid-round FY2027 (`DepartmentRequestServiceTests`), the published
 narrative (`SnapshotQueryServiceTests`), and the pages (`DepartmentPagesTests`).
 
+## ADR-0028 — Profile pictures are resized by the browser, stored in SQL Server, and served through a versioned URL
+**Date:** 2026-09-20 · **Status:** Accepted
+
+**Context.** Users want a picture instead of initials in the account circle. The app has no blob
+storage (ADR-0008: deploy-ready, no account), and adding an image library to resize on the
+server means a native dependency and a licensing decision (ImageSharp's split license,
+SkiaSharp's size) for a feature that handles one small image per user.
+
+**Decision.**
+- **The browser resizes.** Blazor's `IBrowserFile.RequestImageFileAsync("image/png", 256, 256)`
+  draws the chosen file onto a canvas and hands back a PNG no larger than 256 px. The server
+  checks only content type and size (`UserAvatar.MaxBytes`, 512 KB); it never decodes an image.
+- **Bytes live in a `UserAvatars` table**, one row per user, separate from `AspNetUsers` so a
+  user list never reads image data. `ApplicationUser.AvatarUpdatedAtUtc` says whether a
+  picture exists and doubles as the version.
+- **A versioned URL with a long private cache.** `/Account/Avatar/{userId}?v={ticks}` returns
+  the bytes with `Cache-Control: private, max-age=31536000, immutable`; a new upload changes the
+  URL, so nothing is ever stale and nothing is re-fetched. The endpoint requires authentication
+  and the service joins to `Users` on the current government, the same scoping rule as every
+  Identity read (ADR-0015).
+- **One `Avatar` component** decides picture-or-initials. Lists pass the version from their
+  DTO; the top bar and timelines ask `IUserAvatarService.GetVersionAsync`, which caches per
+  scope (one circuit) and raises `Changed` after an upload so the top bar updates in place.
+- **Users upload their own; administrators only remove.** Removing is the moderation need; an
+  administrator uploading someone else's face is not.
+
+**Alternatives.** S3 or blob storage (the right answer at scale, and a one-class change behind
+`IUserAvatarService` when there is an account); server-side resizing (a package and a native
+dependency for one feature); a data URL in a claim (bloats every request's cookie); Gravatar
+(sends users' emails to a third party from a government system).
+
+**Consequences.** One migration, no package. A 256 px PNG is 30 to 200 KB; a thousand users
+is under 200 MB in the database, acceptable for a village or county and easy to move later.
+The same phase adds `[NotAudited]` for properties whose change is already a named audit event,
+because the department round (ADR-0027) had started writing ids and timestamps into the
+activity feed.
+
 ## Packages
 
 Every NuGet package and why. Add a row when adding a package.

@@ -51,6 +51,7 @@ public sealed class CivicBudgetDbContext(DbContextOptions<CivicBudgetDbContext> 
     public DbSet<PublishedBudgetSnapshot> PublishedBudgetSnapshots => Set<PublishedBudgetSnapshot>();
     public DbSet<ChartSync> ChartSyncs => Set<ChartSync>();
     public DbSet<UserDepartment> UserDepartments => Set<UserDepartment>();
+    public DbSet<UserAvatar> UserAvatars => Set<UserAvatar>();
 
     /// <summary>
     /// Read by the query filters. Must be an instance member so EF Core treats it as a parameter
