@@ -929,22 +929,27 @@ table.cb-grid th.col-justify-end .col-header-content {
 }
 
 /* --------------------------------------------------------------------------
-   Overview: versions and government on the left, activity on the right
+   Overview
    -------------------------------------------------------------------------- */
 
-.cb-overview {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 16px;
-    align-items: stretch;
+/* The versions card fills its column beside the activity feed; the wrapper grows so the card's
+   bottom edge is the column's, not the last row's. Overflow stays vertical-only: with a sideways
+   scrollbar present, its own height would force a vertical one on a table that fits. */
+.cb-grid-wrap-fill {
+    flex: 1 1 auto;
+    overflow-y: hidden;
 }
 
-/* Bootstrap's widest breakpoint (1400px) is not wide enough for the versions table beside the
-   feed, so the split has its own threshold. */
-@media (min-width: 1500px) {
-    .cb-overview {
-        grid-template-columns: 7fr 5fr;
-    }
+/* Summary tables with few rows: tighter cells and wrapping headers so seven columns fit a
+   laptop-width column without scrolling sideways. */
+table.cb-grid-tight > thead > tr > th,
+table.cb-grid-tight > tbody > tr > td {
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+table.cb-grid-tight > thead > tr > th {
+    white-space: normal;
 }
 
 /* --------------------------------------------------------------------------
