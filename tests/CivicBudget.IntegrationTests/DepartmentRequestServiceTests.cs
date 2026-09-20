@@ -113,6 +113,9 @@ public class DepartmentRequestServiceTests(SqlServerFixture fixture) : IAsyncLif
 
         await using CivicBudgetDbContext db = _database.CreateContext(_mapleRidge);
         Assert.True(await db.AuditEntries.AnyAsync(a => a.EntityName == nameof(BudgetVersion) && a.Description == "Streets & Service submitted its budget request"));
+        // The named event carries who and when; the bookkeeping fields are [NotAudited] so the timeline is not cluttered with ids and timestamps.
+        Assert.True(await db.AuditEntries.AnyAsync(a => a.EntityName == nameof(DepartmentRequest) && a.PropertyName == nameof(DepartmentRequest.Status)));
+        Assert.False(await db.AuditEntries.AnyAsync(a => a.EntityName == nameof(DepartmentRequest) && (a.PropertyName == nameof(DepartmentRequest.SubmittedByUserId) || a.PropertyName == nameof(DepartmentRequest.SubmittedAtUtc))));
     }
 
     [Fact]
