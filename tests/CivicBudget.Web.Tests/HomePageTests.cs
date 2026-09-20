@@ -12,7 +12,7 @@ public class HomePageTests : BunitContext
         IRenderedComponent<Home> page = Render<Home>();
 
         Assert.Contains("Budgeting and public transparency", page.Find("h1").TextContent);
-        Assert.Contains("Sign in to view and enter data", page.Find("h2").TextContent);
+        Assert.Contains("Sign in to view and enter data", page.Find(".cb-login-card p").TextContent);
         Assert.Contains("Sign in", page.Find("a.btn-primary").TextContent);
         Assert.Equal("transparency", page.Find("a.btn-outline-primary").GetAttribute("href"));
         // Ready for market, not a showcase: no project, demo, or stack talk on the front door.
