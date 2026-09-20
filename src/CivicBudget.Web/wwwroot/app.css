@@ -717,7 +717,10 @@ table.cb-grid {
     width: 100%;
     margin: 0;
     font-size: 0.8125rem;
-    border-collapse: collapse;
+    /* separate, not collapse: a collapsed table's outer border overhangs its box by half a pixel,
+       which is enough for Safari to show a horizontal scrollbar on a table that fits its card. */
+    border-collapse: separate;
+    border-spacing: 0;
 }
 
 table.cb-grid > thead > tr > th {
@@ -923,6 +926,30 @@ table.cb-grid th.col-justify-end .col-header-content {
     --bs-dropdown-link-active-bg: var(--cb-subtotal);
     --bs-dropdown-link-active-color: var(--cb-navy);
     box-shadow: 0 8px 24px rgba(15, 42, 68, 0.12);
+}
+
+/* --------------------------------------------------------------------------
+   Overview
+   -------------------------------------------------------------------------- */
+
+/* The versions card fills its column beside the activity feed; the wrapper grows so the card's
+   bottom edge is the column's, not the last row's. Overflow stays vertical-only: with a sideways
+   scrollbar present, its own height would force a vertical one on a table that fits. */
+.cb-grid-wrap-fill {
+    flex: 1 1 auto;
+    overflow-y: hidden;
+}
+
+/* Summary tables with few rows: tighter cells and wrapping headers so seven columns fit a
+   laptop-width column without scrolling sideways. */
+table.cb-grid-tight > thead > tr > th,
+table.cb-grid-tight > tbody > tr > td {
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+table.cb-grid-tight > thead > tr > th {
+    white-space: normal;
 }
 
 /* --------------------------------------------------------------------------
@@ -1314,35 +1341,194 @@ table.cb-grid th.col-justify-end .col-header-content {
     min-height: calc(100vh - 56px);
 }
 
+/* The navy half: the headline at the top left, the animated panel filling the rest. */
 .cb-login-left {
     background: var(--cb-sidebar);
     color: #fff;
-    padding: 48px;
+    padding: 56px 48px 40px;
     display: flex;
     flex-direction: column;
-}
-
-.cb-login-left .cb-brand small {
-    max-width: none;
+    gap: 40px;
+    overflow: hidden;
 }
 
 .cb-login-left h1 {
     font-size: 1.875rem;
-    margin: 40px 0 10px;
     font-weight: 600;
     letter-spacing: -0.01em;
+    line-height: 1.2;
     max-width: 22ch;
+    margin: 0;
+    text-wrap: balance;
 }
 
-.cb-login-left p, .cb-login-left li {
-    color: rgba(255, 255, 255, 0.75);
-    max-width: 44ch;
-    line-height: 1.55;
+/* ---- The art: two frosted cards, bars that fill and then drift between three states ---- */
+.cb-art {
+    display: grid;
+    align-content: start;
+    justify-items: start;
+    gap: 18px;
+    max-width: 520px;
+    width: 100%;
+    margin-top: 24px;
 }
 
-.cb-login-left ul {
-    padding-left: 18px;
-    margin-top: 18px;
+.cb-art-card {
+    width: 100%;
+    padding: 18px 20px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(4px);
+    animation: cb-art-rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.cb-art-card-2 {
+    width: 78%;
+    margin-left: 22%;
+    padding: 14px 20px;
+    animation-delay: 0.25s;
+}
+
+.cb-art-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.cb-art-title {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.cb-art-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 2px 9px;
+    border-radius: 999px;
+    color: #9FE1B8;
+    background: rgba(30, 126, 74, 0.35);
+}
+
+.cb-art-row {
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    font-size: 0.8125rem;
+}
+
+.cb-art-fund { color: rgba(255, 255, 255, 0.85); }
+
+.cb-art-bars { display: grid; gap: 4px; }
+
+.cb-art-bar {
+    display: block;
+    height: 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+}
+
+.cb-art-bar i {
+    display: block;
+    height: 100%;
+    border-radius: 4px;
+    width: 0;
+    animation: 9s ease-in-out infinite both;
+}
+
+.cb-art-bar.r i, .cb-art-legend i.r { background: #5EC2D3; }
+.cb-art-bar.a i, .cb-art-legend i.a { background: #C8873A; }
+
+/* Three states per bar so resources always stay ahead of appropriations: the rule the app enforces. */
+.cb-art-row.r1 .cb-art-bar.r i { animation-name: cb-r1; }
+.cb-art-row.a1 .cb-art-bar.a i { animation-name: cb-a1; }
+.cb-art-row.r2 .cb-art-bar.r i { animation-name: cb-r2; }
+.cb-art-row.a2 .cb-art-bar.a i { animation-name: cb-a2; }
+.cb-art-row.r3 .cb-art-bar.r i { animation-name: cb-r3; }
+.cb-art-row.a3 .cb-art-bar.a i { animation-name: cb-a3; }
+
+@keyframes cb-r1 { 0% { width: 0; } 12%, 40% { width: 92%; } 52%, 72% { width: 84%; } 84%, 100% { width: 92%; } }
+@keyframes cb-a1 { 0% { width: 0; } 14%, 40% { width: 70%; } 52%, 72% { width: 78%; } 84%, 100% { width: 70%; } }
+@keyframes cb-r2 { 0% { width: 0; } 16%, 40% { width: 58%; } 52%, 72% { width: 66%; } 84%, 100% { width: 58%; } }
+@keyframes cb-a2 { 0% { width: 0; } 18%, 40% { width: 44%; } 52%, 72% { width: 60%; } 84%, 100% { width: 44%; } }
+@keyframes cb-r3 { 0% { width: 0; } 20%, 40% { width: 74%; } 52%, 72% { width: 62%; } 84%, 100% { width: 74%; } }
+@keyframes cb-a3 { 0% { width: 0; } 22%, 40% { width: 52%; } 52%, 72% { width: 50%; } 84%, 100% { width: 52%; } }
+
+.cb-art-legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+    font-size: 0.6875rem;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.cb-art-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.cb-art-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+/* The workflow, lighting up one step at a time and resting on Adopted before it starts over. */
+.cb-art-steps {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.35);
+    position: relative;
+}
+
+.cb-art-steps::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -8px;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.cb-art-steps::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: -8px;
+    height: 2px;
+    background: #5EC2D3;
+    width: 0;
+    animation: cb-steps 9s ease-in-out infinite both;
+}
+
+.cb-art-steps span { animation: cb-step-on 9s infinite both; }
+.cb-art-steps span:nth-child(1) { animation-delay: 0s; }
+.cb-art-steps span:nth-child(2) { animation-delay: 1.4s; }
+.cb-art-steps span:nth-child(3) { animation-delay: 2.8s; }
+.cb-art-steps span:nth-child(4) { animation-delay: 4.2s; }
+
+@keyframes cb-steps { 0% { width: 0; } 50%, 85% { width: 100%; } 100% { width: 100%; } }
+@keyframes cb-step-on { 0%, 8% { color: rgba(255, 255, 255, 0.35); } 12%, 90% { color: #fff; } 100% { color: rgba(255, 255, 255, 0.35); } }
+
+@keyframes cb-art-rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cb-art-card, .cb-art-bar i, .cb-art-steps::after, .cb-art-steps span { animation: none; }
+    .cb-art-bar.r i { width: 80%; }
+    .cb-art-bar.a i { width: 60%; }
+    .cb-art-steps::after { width: 75%; }
+    .cb-art-steps span:not(:last-child) { color: #fff; }
 }
 
 .cb-login-right {
@@ -1358,20 +1544,19 @@ table.cb-grid th.col-justify-end .col-header-content {
 @media (max-width: 767.98px) {
     .cb-login {
         grid-template-columns: 1fr;
+        min-height: 0;
     }
 
     .cb-login-left {
-        padding: 28px 20px;
+        padding: 32px 20px 28px;
+        gap: 24px;
     }
 
-    .cb-login-left .cb-brand small {
-    max-width: none;
-}
-
-.cb-login-left h1 {
-        margin-top: 16px;
+    .cb-login-left h1 {
         font-size: 1.5rem;
     }
+
+    .cb-art-card-2 { display: none; }
 }
 
 /* --------------------------------------------------------------------------

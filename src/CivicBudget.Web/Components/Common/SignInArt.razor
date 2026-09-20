@@ -1,0 +1,38 @@
+@* The navy half of the front door: a stylized fund balance panel whose bars fill and drift between
+   three states, so the page shows what the product does without a paragraph saying so. CSS only
+   (these pages are static SSR); the motion stops under prefers-reduced-motion. Decorative, so it is
+   hidden from assistive technology. The labels are generic fund types, not a real government. *@
+<div class="cb-art" aria-hidden="true">
+    <div class="cb-art-card">
+        <div class="cb-art-head">
+            <span class="cb-art-title">Fund balances</span>
+            <span class="cb-art-pill"><i class="bi bi-check2-circle"></i> Within limit</span>
+        </div>
+        @foreach ((string fund, string res, string app) in Funds)
+        {
+            <div class="cb-art-row @res @app">
+                <span class="cb-art-fund">@fund</span>
+                <span class="cb-art-bars">
+                    <span class="cb-art-bar r"><i></i></span>
+                    <span class="cb-art-bar a"><i></i></span>
+                </span>
+            </div>
+        }
+        <div class="cb-art-legend"><span><i class="r"></i>Estimated resources</span><span><i class="a"></i>Appropriations</span></div>
+    </div>
+    <div class="cb-art-card cb-art-card-2">
+        <div class="cb-art-steps">
+            <span class="on">Draft</span><span class="on">Proposed</span><span class="on">Adopted</span><span>Published</span>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Each row carries two classes that pick its keyframe pair: r1..r3 for resources, a1..a3 for appropriations.
+    private static readonly (string Fund, string Res, string App)[] Funds =
+    [
+        ("General", "r1", "a1"),
+        ("Street", "r2", "a2"),
+        ("Water", "r3", "a3"),
+    ];
+}
