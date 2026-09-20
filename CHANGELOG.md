@@ -5,6 +5,15 @@ All notable changes to CivicBudget. Format loosely follows
 
 ## [Unreleased]
 
+## Phase 12 — 2026-09-20 (v1.1)
+### Added
+- Portal header shows the CivicBudget mark, or the government's own logo uploaded under Government settings (`GovernmentLogos`, migration `AddGovernmentLogos`, served at `/transparency/{slug}/logo`).
+- Glossary page (`/transparency/{slug}/{year}/glossary`) with the accessibility statement.
+- Overview: "Where does the money go?" and "Where does it come from?" are two panels on a sliding track switched by tabs, still without JavaScript.
+### Changed
+- Overview: the resolution, published date, and version line moved from the top to the foot of the page; "every line of the adopted budget" removed.
+- Portal footer is one line: budget, downloads, glossary, accessibility.
+
 ## Phase 11 — 2026-09-20 (v1.1)
 ### Changed
 - Front door and sign-in page read like a product, not a project: one centered headline on the navy half, "Sign in to view and enter data" and a link to the public portal on the other. The portfolio, demo, stack, and "fictional data" copy is gone from the app (the README still says it); the redundant "Sign in" link left the public header.

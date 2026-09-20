@@ -182,3 +182,10 @@ Order: 9a → 9b → 9c → 9d. Each is a PR with the usual report; approve befo
 - [x] Home and sign-in: centered headline, no product or project copy, "Sign in to view and enter data", portal link; no "Sign in" link in the public header
 - [x] No portfolio/demo/fictional wording anywhere in the app's UI (README and docs keep it)
 - [x] Spencer approves Phase 11 (2026-09-20)
+
+## Phase 12 — Portal polish  `phase-12-portal-polish`
+- [x] Portal brand: CivicBudget mark by default, the government's uploaded logo when set (settings upload, portal endpoint, read-only mapping); ADR-0029
+- [x] Overview: citation line at the foot, tail text removed, spending and revenue as sliding panels with radio tabs (no JavaScript)
+- [x] Glossary and accessibility statement on their own page; one-line footer
+- [x] Tests (logo service and portal read, panels component, portal table list)
+- [ ] Spencer approves Phase 12

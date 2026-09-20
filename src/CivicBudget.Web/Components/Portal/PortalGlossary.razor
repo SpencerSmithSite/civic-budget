@@ -1,0 +1,61 @@
+@page "/transparency/{Slug}/{Year:int}/glossary"
+@inject ISnapshotQueryService Snapshots
+
+@* The words the portal uses, explained once, on their own page rather than under every page. The
+   accessibility statement lives here too, so the footer can be a single line. *@
+<PageTitle>@(budget is null ? "Glossary" : $"Glossary, {budget.GovernmentName}")</PageTitle>
+
+@if (loaded && budget is null)
+{
+    <PortalNotFound />
+}
+else if (budget is not null)
+{
+    <PortalCrumbs Crumbs="@([new Crumb($"{Year} budget", Root), new Crumb("Glossary")])" />
+    <h1 class="pt-h1">Glossary</h1>
+    <p class="pt-lead">The budget uses a few words the way Ohio law does. Here is what they mean on this site.</p>
+
+    <dl class="pt-glossary-list">
+        <dt>Fund</dt>
+        <dd>A separate set of books for money that can only be used for a purpose: the General Fund for day-to-day services, the Street fund for roads, the Water fund for the water system.</dd>
+        <dt>Appropriation</dt>
+        <dd>Council's legal permission to spend up to an amount. Departments cannot spend money that has not been appropriated.</dd>
+        <dt>Estimated resources</dt>
+        <dd>What a fund starts the year with plus what it expects to take in. In Ohio, appropriations may not exceed this amount.</dd>
+        <dt>Beginning balance</dt>
+        <dd>The money a fund carries in from the year before. Part of its estimated resources.</dd>
+        <dt>Projected ending balance</dt>
+        <dd>Estimated resources less appropriations: what the fund expects to carry into next year if the budget plays out as planned.</dd>
+        <dt>Transfer</dt>
+        <dd>Money moved from one fund to another by council action, for example from the General Fund to a capital projects fund. It is counted once, as a transfer, not as revenue or spending.</dd>
+        <dt>Department</dt>
+        <dd>The office or service that spends the money: Police, Streets &amp; Service, Parks &amp; Recreation. A department may spend from more than one fund.</dd>
+        <dt>Account number</dt>
+        <dd>The code on each line, written fund, then department, then object (the kind of spending), for example <span class="cb-code">1000-110-5110</span> for General Fund, Police, Salaries &amp; Wages. Revenue lines skip the department.</dd>
+        <dt>Amendment</dt>
+        <dd>A change to the adopted budget passed by council during the year, usually to move or add money for something unexpected. This site shows the latest adopted version of each year.</dd>
+        <dt>Resolution</dt>
+        <dd>The numbered act of council that adopted the budget or an amendment. It is printed at the bottom of the overview so you can find it in the council minutes.</dd>
+    </dl>
+
+    <section class="pt-section" id="accessibility" aria-labelledby="a11y">
+        <h2 id="a11y" class="pt-q">Accessibility</h2>
+        <p class="pt-lead-sm">This site is built to WCAG 2.1 AA: every chart has a table with the same numbers, nothing is conveyed by color alone, and every page works without JavaScript. If something does not work for you, contact the fiscal office.</p>
+    </section>
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public int Year { get; set; }
+
+    private PortalBudgetDto? budget;
+    private bool loaded;
+
+    private string Root => $"/transparency/{Slug}/{Year}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        budget = await Snapshots.GetBudgetAsync(Slug, Year);
+        loaded = true;
+    }
+}

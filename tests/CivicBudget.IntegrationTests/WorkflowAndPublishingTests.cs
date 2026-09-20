@@ -209,9 +209,10 @@ public class WorkflowAndPublishingTests(SqlServerFixture fixture) : IAsyncLifeti
         PublishedBudgetSnapshot pine = await portal.Snapshots.SingleAsync(s => s.GovernmentSlug == "pine-hollow-twp-oh");
         Assert.Equal(2026, pine.FiscalYear);
 
-        // The model maps the four snapshot tables and nothing else: no live lines, users, or governments to leak.
+        // The model maps the four snapshot tables and the government logo (a public image, ADR-0029) and
+        // nothing else: no live lines, users, or governments to leak.
         List<string> tables = portal.Model.GetEntityTypes().Select(e => e.GetTableName()!).OrderBy(t => t).ToList();
-        Assert.Equal(["PublishedBudgetSnapshotDepartments", "PublishedBudgetSnapshotFunds", "PublishedBudgetSnapshotLines", "PublishedBudgetSnapshots"], tables);
+        Assert.Equal(["GovernmentLogos", "PublishedBudgetSnapshotDepartments", "PublishedBudgetSnapshotFunds", "PublishedBudgetSnapshotLines", "PublishedBudgetSnapshots"], tables);
     }
 
     [Fact]

@@ -27,4 +27,7 @@ public interface ISnapshotQueryService
     Task<IReadOnlyList<YearTotalsDto>> YearOverYearAsync(string slug, CancellationToken ct = default);
 
     Task<IReadOnlyList<PortalSearchHitDto>> SearchAsync(string slug, int fiscalYear, string query, CancellationToken ct = default);
+
+    /// <summary>The government's uploaded logo, or null when it uses the CivicBudget mark. Only for governments with a published budget.</summary>
+    Task<PortalLogoDto?> GetLogoAsync(string slug, CancellationToken ct = default);
 }

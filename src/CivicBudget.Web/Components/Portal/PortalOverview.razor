@@ -26,31 +26,39 @@ else if (budget is not null && byFund is not null && revenue is not null)
         }
     </div>
 
-    <div class="pt-trust">
-        @if (budget.ResolutionNumber is not null) { <span>Adopted by resolution <b>@budget.ResolutionNumber</b>@(budget.AdoptedOnUtc is { } a ? $" on {a:MMMM d, yyyy}" : "")</span> }
-        <span>Published <b>@budget.PublishedAtUtc.ToString("MMMM d, yyyy")</b></span>
-        <span>Version <b>@budget.VersionLabel</b>@(budget.AmendmentReason is null ? "" : $": {budget.AmendmentReason}")</span>
-    </div>
-
     <div class="pt-kpis">
         <PortalKpi Label="Revenues" Value="@MoneyShort.Format(budget.TotalRevenues)" Text="Taxes, state funding, utility bills, fees, and interest the government expects to receive." Href="@($"{Root}/revenue")" LinkText="Where it comes from" />
         <PortalKpi Label="Expenditures" Value="@MoneyShort.Format(budget.TotalExpenditures)" Text="What council authorized departments to spend, including debt payments." Href="@($"{Root}/spending")" LinkText="Where it goes" />
         <PortalKpi Label="Projected ending balance" Value="@MoneyShort.Format(budget.ProjectedEndingBalance)" Text="@($"Money carried into {budget.FiscalYear + 1} across all funds, after this year's revenues and spending.")" Href="@($"{Root}/funds")" LinkText="Fund balances" />
     </div>
 
-    <Breakdown Title="Where does the money go?" Data="byFund" ItemHeader="Fund" Open="true"
-               ShowPercent="ShowPercent" PageHref="@Root" LinkFor="@(item => $"{Root}/funds/{item.Key}")" />
+    <PortalPanels Name="money" Label="Spending or revenue" FirstTitle="Where does the money go?" SecondTitle="Where does it come from?" SecondFirst="@(View == "revenue")">
+        <First>
+            <Breakdown Title="Where does the money go?" HideTitle="true" Data="byFund" ItemHeader="Fund" Open="true"
+                       ShowPercent="ShowPercent" PageHref="@Root" LinkFor="@(item => $"{Root}/funds/{item.Key}")" />
+        </First>
+        <Second>
+            <Breakdown Title="Where does it come from?" HideTitle="true" Data="revenue" ItemHeader="Source" Tone="rev" Open="true"
+                       ShowPercent="ShowPercent" PageHref="@($"{Root}?view=revenue")" />
+        </Second>
+    </PortalPanels>
 
-    <Breakdown Title="Where does it come from?" Data="revenue" ItemHeader="Source" Tone="rev"
-               ShowPercent="ShowPercent" PageHref="@Root" />
+    <p class="pt-dl">Want the numbers? <a href="@Root/download.csv">Download CSV</a> · <a href="@Root/download.xlsx">Download Excel</a></p>
 
-    <p class="pt-dl">Want the numbers? <a href="@Root/download.csv">Download CSV</a> · <a href="@Root/download.xlsx">Download Excel</a> · every line of the adopted budget.</p>
+    <div class="pt-trust">
+        @if (budget.ResolutionNumber is not null) { <span>Adopted by resolution <b>@budget.ResolutionNumber</b>@(budget.AdoptedOnUtc is { } a ? $" on {a:MMMM d, yyyy}" : "")</span> }
+        <span>Published <b>@budget.PublishedAtUtc.ToString("MMMM d, yyyy")</b></span>
+        <span>Version <b>@budget.VersionLabel</b>@(budget.AmendmentReason is null ? "" : $": {budget.AmendmentReason}")</span>
+    </div>
 }
 
 @code {
     [Parameter] public string Slug { get; set; } = "";
     [Parameter] public int? Year { get; set; }
     [SupplyParameterFromQuery(Name = "show")] public string? Show { get; set; }
+
+    /// <summary>"revenue" opens the second panel, so the $/% toggle and links can land on it.</summary>
+    [SupplyParameterFromQuery(Name = "view")] public string? View { get; set; }
 
     private PortalBudgetDto? budget;
     private BreakdownDto? byFund;

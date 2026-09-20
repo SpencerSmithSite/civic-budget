@@ -25,7 +25,9 @@ public sealed record PortalBudgetDto(
     decimal TotalTransfersOut,
     decimal TotalBeginningBalance,
     decimal PriorYearRevenues,
-    decimal PriorYearExpenditures)
+    decimal PriorYearExpenditures,
+    /// <summary>Upload ticks of the government's logo for the portal header; null shows the CivicBudget mark.</summary>
+    long? LogoVersion = null)
 {
     /// <summary>Across all funds: beginning balances + revenues + transfers in - expenditures - transfers out.</summary>
     public decimal ProjectedEndingBalance => TotalBeginningBalance + TotalRevenues + TotalTransfersIn - TotalExpenditures - TotalTransfersOut;
@@ -94,3 +96,6 @@ public sealed record PortalSearchHitDto(string Kind, string Label, string Url, d
 
 /// <summary>One published year's totals, for the year-over-year view.</summary>
 public sealed record YearTotalsDto(int FiscalYear, string VersionLabel, decimal Revenues, decimal Expenditures, decimal EndingBalance);
+
+/// <summary>A government's logo as the portal serves it.</summary>
+public sealed record PortalLogoDto(byte[] Data, string ContentType, DateTimeOffset UpdatedAtUtc);

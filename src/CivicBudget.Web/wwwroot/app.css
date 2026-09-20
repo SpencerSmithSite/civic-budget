@@ -2010,12 +2010,33 @@ table.cb-grid.cb-report-table > tfoot > tr > th {
     font-size: 0.8125rem;
 }
 
-.pt-seal {
-    width: 40px;
+/* The government's own logo in the portal header; the CivicBudget mark stands in when there is none. */
+.pt-logo {
     height: 40px;
-    font-size: 0.875rem;
-    background: transparent;
-    border: 2px solid rgba(255, 255, 255, 0.5);
+    width: auto;
+    max-width: 140px;
+    object-fit: contain;
+    border-radius: 6px;
+    background: #fff;
+    padding: 2px;
+}
+
+/* Settings: the current logo at the size the portal shows it, on a light tile. */
+.pt-logo-preview {
+    display: grid;
+    place-items: center;
+    width: 112px;
+    height: 112px;
+    border-radius: 12px;
+    background: var(--cb-canvas);
+    border: 1px solid var(--cb-border);
+    flex: none;
+}
+
+.pt-logo-preview img {
+    max-width: 96px;
+    max-height: 96px;
+    object-fit: contain;
 }
 
 .pt-nav {
@@ -2102,13 +2123,16 @@ table.cb-grid.cb-report-table > tfoot > tr > th {
     color: #fff;
 }
 
+/* The citation (resolution, published, version) closes the overview rather than opening it. */
 .pt-trust {
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     color: var(--cb-muted);
     display: flex;
     gap: 6px 18px;
     flex-wrap: wrap;
-    margin-bottom: 22px;
+    margin: 28px 0 8px;
+    padding-top: 16px;
+    border-top: 1px solid var(--cb-border);
 }
 
 .pt-trust b {
@@ -2437,30 +2461,107 @@ table.pt-grid th[scope="row"] a {
     font-weight: 600;
 }
 
-.pt-fine {
-    width: 100%;
-    font-size: 0.75rem;
-}
-
-.pt-glossary {
-    padding-bottom: 28px;
-}
-
-.pt-glossary dl {
+/* The glossary page: term and definition side by side, one column on a phone. */
+.pt-glossary-list {
     display: grid;
     grid-template-columns: max-content 1fr;
-    gap: 6px 16px;
-    max-width: 80ch;
-    margin: 8px 0 12px;
+    gap: 14px 24px;
+    max-width: 84ch;
+    margin: 8px 0 40px;
 }
 
-.pt-glossary dt {
+.pt-glossary-list dt {
     font-weight: 600;
     color: var(--cb-text);
 }
 
-.pt-glossary dd {
+.pt-glossary-list dd {
     margin: 0;
+    color: var(--cb-muted);
+    line-height: 1.55;
+}
+
+/* --------------------------------------------------------------------------
+   Two panels on a sliding track, switched by radio tabs (no JavaScript)
+   -------------------------------------------------------------------------- */
+
+.pt-panels {
+    margin: 44px 0 20px;
+}
+
+.pt-panels-radio {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+.pt-panels-tabs {
+    display: inline-flex;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 10px;
+    background: var(--cb-canvas);
+    border: 1px solid var(--cb-border);
+    margin-bottom: 10px;
+}
+
+.pt-panels-tabs label {
+    padding: 8px 16px;
+    border-radius: 7px;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--cb-muted);
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.pt-panels-tabs label:hover { color: var(--cb-text); }
+
+.pt-panels-radio:nth-of-type(1):checked ~ .pt-panels-tabs label:nth-child(1),
+.pt-panels-radio:nth-of-type(2):checked ~ .pt-panels-tabs label:nth-child(2) {
+    background: var(--cb-surface);
+    color: var(--cb-navy);
+    box-shadow: 0 1px 2px rgba(15, 42, 68, 0.12);
+}
+
+.pt-panels-radio:nth-of-type(1):focus-visible ~ .pt-panels-tabs label:nth-child(1),
+.pt-panels-radio:nth-of-type(2):focus-visible ~ .pt-panels-tabs label:nth-child(2) {
+    outline: 2px solid var(--cb-action);
+    outline-offset: 2px;
+}
+
+.pt-panels-track {
+    display: grid;
+    width: 200%;
+    grid-template-columns: 50% 50%;
+    transition: transform 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* The wrapper clips; the track slides. */
+.pt-panels { overflow: hidden; }
+
+/* After the slide the hidden panel collapses to nothing, so the track is only as tall as the
+   panel on screen; during the slide both keep their height so nothing jumps mid-motion. */
+.pt-panel {
+    min-width: 0;
+    overflow: hidden;
+    transition: visibility 0s linear 0.45s, max-height 0s linear 0.45s;
+    max-height: 100000px;
+}
+
+.pt-panel .pt-section { margin-top: 0; }
+
+.pt-panels-radio:nth-of-type(2):checked ~ .pt-panels-track { transform: translateX(-50%); } /* the track is two panels wide */
+.pt-panels-radio:nth-of-type(1):checked ~ .pt-panels-track .pt-panel:nth-child(2),
+.pt-panels-radio:nth-of-type(2):checked ~ .pt-panels-track .pt-panel:nth-child(1) { visibility: hidden; max-height: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+    .pt-panels-track, .pt-panel, .pt-panels-tabs label { transition: none; }
 }
 
 @media (max-width: 767.98px) {
@@ -2507,7 +2608,12 @@ table.pt-grid th[scope="row"] a {
         grid-column: 2;
     }
 
-    .pt-glossary dl {
+    .pt-glossary-list {
         grid-template-columns: 1fr;
+        gap: 4px 0;
+    }
+
+    .pt-glossary-list dd {
+        margin-bottom: 10px;
     }
 }

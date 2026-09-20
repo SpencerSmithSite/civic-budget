@@ -46,7 +46,8 @@ public sealed class SnapshotQueryService(IDbContextFactory<PublicPortalDbContext
             TotalTransfersOut: Sum(data.Lines, AccountType.TransferOut, l => l.Amount),
             TotalBeginningBalance: s.Funds.Sum(f => f.BeginningBalance),
             PriorYearRevenues: Sum(data.Lines, AccountType.Revenue, l => l.CurrentYearBudget),
-            PriorYearExpenditures: Sum(data.Lines, AccountType.Expenditure, l => l.CurrentYearBudget));
+            PriorYearExpenditures: Sum(data.Lines, AccountType.Expenditure, l => l.CurrentYearBudget),
+            LogoVersion: data.LogoVersion);
     }
 
     public async Task<BreakdownDto?> ExpendituresByFundAsync(string slug, int fiscalYear, CancellationToken ct = default)
@@ -208,7 +209,7 @@ public sealed class SnapshotQueryService(IDbContextFactory<PublicPortalDbContext
 
     // ---- helpers ------------------------------------------------------------------------------
 
-    private sealed record Loaded(PublishedBudgetSnapshot Snapshot, IReadOnlyList<PublishedBudgetSnapshotLine> Lines, IReadOnlyList<PortalYearDto> Years);
+    private sealed record Loaded(PublishedBudgetSnapshot Snapshot, IReadOnlyList<PublishedBudgetSnapshotLine> Lines, IReadOnlyList<PortalYearDto> Years, long? LogoVersion);
 
     private async Task<Loaded?> LoadAsync(string slug, int? fiscalYear, CancellationToken ct)
     {
@@ -228,7 +229,28 @@ public sealed class SnapshotQueryService(IDbContextFactory<PublicPortalDbContext
         PublishedBudgetSnapshot? snapshot = await db.Snapshots
             .Include(s => s.Lines).Include(s => s.Funds).Include(s => s.Departments)
             .FirstOrDefaultAsync(s => s.GovernmentSlug == slug && s.FiscalYear == year, ct);
-        return snapshot is null ? null : new Loaded(snapshot, snapshot.Lines.ToList(), years);
+        if (snapshot is null)
+        {
+            return null;
+        }
+
+        // The logo is looked up by the snapshot's government id, so a renamed slug cannot orphan it.
+        DateTimeOffset? logoUpdated = await db.GovernmentLogos
+            .Where(l => l.GovernmentId == snapshot.GovernmentId)
+            .Select(l => (DateTimeOffset?)l.UpdatedAtUtc)
+            .FirstOrDefaultAsync(ct);
+        return new Loaded(snapshot, snapshot.Lines.ToList(), years, logoUpdated?.UtcTicks);
+    }
+
+    public async Task<PortalLogoDto?> GetLogoAsync(string slug, CancellationToken ct = default)
+    {
+        await using PublicPortalDbContext db = await dbFactory.CreateDbContextAsync(ct);
+        // Through an active snapshot on purpose: a government with nothing published has no public face yet.
+        return await (from snapshot in db.Snapshots
+                      join logo in db.GovernmentLogos on snapshot.GovernmentId equals logo.GovernmentId
+                      where snapshot.GovernmentSlug == slug
+                      select new PortalLogoDto(logo.Data, logo.ContentType, logo.UpdatedAtUtc))
+            .FirstOrDefaultAsync(ct);
     }
 
     private static decimal Sum(IEnumerable<PublishedBudgetSnapshotLine> lines, AccountType type, Func<PublishedBudgetSnapshotLine, decimal> amount) =>
