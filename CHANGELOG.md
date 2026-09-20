@@ -5,6 +5,10 @@ All notable changes to CivicBudget. Format loosely follows
 
 ## [Unreleased]
 
+## Phase 11 — 2026-09-20 (v1.1)
+### Changed
+- Front door and sign-in page read like a product, not a project: one centered headline on the navy half, "Sign in to view and enter data" and a link to the public portal on the other. The portfolio, demo, stack, and "fictional data" copy is gone from the app (the README still says it); the redundant "Sign in" link left the public header.
+
 ## Phase 10 — 2026-09-20 (v1.1)
 ### Added
 - A CivicBudget logo mark (civic building on a teal tile) as inline SVG and favicon.

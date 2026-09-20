@@ -1,18 +1,12 @@
 @page "/"
 
+@* The front door. Nothing here describes the product or the project: a signed-out user signs in,
+   a signed-in user continues, and anyone can reach the public portal. *@
 <PageTitle>CivicBudget</PageTitle>
 
 <div class="cb-login">
     <div class="cb-login-left">
-        <div class="cb-eyebrow" style="color:rgba(255,255,255,.55)">A portfolio project</div>
         <h1>Budgeting and public transparency for local governments.</h1>
-        <p>CivicBudget lets a city, village, township, or county build its annual budget and publish it to citizens through a fast, accessible portal. It models Ohio governmental fund accounting: funds, departments, a chart of accounts, and the rule that appropriations may not exceed estimated resources.</p>
-        <ul>
-            <li><b>Admin app:</b> two budget-entry modes, live fund balances, a Draft to Adopted workflow, amendments, and a field-level audit trail.</li>
-            <li><b>Public portal:</b> citizens browse the adopted budget with no login. It reads only published snapshots, never drafts.</li>
-            <li><b>Stack:</b> .NET 10, Blazor, EF Core, SQL Server, ASP.NET Core Identity, AWS CDK.</li>
-        </ul>
-        <p class="mt-auto small" style="color:rgba(255,255,255,.55)">All data is fictional. Village of Maple Ridge, Ohio, does not exist.</p>
     </div>
     <div class="cb-login-right">
         <div class="card cb-login-card">
@@ -21,17 +15,16 @@
                     <Authorized>
                         <h2 class="h5 mb-1">Welcome back</h2>
                         <p class="text-secondary small mb-3">Signed in as <b>@(context.User.FindFirst(ClaimNames.DisplayName)?.Value)</b>.</p>
-                        <a class="btn btn-primary w-100" href="admin">Open the admin app</a>
+                        <a class="btn btn-primary w-100" href="admin">Continue</a>
                     </Authorized>
                     <NotAuthorized>
-                        <h2 class="h5 mb-1">Try the demo</h2>
-                        <p class="text-secondary small mb-3">Sign in as the fiscal officer, a department head, or a viewer to see each role's view. Demo logins are in the README.</p>
+                        <h2 class="h5 mb-3">Sign in to view and enter data</h2>
                         <a class="btn btn-primary w-100" href="Account/Login">Sign in</a>
                     </NotAuthorized>
                 </AuthorizeView>
                 <hr>
-                <p class="small text-secondary mb-2">Or see what citizens see:</p>
-                <a class="btn btn-outline-primary w-100" href="transparency/maple-ridge-oh">Maple Ridge transparency portal</a>
+                <p class="small text-secondary mb-2">Looking for a published budget?</p>
+                <a class="btn btn-outline-primary w-100" href="transparency">Public transparency portal</a>
             </div>
         </div>
     </div>

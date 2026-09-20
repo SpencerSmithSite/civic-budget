@@ -1314,35 +1314,24 @@ table.cb-grid th.col-justify-end .col-header-content {
     min-height: calc(100vh - 56px);
 }
 
+/* The navy half: one line, centered, and nothing else to read. */
 .cb-login-left {
     background: var(--cb-sidebar);
     color: #fff;
     padding: 48px;
-    display: flex;
-    flex-direction: column;
-}
-
-.cb-login-left .cb-brand small {
-    max-width: none;
+    display: grid;
+    place-items: center;
+    text-align: center;
 }
 
 .cb-login-left h1 {
-    font-size: 1.875rem;
-    margin: 40px 0 10px;
+    font-size: 2.125rem;
     font-weight: 600;
-    letter-spacing: -0.01em;
-    max-width: 22ch;
-}
-
-.cb-login-left p, .cb-login-left li {
-    color: rgba(255, 255, 255, 0.75);
-    max-width: 44ch;
-    line-height: 1.55;
-}
-
-.cb-login-left ul {
-    padding-left: 18px;
-    margin-top: 18px;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+    max-width: 18ch;
+    margin: 0;
+    text-wrap: balance;
 }
 
 .cb-login-right {
@@ -1358,18 +1347,14 @@ table.cb-grid th.col-justify-end .col-header-content {
 @media (max-width: 767.98px) {
     .cb-login {
         grid-template-columns: 1fr;
+        min-height: 0;
     }
 
     .cb-login-left {
-        padding: 28px 20px;
+        padding: 40px 20px;
     }
 
-    .cb-login-left .cb-brand small {
-    max-width: none;
-}
-
-.cb-login-left h1 {
-        margin-top: 16px;
+    .cb-login-left h1 {
         font-size: 1.5rem;
     }
 }

@@ -178,3 +178,7 @@ Order: 9a → 9b → 9c → 9d. Each is a PR with the usual report; approve befo
 - [x] Tests (service scoping and permissions, components, audit opt-out); walkthrough 14; interview prep
 - [x] Spencer approves Phase 10 (2026-09-20)
 
+## Phase 11 — Front door  `phase-11-sign-in`
+- [x] Home and sign-in: centered headline, no product or project copy, "Sign in to view and enter data", portal link; no "Sign in" link in the public header
+- [x] No portfolio/demo/fictional wording anywhere in the app's UI (README and docs keep it)
+- [ ] Spencer approves Phase 11
