@@ -188,4 +188,4 @@ Order: 9a → 9b → 9c → 9d. Each is a PR with the usual report; approve befo
 - [x] Overview: citation line at the foot, tail text removed, spending and revenue as sliding panels with radio tabs (no JavaScript)
 - [x] Glossary and accessibility statement on their own page; one-line footer
 - [x] Tests (logo service and portal read, panels component, portal table list)
-- [ ] Spencer approves Phase 12
+- [x] Spencer approves Phase 12 (2026-09-20)
