@@ -733,7 +733,7 @@ h1, h2, h3, h4 {
    opens the row's detail sheet instead of the row menu, so the three columns that matter fit. */
 .cb-row-open { display: none; }
 
-@media (max-width: 767.98px) {
+@media screen and (max-width: 767.98px) {
     table.cb-grid .cb-col-wide { display: none; }
     table.cb-grid .cb-row-menu { display: none; }
     .cb-row-open {
