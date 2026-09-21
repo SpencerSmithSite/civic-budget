@@ -196,5 +196,5 @@ Order: 9a → 9b → 9c → 9d. Each is a PR with the usual report; approve befo
 - [x] `deploy-azure.yml`: image to GHCR on every push to main, roll the app and the job, wait for /health; `bicep-build` in CI
 - [x] `--reseed` entry point and `DatabaseInitializer.ResetAsync` (integration test)
 - [x] README: live demo section with the logins
-- [ ] Spencer runs the setup script and fills in the URL and password
+- [x] Setup script run (Central US; East US 2 refused new SQL servers), URL and password in the README (2026-09-20)
 - [ ] Spencer approves Phase 13

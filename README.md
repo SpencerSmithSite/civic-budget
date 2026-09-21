@@ -38,7 +38,7 @@ All data is fictional (Village of Maple Ridge, Ohio).
 
 ## Live demo
 
-A hosted copy runs on Azure's free tiers: **https://civicbudget-app.&lt;region&gt;.azurecontainerapps.io** _(link filled in after the first deploy)_.
+A hosted copy runs on Azure's free tiers: **https://civicbudget-app.ashysmoke-cd0f52a4.centralus.azurecontainerapps.io**.
 The database is rebuilt from the seed every night at 08:00 UTC, so anything you change is
 gone by morning. Sign in with any of these; the password is the same for all of them.
 
@@ -50,9 +50,9 @@ gone by morning. Sign in with any of these; the password is the same for all of 
 | `streets@mapleridge.example` | Department User | Streets and Parks (Parks was returned with a note) |
 | `viewer@mapleridge.example` | Viewer | Read-only |
 
-**Demo password:** _set after the first deploy; `scripts/azure-setup.sh` prints it_.
+**Demo password:** `Demo-Bpe1GyRie5-1!`
 
-The public portal needs no login: [/transparency/maple-ridge-oh](https://civicbudget-app.azurecontainerapps.io/transparency/maple-ridge-oh).
+The public portal needs no login: [/transparency/maple-ridge-oh](https://civicbudget-app.ashysmoke-cd0f52a4.centralus.azurecontainerapps.io/transparency/maple-ridge-oh).
 The first visit after a quiet spell can take a minute while the database resumes; after that it is quick.
 
 ## Run locally
