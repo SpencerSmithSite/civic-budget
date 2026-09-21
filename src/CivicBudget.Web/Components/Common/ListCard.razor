@@ -1,0 +1,67 @@
+@* One row of a list as a phone card: a code and title, a summary line, whatever chips the row
+   needs, and the status and row menu on the right. List pages render these under 768px in place
+   of their grid, from the same filtered data, so a phone gets the list without a sideways scroll. *@
+<div class="cb-list-card">
+    @if (Leading is not null)
+    {
+        <div class="cb-list-card-lead">@Leading</div>
+    }
+    <div class="cb-list-card-body">
+        <div class="cb-list-card-title">
+            @if (!string.IsNullOrEmpty(Code))
+            {
+                <span class="cb-code">@Code</span>
+            }
+            @if (Href is not null)
+            {
+                <a href="@Href">@Title</a>
+            }
+            else
+            {
+                @Title
+            }
+        </div>
+        @if (Summary is not null)
+        {
+            <div class="cb-list-card-meta">@Summary</div>
+        }
+        @ChildContent
+    </div>
+    <div class="cb-list-card-aside">
+        @Aside
+        @Menu
+    </div>
+</div>
+
+@code {
+    /// <summary>The fund, department, or account code, set in the monospace style before the title.</summary>
+    [Parameter]
+    public string? Code { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = "";
+
+    /// <summary>Makes the title a link.</summary>
+    [Parameter]
+    public string? Href { get; set; }
+
+    /// <summary>The second line: type, email, dates, a balance.</summary>
+    [Parameter]
+    public RenderFragment? Summary { get; set; }
+
+    /// <summary>Chips and pills under the summary.</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Top right: a status pill or an amount.</summary>
+    [Parameter]
+    public RenderFragment? Aside { get; set; }
+
+    /// <summary>Under the aside: the row menu, or an Open link.</summary>
+    [Parameter]
+    public RenderFragment? Menu { get; set; }
+
+    /// <summary>Left of the body: an avatar or icon.</summary>
+    [Parameter]
+    public RenderFragment? Leading { get; set; }
+}

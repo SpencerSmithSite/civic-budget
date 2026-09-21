@@ -729,37 +729,47 @@ h1, h2, h3, h4 {
     }
 }
 
-/* Phones: grids scroll sideways inside their card, and the first column (the account, the fund,
-   the person) stays pinned so a row keeps its name while the amounts scroll past. */
-@media (max-width: 767.98px) {
-    table.cb-grid > thead > tr > th:first-child,
-    table.cb-grid > tbody > tr > td:first-child,
-    table.cb-grid > tfoot > tr > td:first-child {
-        position: sticky;
-        left: 0;
-        z-index: 2;
-        background: var(--cb-surface);
-        box-shadow: 1px 0 0 var(--cb-border);
-        max-width: 60vw;
-    }
+/* Working grids on phones: secondary columns (.cb-col-wide) drop out and a chevron (.cb-row-open)
+   opens the row's detail sheet instead of the row menu, so the three columns that matter fit. */
+.cb-row-open { display: none; }
 
-    table.cb-grid > thead > tr > th:first-child {
-        background: #fbfcfd;
-        z-index: 3;
+@media screen and (max-width: 767.98px) {
+    table.cb-grid .cb-col-wide { display: none; }
+    table.cb-grid .cb-row-menu { display: none; }
+    .cb-row-open {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 32px;
+        border: 0;
+        background: transparent;
+        color: var(--cb-muted);
+        border-radius: 6px;
     }
-
-    table.cb-grid > tbody > tr.cb-subtotal > td:first-child,
-    table.cb-grid > tfoot > tr > td:first-child {
-        background: var(--cb-subtotal);
-    }
-
-    /* Group rows span the table; pinning them keeps the fund or department label in view too. */
-    table.cb-grid > tbody > tr.cb-group > td:first-child {
-        max-width: none;
-        background: var(--cb-subtotal);
-        box-shadow: none;
-    }
+    .cb-row-open:hover { background: var(--cb-row-hover); color: var(--cb-navy); }
 }
+
+/* The drawer's line detail: label and value per row, the editable amount in its own row. */
+.cb-line-detail {
+    margin: 0;
+    padding: 4px 18px 8px;
+}
+
+.cb-line-detail > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--cb-border);
+    font-size: 0.875rem;
+}
+
+.cb-line-detail dt { font-weight: 500; color: var(--cb-muted); }
+.cb-line-detail dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; min-width: 0; }
+.cb-line-detail dd .form-control { min-width: 180px; }
+
 
 table.cb-grid {
     width: 100%;
@@ -846,6 +856,57 @@ table.cb-grid .cb-num, table.cb-grid th.cb-num {
     font-variant-numeric: tabular-nums;
 }
 
+/* Phones: grids scroll sideways inside their card, and the first column (the account, the fund,
+   the person) stays pinned so a row keeps its name while the amounts scroll past. */
+@media (max-width: 767.98px) {
+    table.cb-grid > thead > tr > th:first-child,
+    table.cb-grid > tbody > tr > td:first-child,
+    table.cb-grid > tfoot > tr > td:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 2;
+        background: var(--cb-surface);
+        box-shadow: 1px 0 0 var(--cb-border);
+        max-width: 42vw;
+        min-width: 0;
+    }
+
+    /* Tighter cells and a narrower amount box so account, current budget, and the editable
+       amount all fit a 390px screen without scrolling. */
+    table.cb-grid > thead > tr > th,
+    table.cb-grid > tbody > tr > td,
+    table.cb-grid > tfoot > tr > td {
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+
+    table.cb-grid { font-size: 0.75rem; }
+    table.cb-grid .cb-amount-input { width: 96px; min-width: 0; height: 30px; font-size: 0.75rem; padding: 0 6px; }
+    table.cb-grid td.cb-wrap { min-width: 0; } /* the 14.5rem desktop minimum would force a sideways scroll */
+    table.cb-grid > tbody > tr > td.text-end { padding-left: 0; padding-right: 2px; }
+
+    table.cb-grid > thead > tr > th:first-child {
+        background: #fbfcfd;
+        z-index: 3;
+    }
+
+    table.cb-grid > tbody > tr.cb-subtotal > td:first-child,
+    table.cb-grid > tfoot > tr > td:first-child {
+        background: var(--cb-subtotal);
+    }
+
+    /* Group rows span the table; pinning them keeps the fund or department label in view too.
+       They wrap, because a long no-wrap label would set the table's minimum width by itself. */
+    table.cb-grid > tbody > tr.cb-group > td:first-child {
+        max-width: none;
+        white-space: normal;
+        background: var(--cb-subtotal);
+        box-shadow: none;
+    }
+
+    table.cb-grid > thead > tr > th { white-space: normal; }
+}
+
 /* QuickGrid inside .cb-grid: its header is a button; give it the same look as a plain th. */
 table.cb-grid th .col-header-content {
     display: flex;
@@ -917,6 +978,73 @@ table.cb-grid th.col-justify-end .col-header-content {
 .cb-amount-input.cb-saving {
     color: var(--cb-info);
     border-color: var(--cb-info);
+}
+
+/* --------------------------------------------------------------------------
+   Lists as cards on phones (ListCard). Grids keep .d-none.d-md-block; cards get .d-md-none.
+   -------------------------------------------------------------------------- */
+
+.cb-cards {
+    display: grid;
+    gap: 10px;
+    padding: 12px;
+}
+
+.cb-list-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2px 12px;
+    align-items: start;
+    padding: 12px 14px;
+    background: var(--cb-surface);
+    border: 1px solid var(--cb-border);
+    border-radius: 8px;
+}
+
+.cb-list-card:has(> .cb-list-card-lead) {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.cb-list-card-lead { grid-row: span 3; }
+
+.cb-list-card-body { min-width: 0; }
+
+.cb-list-card-title {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.cb-list-card-title .cb-code { margin-right: 6px; }
+
+.cb-list-card-title a { text-decoration: none; }
+
+.cb-list-card-meta {
+    font-size: 0.8125rem;
+    color: var(--cb-muted);
+    margin-top: 1px;
+    overflow-wrap: anywhere;
+}
+
+.cb-list-card-chips {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+}
+
+.cb-list-card-aside {
+    display: grid;
+    gap: 6px;
+    justify-items: end;
+    text-align: right;
+}
+
+.cb-list-card-aside .cb-num-lg {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    font-variant-numeric: tabular-nums;
 }
 
 .cb-grid-foot {
@@ -1266,6 +1394,29 @@ table.cb-grid-tight > thead > tr > th {
     z-index: 46;
     display: flex;
     flex-direction: column;
+}
+
+/* On a phone the drawer is a bottom sheet: it rises from the bottom, keeps a hand-hold above it,
+   and rounds its top corners, which is what a thumb expects. */
+@media (max-width: 767.98px) {
+    .cb-drawer {
+        top: auto;
+        left: 0;
+        width: 100vw;
+        max-height: 88vh;
+        border-radius: 16px 16px 0 0;
+        box-shadow: 0 -12px 40px rgba(15, 42, 68, 0.3);
+    }
+
+    .cb-drawer::before {
+        content: "";
+        display: block;
+        width: 36px;
+        height: 4px;
+        border-radius: 2px;
+        background: #cbd5e1;
+        margin: 10px auto 0;
+    }
 }
 
 .cb-drawer-header {
@@ -1908,6 +2059,96 @@ table.cb-grid.cb-report-table > tfoot > tr > th {
     white-space: normal;
     max-width: 48ch;
 }
+
+/* Phones: the Fund Summary as one certificate card per fund, the arithmetic stacked. */
+.cb-cert-list {
+    display: grid;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.cb-cert {
+    background: var(--cb-surface);
+    border: 1px solid var(--cb-border);
+    border-left: 4px solid var(--cb-navy);
+    border-radius: 8px;
+    padding: 12px 14px;
+}
+
+.cb-cert.over { border-left-color: var(--cb-danger); }
+.cb-cert.total { border-left-color: var(--cb-teal); background: var(--cb-canvas); }
+
+.cb-cert-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 0.9375rem;
+}
+
+.cb-cert-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 3px 0;
+    font-size: 0.8125rem;
+    color: var(--cb-muted);
+}
+
+.cb-cert-line b {
+    color: var(--cb-text);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.cb-cert-line.sum {
+    border-top: 1px solid var(--cb-border);
+    margin-top: 4px;
+    padding-top: 6px;
+    color: var(--cb-text);
+}
+
+.cb-cert-line.sum b, .cb-cert-line.end b { font-weight: 700; }
+.cb-cert-line.end.neg b { color: var(--cb-danger); }
+
+/* Phones: Department Detail as a card per department with a two-number list of lines. */
+.cb-dept-cards { display: grid; gap: 12px; margin-top: 12px; }
+
+.cb-dept-card {
+    background: var(--cb-surface);
+    border: 1px solid var(--cb-border);
+    border-radius: 8px;
+    padding: 12px 14px;
+}
+
+.cb-dept-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.cb-dept-card-narrative {
+    font-size: 0.8125rem;
+    color: var(--cb-muted);
+    margin: 4px 0 8px;
+}
+
+.cb-dept-card-line {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2px 12px;
+    padding: 6px 0;
+    border-top: 1px solid var(--cb-border);
+    font-size: 0.8125rem;
+}
+
+.cb-dept-card-line .cb-code { display: block; }
+.cb-dept-card-line b { font-variant-numeric: tabular-nums; text-align: right; }
+.cb-dept-card-line small { color: var(--cb-muted); text-align: right; }
 
 /* The department's narrative under its heading on the Department Detail report. */
 .cb-report-table tr.cb-report-narrative > td {

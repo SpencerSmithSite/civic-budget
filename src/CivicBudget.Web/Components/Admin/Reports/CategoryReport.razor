@@ -20,13 +20,14 @@ else
                  Description="Where the money comes from and where it goes, by reporting category, against the prior year actual and the current year budget.">
         <div class="cb-grid-wrap">
             <table class="cb-grid table cb-report-table" aria-label="Revenue versus expenditure by category">
+                @* Phones keep category, current, this year, and change %; prior actual and change $ are .cb-col-wide. *@
                 <thead>
                     <tr>
                         <th scope="col">Category</th>
-                        <th scope="col" class="cb-num">Prior year actual</th>
+                        <th scope="col" class="cb-num cb-col-wide">Prior year actual</th>
                         <th scope="col" class="cb-num">Current year budget</th>
                         <th scope="col" class="cb-num cb-col-strong">FY@(report.Header.FiscalYear) budget</th>
-                        <th scope="col" class="cb-num">Change</th>
+                        <th scope="col" class="cb-num cb-col-wide">Change</th>
                         <th scope="col" class="cb-num">Change %</th>
                     </tr>
                 </thead>
@@ -63,10 +64,10 @@ else
     {
         <tr class="@(subtotal ? "cb-subtotal" : "")">
             <th scope="row" class="@(subtotal ? "" : "fw-normal ps-4")">@r.Label</th>
-            <td class="cb-num">@Display.Money(r.PriorYearActual)</td>
+            <td class="cb-num cb-col-wide">@Display.Money(r.PriorYearActual)</td>
             <td class="cb-num">@Display.Money(r.CurrentYearBudget)</td>
             <td class="cb-num cb-col-strong">@Display.Money(r.Amount)</td>
-            <td class="cb-num @(r.DollarChange < 0 ? "cb-neg" : "")">@Display.Money(r.DollarChange)</td>
+            <td class="cb-num cb-col-wide @(r.DollarChange < 0 ? "cb-neg" : "")">@Display.Money(r.DollarChange)</td>
             <td class="cb-num @(r.PercentChange < 0 ? "cb-neg" : "")">@Display.Percent(r.PercentChange)</td>
         </tr>
     };

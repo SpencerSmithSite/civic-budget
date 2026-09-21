@@ -203,4 +203,11 @@ Order: 9a → 9b → 9c → 9d. Each is a PR with the usual report; approve befo
 - [x] Every route renders at 390px without sideways overflow (sweep script, 32 routes)
 - [x] Shrinkable grid columns, tooltips out of the layout, toolbar filters full width, shorter select labels
 - [x] Pinned first column on phone grids
-- [ ] Spencer approves Phase 14
+- [x] Spencer approves Phase 14 (2026-09-21)
+
+## Phase 15 — Phone layouts  `phase-15-mobile-layouts`
+- [x] Lists as cards under 768px (`ListCard`), status and row menu shared with the grid as RenderFragments
+- [x] Working grids: three columns on phones, chevron to a bottom-sheet drawer with `LineDetail` plus history
+- [x] Reports: Fund Summary certificate cards, Department Detail cards; tables kept for desktop and print
+- [x] Tests (ListCard, dual rendering on the board and fund summary); every route still clean at 390px
+- [ ] Spencer approves Phase 15

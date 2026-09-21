@@ -91,10 +91,12 @@ else
         </Body>
     </ConfirmDialog>
 
-    <SideDrawer IsOpen="historyLine is not null" IsOpenChanged="open => { if (!open) historyLine = null; }" Title="@(historyLine is null ? "" : $"History: {historyLine.AccountCode} {historyLine.AccountName}")">
+    <SideDrawer IsOpen="historyLine is not null" IsOpenChanged="open => { if (!open) historyLine = null; }" Title="@(historyLine is null ? "" : $"{historyLine.AccountNumber} {historyLine.AccountName}")">
         @if (historyLine is not null)
         {
             <div class="px-3 pt-2 small text-secondary">@historyLine.FundCode @historyLine.FundName@(historyLine.DepartmentCode is null ? "" : $" · {historyLine.DepartmentCode} {historyLine.DepartmentName}")</div>
+            <LineDetail Line="historyLine" FiscalYear="workspace.Version.Year" OnAmountChanged="UpdateAmountAsync" OnJustificationChanged="UpdateJustificationAsync" OnRemove="RemoveLineAsync" />
+            <h3 class="h6 fw-semibold px-3 pt-3 mb-0">History</h3>
             <LineHistory Line="historyLine" Version="historyVersion" />
         }
     </SideDrawer>

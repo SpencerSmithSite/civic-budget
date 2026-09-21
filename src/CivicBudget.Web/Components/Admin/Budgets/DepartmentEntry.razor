@@ -103,11 +103,11 @@ else
                                 <thead>
                                     <tr>
                                         <th>Account</th>
-                                        <th class="cb-num">FY@(workspace.Version.Year - 2) actual</th>
+                                        <th class="cb-num cb-col-wide">FY@(workspace.Version.Year - 2) actual</th>
                                         <th class="cb-num">FY@(workspace.Version.Year - 1) budget</th>
                                         <th class="cb-num">FY@(workspace.Version.Year) request</th>
-                                        <th class="cb-num">Change $</th>
-                                        <th class="cb-num">Change %</th>
+                                        <th class="cb-num cb-col-wide">Change $</th>
+                                        <th class="cb-num cb-col-wide">Change %</th>
                                         <th></th>
                                     </tr>
                                 </thead>
@@ -127,15 +127,16 @@ else
                                                     <div class="small text-secondary fst-italic text-wrap"><i class="bi bi-chat-left-text me-1" aria-hidden="true"></i>@line.Justification</div>
                                                 }
                                             </td>
-                                            <td class="cb-num">@line.PriorYearActual.ToString("N2")</td>
+                                            <td class="cb-num cb-col-wide">@line.PriorYearActual.ToString("N2")</td>
                                             <td class="cb-num">@line.CurrentYearBudget.ToString("N2")</td>
                                             <td class="cb-num">
                                                 <AmountCell Value="line.Amount" CanEdit="line.CanEdit" Label="@($"FY{workspace.Version.Year} request for {line.AccountNumber} {line.AccountName}")"
                                                             ValueChanged="amount => UpdateAmountAsync(line.Id, amount)" />
                                             </td>
-                                            <td class="cb-num @(line.DollarChange < 0 ? "cb-neg" : line.DollarChange > 0 ? "cb-pos" : "")">@Display.SignedChange(line.DollarChange)</td>
-                                            <td class="cb-num @(line.PercentChange < 0 ? "cb-neg" : "")">@Display.Percent(line.PercentChange)</td>
+                                            <td class="cb-num cb-col-wide @(line.DollarChange < 0 ? "cb-neg" : line.DollarChange > 0 ? "cb-pos" : "")">@Display.SignedChange(line.DollarChange)</td>
+                                            <td class="cb-num cb-col-wide @(line.PercentChange < 0 ? "cb-neg" : "")">@Display.Percent(line.PercentChange)</td>
                                             <td class="text-end">
+                                                <button type="button" class="cb-row-open" @onclick="() => ShowHistory(line)" aria-label="@($"Details for {line.AccountNumber}")"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
                                                 <RowMenu Label="@($"Actions for {line.AccountNumber}")">
                                                     @if (line.CanEdit)
                                                     {
@@ -155,11 +156,11 @@ else
                                 <tfoot>
                                     <tr>
                                         <td>Total, @fund.Name</td>
-                                        <td class="cb-num">@fund.PriorYearActual.ToString("N2")</td>
+                                        <td class="cb-num cb-col-wide">@fund.PriorYearActual.ToString("N2")</td>
                                         <td class="cb-num">@fund.CurrentYearBudget.ToString("N2")</td>
                                         <td class="cb-num">@fund.Amount.ToString("N2")</td>
-                                        <td class="cb-num">@Display.SignedChange(fund.Amount - fund.CurrentYearBudget)</td>
-                                        <td class="cb-num">@Display.Percent(Domain.Common.Money.PercentChange(fund.CurrentYearBudget, fund.Amount))</td>
+                                        <td class="cb-num cb-col-wide">@Display.SignedChange(fund.Amount - fund.CurrentYearBudget)</td>
+                                        <td class="cb-num cb-col-wide">@Display.Percent(Domain.Common.Money.PercentChange(fund.CurrentYearBudget, fund.Amount))</td>
                                         <td></td>
                                     </tr>
                                 </tfoot>
@@ -259,10 +260,12 @@ else
         </Body>
     </ConfirmDialog>
 
-    <SideDrawer IsOpen="historyLine is not null" IsOpenChanged="open => { if (!open) historyLine = null; }" Title="@(historyLine is null ? "" : $"History: {historyLine.AccountNumber}")">
+    <SideDrawer IsOpen="historyLine is not null" IsOpenChanged="open => { if (!open) historyLine = null; }" Title="@(historyLine is null ? "" : historyLine.AccountNumber)">
         @if (historyLine is not null)
         {
             <div class="px-3 pt-2 small text-secondary">@historyLine.AccountName · @historyLine.FundCode @historyLine.FundName</div>
+            <LineDetail Line="historyLine" FiscalYear="workspace.Version.Year" OnAmountChanged="c => UpdateAmountAsync(c.LineId, c.Amount)" OnJustificationChanged="c => SaveNoteAsync(c.LineId, c.Justification)" OnRemove="AskRemove" />
+            <h3 class="h6 fw-semibold px-3 pt-3 mb-0">History</h3>
             <LineHistory Line="historyLine" Version="historyVersion" />
         }
     </SideDrawer>

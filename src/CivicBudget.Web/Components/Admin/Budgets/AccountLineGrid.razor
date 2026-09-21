@@ -38,13 +38,15 @@
 <div class="cb-grid-wrap">
     <table class="cb-grid">
         <thead>
+            @* Phones keep Account, current budget, and the editable amount; .cb-col-wide columns
+               drop out and the chevron opens the row's detail sheet with the rest. *@
             <tr>
                 <th>Account</th>
-                <th class="cb-num">@PriorLabel actual</th>
+                <th class="cb-num cb-col-wide">@PriorLabel actual</th>
                 <th class="cb-num">@CurrentLabel budget</th>
                 <th class="cb-num">@ProposedLabel proposed</th>
-                <th class="cb-num">Change $</th>
-                <th class="cb-num">Change %</th>
+                <th class="cb-num cb-col-wide">Change $</th>
+                <th class="cb-num cb-col-wide">Change %</th>
                 <th></th>
             </tr>
         </thead>
@@ -71,15 +73,16 @@
                             <div class="small text-secondary fst-italic text-wrap"><i class="bi bi-chat-left-text me-1" aria-hidden="true"></i>@line.Justification</div>
                         }
                     </td>
-                    <td class="cb-num">@line.PriorYearActual.ToString("N2")</td>
+                    <td class="cb-num cb-col-wide">@line.PriorYearActual.ToString("N2")</td>
                     <td class="cb-num">@line.CurrentYearBudget.ToString("N2")</td>
                     <td class="cb-num">
                         <AmountCell Value="line.Amount" CanEdit="line.CanEdit" Label="@($"Proposed amount for {line.AccountCode} {line.AccountName}, {line.DepartmentCode ?? line.FundCode}")"
                                     ValueChanged="amount => OnAmountChanged.InvokeAsync((line.Id, amount))" />
                     </td>
-                    <td class="cb-num @(line.DollarChange < 0 ? "cb-neg" : line.DollarChange > 0 ? "cb-pos" : "")">@Display.SignedChange(line.DollarChange)</td>
-                    <td class="cb-num @(line.PercentChange < 0 ? "cb-neg" : "")">@Display.Percent(line.PercentChange)</td>
+                    <td class="cb-num cb-col-wide @(line.DollarChange < 0 ? "cb-neg" : line.DollarChange > 0 ? "cb-pos" : "")">@Display.SignedChange(line.DollarChange)</td>
+                    <td class="cb-num cb-col-wide @(line.PercentChange < 0 ? "cb-neg" : "")">@Display.Percent(line.PercentChange)</td>
                     <td class="text-end">
+                        <button type="button" class="cb-row-open" @onclick="() => OnShowHistory.InvokeAsync(line)" aria-label="@($"Details for {line.AccountNumber}")"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
                         <RowMenu Label="@($"Actions for {line.AccountCode}")">
                             <li><button type="button" class="dropdown-item" @onclick="() => OnShowHistory.InvokeAsync(line)"><i class="bi bi-clock-history me-2" aria-hidden="true"></i>History</button></li>
                             @if (line.CanEdit)
