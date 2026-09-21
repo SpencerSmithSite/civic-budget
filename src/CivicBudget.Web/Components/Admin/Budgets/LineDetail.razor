@@ -1,0 +1,52 @@
+@* Everything a grid row shows on a wide screen, stacked for the drawer: on a phone the grid keeps
+   three columns and this sheet carries the rest (prior actual, change, the note) plus the actions.
+   The amount is editable here too, so a phone user never has to hunt for the cell. *@
+<dl class="cb-line-detail">
+    <div><dt>FY@(FiscalYear - 2) actual</dt><dd>@Display.Money(Line.PriorYearActual)</dd></div>
+    <div><dt>FY@(FiscalYear - 1) budget</dt><dd>@Display.Money(Line.CurrentYearBudget)</dd></div>
+    <div>
+        <dt>FY@(FiscalYear) @(Line.AccountType == Domain.Accounts.AccountType.Expenditure ? "proposed" : "estimate")</dt>
+        <dd><AmountCell Value="Line.Amount" CanEdit="Line.CanEdit" Label="@($"FY{FiscalYear} amount for {Line.AccountNumber} {Line.AccountName}")" ValueChanged="amount => OnAmountChanged.InvokeAsync((Line.Id, amount))" /></dd>
+    </div>
+    <div>
+        <dt>Change</dt>
+        <dd class="@(Line.DollarChange < 0 ? "cb-neg" : Line.DollarChange > 0 ? "cb-pos" : "")">@Display.SignedChange(Line.DollarChange) · @Display.Percent(Line.PercentChange)</dd>
+    </div>
+    <div>
+        <dt>Note</dt>
+        <dd>
+            @if (Line.CanEdit)
+            {
+                <input type="text" class="form-control form-control-sm" value="@Line.Justification" placeholder="Why this amount" aria-label="@($"Justification for {Line.AccountNumber}")"
+                       @onchange="e => OnJustificationChanged.InvokeAsync((Line.Id, e.Value?.ToString()))" />
+            }
+            else
+            {
+                <span class="@(string.IsNullOrEmpty(Line.Justification) ? "text-secondary" : "fst-italic")">@(string.IsNullOrEmpty(Line.Justification) ? "None" : Line.Justification)</span>
+            }
+        </dd>
+    </div>
+</dl>
+@if (Line.CanEdit && OnRemove.HasDelegate)
+{
+    <div class="px-3 pb-2 text-end">
+        <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => OnRemove.InvokeAsync(Line)"><i class="bi bi-trash me-1" aria-hidden="true"></i>Remove line</button>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public BudgetLineDto Line { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public int FiscalYear { get; set; }
+
+    [Parameter]
+    public EventCallback<(Guid LineId, decimal Amount)> OnAmountChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<(Guid LineId, string? Justification)> OnJustificationChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<BudgetLineDto> OnRemove { get; set; }
+}

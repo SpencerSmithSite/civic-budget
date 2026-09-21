@@ -33,7 +33,29 @@ else
         {
             <EmptyState Icon="bi-diagram-3" Title="No department lines" Text="This version has no lines budgeted to a department." />
         }
-        <div class="cb-grid-wrap">
+        <div class="cb-dept-cards d-md-none d-print-none">
+            @foreach (DepartmentDetailDto d in report.Departments)
+            {
+                <div class="cb-dept-card">
+                    <div class="cb-dept-card-head"><span>@d.DepartmentCode @d.DepartmentName</span><span>@Display.Money(d.Amount)</span></div>
+                    <div class="text-secondary small">FY@(report.Header.FiscalYear - 1) @Display.Money(d.CurrentYearBudget) · <span class="@(d.DollarChange < 0 ? "cb-neg" : d.DollarChange > 0 ? "cb-pos" : "")">@Display.SignedChange(d.DollarChange) (@Display.Percent(d.PercentChange))</span></div>
+                    @if (d.Narrative is not null)
+                    {
+                        <p class="cb-dept-card-narrative">@d.Narrative</p>
+                    }
+                    @foreach (DetailLineDto l in d.Lines)
+                    {
+                        <div class="cb-dept-card-line">
+                            <span><span class="cb-code">@l.AccountNumber</span>@l.AccountName@if (l.AccountType != AccountType.Expenditure) { <span class="text-secondary"> (@Display.Enum(l.AccountType).ToLowerInvariant())</span> }</span>
+                            <b>@Display.Money(l.Amount)</b>
+                            <span class="text-secondary">@(l.Justification ?? "")</span>
+                            <small>was @Display.Money(l.CurrentYearBudget) · @Display.Percent(l.PercentChange)</small>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+        <div class="cb-grid-wrap d-none d-md-block d-print-block">
             <table class="cb-grid table cb-report-table" aria-label="Department budget detail">
                 <thead>
                     <tr>

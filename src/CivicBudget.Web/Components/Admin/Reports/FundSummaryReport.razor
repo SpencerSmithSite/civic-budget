@@ -22,7 +22,33 @@ else
         {
             <div class="alert alert-warning cb-report-note"><i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i>@report.FundsOverLimit fund@(report.FundsOverLimit == 1 ? "" : "s") appropriate@(report.FundsOverLimit == 1 ? "s" : "") more than estimated resources.</div>
         }
-        <div class="cb-grid-wrap">
+        @* Phones: one certificate card per fund, the arithmetic stacked the way the Ohio form reads.
+           The table stays for wider screens and for paper. *@
+        <div class="cb-cert-list d-md-none d-print-none">
+            @foreach (FundSummaryRowDto f in report.Funds)
+            {
+                <div class="cb-cert @(f.IsWithinAppropriationLimit ? "" : "over")">
+                    <div class="cb-cert-head">
+                        <b>@f.FundCode @f.FundName</b>
+                        @if (f.IsWithinAppropriationLimit) { <StatusPill Tone="success" Label="Within limit" /> } else { <StatusPill Tone="danger" Label="@($"Over by {Display.Money(f.Appropriations - f.EstimatedResources)}")" /> }
+                    </div>
+                    <div class="cb-cert-line"><span>Beginning balance</span><b>@Display.Money(f.BeginningBalance)</b></div>
+                    <div class="cb-cert-line"><span>+ Revenues</span><b>@Display.Money(f.Revenues)</b></div>
+                    <div class="cb-cert-line"><span>+ Transfers in</span><b>@Display.Money(f.TransfersIn)</b></div>
+                    <div class="cb-cert-line sum"><span>Estimated resources</span><b>@Display.Money(f.EstimatedResources)</b></div>
+                    <div class="cb-cert-line"><span>− Expenditures</span><b>@Display.Money(f.Expenditures)</b></div>
+                    <div class="cb-cert-line"><span>− Transfers out</span><b>@Display.Money(f.TransfersOut)</b></div>
+                    <div class="cb-cert-line end @(f.ProjectedEndingBalance < 0 ? "neg" : "")"><span>Projected ending balance</span><b>@Display.Money(f.ProjectedEndingBalance)</b></div>
+                </div>
+            }
+            <div class="cb-cert total">
+                <div class="cb-cert-head"><b>All funds</b></div>
+                <div class="cb-cert-line sum"><span>Estimated resources</span><b>@Display.Money(report.Total.EstimatedResources)</b></div>
+                <div class="cb-cert-line sum"><span>Appropriations</span><b>@Display.Money(report.Total.Appropriations)</b></div>
+                <div class="cb-cert-line end @(report.Total.ProjectedEndingBalance < 0 ? "neg" : "")"><span>Projected ending balance</span><b>@Display.Money(report.Total.ProjectedEndingBalance)</b></div>
+            </div>
+        </div>
+        <div class="cb-grid-wrap d-none d-md-block d-print-block">
             <table class="cb-grid table cb-report-table" aria-label="Budget summary by fund">
                 <thead>
                     <tr>

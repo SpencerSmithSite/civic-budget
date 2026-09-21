@@ -42,7 +42,8 @@ public class ReportPageTests : BunitContext
         Assert.Contains("$1,400.00", page.Markup);   // General estimated resources 500 + 900
         Assert.Contains("-$90.00", page.Markup);     // Street projected ending 110 - 200
         Assert.Contains("$1,510.00", page.Find("tfoot").TextContent); // total estimated resources
-        Assert.Single(page.FindAll(".cb-pill-danger"));
+        Assert.Single(page.FindAll("table .cb-pill-danger"));       // the over-limit fund, once in the table
+        Assert.Single(page.FindAll(".cb-cert.over"));                // and once as a phone certificate card
         Assert.Contains($"admin/export/reports/{VersionId}/fund-summary.xlsx", page.Find("a.btn").GetAttribute("href"));
         Assert.Contains("by Dana Whitfield", page.Find(".cb-report-head").TextContent);
     }

@@ -80,7 +80,9 @@ public class DepartmentPagesTests : BunitContext
         board.WaitForAssertion(() => Assert.Contains("1 of 2", board.Find(".cb-kpi .v").TextContent));
         Assert.Equal(2, board.FindAll("tbody tr").Count);
         Assert.Contains("Chief Hale", board.Find("tbody tr").TextContent);
-        Assert.Single(board.FindAll("button.dropdown-item")); // one Return button: Police is submitted, Streets is not
+        Assert.Single(board.FindAll("table button.dropdown-item"));    // one Return button: Police is submitted, Streets is not
+        Assert.Single(board.FindAll(".cb-cards button.dropdown-item")); // the same one on the phone cards
+        Assert.Equal(2, board.FindAll(".cb-list-card").Count);
     }
 
     [Fact]
