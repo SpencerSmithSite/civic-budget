@@ -64,6 +64,19 @@ jobs:
   # The CDK app synthesizes without credentials: this proves cdk.json, the C# app, and the
   # templates are sound on every change, even though nothing deploys (ADR-0008). The assertion
   # tests in tests/CivicBudget.Infra.Tests already ran above; this is the CLI path a deploy uses.
+  # The Azure template compiles and lints, so a typo in infra/azure cannot wait for a deploy to surface.
+  bicep-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: bicep build
+        run: |
+          curl -fsSL https://github.com/Azure/bicep/releases/latest/download/bicep-linux-x64 -o bicep
+          chmod +x bicep
+          ./bicep build infra/azure/main.bicep --stdout > /dev/null
+          ./bicep lint infra/azure/main.bicep
+
   cdk-synth:
     runs-on: ubuntu-latest
     timeout-minutes: 15

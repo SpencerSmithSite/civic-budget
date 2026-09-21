@@ -36,6 +36,25 @@ All data is fictional (Village of Maple Ridge, Ohio).
 
 </details>
 
+## Live demo
+
+A hosted copy runs on Azure's free tiers: **https://civicbudget-app.&lt;region&gt;.azurecontainerapps.io** _(link filled in after the first deploy)_.
+The database is rebuilt from the seed every night at 08:00 UTC, so anything you change is
+gone by morning. Sign in with any of these; the password is the same for all of them.
+
+| Login | Role | What you get |
+|---|---|---|
+| `admin@mapleridge.example` | Administrator | Everything: users, settings, chart sync, the budget |
+| `finance@mapleridge.example` | Fiscal Officer | The whole budget, workflow, publishing, reports |
+| `police@mapleridge.example` | Department User | The Police department's request (already submitted) |
+| `streets@mapleridge.example` | Department User | Streets and Parks (Parks was returned with a note) |
+| `viewer@mapleridge.example` | Viewer | Read-only |
+
+**Demo password:** _set after the first deploy; `scripts/azure-setup.sh` prints it_.
+
+The public portal needs no login: [/transparency/maple-ridge-oh](https://civicbudget-app.azurecontainerapps.io/transparency/maple-ridge-oh).
+The first visit after a quiet spell can take a minute while the database resumes; after that it is quick.
+
 ## Run locally
 
 Prerequisites: .NET SDK 10, Docker Desktop (on Apple Silicon, enable *Use Rosetta for x86_64/amd64 emulation*).
@@ -70,6 +89,15 @@ To start over with fresh seed data: `docker compose down -v && docker compose up
 docker compose -f docker-compose.full.yml up --build     # app image + SQL Server; open http://localhost:8080
 ```
 
+### Azure (the live demo)
+
+`infra/azure/main.bicep` puts the app on Azure's always-free offers: a serverless Azure SQL
+database under the free limit and a Container App on the consumption plan that scales to zero,
+plus a scheduled job that runs the same image with `--reseed` every night. `scripts/azure-setup.sh`
+creates all of it once and wires `.github/workflows/deploy-azure.yml`, which builds the image to
+GitHub's registry and rolls the app on every push to `main`, signing in with OIDC. See
+[infra/azure/README.md](infra/azure/README.md), ADR-0030, and [walkthrough 16](docs/walkthroughs/16-azure-demo.md).
+
 ### AWS (deploy-ready, not deployed)
 
 `infra/CivicBudget.Infra` is an AWS CDK app in C#: VPC, RDS SQL Server Express, Fargate behind an
@@ -79,7 +107,7 @@ tag once an account's role ARN is set. There is no account behind this repositor
 nothing is live; see [infra/README.md](infra/README.md) and [walkthrough 08](docs/walkthroughs/08-aws-deploy-ready.md).
 
 ```bash
-dotnet test                                 # all 455 tests; integration tests start their own SQL Server container, infra tests need Node.js
+dotnet test                                 # all 498 tests; integration tests start their own SQL Server container, infra tests need Node.js
 ```
 
 ## How to read this repository

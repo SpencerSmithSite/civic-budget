@@ -97,6 +97,15 @@ builder.Services.AddHealthChecks()
 
 WebApplication app = builder.Build();
 
+// `dotnet CivicBudget.Web.dll --reseed`: the nightly demo reset, run as a scheduled job with the
+// same image and settings as the site. It rebuilds the database from the seed and exits; the
+// web host is built (for configuration and services) but never started.
+if (args.Contains("--reseed", StringComparer.Ordinal))
+{
+    await DatabaseInitializer.ResetAsync(app.Services);
+    return;
+}
+
 // Development migrates and seeds on every start. Elsewhere both are opt-in (DatabaseOptions): the
 // containerized demo and the single-task AWS deploy turn them on; a real pipeline would run
 // migrations as its own step and never seed.
