@@ -5,6 +5,12 @@ All notable changes to CivicBudget. Format loosely follows
 
 ## [Unreleased]
 
+## Phase 14 — 2026-09-21 (v1.1)
+### Fixed
+- Phones: the budget workspace and department pages no longer force Safari to zoom out. Grid columns can shrink below their content (`minmax(0, 1fr)`), hidden tooltips leave the layout, the settings page's limit-mode options are shorter, and toolbar filters go full width under 576px.
+### Added
+- Phones: data grids pin their first column while scrolling sideways; `scripts/screenshots/mobile-sweep.mjs` checks every route for horizontal overflow.
+
 ## Phase 13 — 2026-09-20 (v1.1)
 ### Added
 - Azure hosting for the live demo: `infra/azure/main.bicep` (serverless Azure SQL under the free offer, Container App on the consumption plan, nightly reset job, capped Log Analytics), `scripts/azure-setup.sh` (one-time create plus GitHub OIDC wiring), `.github/workflows/deploy-azure.yml` (image to GHCR and roll on every push to `main`), and a `bicep-build` CI job.

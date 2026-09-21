@@ -50,10 +50,10 @@ else
         <div class="mb-3">
             <label class="form-label" for="mode">When a fund's appropriations exceed its estimated resources</label>
             <InputSelect id="mode" class="form-select" @bind-Value="model.AppropriationLimitMode">
-                <option value="@AppropriationLimitMode.Block">Block: the budget cannot be proposed or adopted</option>
-                <option value="@AppropriationLimitMode.Warn">Warn: show a warning, allow after acknowledgement</option>
+                <option value="@AppropriationLimitMode.Block">Block proposing and adopting</option>
+                <option value="@AppropriationLimitMode.Warn">Warn, allow after acknowledgement</option>
             </InputSelect>
-            <div class="form-text">Ohio law caps appropriations at certified estimated resources; Block is the safe default.</div>
+            <div class="form-text">Ohio law caps appropriations at certified estimated resources; Block is the safe default. Warn shows the overage and lets the fiscal officer acknowledge it and continue.</div>
         </div>
         <fieldset class="mb-3 cb-number-format">
             <legend class="form-label">Account number format <InfoTip Text="How the parent ERP writes a full account number: fund, then the program or department, then the object. A UAN village writes 1000-725-121 (4-3-3); many county charts write 101-110-5100 (3-3-4). Revenue lines skip the middle segment." /></legend>

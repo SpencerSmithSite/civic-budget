@@ -198,3 +198,9 @@ Order: 9a → 9b → 9c → 9d. Each is a PR with the usual report; approve befo
 - [x] README: live demo section with the logins
 - [x] Setup script run (Central US; East US 2 refused new SQL servers), URL and password in the README (2026-09-20)
 - [x] Spencer approves Phase 13 (2026-09-20, live)
+
+## Phase 14 — Mobile pass  `phase-14-mobile`
+- [x] Every route renders at 390px without sideways overflow (sweep script, 32 routes)
+- [x] Shrinkable grid columns, tooltips out of the layout, toolbar filters full width, shorter select labels
+- [x] Pinned first column on phone grids
+- [ ] Spencer approves Phase 14
