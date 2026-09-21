@@ -60,6 +60,10 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # The one file whose absence makes every interactive page silently dead (see the Dockerfile).
+      - name: Check the image serves the Blazor script
+        run: docker run --rm --entrypoint sh "${{ steps.name.outputs.image }}:${{ github.sha }}" -c "test -f wwwroot/_framework/blazor.web.js && grep -q blazor.web CivicBudget.Web.staticwebassets.endpoints.json"
+
   deploy:
     # Skips cleanly until setup has run, so a push to a fork or before setup is a no-op.
     if: ${{ vars.AZURE_DEPLOY == 'true' }}

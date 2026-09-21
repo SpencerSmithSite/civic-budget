@@ -19,7 +19,12 @@ COPY src/CivicBudget.Web/CivicBudget.Web.csproj src/CivicBudget.Web/
 RUN dotnet restore src/CivicBudget.Web/CivicBudget.Web.csproj
 
 COPY src/ src/
-RUN dotnet publish src/CivicBudget.Web/CivicBudget.Web.csproj --no-restore -c Release -o /app/publish
+# Publish restores again on purpose. The restore above saw only project files, and the SDK's
+# static web assets pipeline decides at restore time whether a project needs _framework/blazor.web.js
+# (it looks for Razor components); with --no-restore the script was left out of the image and every
+# interactive page went dead. The packages are already cached, so the second restore takes seconds.
+RUN dotnet publish src/CivicBudget.Web/CivicBudget.Web.csproj -c Release -o /app/publish \
+    && test -f /app/publish/wwwroot/_framework/blazor.web.js
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
