@@ -57,20 +57,28 @@ SP_ID="$(az ad sp show --id "$APP_ID" --query id -o tsv)"
 az role assignment create --assignee-object-id "$SP_ID" --assignee-principal-type ServicePrincipal \
   --role Contributor --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP" --output none 2>/dev/null || true
 
-if ! az ad app federated-credential list --id "$APP_ID" --query "[?name=='github-main']" -o tsv | grep -q .; then
-  az ad app federated-credential create --id "$APP_ID" --parameters "{
-    \"name\": \"github-main\",
-    \"issuer\": \"https://token.actions.githubusercontent.com\",
-    \"subject\": \"repo:$REPO:ref:refs/heads/main\",
-    \"audiences\": [\"api://AzureADTokenExchange\"]
-  }" --output none
-  az ad app federated-credential create --id "$APP_ID" --parameters "{
-    \"name\": \"github-environment\",
-    \"issuer\": \"https://token.actions.githubusercontent.com\",
-    \"subject\": \"repo:$REPO:environment:azure-demo\",
-    \"audiences\": [\"api://AzureADTokenExchange\"]
-  }" --output none
-fi
+# GitHub's token subject comes in two spellings: the classic "repo:owner/name:..." and, when the
+# repository has "include ids in subject claims" on (the default for newer repositories),
+# "repo:owner@ownerId/name@repoId:...". Register both, for the main branch and for the
+# azure-demo environment the deploy job runs in, so either form signs in.
+OWNER_ID="$(gh api "/users/${REPO%%/*}" -q .id)"
+REPO_ID="$(gh api "/repos/$REPO" -q .id)"
+REPO_WITH_IDS="${REPO%%/*}@$OWNER_ID/${REPO#*/}@$REPO_ID"
+add_federated_credential() {
+  local name="$1" subject="$2"
+  if ! az ad app federated-credential list --id "$APP_ID" --query "[?name=='$name']" -o tsv | grep -q .; then
+    az ad app federated-credential create --id "$APP_ID" --parameters "{
+      \"name\": \"$name\",
+      \"issuer\": \"https://token.actions.githubusercontent.com\",
+      \"subject\": \"$subject\",
+      \"audiences\": [\"api://AzureADTokenExchange\"]
+    }" --output none
+  fi
+}
+add_federated_credential github-main "repo:$REPO:ref:refs/heads/main"
+add_federated_credential github-environment "repo:$REPO:environment:azure-demo"
+add_federated_credential github-main-ids "repo:$REPO_WITH_IDS:ref:refs/heads/main"
+add_federated_credential github-environment-ids "repo:$REPO_WITH_IDS:environment:azure-demo"
 
 gh secret set AZURE_CLIENT_ID --body "$APP_ID"
 gh secret set AZURE_TENANT_ID --body "$TENANT_ID"
