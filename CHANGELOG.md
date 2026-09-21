@@ -5,6 +5,10 @@ All notable changes to CivicBudget. Format loosely follows
 
 ## [Unreleased]
 
+## Phase 15 — 2026-09-21 (v1.1)
+### Added
+- Phones: list pages (funds, departments, chart of accounts, fiscal years, users, budget versions, publishing history, chart sync history, department board, overview) render as cards (`ListCard`); working grids keep three columns with a chevron that opens a bottom sheet carrying every figure, the editable amount, the note, and history (`LineDetail`); Fund Summary shows a certificate card per fund and Department Detail a card per department. Tables remain on wider screens and in print.
+
 ## Phase 14 — 2026-09-21 (v1.1)
 ### Fixed
 - Phones: the budget workspace and department pages no longer force Safari to zoom out. Grid columns can shrink below their content (`minmax(0, 1fr)`), hidden tooltips leave the layout, the settings page's limit-mode options are shorter, and toolbar filters go full width under 576px.
