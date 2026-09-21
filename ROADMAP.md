@@ -197,4 +197,4 @@ Order: 9a → 9b → 9c → 9d. Each is a PR with the usual report; approve befo
 - [x] `--reseed` entry point and `DatabaseInitializer.ResetAsync` (integration test)
 - [x] README: live demo section with the logins
 - [x] Setup script run (Central US; East US 2 refused new SQL servers), URL and password in the README (2026-09-20)
-- [ ] Spencer approves Phase 13
+- [x] Spencer approves Phase 13 (2026-09-20, live)
