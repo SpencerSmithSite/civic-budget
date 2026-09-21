@@ -19,7 +19,6 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  IMAGE: ghcr.io/${{ github.repository }}
   RESOURCE_GROUP: civicbudget-rg
   APP_NAME: civicbudget-app
   JOB_NAME: civicbudget-reset
@@ -30,8 +29,18 @@ jobs:
   image:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      image: ${{ steps.name.outputs.image }}
     steps:
       - uses: actions/checkout@v7
+
+      # GHCR names are lowercase; github.repository keeps the owner's capitalization.
+      - name: Image name
+        id: name
+        run: echo "image=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      # The GitHub Actions cache backend needs the buildx driver, not the default docker one.
+      - uses: docker/setup-buildx-action@v3
 
       - name: Log in to GitHub's container registry
         uses: docker/login-action@v3
@@ -46,8 +55,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ env.IMAGE }}:${{ github.sha }}
-            ${{ env.IMAGE }}:latest
+            ${{ steps.name.outputs.image }}:${{ github.sha }}
+            ${{ steps.name.outputs.image }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -69,14 +78,14 @@ jobs:
       - name: Roll the site to the new image
         run: |
           az containerapp update --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" \
-            --image "$IMAGE:${{ github.sha }}" --output none
+            --image "${{ needs.image.outputs.image }}:${{ github.sha }}" --output none
           echo "url=https://$(az containerapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query properties.configuration.ingress.fqdn -o tsv)" >> "$GITHUB_OUTPUT"
         id: site
 
       - name: Point the nightly reset at the same image
         run: |
           az containerapp job update --name "$JOB_NAME" --resource-group "$RESOURCE_GROUP" \
-            --image "$IMAGE:${{ github.sha }}" --output none
+            --image "${{ needs.image.outputs.image }}:${{ github.sha }}" --output none
 
       - name: Wait for the new revision to answer
         run: |
