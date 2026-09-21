@@ -210,4 +210,4 @@ Order: 9a → 9b → 9c → 9d. Each is a PR with the usual report; approve befo
 - [x] Working grids: three columns on phones, chevron to a bottom-sheet drawer with `LineDetail` plus history
 - [x] Reports: Fund Summary certificate cards, Department Detail cards; tables kept for desktop and print
 - [x] Tests (ListCard, dual rendering on the board and fund summary); every route still clean at 390px
-- [ ] Spencer approves Phase 15
+- [x] Spencer approves Phase 15 (2026-09-21)
