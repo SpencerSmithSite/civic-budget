@@ -489,7 +489,7 @@ h1, h2, h3, h4 {
 
 @media (max-width: 991.98px) {
     .cb-shell {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .cb-sidebar {
@@ -719,6 +719,46 @@ h1, h2, h3, h4 {
 
 .cb-toolbar .form-select {
     width: auto;
+}
+
+@media (max-width: 575.98px) {
+    .cb-toolbar .form-control, .cb-toolbar .form-select, .cb-toolbar .grow {
+        width: 100%;
+        max-width: none;
+        flex: 1 1 100%;
+    }
+}
+
+/* Phones: grids scroll sideways inside their card, and the first column (the account, the fund,
+   the person) stays pinned so a row keeps its name while the amounts scroll past. */
+@media (max-width: 767.98px) {
+    table.cb-grid > thead > tr > th:first-child,
+    table.cb-grid > tbody > tr > td:first-child,
+    table.cb-grid > tfoot > tr > td:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 2;
+        background: var(--cb-surface);
+        box-shadow: 1px 0 0 var(--cb-border);
+        max-width: 60vw;
+    }
+
+    table.cb-grid > thead > tr > th:first-child {
+        background: #fbfcfd;
+        z-index: 3;
+    }
+
+    table.cb-grid > tbody > tr.cb-subtotal > td:first-child,
+    table.cb-grid > tfoot > tr > td:first-child {
+        background: var(--cb-subtotal);
+    }
+
+    /* Group rows span the table; pinning them keeps the fund or department label in view too. */
+    table.cb-grid > tbody > tr.cb-group > td:first-child {
+        max-width: none;
+        background: var(--cb-subtotal);
+        box-shadow: none;
+    }
 }
 
 table.cb-grid {
@@ -1056,6 +1096,10 @@ table.cb-grid-tight > thead > tr > th {
     align-items: start;
 }
 
+.cb-workspace > * {
+    min-width: 0;
+}
+
 /* Laptop widths: a narrower fund panel and tighter money cells let a 1440 px screen show the whole
    table without sideways scrolling; anything narrower scrolls inside the card. */
 @media (min-width: 1200px) and (max-width: 1599.98px) {
@@ -1071,8 +1115,10 @@ table.cb-grid-tight > thead > tr > th {
 }
 
 @media (max-width: 1199.98px) {
+    /* minmax(0, 1fr), not 1fr: a bare 1fr is minmax(auto, 1fr), and "auto" lets a wide table stretch
+       the column (and the page) to its own width instead of scrolling inside its card. */
     .cb-workspace {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .cb-fund-rail {
@@ -1642,7 +1688,7 @@ h1:focus {
     bottom: calc(100% + 8px);
     transform: translateX(-50%);
     width: max-content;
-    max-width: 320px;
+    max-width: min(320px, calc(100vw - 32px));
     padding: 8px 10px;
     border-radius: 6px;
     background: var(--cb-navy);
@@ -1652,9 +1698,10 @@ h1:focus {
     white-space: normal;
     text-align: left;
     box-shadow: 0 4px 14px rgba(15, 42, 68, .25);
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity .12s;
+    /* display:none rather than visibility:hidden. A hidden-but-laid-out tip beside the page's
+       right edge still counts toward the page's scroll width, which on a phone made Safari zoom
+       the whole page out to fit a tooltip nobody could see. */
+    display: none;
     z-index: 30;
     pointer-events: none;
 }
@@ -1670,19 +1717,12 @@ h1:focus {
 }
 
 .cb-tip:hover .cb-tip-text, .cb-tip:focus-visible .cb-tip-text {
-    opacity: 1;
-    visibility: visible;
+    display: block;
 }
 
 /* Inside a table header the tip sits after the column name and must not inherit the caps. */
 table.cb-grid > thead > tr > th .cb-tip {
     margin-left: 4px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .cb-tip-text {
-        transition: none;
-    }
 }
 
 /* "Managed by the ERP" notice on the setup lists. */
