@@ -330,6 +330,10 @@ h1, h2, h3, h4 {
     font-size: 0.75rem;
 }
 
+.cb-drawer-close {
+    display: none;
+}
+
 .cb-collapse:hover {
     background: rgba(255, 255, 255, 0.08);
     color: #fff;
@@ -494,7 +498,7 @@ h1, h2, h3, h4 {
         width: var(--cb-sidebar-width);
         transform: translateX(-100%);
         transition: transform 0.2s ease;
-        z-index: 40;
+        z-index: 46; /* above the backdrop (45), which must dim the page, not the menu */
     }
 
     .cb-sidebar.open {
@@ -507,7 +511,11 @@ h1, h2, h3, h4 {
     }
 
     .cb-collapse {
-        display: none; /* the drawer has its own hamburger */
+        display: none; /* the drawer has its own hamburger to open it and an X to close it */
+    }
+
+    .cb-collapse.cb-drawer-close {
+        display: flex;
     }
 
     .cb-main {

@@ -22,6 +22,10 @@
                     title="@(collapsed ? "Expand menu" : "Collapse menu")" aria-label="@(collapsed ? "Expand menu" : "Collapse menu")">
                 <i class="bi @(collapsed ? "bi-chevron-double-right" : "bi-chevron-double-left")" aria-hidden="true"></i>
             </button>
+            @* Under 992px the sidebar is a drawer; this closes it (the chevron above is hidden there). *@
+            <button type="button" class="cb-collapse cb-drawer-close" @onclick="CloseMenu" aria-controls="admin-sidebar" title="Close menu" aria-label="Close menu">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
         </div>
 
         <AuthorizeView Policy="@Policies.CanViewBudget">
