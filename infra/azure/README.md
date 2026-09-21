@@ -15,8 +15,12 @@ What runs where, and how to operate it. The design is ADR-0030; the walkthrough 
 ```bash
 brew install azure-cli gh
 az login
-./scripts/azure-setup.sh
+LOCATION=centralus ./scripts/azure-setup.sh
 ```
+
+The first attempt in East US 2 failed with "not accepting creation of new Windows Azure SQL
+Database servers"; Azure restricts some regions for new subscriptions. Central US worked. The
+live site is `https://civicbudget-app.ashysmoke-cd0f52a4.centralus.azurecontainerapps.io`.
 
 The script creates the resource group and the template above, generates the SQL and demo
 passwords, registers an app for GitHub's OIDC sign-in with a federated credential for this
