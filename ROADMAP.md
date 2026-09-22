@@ -217,4 +217,4 @@ Order: 9a → 9b → 9c → 9d. Each is a PR with the usual report; approve befo
 - [x] Waiting screen while the database wakes (`WakingUpMiddleware`, 503 + Retry-After, polls `/health/startup`, continues on its own)
 - [x] Azure startup probe every 2s; Docker healthcheck start period 15s
 - [x] Tests (middleware routing, page content, startup health check); ADR-0031, walkthrough 18
-- [ ] Spencer approves Phase 16
+- [x] Spencer approves Phase 16 (2026-09-21)
