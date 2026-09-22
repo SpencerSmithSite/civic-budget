@@ -211,3 +211,10 @@ Order: 9a → 9b → 9c → 9d. Each is a PR with the usual report; approve befo
 - [x] Reports: Fund Summary certificate cards, Department Detail cards; tables kept for desktop and print
 - [x] Tests (ListCard, dual rendering on the board and fund summary); every route still clean at 390px
 - [x] Spencer approves Phase 15 (2026-09-21)
+
+## Phase 16 — Cold start  `phase-16-cold-start`
+- [x] Migrate and seed in a hosted service; Kestrel listens immediately (`StartupState`, `DatabaseStartupService`)
+- [x] Waiting screen while the database wakes (`WakingUpMiddleware`, 503 + Retry-After, polls `/health/startup`, continues on its own)
+- [x] Azure startup probe every 2s; Docker healthcheck start period 15s
+- [x] Tests (middleware routing, page content, startup health check); ADR-0031, walkthrough 18
+- [ ] Spencer approves Phase 16

@@ -1009,8 +1009,14 @@ that is the free-offer resource. The demo password is used nowhere else.
 **Look at:** `DatabaseInitializer.ResetAsync`, the `resetJob` resource in `main.bicep`, `DatabaseResetTests`.
 
 ### Q: What does scale-to-zero do to a Blazor Server app?
-**A:** The first request after an idle hour takes 30 to 60 seconds: the database resumes from
-auto-pause and the container starts and migrates. The startup probe allows a few minutes so
-the platform does not kill it mid-migration. Once warm it behaves normally. One replica at most,
-which the in-process output cache already required; a second replica would need a distributed
-cache and a SignalR backplane, and the ADR says so.
+**A:** The first request after an idle hour wakes two things: the container (about 15 seconds
+of platform time) and the serverless database (about 45 seconds resuming from auto-pause). At
+first the app awaited migrations before `RunAsync`, so Kestrel was not listening and the
+visitor stared at a blank page for the whole minute. Now `DatabaseStartupService` migrates and
+seeds in the background, the host listens within seconds, and `WakingUpMiddleware` answers page
+requests with a 503 waiting screen that polls `/health/startup` and continues on its own
+(ADR-0031). The platform's startup probe hits `/health`, which is liveness only, every two
+seconds. Once warm it behaves normally. One replica at most, which the in-process output cache
+already required; a second replica would need a distributed cache and a SignalR backplane, and
+the ADR says so.
+**Look at:** `Web/Startup/` (four small files), the health-check mapping in `Program.cs`, `WakingUpMiddlewareTests`.

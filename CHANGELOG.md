@@ -5,6 +5,10 @@ All notable changes to CivicBudget. Format loosely follows
 
 ## [Unreleased]
 
+## Phase 16 — 2026-09-21 (v1.1)
+### Changed
+- Cold start: the host listens as soon as the process is up and prepares the database behind it (`DatabaseStartupService`). Until it is ready, every page request gets a waiting screen in the app's style (503 with `Retry-After`) that counts the seconds and continues to the requested page on its own; `/health/startup` is the in-memory check it polls. The Azure startup probe checks every two seconds instead of ten. First paint after an idle hour drops from about 65 seconds to about 20; the site itself still appears at about 65 while serverless SQL resumes.
+
 ## Phase 15 — 2026-09-21 (v1.1)
 ### Added
 - Phones: list pages (funds, departments, chart of accounts, fiscal years, users, budget versions, publishing history, chart sync history, department board, overview) render as cards (`ListCard`); working grids keep three columns with a chevron that opens a bottom sheet carrying every figure, the editable amount, the note, and history (`LineDetail`); Fund Summary shows a certificate card per fund and Department Detail a card per department. Tables remain on wider screens and in print.

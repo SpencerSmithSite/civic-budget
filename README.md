@@ -39,8 +39,9 @@ All data is fictional (Village of Maple Ridge, Ohio).
 ## Live demo
 
 A hosted copy runs on Azure's free tiers: **https://civicbudget-app.ashysmoke-cd0f52a4.centralus.azurecontainerapps.io**.
-The database is rebuilt from the seed every night at 08:00 UTC, so anything you change is
-gone by morning. Sign in with any of these; the password is the same for all of them.
+The demo sleeps when idle: the first visit after an hour shows a short "waking up" screen and
+continues on its own within about a minute. The database is rebuilt from the seed every night
+at 08:00 UTC, so anything you change is gone by morning. Sign in with any of these; the password is the same for all of them.
 
 | Login | Role | What you get |
 |---|---|---|
