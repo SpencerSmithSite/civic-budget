@@ -47,8 +47,10 @@ az group delete -n civicbudget-rg                                     # tear eve
 
 ## What to expect
 
-- The first request after an idle hour takes 30 to 60 seconds: the database resumes from
-  auto-pause and the container starts (the startup probe allows a few minutes for migrations).
+- The first request after an idle hour shows the "Waking up the demo" screen within about 20
+  seconds (the platform scheduling and starting the container) and continues to the site on its
+  own at about a minute, once serverless SQL has resumed from auto-pause (ADR-0031). After that
+  the site is warm for as long as anyone keeps using it, plus an hour.
 - One replica, always: the output cache and the Blazor circuits live in process (ADR-0021).
 - The nightly reset drops the Data Protection keys with everything else, so every session ends
   at 08:00 UTC. For a demo that is a feature.

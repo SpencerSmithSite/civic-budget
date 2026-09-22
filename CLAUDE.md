@@ -51,7 +51,8 @@ Actions · AWS CDK (C#) deploy-ready (no account — see ADR-0008).
 - Docker: never `dotnet publish --no-restore` after a csproj-only restore layer; the static web assets pipeline decides at restore time whether `_framework/blazor.web.js` is needed and a project-files-only restore says no, so the image serves 404 for it and every interactive page is dead. The Dockerfile asserts the file exists; the deploy workflow checks again.
 - Docker: the build context must include `.editorconfig` (migration analyzer exemptions) or publish fails on CA1861. `infra/`, `tests/`, `docs/`, `.env` are ignored.
 - A per-page `@rendermode` leaves the layout static (no toasts, no sidebar events). Global mode on `Routes` with static opt-outs is the pattern (ADR-0002 amendment).
-- The live demo is Azure (ADR-0030): free-offer serverless SQL that auto-pauses (first request after an idle hour is slow; the initializer retries for two minutes), one Container App replica, nightly `--reseed`. The AWS CDK stack is the production-shaped story, not the live one.
+- The live demo is Azure (ADR-0030): free-offer serverless SQL that auto-pauses, one Container App replica, nightly `--reseed`. The AWS CDK stack is the production-shaped story, not the live one.
+- Startup (ADR-0031): the host listens first; `DatabaseStartupService` migrates and seeds behind it and flips `StartupState`. `WakingUpMiddleware` serves the waiting screen (503) until then, so never put migration or seed calls back in `Program.cs` before `RunAsync`, and keep `/health` free of database checks (it is the platform's startup probe). `/health/startup` is in-memory; `/health/ready` hits the database.
 - Kestrel logs `SslStream ... Bad address` on HTTP/2 when Safari drops an HTTPS connection; harmless macOS noise, use http://localhost:5000 if it bothers you.
 
 ## Code conventions

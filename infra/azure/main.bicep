@@ -148,11 +148,14 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
           env: env
           probes: [
             {
+              // /health answers as soon as Kestrel listens; the database is prepared behind it and
+              // the app shows its own waiting screen meanwhile. A tight probe here is what turns a
+              // scale-from-zero into a page in a few seconds rather than a hung request.
               type: 'Startup'
               httpGet: { path: '/health', port: 8080 }
-              initialDelaySeconds: 10
-              periodSeconds: 10
-              failureThreshold: 30 // migrations plus a paused database resuming can take a couple of minutes
+              initialDelaySeconds: 2
+              periodSeconds: 2
+              failureThreshold: 30
             }
             {
               type: 'Liveness'

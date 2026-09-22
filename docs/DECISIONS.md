@@ -816,3 +816,46 @@ the circuit: their first request after sign-in is redirected. Tests: policy matr
 middleware (Web), permissions and audit scoping (integration), user admin flag and audit
 (integration).
 
+
+---
+
+## ADR-0031 — The host listens before the database is ready and shows a waiting screen
+**Date:** 2026-09-21 · **Status:** Accepted
+
+**Context.** On the free Azure tier (ADR-0030) a visitor's first request after an idle hour
+took about 65 seconds to produce any bytes: 15 seconds for the platform to schedule and start
+the container, then 48 seconds while serverless SQL resumed from auto-pause. `Program.cs`
+awaited migrations and seeding before `RunAsync`, so Kestrel was not listening and the startup
+probe (on `/health`) could not pass; Container Apps held the request the whole time and the
+browser showed a blank page. A blank minute reads as "the site is down". Keeping the database
+awake or a replica warm would exhaust the free allowances within days.
+
+**Decision.**
+- **Migrate and seed in a hosted service** (`DatabaseStartupService`), not inline. The host
+  starts listening within seconds of the process; the same options decide what runs
+  (Development always, `Database:MigrateOnStartup` and `Database:SeedDemoData` elsewhere). A
+  failure logs critical and stops the host so the platform restarts the container, which is
+  what an inline throw did before.
+- **`StartupState`** is a singleton the service flips to ready. `WakingUpMiddleware`, placed
+  before the status-code pages, answers every page request with a self-contained waiting screen
+  until then: `503 Service Unavailable` with `Retry-After` and `Cache-Control: no-store`, the
+  public header and a card in the app's own tokens, the mark inline, a live counter that
+  continues from the process's clock across reloads, and a poll of `/health/startup` every two
+  seconds that reloads the original URL once it returns 200. A `noscript` meta refresh covers
+  browsers without script. Health endpoints and static assets pass through.
+- **Three health endpoints.** `/health` is liveness (the process is up) and is what the
+  platform's startup probe hits, now with a two-second delay and period instead of ten.
+  `/health/startup` is the in-memory startup check, cheap enough to poll. `/health/ready` is
+  startup plus a real database round trip, for anything that must know the database answers.
+
+**Alternatives.** A minimum of one replica (a few dollars a month, and the database would still
+pause); disabling SQL auto-pause (burns the free vCore-seconds in about four days); a keep-alive
+ping (same); a static "loading" page on a CDN in front (another moving part, and it could not
+know when to stop). Serving the waiting screen with 200 (monitors and crawlers would cache it as
+the site).
+
+**Consequences.** First paint after a cold start is about 20 seconds (platform time only), and
+the site appears on its own at about 65 seconds; nothing about the warm path changes. Local
+development gets the same screen for the 15 to 30 seconds SQL Server takes under Rosetta.
+Blazor circuits cannot start early (`/_blazor` is not exempt), so no page renders against a
+database that is not there. Tests: `WakingUpMiddlewareTests` (Web).

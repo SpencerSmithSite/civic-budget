@@ -11,12 +11,12 @@ using CivicBudget.Web.Components.Admin;
 using CivicBudget.Web.Components.Common;
 using CivicBudget.Web.Components.Portal;
 using CivicBudget.Web.Security;
+using CivicBudget.Web.Startup;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Options;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -92,7 +92,15 @@ builder.Services.AddDataProtection()
     .SetApplicationName("CivicBudget")
     .PersistKeysToDbContext<CivicBudgetDbContext>();
 
+// The database is prepared after the host starts listening (DatabaseStartupService), so a visitor
+// who wakes the demo sees a page within seconds instead of a request that hangs for a minute while
+// serverless SQL resumes. StartupState is what the waiting page and the probes read.
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<StartupState>();
+builder.Services.AddHostedService<DatabaseStartupService>();
+
 builder.Services.AddHealthChecks()
+    .AddCheck<StartupHealthCheck>("startup", tags: ["startup", "ready"])
     .AddDbContextCheck<CivicBudgetDbContext>("database", tags: ["ready"]);
 
 WebApplication app = builder.Build();
@@ -106,25 +114,14 @@ if (args.Contains("--reseed", StringComparer.Ordinal))
     return;
 }
 
-// Development migrates and seeds on every start. Elsewhere both are opt-in (DatabaseOptions): the
-// containerized demo and the single-task AWS deploy turn them on; a real pipeline would run
-// migrations as its own step and never seed.
-DatabaseOptions databaseOptions = app.Services.GetRequiredService<IOptions<DatabaseOptions>>().Value;
-if (app.Environment.IsDevelopment() || databaseOptions.MigrateOnStartup)
-{
-    await DatabaseInitializer.MigrateAsync(app.Services);
-}
-
-if (app.Environment.IsDevelopment() || databaseOptions.SeedDemoData)
-{
-    await DatabaseInitializer.SeedAsync(app.Services);
-}
-
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
 }
+
+// Before the status-code pages: the waiting screen is a 503 with a body of its own.
+app.UseMiddleware<WakingUpMiddleware>();
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 
@@ -146,8 +143,11 @@ app.UseMiddleware<PortalResponseMiddleware>();
 app.UseOutputCache();
 app.UseAntiforgery();
 
-// Liveness: the process is up. Readiness: it can also reach the database.
+// Liveness: the process is up (the platform's startup probe, so traffic arrives while the database
+// is still waking). Startup: migrations and seed are done, answered from memory for the waiting
+// page's poll. Readiness: that, plus a real round trip to the database.
 app.MapHealthChecks("/health", new() { Predicate = _ => false });
+app.MapHealthChecks("/health/startup", new() { Predicate = check => check.Tags.Contains("startup") });
 app.MapHealthChecks("/health/ready", new() { Predicate = check => check.Tags.Contains("ready") });
 
 app.MapStaticAssets();
