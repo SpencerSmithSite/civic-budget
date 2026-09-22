@@ -92,6 +92,10 @@ builder.Services.AddDataProtection()
     .SetApplicationName("CivicBudget")
     .PersistKeysToDbContext<CivicBudgetDbContext>();
 
+// ...but not before the server is listening: the key ring is read lazily instead of during host
+// startup, which on a resuming database used to cost the first visitor a blank minute (ADR-0031).
+builder.Services.DeferKeyRingLoad();
+
 // The database is prepared after the host starts listening (DatabaseStartupService), so a visitor
 // who wakes the demo sees a page within seconds instead of a request that hangs for a minute while
 // serverless SQL resumes. StartupState is what the waiting page and the probes read.

@@ -6,6 +6,8 @@ All notable changes to CivicBudget. Format loosely follows
 ## [Unreleased]
 
 ## Phase 16 — 2026-09-21 (v1.1)
+### Fixed
+- The waiting screen now actually appears on a cold start. Data Protection reads its key ring during host startup and our keys live in SQL Server, so on a resuming database EF retried that read for about fifty seconds before Kestrel ever started listening. The key ring is loaded lazily instead (`DataProtectionStartup.DeferKeyRingLoad`); against a database address that hangs, time to the first page went from 31 seconds to 1.
 ### Changed
 - Cold start: the host listens as soon as the process is up and prepares the database behind it (`DatabaseStartupService`). Until it is ready, every page request gets a waiting screen in the app's style (503 with `Retry-After`) that counts the seconds and continues to the requested page on its own; `/health/startup` is the in-memory check it polls. The Azure startup probe checks every two seconds instead of ten. First paint after an idle hour drops from about 65 seconds to about 20; the site itself still appears at about 65 while serverless SQL resumes.
 

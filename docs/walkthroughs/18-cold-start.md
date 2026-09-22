@@ -45,6 +45,36 @@ process is up) and is what the Azure startup probe hits, every two seconds
 instead of ten. `/health/startup` is the in-memory check. `/health/ready` is
 startup plus a real round trip to the database.
 
+## 2b. The part that did not work the first time
+
+Shipping the above changed nothing: the live site still showed a blank browser
+for about seventy seconds. The logs said why, once read in order:
+
+```
+21:59:50.928  Applying 0 pending migration(s).
+21:59:50.945  Now listening on: http://[::]:8080
+21:59:51.439  Database ready after 52s
+```
+
+Kestrel started listening **after** the database work, fifty-two seconds in,
+which is exactly what the change was supposed to prevent. The blocker was not
+in `Startup/` at all: `AddDataProtection` registers an internal hosted service
+that reads the key ring while the host starts, our keys live in SQL Server
+(so sign-in cookies survive a restart), and EF's retry strategy spent that
+minute on the read before the web host service got its turn. Hosted services
+registered in `Program.cs` run before the one that starts Kestrel, so anything
+of theirs that blocks holds the server back.
+
+`DataProtectionStartup.DeferKeyRingLoad` removes that registration. The
+provider then loads the key ring the first time something protects or
+unprotects data, which is after the database is up, because the waiting screen
+uses no cookies and no antiforgery tokens. Measured against a database address
+that hangs, time to the first page went from 31 seconds to 1.
+
+It matches an internal framework type by name, so the test asserts the removal
+happened rather than trusting it; a future .NET that renames the type fails the
+build instead of quietly restoring the blank minute.
+
 ## 3. The waiting screen
 
 The middleware sits before the status-code pages. While the state is not
@@ -75,8 +105,8 @@ screen), the headers, the page content, and the health check.
 
 ## 5. Things to read
 
-1. `src/CivicBudget.Web/Startup/WakingUpMiddleware.cs` (middleware and page in one file)
-2. `src/CivicBudget.Web/Startup/DatabaseStartupService.cs`
-3. The health-check block in `src/CivicBudget.Web/Program.cs`
-4. The `Startup` probe in `infra/azure/main.bicep`
+1. `src/CivicBudget.Web/Startup/DataProtectionStartup.cs` (the fix that made the rest work)
+2. `src/CivicBudget.Web/Startup/WakingUpMiddleware.cs` (middleware and page in one file)
+3. `src/CivicBudget.Web/Startup/DatabaseStartupService.cs`
+4. The health-check block in `src/CivicBudget.Web/Program.cs`
 5. `docs/DECISIONS.md` ADR-0031
