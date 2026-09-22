@@ -1019,4 +1019,11 @@ requests with a 503 waiting screen that polls `/health/startup` and continues on
 seconds. Once warm it behaves normally. One replica at most, which the in-process output cache
 already required; a second replica would need a distributed cache and a SignalR backplane, and
 the ADR says so.
-**Look at:** `Web/Startup/` (four small files), the health-check mapping in `Program.cs`, `WakingUpMiddlewareTests`.
+The first version of that change shipped and did nothing, which is the more interesting half of
+the story. The logs showed `Now listening` seventeen milliseconds after the migration check and
+fifty-two seconds after the process started, so something ahead of the web host service was
+blocking. It was Data Protection: `AddDataProtection` registers a hosted service that reads the
+key ring at startup, the keys are in SQL Server, and EF retried that read against the resuming
+database for the better part of a minute. Dropping that one registration leaves the provider's
+lazy load and took time-to-first-page from 31 seconds to 1 against a database that hangs.
+**Look at:** `Web/Startup/` (five small files), the health-check mapping in `Program.cs`, `WakingUpMiddlewareTests`, `DataProtectionStartupTests`.

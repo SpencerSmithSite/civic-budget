@@ -847,6 +847,16 @@ awake or a replica warm would exhaust the free allowances within days.
   platform's startup probe hits, now with a two-second delay and period instead of ten.
   `/health/startup` is the in-memory startup check, cheap enough to poll. `/health/ready` is
   startup plus a real database round trip, for anything that must know the database answers.
+- **Data Protection reads its key ring lazily** (`DataProtectionStartup.DeferKeyRingLoad`). The
+  first attempt at this ADR shipped and changed nothing: the site still showed a blank browser for
+  about seventy seconds. The Azure logs put "Now listening" seventeen milliseconds after the
+  migration check, fifty-two seconds in, which is the wrong order for a host that is supposed to
+  listen first. The cause was upstream of anything this ADR had touched: `AddDataProtection`
+  registers an internal hosted service that reads the key ring during startup, our keys live in
+  SQL Server, and EF's retry strategy spent the better part of a minute on that read before the
+  web host service ever got to start Kestrel. Removing that registration leaves the provider's own
+  lazy load, which happens on the first request that protects or unprotects data, by which time
+  the database is up; the waiting screen itself uses no cookies or antiforgery tokens.
 
 **Alternatives.** A minimum of one replica (a few dollars a month, and the database would still
 pause); disabling SQL auto-pause (burns the free vCore-seconds in about four days); a keep-alive
@@ -855,7 +865,11 @@ know when to stop). Serving the waiting screen with 200 (monitors and crawlers w
 the site).
 
 **Consequences.** First paint after a cold start is about 20 seconds (platform time only), and
-the site appears on its own at about 65 seconds; nothing about the warm path changes. Local
+the site appears on its own at about 65 seconds; nothing about the warm path changes. Against a
+database address that hangs, time to the first page went from 31 seconds to 1. The key-ring
+removal matches an internal framework type by name, so `DataProtectionStartupTests` asserts the
+removal happened and fails loudly if a future .NET renames it rather than letting the delay back
+in silently. Local
 development gets the same screen for the 15 to 30 seconds SQL Server takes under Rosetta.
 Blazor circuits cannot start early (`/_blazor` is not exempt), so no page renders against a
 database that is not there. Tests: `WakingUpMiddlewareTests` (Web).
