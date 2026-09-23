@@ -95,6 +95,33 @@ screen must not record it as the site.
 `/_blazor` is not exempt, so no circuit can start against a database that is
 not there yet.
 
+## 3b. When the database pauses behind a running container
+
+Scale-to-zero usually retires the container a few minutes after the last
+request, long before the database pauses at sixty. But an admin tab left open
+holds a WebSocket, and that can keep the container up for hours. Then the app
+is "ready", the database is asleep, and the next page load waits on a hung
+connection with nothing on screen.
+
+`StartupState` now remembers when it last let a page through. After
+`QuietSpell` (55 minutes) with none, the middleware calls `BeginWaiting()`
+(only the first request of a burst gets true), starts `DatabaseWaker`, and
+waits up to `CheckGrace` (one second). An awake database answers in
+milliseconds and the page is served as normal. A sleeping one gets the waiting
+screen with its counter restarted, and `/health/startup` flips back to 200
+when the waker's connection finally succeeds. The waker runs on its own task,
+so a visitor closing the tab does not cancel the wake for the next one.
+
+## 3c. What is left, and why it stays
+
+After a few idle minutes the first visit still waits about 17 seconds before
+anything shows. From this morning's logs: 15.2 seconds for Azure to provision
+a sandbox, under a second to pull the image, 0.3 seconds of our own startup.
+Only a replica that is already running avoids it: `minReplicas: 1` for about
+$4 to $5 a month, or a weekday business-hours scale rule inside the free
+grant. Spencer kept the demo free and scale-to-zero; ADR-0031 records the
+numbers so the choice can be revisited with one line of Bicep.
+
 ## 4. Seeing it locally
 
 Stop SQL Server, start the app, open any page: the screen appears at once.
