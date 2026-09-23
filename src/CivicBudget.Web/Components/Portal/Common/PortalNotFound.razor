@@ -1,12 +1,12 @@
-@* Friendly not-found that also sets a real 404 so crawlers and the output cache treat it correctly.
-   HttpContext is available as a cascading parameter only during static SSR, which is all the portal uses. *@
-<div class="pt-empty">
-    <h1>No published budget here</h1>
-    <p>@Text</p>
-    <a href="/transparency">See governments with a published budget</a>
-</div>
+@* Marks a portal address as not found: a real 404, so crawlers and the output cache treat it
+   correctly. It renders nothing itself. In .NET 10 a static page that sets 404 has its body
+   discarded, and the status-code pages middleware re-executes /not-found (Pages/NotFound.razor),
+   which shows the portal's wording and a link back to the portal index. The page-specific sentence
+   travels there in HttpContext.Items, which survives the re-execution. *@
 
 @code {
+    public const string TextKey = "PortalNotFound.Text";
+
     [Parameter] public string Text { get; set; } = "Either the address is wrong or this government has not published a budget yet.";
 
     [CascadingParameter] private HttpContext? HttpContext { get; set; }
@@ -16,12 +16,7 @@
         if (HttpContext is { Response.HasStarted: false })
         {
             HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
-            // Otherwise the status-code pages middleware sees the 404 and replaces this page with the
-            // site-wide one, losing the message and the link back to the portal index.
-            if (HttpContext.Features.Get<Microsoft.AspNetCore.Diagnostics.IStatusCodePagesFeature>() is { } statusPages)
-            {
-                statusPages.Enabled = false;
-            }
+            HttpContext.Items[TextKey] = Text;
         }
     }
 }

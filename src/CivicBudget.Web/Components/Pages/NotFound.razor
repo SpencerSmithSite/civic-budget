@@ -1,14 +1,41 @@
 @page "/not-found"
 @layout MainLayout
 @attribute [ExcludeFromInteractiveRouting]
+@using CivicBudget.Web.Components.Portal.Common
+@using Microsoft.AspNetCore.Diagnostics
 
-@* The status-code pages middleware re-executes here for any 404 outside the portal (the portal
-   shows its own). Static like the other public pages: nothing on it needs a live connection. *@
-<PageTitle>Page not found</PageTitle>
+@* The status-code pages middleware re-executes here for every 404. An address under /transparency
+   gets the portal's wording (and the sentence the portal page left in HttpContext.Items); anything
+   else gets the general one. Static like the other public pages: nothing here needs a connection. *@
+<PageTitle>@(portal ? "No published budget here" : "Page not found")</PageTitle>
 
 <div class="container py-5">
-    <EmptyState IsPageHeading="true" Icon="bi-signpost-split" Title="Page not found" Text="That address does not match a page. It may have moved, or the link may be mistyped.">
-        <a class="btn btn-primary btn-sm" href="">Go to the home page</a>
-        <a class="btn btn-outline-primary btn-sm" href="transparency">Published budgets</a>
-    </EmptyState>
+    @if (portal)
+    {
+        <EmptyState IsPageHeading="true" Icon="bi-bank" Title="No published budget here" Text="@portalText">
+            <a class="btn btn-primary btn-sm" href="transparency">See governments with a published budget</a>
+        </EmptyState>
+    }
+    else
+    {
+        <EmptyState IsPageHeading="true" Icon="bi-signpost-split" Title="Page not found" Text="That address does not match a page. It may have moved, or the link may be mistyped.">
+            <a class="btn btn-primary btn-sm" href="">Go to the home page</a>
+            <a class="btn btn-outline-primary btn-sm" href="transparency">Published budgets</a>
+        </EmptyState>
+    }
 </div>
+
+@code {
+    [CascadingParameter] private HttpContext? HttpContext { get; set; }
+
+    private bool portal;
+    private string portalText = "";
+
+    protected override void OnInitialized()
+    {
+        string? original = HttpContext?.Features.Get<IStatusCodeReExecuteFeature>()?.OriginalPath;
+        portal = original?.StartsWith("/transparency", StringComparison.OrdinalIgnoreCase) == true;
+        portalText = HttpContext?.Items[PortalNotFound.TextKey] as string
+            ?? "Either the address is wrong or this government has not published a budget yet.";
+    }
+}
