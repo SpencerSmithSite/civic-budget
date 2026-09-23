@@ -58,7 +58,7 @@ public class PermissionsTests(SqlServerFixture fixture) : IAsyncLifetime
         Assert.True((await entry.SetBeginningBalanceAsync(_draft2027, workspace.FundBalances[0].FundId, 1_000m)).IsSuccess);
 
         WorkflowStateDto state = (await scope.ServiceProvider.GetRequiredService<IBudgetWorkflowService>().GetStateAsync(_draft2027))!;
-        Assert.True(state.CanPropose || state.BlocksTransition); // the workflow is open to them; the seed's limit state decides the rest
+        Assert.True(state.CanPropose); // the role allows it; whether a fund over its limit blocks it is BlocksTransition's job
 
         // Publishing refuses for the right reason (nothing adopted yet), not because of the role.
         Result<Guid> publish = await scope.ServiceProvider.GetRequiredService<IPublishingService>().PublishAsync(_draft2027);
@@ -103,7 +103,6 @@ public class PermissionsTests(SqlServerFixture fixture) : IAsyncLifetime
         IReadOnlyList<AuditEntryDto> recent = await audit.GetRecentAsync(50);
         Assert.NotEmpty(recent);
         Assert.All(recent, a => Assert.Equal(nameof(BudgetLine), a.EntityName));
-        Assert.DoesNotContain(recent, a => a.NewValue is not null && a.Description == null && a.EntityName != nameof(BudgetLine));
 
         await using CivicBudgetDbContext db = _database.CreateContext(_mapleRidge);
         Guid streetsLineId = (await db.BudgetLines.FirstAsync(l => l.BudgetVersionId == _draft2027 && l.DepartmentId == _streets)).Id;

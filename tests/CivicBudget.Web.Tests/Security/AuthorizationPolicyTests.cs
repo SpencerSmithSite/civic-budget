@@ -77,10 +77,20 @@ public class AuthorizationPolicyTests
         Assert.Equal(allowed, result.Succeeded);
     }
 
+    /// <summary>Every policy constant, found by reflection, so a policy added later is covered without anyone remembering to list it.</summary>
+    public static TheoryData<string> AllPolicies()
+    {
+        var data = new TheoryData<string>();
+        foreach (System.Reflection.FieldInfo field in typeof(Policies).GetFields().Where(f => f.IsLiteral))
+        {
+            data.Add((string)field.GetRawConstantValue()!);
+        }
+
+        return data;
+    }
+
     [Theory]
-    [InlineData(Policies.CanManageUsers)]
-    [InlineData(Policies.CanViewBudget)]
-    [InlineData(Policies.CanPublish)]
+    [MemberData(nameof(AllPolicies))]
     public async Task Anonymous_users_pass_no_policy(string policy)
     {
         IAuthorizationService authorization = BuildAuthorizationService();

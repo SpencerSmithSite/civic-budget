@@ -26,10 +26,12 @@ public class DepartmentEntryViewTests : BunitContext
             ]));
 
         Assert.Contains("110 Police", view.Find("h2").TextContent);
-        Assert.Contains("Subtotal, Personal Services", view.Markup);
-        Assert.Contains("350.00", view.Markup);                          // category subtotal
-        Assert.Contains("Total, 1000 General Fund", view.Markup);
-        Assert.Contains("370.00", view.Markup);                          // fund total
+        // The proposed column of each row by itself, so neither number can be satisfied by the other.
+        AngleSharp.Dom.IElement subtotal = view.FindAll("tr.cb-subtotal").Single(r => r.TextContent.Contains("Subtotal, Personal Services"));
+        Assert.Equal("350.00", subtotal.QuerySelectorAll("td")[3].TextContent);
+        AngleSharp.Dom.IElement total = view.Find("tfoot tr");
+        Assert.Contains("Total, 1000 General Fund", total.TextContent);
+        Assert.Equal("370.00", total.QuerySelectorAll("td")[3].TextContent);
         Assert.Contains("Department total $370.00", view.Markup);
         Assert.Empty(view.FindAll("input"));                              // nothing editable
     }

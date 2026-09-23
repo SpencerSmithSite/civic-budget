@@ -118,7 +118,32 @@ public class WorkflowAndPublishingTests(SqlServerFixture fixture) : IAsyncLifeti
 
             Assert.False(state.CanPropose);
             Assert.True((await workflow.ProposeAsync(_draft2027, true)).IsFailure);
+            Assert.True((await workflow.CreateAmendmentAsync(_draft2027, "Not theirs to start")).IsFailure);
+
+            IPublishingService publishing = scope.ServiceProvider.GetRequiredService<IPublishingService>();
+            Result<Guid> publish = await publishing.PublishAsync(_draft2027);
+            Assert.Contains("Administrator or the Fiscal Officer", publish.Errors.Single().Message, StringComparison.Ordinal);
         }
+    }
+
+    [Fact]
+    public async Task Only_the_fiscal_authority_unpublishes()
+    {
+        Guid snapshotId;
+        await using (AsyncServiceScope fd = As(Roles.FinanceDirector))
+        {
+            snapshotId = (await fd.ServiceProvider.GetRequiredService<IPublishingService>().ListAsync()).First(s => s.Status == SnapshotStatus.Active).Id;
+        }
+
+        foreach (string role in new[] { Roles.DepartmentHead, Roles.Viewer })
+        {
+            await using AsyncServiceScope scope = As(role);
+            Result unpublish = await scope.ServiceProvider.GetRequiredService<IPublishingService>().UnpublishAsync(snapshotId);
+            Assert.True(unpublish.IsFailure, role);
+        }
+
+        await using AsyncServiceScope officer = As(Roles.FinanceDirector);
+        Assert.Equal(SnapshotStatus.Active, (await officer.ServiceProvider.GetRequiredService<IPublishingService>().ListAsync()).Single(s => s.Id == snapshotId).Status);
     }
 
     // ---- transitions and amendments -----------------------------------------------------------
