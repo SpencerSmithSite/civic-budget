@@ -308,7 +308,8 @@ public sealed class BudgetEntryService(
             expenditures.Sum(l => l.Amount),
             CanEditNarrative: BudgetLinePermissions.CanEditNarrative(user, version.Status, department.Id, request?.IsSubmitted == true),
             CanSubmit: BudgetLinePermissions.CanSubmitDepartment(user, version.Status, department.Id, status),
-            CanReturn: BudgetLinePermissions.CanReturnDepartment(user, version.Status, status));
+            CanReturn: BudgetLinePermissions.CanReturnDepartment(user, version.Status, status),
+            CanAddLines: BudgetLinePermissions.CanAddLine(user, version.Status, department.Id, request?.IsSubmitted == true));
     }
 
     private static BudgetVersionSummaryDto ToSummary(BudgetVersion v, int year, int lineCount) =>

@@ -77,6 +77,9 @@ public static class Display
     public static string Timestamp(DateTimeOffset when) =>
         InEastern(when).ToString("MMM d, yyyy h:mm tt", UsCulture) + (Eastern is null ? " UTC" : " ET");
 
+    /// <summary>"Sep 23, 2026", on the Eastern calendar.</summary>
+    public static string ShortDate(DateTimeOffset when) => InEastern(when).ToString("MMM d, yyyy", UsCulture);
+
     /// <summary>"September 23, 2026": the Eastern calendar date, so an evening event is not dated tomorrow.</summary>
     public static string LongDate(DateTimeOffset when) => InEastern(when).ToString("MMMM d, yyyy", UsCulture);
 
@@ -91,6 +94,12 @@ public static class Display
             : age.TotalDays < 7 ? $"{(int)age.TotalDays} days ago"
             : InEastern(when).ToString("MMM d, yyyy", UsCulture);
     }
+
+    /// <summary>"1,234.50": a money column whose header says it is dollars. Always US formatting, whatever the server's culture.</summary>
+    public static string Amount(decimal amount) => amount.ToString("N2", UsCulture);
+
+    /// <summary>"1,235": a summary figure rounded to the dollar.</summary>
+    public static string WholeAmount(decimal amount) => amount.ToString("N0", UsCulture);
 
     /// <summary>"$1,234.50". Budgets are kept to the cent, so screens show the cent.</summary>
     public static string Money(decimal amount) => amount.ToString("C2", UsCulture);

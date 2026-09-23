@@ -75,7 +75,8 @@ public sealed record DepartmentRequestDto(
     /// <summary>Decided for the current user, like <see cref="BudgetLineDto.CanEdit"/>, so pages show buttons without rule logic.</summary>
     bool CanEditNarrative,
     bool CanSubmit,
-    bool CanReturn)
+    bool CanReturn,
+    bool CanAddLines)
 {
     public decimal DollarChange => Amount - CurrentYearBudget;
     public decimal? PercentChange => Domain.Common.Money.PercentChange(CurrentYearBudget, Amount);

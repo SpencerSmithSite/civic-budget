@@ -56,6 +56,26 @@ public class FundListTests : BunitContext
         Assert.Empty(page.FindAll(".cb-kebab"));
     }
 
+    [Fact]
+    public void Deactivating_a_fund_updates_the_row_as_soon_as_the_dialog_closes()
+    {
+        Services.AddSingleton<IFundService>(new FakeFundService());
+        Services.AddSingleton<CivicBudget.Application.Erp.IChartSyncService>(new Chart.FakeChartSyncService());
+        Services.AddSingleton<ToastService>();
+        Services.AddSingleton<AdminPageState>();
+        AddAuthorization().SetAuthorized("finance");
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        JSInterop.SetupModule("./_content/Microsoft.AspNetCore.Components.QuickGrid/QuickGrid.razor.js");
+        IRenderedComponent<FundList> page = Render<FundList>();
+        page.WaitForAssertion(() => Assert.Equal(2, PopulatedRows(page)));
+
+        page.FindAll("table button.dropdown-item").First(b => b.TextContent.Contains("Deactivate")).Click();
+        page.Find(".modal .btn-danger").Click();
+
+        // The dialog's OnConfirm is a Func, so without an explicit re-render the row kept saying Active.
+        page.WaitForAssertion(() => Assert.Contains("Inactive", page.FindAll("table tbody tr")[0].TextContent));
+    }
+
     private static int PopulatedRows(IRenderedComponent<FundList> page) =>
         page.FindAll("tbody tr").Count(row => !string.IsNullOrWhiteSpace(row.TextContent));
 
@@ -74,6 +94,11 @@ public class FundListTests : BunitContext
 
         public Task<Result<Guid>> SaveAsync(SaveFundRequest request, CancellationToken ct = default) => throw new NotSupportedException();
 
-        public Task<Result> SetActiveAsync(Guid id, bool isActive, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<Result> SetActiveAsync(Guid id, bool isActive, CancellationToken ct = default)
+        {
+            int i = _funds.FindIndex(f => f.Id == id);
+            _funds[i] = _funds[i] with { IsActive = isActive };
+            return Task.FromResult(Result.Success());
+        }
     }
 }

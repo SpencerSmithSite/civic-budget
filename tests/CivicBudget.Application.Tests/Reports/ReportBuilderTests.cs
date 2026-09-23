@@ -34,7 +34,7 @@ public class ReportBuilderTests
         ],
         [], [], [],
         [
-            new DepartmentRequestDto(Police, "110", "Police", DepartmentRequestStatus.Submitted, "Overtime covers two officers on leave.", DateTimeOffset.UnixEpoch, "Chief Hale", null, null, 3, 50m, 60m, 70m, false, false, true),
+            new DepartmentRequestDto(Police, "110", "Police", DepartmentRequestStatus.Submitted, "Overtime covers two officers on leave.", DateTimeOffset.UnixEpoch, "Chief Hale", null, null, 3, 50m, 60m, 70m, false, false, true, false),
         ]);
 
     [Fact]

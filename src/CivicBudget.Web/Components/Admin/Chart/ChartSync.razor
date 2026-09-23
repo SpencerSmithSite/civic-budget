@@ -21,7 +21,7 @@
         <AuthorizeView Policy="@Policies.CanManageUsers">
             @if (status is not null)
             {
-                <button type="button" class="btn btn-outline-primary btn-sm" @onclick="ToggleSourceAsync">
+                <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => sourceDialog.Show()">
                     @(status.Source == ChartSource.Erp ? "Maintain the chart here instead" : "Mark the chart as managed by the ERP")
                 </button>
             }
@@ -157,6 +157,23 @@ else
     }
 </SideDrawer>
 
+@if (status is not null)
+{
+    bool toErp = status.Source != ChartSource.Erp;
+    <ConfirmDialog @ref="sourceDialog" Title="@(toErp ? "Hand the chart to the ERP?" : "Maintain the chart here?")" ConfirmText="@(toErp ? "Mark as managed by the ERP" : "Maintain it here")" OnConfirm="ToggleSourceAsync">
+        <Body>
+            @if (toErp)
+            {
+                <p>Funds, departments, and accounts become read-only in CivicBudget. Changes come only from ERP chart syncs.</p>
+            }
+            else
+            {
+                <p>Funds, departments, and accounts become editable here again. Later ERP files can still be compared, but edits made here may be overwritten by the next sync you apply.</p>
+            }
+        </Body>
+    </ConfirmDialog>
+}
+
 <ConfirmDialog @ref="confirmDialog" Title="Apply this sync?" ConfirmText="Apply" OnConfirm="CommitAsync">
     <Body>
         @if (preview is not null)
@@ -185,6 +202,7 @@ else
     private bool detailsOpen;
     private ChartSyncDto? details;
     private ConfirmDialog confirmDialog = null!;
+    private ConfirmDialog sourceDialog = null!;
 
     /// <summary>More than a quarter of the known codes would go: almost always a partial export rather than a real chart change.</summary>
     private bool LooksPartial => preview is not null && preview.Changes.Count > 0 && preview.Count(ChartChangeKind.Deactivate) * 4 > preview.Changes.Count;
@@ -254,23 +272,27 @@ else
         return true;
     }
 
-    private async Task ToggleSourceAsync()
+    // Who owns the chart decides whether three setup screens can be edited at all, so it is confirmed
+    // like applying a sync rather than flipped by one click.
+    private async Task<bool> ToggleSourceAsync()
     {
         if (status is null)
         {
-            return;
+            return true;
         }
 
         ChartSource next = status.Source == ChartSource.Erp ? ChartSource.Local : ChartSource.Erp;
         Result result = await Sync.SetChartSourceAsync(next);
         if (result.IsFailure)
         {
-            Toasts.Danger(result.Errors.Single().Message);
-            return;
+            Toasts.Danger(result.Errors[0].Message);
+            return true;
         }
 
         Toasts.Success(next == ChartSource.Erp ? "The chart is now managed by the ERP." : "The chart is now maintained here.");
         await LoadAsync();
+        StateHasChanged();
+        return true;
     }
 
     private void ShowDetails(ChartSyncDto sync)

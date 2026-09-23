@@ -38,7 +38,7 @@ public class DepartmentPagesTests : BunitContext
             status == DepartmentRequestStatus.Submitted ? DateTimeOffset.UtcNow.AddDays(-1) : null,
             status == DepartmentRequestStatus.Submitted ? "Chief Hale" : null,
             note, note is null ? null : DateTimeOffset.UtcNow.AddHours(-2),
-            2, 90m, 100m, 110m, canEdit, canSubmit, canReturn);
+            2, 90m, 100m, 110m, canEdit, canSubmit, canReturn, CanAddLines: canEdit);
 
     private static BudgetLineDto Line(Guid department, string departmentCode, string account, AccountType type, decimal amount, bool canEdit) =>
         new(Guid.CreateVersion7(), Guid.CreateVersion7(), "1000", "General Fund", department, departmentCode, "Dept",

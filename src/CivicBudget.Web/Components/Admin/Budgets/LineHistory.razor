@@ -62,7 +62,14 @@ else
         loadedFor = Line.Id;
         loadedVersion = Version;
         entries = null;
-        entries = await AuditQuery.GetHistoryAsync(nameof(BudgetLine), Line.Id);
+        Guid requested = Line.Id;
+        IReadOnlyList<AuditEntryDto> loaded = await AuditQuery.GetHistoryAsync(nameof(BudgetLine), requested);
+        // Clicking History on one line and then another starts two loads; if the first finishes
+        // last it must not replace the second line's history under the second line's title.
+        if (requested == Line.Id)
+        {
+            entries = loaded;
+        }
     }
 
 }

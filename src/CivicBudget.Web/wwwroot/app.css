@@ -1792,8 +1792,35 @@ h1:focus {
     content: "An error has occurred.";
 }
 
+/* The bar blazor.web.js shows when the connection fails (it sets display: block itself). */
 #blazor-error-ui {
     display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    padding: 12px 48px 12px 20px;
+    background: var(--cb-danger-bg);
+    color: var(--cb-danger);
+    border-top: 1px solid currentColor;
+    font-size: 0.875rem;
+}
+
+#blazor-error-ui .reload {
+    color: inherit;
+    font-weight: 600;
+}
+
+#blazor-error-ui .dismiss {
+    position: absolute;
+    right: 12px;
+    top: 8px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font-size: 1.25rem;
+    line-height: 1;
 }
 
 @media print {

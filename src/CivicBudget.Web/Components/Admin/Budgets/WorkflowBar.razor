@@ -17,31 +17,31 @@ else if (State.Status != BudgetStatus.Adopted && State.RequiresAcknowledgement)
 
 @if (State.CanPropose)
 {
-    <button type="button" class="btn btn-primary" @onclick="() => proposeDialog.Show()" disabled="@State.BlocksTransition"><i class="bi bi-send me-1" aria-hidden="true"></i>Propose to council</button>
+    <button type="button" class="btn btn-primary" @onclick="() => Open(proposeDialog)" disabled="@State.BlocksTransition"><i class="bi bi-send me-1" aria-hidden="true"></i>Propose to council</button>
 }
 @if (State.CanReturnToDraft)
 {
-    <button type="button" class="btn btn-outline-primary" @onclick="() => returnDialog.Show()">Return to draft</button>
+    <button type="button" class="btn btn-outline-primary" @onclick="() => Open(returnDialog)">Return to draft</button>
 }
 @if (State.CanAdopt)
 {
-    <button type="button" class="btn btn-success" @onclick="() => adoptDialog.Show()" disabled="@State.BlocksTransition"><i class="bi bi-check2-circle me-1" aria-hidden="true"></i>Adopt</button>
+    <button type="button" class="btn btn-success" @onclick="() => Open(adoptDialog)" disabled="@State.BlocksTransition"><i class="bi bi-check2-circle me-1" aria-hidden="true"></i>Adopt</button>
 }
 @if (State.Status == BudgetStatus.Adopted)
 {
     <AuthorizeView Policy="@Policies.CanPublish">
         @if (ActiveSnapshot is null)
         {
-            <button type="button" class="btn btn-primary" @onclick="() => publishDialog.Show()"><i class="bi bi-megaphone me-1" aria-hidden="true"></i>Publish to portal</button>
+            <button type="button" class="btn btn-primary" @onclick="() => Open(publishDialog)"><i class="bi bi-megaphone me-1" aria-hidden="true"></i>Publish to portal</button>
         }
         else
         {
-            <button type="button" class="btn btn-outline-danger" @onclick="() => unpublishDialog.Show()">Unpublish</button>
+            <button type="button" class="btn btn-outline-danger" @onclick="() => Open(unpublishDialog)">Unpublish</button>
         }
     </AuthorizeView>
     @if (State.CanAmend)
     {
-        <button type="button" class="btn btn-outline-primary" @onclick="() => amendDialog.Show()"><i class="bi bi-pencil-square me-1" aria-hidden="true"></i>Start an amendment</button>
+        <button type="button" class="btn btn-outline-primary" @onclick="() => Open(amendDialog)"><i class="bi bi-pencil-square me-1" aria-hidden="true"></i>Start an amendment</button>
     }
     else if (State.HasOpenSibling)
     {
@@ -66,7 +66,7 @@ else if (State.Status != BudgetStatus.Adopted && State.RequiresAcknowledgement)
         <p>Adoption is final. The version becomes read-only; later changes require an amendment.</p>
         <div class="mb-3">
             <label class="form-label fw-semibold" for="resolution">Ordinance or resolution number</label>
-            <input id="resolution" class="form-control" @bind="resolutionNumber" @bind:event="oninput" placeholder="e.g. 2026-41" />
+            <input id="resolution" class="form-control" maxlength="@Domain.Budgets.BudgetVersion.ResolutionNumberMaxLength" @bind="resolutionNumber" @bind:event="oninput" placeholder="e.g. 2026-41" />
         </div>
         <AcknowledgeWarning State="State" @bind-Acknowledged="acknowledged" />
     </Body>
@@ -77,7 +77,7 @@ else if (State.Status != BudgetStatus.Adopted && State.RequiresAcknowledgement)
         <p>A new draft is created with a copy of every line. The adopted budget is not changed. When the amendment is adopted it supersedes this version.</p>
         <div class="mb-3">
             <label class="form-label fw-semibold" for="reason">Reason (recorded with the amendment)</label>
-            <textarea id="reason" class="form-control" rows="3" @bind="amendmentReason" @bind:event="oninput" placeholder="e.g. Supplemental appropriation for police overtime"></textarea>
+            <textarea id="reason" class="form-control" rows="3" maxlength="@Domain.Budgets.BudgetVersion.ReasonMaxLength" @bind="amendmentReason" @bind:event="oninput" placeholder="e.g. Supplemental appropriation for police overtime"></textarea>
         </div>
     </Body>
 </ConfirmDialog>
@@ -114,6 +114,15 @@ else if (State.Status != BudgetStatus.Adopted && State.RequiresAcknowledgement)
     /// <summary>Raised after any successful action so the page reloads workspace and state.</summary>
     [Parameter]
     public EventCallback OnChanged { get; set; }
+
+    /// <summary>Every dialog starts blank: a box ticked in Propose and then cancelled must not arrive ticked in Adopt.</summary>
+    private void Open(ConfirmDialog dialog)
+    {
+        acknowledged = false;
+        resolutionNumber = "";
+        amendmentReason = "";
+        dialog.Show();
+    }
 
     private string AdoptText => string.IsNullOrWhiteSpace(resolutionNumber) ? "Adopt" : $"Adopt by resolution {resolutionNumber.Trim()}";
 

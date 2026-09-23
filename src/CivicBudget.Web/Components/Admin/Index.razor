@@ -54,7 +54,7 @@ else
                     {
                         <ListCard Title="@($"FY{version.Year} {version.Label}")" Href="@($"admin/budgets/{version.Id}")">
                             <Summary>@version.LineCount lines@(version.ResolutionNumber is null ? "" : $" · resolution {version.ResolutionNumber}")</Summary>
-                            <Aside><StatusPill Budget="version.Status" />@if (snapshots?.Any(s => s.BudgetVersionId == version.Id && s.Status == Domain.Publishing.SnapshotStatus.Active) == true) { <StatusPill Tone="success" Label="Published" /> }</Aside>
+                            <Aside><StatusPill Budget="version.Status" />@PortalPill(version)</Aside>
                         </ListCard>
                     }
                 </div>
@@ -69,16 +69,7 @@ else
                                     <td>@version.Label</td>
                                     <td><StatusPill Budget="version.Status" /></td>
                                     <td class="cb-code">@version.ResolutionNumber</td>
-                                    <td>
-                                        @if (snapshots?.FirstOrDefault(s => s.BudgetVersionId == version.Id && s.Status == Domain.Publishing.SnapshotStatus.Active) is not null)
-                                        {
-                                            <StatusPill Tone="success" Label="Published" />
-                                        }
-                                        else if (snapshots?.Any(s => s.BudgetVersionId == version.Id) == true)
-                                        {
-                                            <span class="cb-code">Superseded</span>
-                                        }
-                                    </td>
+                                    <td>@PortalPill(version)</td>
                                     <td class="cb-num">@version.LineCount</td>
                                     <td class="text-end"><a href="admin/budgets/@version.Id">@(version.Status == BudgetStatus.Adopted ? "Open" : "Continue")</a></td>
                                 </tr>
@@ -123,6 +114,14 @@ else
 }
 
 @code {
+    // One helper for the grid and the phone card, so the two cannot drift (the card used to drop the
+    // previously-published state, and the grid called it "Superseded" where the versions list says
+    // "Previously published").
+    private RenderFragment? PortalPill(BudgetVersionSummaryDto version) =>
+        snapshots?.Any(s => s.BudgetVersionId == version.Id && s.Status == Domain.Publishing.SnapshotStatus.Active) == true
+            ? @<StatusPill Tone="success" Label="Published" />
+            : snapshots?.Any(s => s.BudgetVersionId == version.Id) == true ? @<span class="cb-code">Previously published</span> : null;
+
     private GovernmentSettingsDto? government;
     private IReadOnlyList<BudgetVersionSummaryDto>? versions;
     private IReadOnlyList<SnapshotSummaryDto>? snapshots;

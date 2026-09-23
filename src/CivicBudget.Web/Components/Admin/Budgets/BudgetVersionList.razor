@@ -117,7 +117,7 @@ else
     {
         if (snapshots?.FirstOrDefault(s => s.BudgetVersionId == version.Id && s.Status == Domain.Publishing.SnapshotStatus.Active) is { } active)
         {
-            return @<StatusPill Tone="success" Label="@($"Published {active.PublishedAtUtc:MMM d, yyyy}")" />;
+            return @<StatusPill Tone="success" Label="@($"Published {Display.ShortDate(active.PublishedAtUtc)}")" />;
         }
 
         return snapshots?.Any(s => s.BudgetVersionId == version.Id) == true ? @<span class="cb-code">Previously published</span> : null;

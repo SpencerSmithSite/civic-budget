@@ -106,11 +106,29 @@
             </AuthorizeView>
         </header>
         <main class="cb-main">
-            @Body
+            @* A failure in one page shows here instead of taking the whole connection down; the
+               sidebar keeps working, and navigating elsewhere clears it (OnParametersSet). *@
+            <ErrorBoundary @ref="errorBoundary">
+                <ChildContent>@Body</ChildContent>
+                <ErrorContent>
+                    <div class="card">
+                        <EmptyState Icon="bi-exclamation-triangle" Title="This page ran into a problem" Text="Your saved work is safe. Anything not yet saved on this page may need to be entered again.">
+                            <button type="button" class="btn btn-primary btn-sm" @onclick="() => errorBoundary?.Recover()">Try again</button>
+                            <a class="btn btn-outline-primary btn-sm" href="admin">Go to the overview</a>
+                        </EmptyState>
+                    </div>
+                </ErrorContent>
+            </ErrorBoundary>
         </main>
     </div>
 </div>
 <ToastHost />
+
+@* Shown by blazor.web.js when the connection itself fails, which an error boundary cannot catch. *@
+<div id="blazor-error-ui" data-nosnippet role="alert">
+    Something went wrong and this page stopped responding. <a href="" class="reload">Reload</a> to continue.
+    <button type="button" class="dismiss" aria-label="Dismiss">&times;</button>
+</div>
 
 @code {
     private const string CollapsedCookie = "cb.sidebar";
@@ -119,6 +137,7 @@
     private HttpContext? HttpContext { get; set; }
 
     private bool menuOpen;
+    private ErrorBoundary? errorBoundary;
     private bool collapsed;
     private PersistingComponentStateSubscription persisting;
     private string? governmentName;
@@ -145,6 +164,10 @@
         fiscalYearNote = "FY starts " + System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(government.FiscalYearStartMonth);
     }
 
+    // The layout gets new parameters (a new Body) on every navigation; a page that failed should not
+    // keep showing its error once the user has gone somewhere else.
+    protected override void OnParametersSet() => errorBoundary?.Recover();
+
     private void OnPageStateChanged() => InvokeAsync(StateHasChanged);
 
     private void CloseMenu() => menuOpen = false;
@@ -154,7 +177,6 @@
         collapsed = !collapsed;
         await JS.InvokeVoidAsync("civicBudget.setCookie", CollapsedCookie, collapsed ? "1" : "0");
     }
-
 
     public void Dispose()
     {

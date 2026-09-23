@@ -86,7 +86,7 @@ else
             @if (request.LineCount == 0)
             {
                 <EmptyState Icon="bi-list-columns" Title="Nothing budgeted yet" Text="Add the first account line for this department to start its request.">
-                    @if (workspace.CanAddLines && request.Status != DepartmentRequestStatus.Submitted)
+                    @if (request.CanAddLines)
                     {
                         <button type="button" class="btn btn-primary" @onclick="() => addLineForm.Show()"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add line</button>
                     }
@@ -114,21 +114,21 @@ else
                                 <tbody>
                                     @foreach (BudgetLineDto line in fund.Lines)
                                     {
-                                        <tr>
+                                        <tr @key="line.Id">
                                             <td class="cb-wrap">
                                                 <span class="cb-code">@line.AccountNumber</span> @line.AccountName
                                                 @if (editingNoteId == line.Id)
                                                 {
-                                                    <input type="text" class="form-control form-control-sm mt-1" value="@line.Justification" aria-label="@($"Justification for {line.AccountNumber}")"
-                                                           @onchange="e => SaveNoteAsync(line.Id, e.Value?.ToString())" @onblur="() => editingNoteId = null" autofocus />
+                                                    <input @ref="noteInput" type="text" class="form-control form-control-sm mt-1" value="@line.Justification" aria-label="@($"Justification for {line.AccountNumber}")"
+                                                           @onchange="e => SaveNoteAsync(line.Id, e.Value?.ToString())" @onblur="() => editingNoteId = null" />
                                                 }
                                                 else if (!string.IsNullOrEmpty(line.Justification))
                                                 {
                                                     <div class="small text-secondary fst-italic text-wrap"><i class="bi bi-chat-left-text me-1" aria-hidden="true"></i>@line.Justification</div>
                                                 }
                                             </td>
-                                            <td class="cb-num cb-col-wide">@line.PriorYearActual.ToString("N2")</td>
-                                            <td class="cb-num">@line.CurrentYearBudget.ToString("N2")</td>
+                                            <td class="cb-num cb-col-wide">@Display.Amount(line.PriorYearActual)</td>
+                                            <td class="cb-num">@Display.Amount(line.CurrentYearBudget)</td>
                                             <td class="cb-num">
                                                 <AmountCell Value="line.Amount" CanEdit="line.CanEdit" Label="@($"FY{workspace.Version.Year} request for {line.AccountNumber} {line.AccountName}")"
                                                             ValueChanged="amount => UpdateAmountAsync(line.Id, amount)" />
@@ -156,9 +156,9 @@ else
                                 <tfoot>
                                     <tr>
                                         <td>Total, @fund.Name</td>
-                                        <td class="cb-num cb-col-wide">@fund.PriorYearActual.ToString("N2")</td>
-                                        <td class="cb-num">@fund.CurrentYearBudget.ToString("N2")</td>
-                                        <td class="cb-num">@fund.Amount.ToString("N2")</td>
+                                        <td class="cb-num cb-col-wide">@Display.Amount(fund.PriorYearActual)</td>
+                                        <td class="cb-num">@Display.Amount(fund.CurrentYearBudget)</td>
+                                        <td class="cb-num">@Display.Amount(fund.Amount)</td>
                                         <td class="cb-num cb-col-wide">@Display.SignedChange(fund.Amount - fund.CurrentYearBudget)</td>
                                         <td class="cb-num cb-col-wide">@Display.Percent(Domain.Common.Money.PercentChange(fund.CurrentYearBudget, fund.Amount))</td>
                                         <td></td>
@@ -187,7 +187,7 @@ else
                                     {
                                         <tr>
                                             <td class="cb-wrap"><span class="cb-code">@line.AccountNumber</span> @line.AccountName <small class="text-secondary">· @line.FundCode</small></td>
-                                            <td class="cb-num">@line.CurrentYearBudget.ToString("N2")</td>
+                                            <td class="cb-num">@Display.Amount(line.CurrentYearBudget)</td>
                                             <td class="cb-num"><AmountCell Value="line.Amount" CanEdit="line.CanEdit" Label="@($"FY{workspace.Version.Year} estimate for {line.AccountNumber} {line.AccountName}")" ValueChanged="amount => UpdateAmountAsync(line.Id, amount)" /></td>
                                             <td class="text-end"><RowMenu Label="@($"Actions for {line.AccountNumber}")"><li><button type="button" class="dropdown-item" @onclick="() => ShowHistory(line)"><i class="bi bi-clock-history me-2" aria-hidden="true"></i>History</button></li></RowMenu></td>
                                         </tr>
@@ -198,7 +198,7 @@ else
                     </div>
                 }
 
-                @if (workspace.CanAddLines && request.Status != DepartmentRequestStatus.Submitted)
+                @if (request.CanAddLines)
                 {
                     <button type="button" class="btn btn-outline-primary btn-sm mt-3" @onclick="() => addLineForm.Show()"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add line</button>
                 }
@@ -218,7 +218,7 @@ else
                                   aria-label="@($"Narrative for {request.DepartmentName}")" placeholder="Explain the request in plain language: staffing, projects, what changed, and why."></textarea>
                         <div class="d-flex align-items-center mt-2">
                             <small class="text-secondary">@(narrativeDraft?.Length ?? 0) / @DepartmentRequest.NarrativeMaxLength</small>
-                            <button type="button" class="btn btn-primary btn-sm ms-auto" @onclick="SaveNarrativeAsync" disabled="@(!NarrativeChanged)">Save narrative</button>
+                            <button type="button" class="btn btn-primary btn-sm ms-auto" @onclick="SaveNarrativeAsync" disabled="@(!NarrativeChanged || savingNarrative)">Save narrative</button>
                         </div>
                     }
                     else if (string.IsNullOrEmpty(request.Narrative))
@@ -295,6 +295,8 @@ else
     private string? narrativeDraft;
     private string? returnNote;
     private Guid? editingNoteId;
+    private Guid? focusedNoteId;
+    private ElementReference noteInput;
     private BudgetLineDto? historyLine;
     private int historyVersion;
     private BudgetLineDto? lineToRemove;
@@ -304,6 +306,20 @@ else
     private ConfirmDialog removeDialog = default!;
 
     private bool NarrativeChanged => (narrativeDraft ?? "").Trim() != (request?.Narrative ?? "");
+
+    // "autofocus" only works on the first page load, not on an input Blazor inserts later.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (editingNoteId is { } id && focusedNoteId != id)
+        {
+            focusedNoteId = id;
+            await noteInput.FocusAsync();
+        }
+        else if (editingNoteId is null)
+        {
+            focusedNoteId = null;
+        }
+    }
 
     private (Guid Version, Guid Department) loadedFor;
 
@@ -366,8 +382,25 @@ else
         return ApplyAsync(() => BudgetEntry.UpdateLineJustificationAsync(VersionId, lineId, note), "Note saved.");
     }
 
-    private Task SaveNarrativeAsync() =>
-        ApplyAsync(() => Requests.SaveNarrativeAsync(VersionId, DepartmentId, narrativeDraft), "Narrative saved.");
+    private bool savingNarrative;
+
+    private async Task SaveNarrativeAsync()
+    {
+        if (savingNarrative)
+        {
+            return;
+        }
+
+        savingNarrative = true;
+        try
+        {
+            await ApplyAsync(() => Requests.SaveNarrativeAsync(VersionId, DepartmentId, narrativeDraft), "Narrative saved.");
+        }
+        finally
+        {
+            savingNarrative = false;
+        }
+    }
 
     private async Task<bool> ConfirmSubmitAsync()
     {
