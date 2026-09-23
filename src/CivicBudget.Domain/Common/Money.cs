@@ -9,6 +9,17 @@ public static class Money
 {
     public const int Scale = 2;
 
+    /// <summary>
+    /// The largest amount a <c>decimal(18,2)</c> column holds. Anything bigger is a typo, and letting
+    /// it through fails the save with a database overflow instead of a message.
+    /// </summary>
+    public const decimal MaxAmount = 9_999_999_999_999_999.99m;
+
+    public const string TooLargeMessage = "That amount is too large.";
+
+    /// <summary>Whether an amount (of either sign) fits in the database.</summary>
+    public static bool IsStorable(decimal amount) => Math.Abs(amount) <= MaxAmount;
+
     /// <summary>Rounds an amount to cents.</summary>
     public static decimal Round(decimal amount) =>
         Math.Round(amount, Scale, MidpointRounding.AwayFromZero);

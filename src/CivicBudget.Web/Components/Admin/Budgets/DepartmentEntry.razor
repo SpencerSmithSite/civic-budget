@@ -305,7 +305,24 @@ else
 
     private bool NarrativeChanged => (narrativeDraft ?? "").Trim() != (request?.Narrative ?? "");
 
-    protected override Task OnInitializedAsync() => LoadAsync();
+    private (Guid Version, Guid Department) loadedFor;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // The page is reused when only the route changes (another department, Back and Forward), so
+        // load per version and department rather than once; a typed narrative belongs to the old one.
+        if (loadedFor == (VersionId, DepartmentId))
+        {
+            return;
+        }
+
+        loadedFor = (VersionId, DepartmentId);
+        workspace = null;
+        narrativeDraft = null;
+        historyLine = null;
+        editingNoteId = null;
+        await LoadAsync();
+    }
 
     private async Task LoadAsync()
     {
@@ -382,6 +399,8 @@ else
         {
             Toasts.Success("Line added.");
             await LoadAsync();
+            // Called through AddLineForm's Func inside a dialog, so nothing re-renders this page for us.
+            StateHasChanged();
         }
 
         return added;

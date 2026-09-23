@@ -1,6 +1,7 @@
 using System.Globalization;
 using CivicBudget.Domain.Accounts;
 using CivicBudget.Domain.Budgets;
+using CivicBudget.Domain.Common;
 
 namespace CivicBudget.Application.Import;
 
@@ -52,6 +53,10 @@ public static class ImportAnalyzer
 
             decimal? prior = ParseMoney(row.PriorYearActual, ImportFileParser.PriorYearActualHeader, required: false, errors);
             decimal? current = ParseMoney(row.CurrentYearBudget, ImportFileParser.CurrentYearBudgetHeader, required: false, errors);
+            if (new[] { amount, prior, current }.Any(a => a is { } value && !Money.IsStorable(value)))
+            {
+                errors.Add(Money.TooLargeMessage);
+            }
             string? justification = row.Justification;
             if (justification is { Length: > BudgetLine.JustificationMaxLength })
             {

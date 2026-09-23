@@ -47,7 +47,7 @@ else if (budget is not null && byFund is not null && revenue is not null)
 
     <div class="pt-trust">
         @if (budget.ResolutionNumber is not null) { <span>Adopted by resolution <b>@budget.ResolutionNumber</b>@(budget.AdoptedOnUtc is { } a ? $" on {a:MMMM d, yyyy}" : "")</span> }
-        <span>Published <b>@budget.PublishedAtUtc.ToString("MMMM d, yyyy")</b></span>
+        <span>Published <b>@Display.LongDate(budget.PublishedAtUtc)</b></span>
         <span>Version <b>@budget.VersionLabel</b>@(budget.AmendmentReason is null ? "" : $": {budget.AmendmentReason}")</span>
     </div>
 }

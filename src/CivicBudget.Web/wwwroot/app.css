@@ -1058,8 +1058,9 @@ table.cb-grid th.col-justify-end .col-header-content {
     gap: 8px;
 }
 
-/* Blazor Paginator, restyled to sit in the grid footer. */
-.cb-grid-foot .paginator {
+/* ListPager in the grid footer. */
+.cb-grid-foot .paginator,
+.cb-grid-foot .paginator nav {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -1067,6 +1068,10 @@ table.cb-grid th.col-justify-end .col-header-content {
 }
 
 .cb-grid-foot .paginator button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
     background: none;
     border: 1px solid #c9d3df;
     border-radius: 4px;

@@ -112,7 +112,7 @@ else
         <div class="cb-cards d-md-none">
             @foreach (ChartSyncDto s in history)
             {
-                <ListCard Title="@s.SyncedAtUtc.ToLocalTime().ToString("MMM d, yyyy h:mm tt")">
+                <ListCard Title="@Display.Timestamp(s.SyncedAtUtc)">
                     <Summary>@s.UserName · <span class="cb-code">@s.FileName</span></Summary>
                     <ChildContent><div class="cb-list-card-meta">+@s.Added added · @s.Updated updated · @s.Deactivated deactivated · @s.Reactivated reactivated</div></ChildContent>
                     <Menu><button type="button" class="btn btn-link btn-sm p-0" @onclick="() => ShowDetails(s)">Details</button></Menu>
@@ -126,7 +126,7 @@ else
                     @foreach (ChartSyncDto s in history)
                     {
                         <tr>
-                            <td>@s.SyncedAtUtc.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</td>
+                            <td>@Display.Timestamp(s.SyncedAtUtc)</td>
                             <td>@s.UserName</td>
                             <td class="cb-code">@s.FileName</td>
                             <td class="cb-num">@s.Added</td>
@@ -142,7 +142,7 @@ else
     </div>
 }
 
-<SideDrawer @bind-IsOpen="detailsOpen" Title="@(details is null ? "Sync" : $"Sync on {details.SyncedAtUtc.ToLocalTime():MMM d, yyyy}")">
+<SideDrawer @bind-IsOpen="detailsOpen" Title="@(details is null ? "Sync" : $"Sync on {Display.LongDate(details.SyncedAtUtc)}")">
     @if (details is not null)
     {
         <table class="cb-grid table" aria-label="Changes in this sync">

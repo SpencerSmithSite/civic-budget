@@ -36,4 +36,12 @@ public class MoneyTests
         Assert.Equal(0.1m, Money.PercentChange(100m, 100.05m));
         Assert.Equal(-0.1m, Money.PercentChange(100m, 99.95m));
     }
+
+    [Theory]
+    [InlineData("9999999999999999.99", true)]
+    [InlineData("-9999999999999999.99", true)]
+    [InlineData("10000000000000000.00", false)]
+    [InlineData("-10000000000000000.00", false)]
+    public void Only_amounts_that_fit_a_decimal_18_2_column_are_storable(string amount, bool storable) =>
+        Assert.Equal(storable, Money.IsStorable(decimal.Parse(amount, System.Globalization.CultureInfo.InvariantCulture)));
 }

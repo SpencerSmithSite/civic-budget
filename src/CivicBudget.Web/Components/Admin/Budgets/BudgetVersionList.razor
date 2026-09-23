@@ -83,7 +83,7 @@ else
                             <tr>
                                 <td>FY@(snapshot.FiscalYear)</td>
                                 <td>@snapshot.VersionLabel</td>
-                                <td>@snapshot.PublishedAtUtc.ToString("MMM d, yyyy HH:mm") UTC</td>
+                                <td>@Display.Timestamp(snapshot.PublishedAtUtc)</td>
                                 <td>@snapshot.PublishedByUserName</td>
                                 <td>@SnapshotPill(snapshot)</td>
                                 <td class="cb-num">@snapshot.LineCount</td>
@@ -123,7 +123,7 @@ else
         return snapshots?.Any(s => s.BudgetVersionId == version.Id) == true ? @<span class="cb-code">Previously published</span> : null;
     }
 
-    private static RenderFragment SnapshotSummary(SnapshotSummaryDto snapshot) => @<text>Published @snapshot.PublishedAtUtc.ToString("MMM d, yyyy HH:mm") UTC by @snapshot.PublishedByUserName · @snapshot.LineCount lines</text>;
+    private static RenderFragment SnapshotSummary(SnapshotSummaryDto snapshot) => @<text>Published @Display.Timestamp(snapshot.PublishedAtUtc) by @snapshot.PublishedByUserName · @snapshot.LineCount lines</text>;
 
     private static RenderFragment SnapshotPill(SnapshotSummaryDto snapshot) =>
         @<StatusPill Snapshot="snapshot.Status" Label="@(snapshot.Status == Domain.Publishing.SnapshotStatus.Active ? "Active" : $"{snapshot.Status} {snapshot.StatusChangedAtUtc:MMM d, yyyy}")" />;

@@ -32,6 +32,14 @@ public class ImportAnalyzerTests
     }
 
     [Fact]
+    public void An_amount_too_large_for_the_database_is_an_error_not_a_crash_at_commit()
+    {
+        ImportRowDto row = Analyze([], Row(2, "1000", "110", "5100", "99999999999999999999")).Single();
+
+        Assert.Contains("That amount is too large.", row.Errors);
+    }
+
+    [Fact]
     public void Matching_an_existing_line_with_the_same_values_is_unchanged_and_shows_the_current_amount()
     {
         var existing = new ExistingLine(Guid.NewGuid(), General.Id, Police.Id, Salaries.Id, 500m, 480m, 450m, null);

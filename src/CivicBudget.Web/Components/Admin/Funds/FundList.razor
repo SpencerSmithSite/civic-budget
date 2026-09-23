@@ -15,7 +15,7 @@
 
 <div class="card">
     <div class="cb-toolbar">
-        <input class="form-control" placeholder="Search code or name" @bind="search" @bind:event="oninput" aria-label="Search funds" />
+        <input class="form-control" placeholder="Search code or name" @bind="search" @bind:event="oninput" @bind:after="FirstPageAsync" aria-label="Search funds" />
         <div class="form-check ms-2">
             <input class="form-check-input" type="checkbox" id="includeInactive" @bind="includeInactive" @bind:after="LoadAsync" />
             <label class="form-check-label small" for="includeInactive">Show inactive</label>
@@ -51,7 +51,7 @@
                 <ListCard Code="@fund.Code" Title="@fund.Name" Summary="@MetaOf(fund)" Aside="@StatusOf(fund)" Menu="@RowActions(fund)" />
             }
         </div>
-        <div class="cb-grid-foot"><span>@Filtered.Count() funds</span><Paginator State="pagination" /></div>
+        <div class="cb-grid-foot"><span>@Filtered.Count() funds</span><ListPager State="pagination" Noun="Funds" PageChanged="StateHasChanged" /></div>
     }
 </div>
 
@@ -77,7 +77,7 @@
             || f.Name.Contains(search, StringComparison.OrdinalIgnoreCase))
         .AsQueryable();
 
-    /// <summary>The cards follow the grid's paginator, so the footer's page controls drive both.</summary>
+    /// <summary>The cards follow the grid's page; ListPager re-renders this page when it changes.</summary>
     private IEnumerable<FundDto> Page => Filtered.Skip(pagination.CurrentPageIndex * pagination.ItemsPerPage).Take(pagination.ItemsPerPage);
 
     // Shared between the grid cell and the card so the two views cannot drift apart.
@@ -106,6 +106,8 @@
         await LoadAsync();
     }
 
+    private Task FirstPageAsync() => pagination.SetCurrentPageIndexAsync(0);
+
     private async Task LoadAsync() => funds = await FundService.ListAsync(includeInactive);
 
     private void Ask(FundDto fund, bool isActive)
@@ -133,6 +135,8 @@
         }
 
         await LoadAsync();
+        // OnConfirm is a Func, not an EventCallback, so Blazor does not re-render this page after it.
+        StateHasChanged();
         return true;
     }
 }

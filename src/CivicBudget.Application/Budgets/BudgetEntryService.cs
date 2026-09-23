@@ -126,6 +126,11 @@ public sealed class BudgetEntryService(
             return Result.Failure(nameof(amount), "Budgeted amounts cannot be negative.");
         }
 
+        if (!Money.IsStorable(amount))
+        {
+            return Result.Failure(nameof(amount), Money.TooLargeMessage);
+        }
+
         await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
         (BudgetVersion version, BudgetLine line, Result? denied) = await LoadLineForEditAsync(db, versionId, lineId, ct);
         if (denied is not null)
@@ -221,6 +226,11 @@ public sealed class BudgetEntryService(
 
     public async Task<Result> SetBeginningBalanceAsync(Guid versionId, Guid fundId, decimal amount, CancellationToken ct = default)
     {
+        if (!Money.IsStorable(amount))
+        {
+            return Result.Failure(nameof(amount), Money.TooLargeMessage);
+        }
+
         await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
         BudgetVersion? version = await LoadVersionAsync(db, versionId, ct);
         if (version is null)

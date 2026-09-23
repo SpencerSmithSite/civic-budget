@@ -124,6 +124,8 @@
         }
 
         await LoadAsync();
+        // OnConfirm is a Func, not an EventCallback, so Blazor does not re-render this page after it.
+        StateHasChanged();
         return true;
     }
 

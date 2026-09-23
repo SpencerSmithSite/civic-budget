@@ -11,7 +11,7 @@
             <b>Managed by the ERP.</b>
             @if (Status.LastSyncedAtUtc is { } at)
             {
-                <span> Last synced @at.ToLocalTime().ToString("MMM d, yyyy h:mm tt") by @Status.LastSyncedBy.</span>
+                <span> Last synced @Display.Timestamp(at) by @Status.LastSyncedBy.</span>
             }
             else
             {

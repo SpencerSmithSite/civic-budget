@@ -15,7 +15,7 @@
 
 <div class="card">
     <div class="cb-toolbar">
-        <input class="form-control" placeholder="Search code or name" @bind="search" @bind:event="oninput" aria-label="Search accounts" />
+        <input class="form-control" placeholder="Search code or name" @bind="search" @bind:event="oninput" @bind:after="FirstPageAsync" aria-label="Search accounts" />
         <select class="form-select" @bind="typeFilter" aria-label="Filter by account type">
             <option value="">All types</option>
             @foreach (AccountType type in Enum.GetValues<AccountType>())
@@ -54,7 +54,7 @@
                 <ListCard Code="@account.Code" Title="@account.Name" Summary="@MetaOf(account)" Aside="@StatusOf(account)" Menu="@RowActions(account)" />
             }
         </div>
-        <div class="cb-grid-foot"><span>@Filtered.Count() accounts</span><Paginator State="pagination" /></div>
+        <div class="cb-grid-foot"><span>@Filtered.Count() accounts</span><ListPager State="pagination" Noun="Accounts" PageChanged="StateHasChanged" /></div>
     }
 </div>
 
@@ -109,6 +109,8 @@
         await LoadAsync();
     }
 
+    private Task FirstPageAsync() => pagination.SetCurrentPageIndexAsync(0);
+
     private async Task LoadAsync() => accounts = await AccountService.ListAsync(includeInactive);
 
     private void Ask(AccountDto account, bool isActive)
@@ -136,6 +138,8 @@
         }
 
         await LoadAsync();
+        // OnConfirm is a Func, not an EventCallback, so Blazor does not re-render this page after it.
+        StateHasChanged();
         return true;
     }
 }

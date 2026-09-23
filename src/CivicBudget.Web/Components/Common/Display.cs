@@ -26,7 +26,6 @@ public static class Display
 
     private static readonly System.Globalization.CultureInfo UsCulture = System.Globalization.CultureInfo.GetCultureInfo("en-US");
 
-    /// <summary>"$1,234.50". Budgets are kept to the cent, so screens show the cent.</summary>
     /// <summary>"Amount" stays "Amount"; "PriorYearActual" becomes "Prior year actual".</summary>
     public static string PropertyName(string? name)
     {
@@ -54,6 +53,33 @@ public static class Display
         return parts.Length >= 2 ? $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant() : name.Trim()[..1].ToUpperInvariant();
     }
 
+    // Every government in the product is in Ohio, which is entirely Eastern time, so times are shown
+    // there rather than in the server's zone (UTC in a container, so a 2 PM sync read "6:00 PM"). A
+    // multi-state product would keep a time zone per government. If the zone data is missing from
+    // the host, times stay in UTC and say so.
+    private static readonly TimeZoneInfo? Eastern = FindEastern();
+
+    private static TimeZoneInfo? FindEastern()
+    {
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("America/New_York");
+        }
+        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
+        {
+            return null;
+        }
+    }
+
+    private static DateTimeOffset InEastern(DateTimeOffset when) => Eastern is null ? when.ToUniversalTime() : TimeZoneInfo.ConvertTime(when, Eastern);
+
+    /// <summary>"Sep 23, 2026 2:05 PM ET": a moment, with its zone, for logs of who did what.</summary>
+    public static string Timestamp(DateTimeOffset when) =>
+        InEastern(when).ToString("MMM d, yyyy h:mm tt", UsCulture) + (Eastern is null ? " UTC" : " ET");
+
+    /// <summary>"September 23, 2026": the Eastern calendar date, so an evening event is not dated tomorrow.</summary>
+    public static string LongDate(DateTimeOffset when) => InEastern(when).ToString("MMMM d, yyyy", UsCulture);
+
     /// <summary>"2 min ago", "Yesterday", or a date for anything older than a week.</summary>
     public static string Relative(DateTimeOffset when, DateTimeOffset? now = null)
     {
@@ -63,9 +89,10 @@ public static class Display
             : age.TotalHours < 24 ? $"{(int)age.TotalHours} h ago"
             : age.TotalDays < 2 ? "Yesterday"
             : age.TotalDays < 7 ? $"{(int)age.TotalDays} days ago"
-            : when.ToString("MMM d, yyyy", UsCulture);
+            : InEastern(when).ToString("MMM d, yyyy", UsCulture);
     }
 
+    /// <summary>"$1,234.50". Budgets are kept to the cent, so screens show the cent.</summary>
     public static string Money(decimal amount) => amount.ToString("C2", UsCulture);
 
     /// <summary>"+12.5%" / "-3.0%", or "new" when there is no baseline to compare against.</summary>

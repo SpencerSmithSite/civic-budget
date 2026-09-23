@@ -43,7 +43,7 @@
         <div class="pt-in pt-foot-in">
             @if (budget is not null)
             {
-                <span>@budget.GovernmentName · FY@(budget.FiscalYear) @budget.VersionLabel@(budget.ResolutionNumber is null ? "" : $", resolution {budget.ResolutionNumber}") · published @budget.PublishedAtUtc.ToString("MMMM d, yyyy")</span>
+                <span>@budget.GovernmentName · FY@(budget.FiscalYear) @budget.VersionLabel@(budget.ResolutionNumber is null ? "" : $", resolution {budget.ResolutionNumber}") · published @Display.LongDate(budget.PublishedAtUtc)</span>
                 <a href="@Root/download.csv">Download CSV</a>
                 <a href="@Root/download.xlsx">Download Excel</a>
                 <a href="@Root/glossary">Glossary</a>

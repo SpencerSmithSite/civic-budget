@@ -71,7 +71,7 @@ else
             {
                 <div class="card">
                     <AccountLineGrid Workspace="workspace" OnAmountChanged="UpdateAmountAsync" OnJustificationChanged="UpdateJustificationAsync"
-                                     OnShowHistory="ShowHistory" OnRemove="RemoveLineAsync" OnAddLine="() => addLineForm.Show()" />
+                                     OnShowHistory="ShowHistory" OnRemove="AskRemoveLine" OnAddLine="() => addLineForm.Show()" />
                 </div>
             }
         </div>
@@ -95,7 +95,7 @@ else
         @if (historyLine is not null)
         {
             <div class="px-3 pt-2 small text-secondary">@historyLine.FundCode @historyLine.FundName@(historyLine.DepartmentCode is null ? "" : $" · {historyLine.DepartmentCode} {historyLine.DepartmentName}")</div>
-            <LineDetail Line="historyLine" FiscalYear="workspace.Version.Year" OnAmountChanged="UpdateAmountAsync" OnJustificationChanged="UpdateJustificationAsync" OnRemove="RemoveLineAsync" />
+            <LineDetail Line="historyLine" FiscalYear="workspace.Version.Year" OnAmountChanged="UpdateAmountAsync" OnJustificationChanged="UpdateJustificationAsync" OnRemove="AskRemoveLine" />
             <h3 class="h6 fw-semibold px-3 pt-3 mb-0">History</h3>
             <LineHistory Line="historyLine" Version="historyVersion" />
         }
@@ -123,6 +123,8 @@ else
     private ConfirmDialog removeDialog = default!;
     private BudgetLineDto? lineToRemove;
 
+    private Guid loadedVersionId;
+
     protected override async Task OnInitializedAsync()
     {
         // Administrators and the Fiscal Officer (and viewers) default to the grid; department users only have the grouped view.
@@ -132,17 +134,38 @@ else
         {
             mode = Mode.ByAccount;
         }
+    }
 
+    protected override async Task OnParametersSetAsync()
+    {
+        // Blazor reuses this page when only the version in the URL changes (Start an amendment
+        // navigates from the adopted budget to the new draft, and so do Back and Forward), so the
+        // load follows the parameter rather than running once.
+        if (VersionId == loadedVersionId)
+        {
+            return;
+        }
+
+        loadedVersionId = VersionId;
+        workspace = null;
+        historyLine = null;
         await LoadAsync();
     }
 
+    /// <summary>Everything, including publishing status: on arrival and after a workflow action.</summary>
     private async Task LoadAsync()
+    {
+        await ReloadAfterEditAsync();
+        activeSnapshot = notFound ? null : (await Publishing.ListAsync())
+            .FirstOrDefault(s => s.BudgetVersionId == VersionId && s.Status == Domain.Publishing.SnapshotStatus.Active);
+    }
+
+    /// <summary>Lines, balances, and workflow state. An edit cannot change what is published, so that query is skipped.</summary>
+    private async Task ReloadAfterEditAsync()
     {
         workspace = await BudgetEntry.GetWorkspaceAsync(VersionId);
         notFound = workspace is null;
         workflowState = notFound ? null : await Workflow.GetStateAsync(VersionId);
-        activeSnapshot = notFound ? null : (await Publishing.ListAsync())
-            .FirstOrDefault(s => s.BudgetVersionId == VersionId && s.Status == Domain.Publishing.SnapshotStatus.Active);
         if (historyLine is not null && workspace is not null)
         {
             historyLine = workspace.Lines.FirstOrDefault(l => l.Id == historyLine.Id);
@@ -167,13 +190,15 @@ else
         if (added.IsSuccess)
         {
             Toasts.Success("Line added.");
-            await LoadAsync();
+            await ReloadAfterEditAsync();
+            // Called through AddLineForm's Func inside a dialog, so nothing re-renders this page for us.
+            StateHasChanged();
         }
 
         return added;
     }
 
-    private void RemoveLineAsync(BudgetLineDto line)
+    private void AskRemoveLine(BudgetLineDto line)
     {
         lineToRemove = line;
         removeDialog.Show();
@@ -201,7 +226,7 @@ else
             Toasts.Danger(result.Errors[0].Message);
         }
 
-        await LoadAsync();
+        await ReloadAfterEditAsync();
         // Dialog confirmations arrive through a Func, not an EventCallback, so the page must ask to re-render itself.
         StateHasChanged();
     }
