@@ -78,6 +78,20 @@ public static class DatabaseInitializer
         EXEC sp_executesql @sql;
         """;
 
+    /// <summary>
+    /// Waits until the database answers, retrying while it starts or resumes from auto-pause. The
+    /// app uses it to check the database after a long quiet spell, when serverless SQL may have
+    /// paused behind a container that stayed up.
+    /// </summary>
+    public static async Task WaitForDatabaseAsync(IServiceProvider services, CancellationToken ct = default)
+    {
+        await using AsyncServiceScope scope = services.CreateAsyncScope();
+        ILogger logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(nameof(DatabaseInitializer));
+        var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<CivicBudgetDbContext>>();
+        await using CivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
+        await WaitForSqlServerAsync(db, logger, ct);
+    }
+
     /// <summary>First real round trip to the server, retried while SQL Server is still starting. Returns the pending migration count.</summary>
     private static async Task<int> WaitForSqlServerAsync(CivicBudgetDbContext db, ILogger logger, CancellationToken ct)
     {

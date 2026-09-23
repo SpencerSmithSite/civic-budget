@@ -47,10 +47,11 @@ az group delete -n civicbudget-rg                                     # tear eve
 
 ## What to expect
 
-- The first request after an idle hour shows the "Waking up the demo" screen within about 20
-  seconds (the platform scheduling and starting the container) and continues to the site on its
-  own at about a minute, once serverless SQL has resumed from auto-pause (ADR-0031). After that
-  the site is warm for as long as anyone keeps using it, plus an hour.
+- The first request after a few idle minutes takes about 17 seconds before anything shows:
+  Azure provisioning a container from zero (our app's own startup is 0.3 seconds of it). If the
+  database has also been idle for an hour, the "Waking up the demo" screen follows and the site
+  appears on its own at about a minute (ADR-0031). To make every visit instant, set
+  `minReplicas: 1` in `main.bicep`: roughly $4 to $5 a month, the one thing here that is not free.
 - One replica, always: the output cache and the Blazor circuits live in process (ADR-0021).
 - The nightly reset drops the Data Protection keys with everything else, so every session ends
   at 08:00 UTC. For a demo that is a feature.

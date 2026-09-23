@@ -4,27 +4,47 @@ using Microsoft.Net.Http.Headers;
 namespace CivicBudget.Web.Startup;
 
 /// <summary>
-/// While the database is still being prepared, answers every page request with a small self-contained
-/// screen that explains the wait and reloads on its own once <c>/health/startup</c> reports ready.
-/// Health endpoints and static assets pass through: the probes must see the process, and the screen
-/// carries its own styles so it needs nothing else. It sends 503 with Retry-After, the honest
-/// status for "not yet", so crawlers and uptime monitors do not cache the waiting screen as the site.
+/// While the database is not ready, answers every page request with a small self-contained screen
+/// that explains the wait and reloads on its own once <c>/health/startup</c> reports ready. That
+/// covers the first start and a database that paused while the container stayed up: after a quiet
+/// spell the next page request checks the database first, and only gets the screen if the check
+/// takes longer than a moment (an awake database answers in milliseconds). Health endpoints and
+/// static assets pass through: the probes must see the process, and the screen carries its own
+/// styles. It sends 503 with Retry-After, the honest status for "not yet", so crawlers and uptime
+/// monitors do not cache the waiting screen as the site.
 /// </summary>
-public sealed class WakingUpMiddleware(RequestDelegate next, StartupState state)
+public sealed class WakingUpMiddleware(RequestDelegate next, StartupState state, IDatabaseWaker waker)
 {
-    public Task InvokeAsync(HttpContext context)
+    /// <summary>How long a page request waits on the database check before showing the screen instead.</summary>
+    public static readonly TimeSpan CheckGrace = TimeSpan.FromSeconds(1);
+
+    public async Task InvokeAsync(HttpContext context)
     {
-        if (state.IsReady || IsExempt(context.Request.Path))
+        if (IsExempt(context.Request.Path))
         {
-            return next(context);
+            await next(context);
+            return;
         }
 
-        HttpResponse response = context.Response;
-        response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-        response.Headers[HeaderNames.RetryAfter] = "5";
-        response.Headers[HeaderNames.CacheControl] = "no-store";
-        response.ContentType = "text/html; charset=utf-8";
-        return response.WriteAsync(WakingUpPage.Render(state.ElapsedSeconds), context.RequestAborted);
+        if (state.MayBeAsleep && state.BeginWaiting())
+        {
+            Task wake = waker.WakeAsync();
+            await Task.WhenAny(wake, Task.Delay(CheckGrace, context.RequestAborted));
+        }
+
+        if (!state.IsReady)
+        {
+            HttpResponse response = context.Response;
+            response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            response.Headers[HeaderNames.RetryAfter] = "5";
+            response.Headers[HeaderNames.CacheControl] = "no-store";
+            response.ContentType = "text/html; charset=utf-8";
+            await response.WriteAsync(WakingUpPage.Render(state.ElapsedSeconds), context.RequestAborted);
+            return;
+        }
+
+        state.RecordPageServed();
+        await next(context);
     }
 
     private static bool IsExempt(PathString path) =>

@@ -1026,4 +1026,9 @@ blocking. It was Data Protection: `AddDataProtection` registers a hosted service
 key ring at startup, the keys are in SQL Server, and EF retried that read against the resuming
 database for the better part of a minute. Dropping that one registration leaves the provider's
 lazy load and took time-to-first-page from 31 seconds to 1 against a database that hangs.
-**Look at:** `Web/Startup/` (five small files), the health-check mapping in `Program.cs`, `WakingUpMiddlewareTests`, `DataProtectionStartupTests`.
+What is left is Azure's: about 15 seconds provisioning a sandbox before the image is pulled,
+against 0.3 seconds of our own startup. One warm replica would remove it for about $4 to $5 a
+month; for a portfolio demo we kept it free and wrote the trade-off down (ADR-0031). A warm
+container also exposed a subtler case: the database can pause behind it, so after 55 minutes
+without a page request the next one checks the database before it is let through.
+**Look at:** `Web/Startup/` (six small files), the health-check mapping in `Program.cs`, `WakingUpMiddlewareTests`, `DataProtectionStartupTests`.

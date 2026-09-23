@@ -39,7 +39,8 @@ All data is fictional (Village of Maple Ridge, Ohio).
 ## Live demo
 
 A hosted copy runs on Azure's free tiers: **https://civicbudget-app.ashysmoke-cd0f52a4.centralus.azurecontainerapps.io**.
-The demo sleeps when idle: the first visit after an hour shows a short "waking up" screen and
+The demo sleeps when idle: the first visit after a few quiet minutes takes about 15 to 20
+seconds to appear, and if nobody has used it for an hour a "waking up" screen follows and
 continues on its own within about a minute. The database is rebuilt from the seed every night
 at 08:00 UTC, so anything you change is gone by morning. Sign in with any of these; the password is the same for all of them.
 

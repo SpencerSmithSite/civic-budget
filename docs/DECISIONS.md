@@ -858,6 +858,22 @@ awake or a replica warm would exhaust the free allowances within days.
   lazy load, which happens on the first request that protects or unprotects data, by which time
   the database is up; the waiting screen itself uses no cookies or antiforgery tokens.
 
+- **A quiet spell re-checks the database** (amended 2026-09-23). `StartupState` remembers when
+  it last let a page through. After 55 minutes without one (serverless SQL pauses at 60), the
+  next page request starts a single shared check (`DatabaseWaker`) and waits up to a second
+  for it: an awake database answers in milliseconds and the page is served; a sleeping one gets
+  the waiting screen, whose counter restarts, until it answers. Scale-to-zero usually retires
+  the container long before the database pauses, but an open admin tab holds a WebSocket that
+  can keep it up past the hour, and without the check the next visitor waited on a hung request.
+- **The container is not kept warm** (Spencer, 2026-09-23). After a few idle minutes the first
+  visit still waits about 17 seconds before anything shows. Azure's logs split that into about
+  15 seconds provisioning a sandbox, 1 second pulling the image, and 0.3 seconds of our own
+  startup, so nothing in the app or image can shorten it. `minReplicas: 1` would make every
+  visit instant for roughly $4 to $5 a month (an idle replica bills at a reduced rate after the
+  free grant); a weekday business-hours scale rule would fit inside the free grant. Both were
+  offered; the free, always-scale-to-zero demo was kept, and either is a one-line change to
+  `main.bicep` if that changes.
+
 **Alternatives.** A minimum of one replica (a few dollars a month, and the database would still
 pause); disabling SQL auto-pause (burns the free vCore-seconds in about four days); a keep-alive
 ping (same); a static "loading" page on a CDN in front (another moving part, and it could not

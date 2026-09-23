@@ -101,6 +101,7 @@ builder.Services.DeferKeyRingLoad();
 // serverless SQL resumes. StartupState is what the waiting page and the probes read.
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<StartupState>();
+builder.Services.AddSingleton<IDatabaseWaker, DatabaseWaker>();
 builder.Services.AddHostedService<DatabaseStartupService>();
 
 builder.Services.AddHealthChecks()
