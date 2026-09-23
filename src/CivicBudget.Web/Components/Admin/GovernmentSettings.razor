@@ -164,7 +164,7 @@ else
         try
         {
             IBrowserFile resized = await e.File.RequestImageFileAsync("image/png", 512, 512);
-            await using Stream stream = resized.OpenReadStream(20 * 1024 * 1024);
+            await using Stream stream = resized.OpenReadStream(UploadedImage.MaxBytes);
             using var buffer = new MemoryStream();
             await stream.CopyToAsync(buffer);
             logoResult = await Logos.SetAsync(buffer.ToArray(), "image/png");

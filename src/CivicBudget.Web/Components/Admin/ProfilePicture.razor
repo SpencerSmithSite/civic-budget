@@ -31,7 +31,6 @@
 
 @code {
     private const int MaxEdge = 256;
-    private const long MaxUploadBytes = 20 * 1024 * 1024; // the original, before the browser resizes it
 
     [CascadingParameter]
     private Task<AuthenticationState> AuthenticationState { get; set; } = default!;
@@ -58,7 +57,9 @@
         {
             // The browser decodes and scales the image; anything that is not an image fails here.
             IBrowserFile resized = await e.File.RequestImageFileAsync("image/png", MaxEdge, MaxEdge);
-            await using Stream stream = resized.OpenReadStream(MaxUploadBytes);
+            // The stream is the resized PNG, so cap it at what the service accepts; a client that
+            // sends more is refused here rather than buffered.
+            await using Stream stream = resized.OpenReadStream(UploadedImage.MaxBytes);
             using var buffer = new MemoryStream();
             await stream.CopyToAsync(buffer);
 

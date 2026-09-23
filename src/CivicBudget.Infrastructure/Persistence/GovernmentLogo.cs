@@ -1,3 +1,5 @@
+using CivicBudget.Application.Common;
+
 namespace CivicBudget.Infrastructure.Persistence;
 
 /// <summary>
@@ -8,7 +10,7 @@ namespace CivicBudget.Infrastructure.Persistence;
 /// </summary>
 public sealed class GovernmentLogo
 {
-    public const int MaxBytes = 512 * 1024;
+    public const int MaxBytes = UploadedImage.MaxBytes;
 
     public Guid GovernmentId { get; set; }
     public string ContentType { get; set; } = string.Empty;

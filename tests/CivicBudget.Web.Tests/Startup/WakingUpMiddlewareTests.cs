@@ -18,6 +18,8 @@ public class WakingUpMiddlewareTests
     [InlineData("/admin")]
     [InlineData("/transparency/maple-ridge-oh")]
     [InlineData("/_blazor")]
+    [InlineData("/transparency/maple-ridge-oh/2026/download.csv")]
+    [InlineData("/admin/export/setup/funds.xlsx")]
     public async Task Serves_the_waiting_screen_while_the_database_is_preparing(string path)
     {
         var clock = new FakeTimeProvider();

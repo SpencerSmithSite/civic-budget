@@ -33,5 +33,5 @@ public sealed class MustChangePasswordMiddleware(RequestDelegate next)
         || path.StartsWithSegments("/lib", StringComparison.OrdinalIgnoreCase)
         || path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase)
         || path.StartsWithSegments("/transparency", StringComparison.OrdinalIgnoreCase)
-        || path.Value?.Contains('.', StringComparison.Ordinal) == true; // app.css, favicon.svg, fingerprinted assets
+        || StaticAssetPath.IsStaticAsset(path);
 }

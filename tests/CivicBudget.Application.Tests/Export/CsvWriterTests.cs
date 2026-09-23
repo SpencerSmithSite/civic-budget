@@ -32,6 +32,16 @@ public class CsvWriterTests
     }
 
     [Fact]
+    public void Text_that_a_spreadsheet_would_run_as_a_formula_is_written_as_text()
+    {
+        var table = new ExportTable("Lines", ["Note", "Amount"], [["=HYPERLINK(\"http://x\",\"Click\")", -250m], ["+1 overtime", 0m], ["-see memo", 0m], ["@SUM(A1)", 0m], ["plain", 0m]]);
+
+        string text = Text(CsvWriter.ToCsv(table));
+
+        Assert.Equal("Note,Amount\r\n\"'=HYPERLINK(\"\"http://x\"\",\"\"Click\"\")\",-250.00\r\n'+1 overtime,0.00\r\n'-see memo,0.00\r\n'@SUM(A1),0.00\r\nplain,0.00\r\n", text);
+    }
+
+    [Fact]
     public void Formats_money_dates_and_nulls_the_same_on_every_machine()
     {
         var table = new ExportTable("Lines", ["Amount", "Adopted", "Note", "Count"], [[-5m, new DateOnly(2026, 6, 15), null, 7]]);

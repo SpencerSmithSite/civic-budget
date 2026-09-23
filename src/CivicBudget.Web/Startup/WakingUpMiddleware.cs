@@ -49,7 +49,7 @@ public sealed class WakingUpMiddleware(RequestDelegate next, StartupState state,
 
     private static bool IsExempt(PathString path) =>
         path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase)
-        || path.Value?.Contains('.', StringComparison.Ordinal) == true; // favicon.svg and fingerprinted assets
+        || StaticAssetPath.IsStaticAsset(path);
 }
 
 /// <summary>

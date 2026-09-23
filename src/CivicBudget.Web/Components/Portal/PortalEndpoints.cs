@@ -32,10 +32,16 @@ internal static class PortalEndpoints
 
         // The government's logo for the portal header. Public like the pages, versioned by the
         // upload time in the URL, and served only for governments with a published budget.
-        endpoints.MapGet("/transparency/{slug}/logo", async (string slug, [FromServices] ISnapshotQueryService snapshots, CancellationToken ct) =>
+        endpoints.MapGet("/transparency/{slug}/logo", async (string slug, [FromServices] ISnapshotQueryService snapshots, HttpContext context, CancellationToken ct) =>
         {
             PortalLogoDto? logo = await snapshots.GetLogoAsync(slug, ct);
-            return logo is null ? Results.NotFound() : Results.Bytes(logo.Data, logo.ContentType, lastModified: logo.UpdatedAtUtc);
+            if (logo is null)
+            {
+                return Results.NotFound();
+            }
+
+            ImageResponse.Harden(context.Response);
+            return Results.Bytes(logo.Data, logo.ContentType, lastModified: logo.UpdatedAtUtc);
         });
 
         return group;
