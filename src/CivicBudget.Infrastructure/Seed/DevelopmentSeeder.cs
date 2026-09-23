@@ -39,20 +39,31 @@ public sealed class DevelopmentSeeder(
 
         await using CivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
 
-        if (await db.Governments.AnyAsync(ct))
-        {
-            logger.LogInformation("Seed skipped: governments already exist.");
-            return;
-        }
+        // Governments are seeded only into an empty database: an administrator may rename a government
+        // or change its address, so nothing about an existing one can say "this is the seeded one", and
+        // guessing would seed a duplicate on the next start. Users are different: each is found by email,
+        // so a first start without a demo password (no users) is completed by the next start that has one.
+        // A seed interrupted part way is not repaired; `--reseed` rebuilds everything.
+        bool seededGovernments = !await db.Governments.AnyAsync(ct);
+        Government? mapleRidge = seededGovernments
+            ? await SeedMapleRidgeAsync(db, ct)
+            : await db.Governments.SingleOrDefaultAsync(g => g.PublicSlug == MapleRidgeSeed.Slug, ct);
+        Government? pineHollow = seededGovernments
+            ? await SeedPineHollowAsync(db, ct)
+            : await db.Governments.SingleOrDefaultAsync(g => g.PublicSlug == PineHollowSeed.Slug, ct);
 
-        Government mapleRidge = await SeedMapleRidgeAsync(db, ct);
-        Government pineHollow = await SeedPineHollowAsync(db, ct);
-
-        await SeedUsersAsync(mapleRidge, DemoUsers.MapleRidge, ct);
-        await SeedUsersAsync(pineHollow, DemoUsers.PineHollow, ct);
+        int users = (mapleRidge is null ? 0 : await SeedUsersAsync(mapleRidge, DemoUsers.MapleRidge, ct))
+            + (pineHollow is null ? 0 : await SeedUsersAsync(pineHollow, DemoUsers.PineHollow, ct));
         tenant.Clear();
 
-        logger.LogInformation("Seeded Maple Ridge and Pine Hollow demo data.");
+        if (seededGovernments || users > 0)
+        {
+            logger.LogInformation("Seeded demo data: governments {Governments}, {Users} user(s).", seededGovernments ? "created" : "already present", users);
+        }
+        else
+        {
+            logger.LogInformation("Seed skipped: the demo governments and users already exist.");
+        }
     }
 
     private async Task EnsureRolesAsync()
@@ -66,22 +77,31 @@ public sealed class DevelopmentSeeder(
         }
     }
 
-    /// <summary>Creates the demo logins for one government. Skipped, with a warning, when no demo password is configured.</summary>
-    private async Task SeedUsersAsync(Government government, IReadOnlyList<DemoUser> users, CancellationToken ct)
+    /// <summary>
+    /// Creates the demo logins for one government that do not exist yet, and returns how many it made.
+    /// Skipped, with a warning, when no demo password is configured.
+    /// </summary>
+    private async Task<int> SeedUsersAsync(Government government, IReadOnlyList<DemoUser> users, CancellationToken ct)
     {
         string? password = seedOptions.Value.DemoPassword;
         if (string.IsNullOrWhiteSpace(password))
         {
             logger.LogWarning("Seed:DemoPassword is not configured; demo users for {Government} were not created. Run scripts/dev-setup.sh.", government.Name);
-            return;
+            return 0;
         }
 
         tenant.SetTenant(government.Id);
         await using CivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
         Dictionary<string, Guid> departmentsByCode = await db.Departments.ToDictionaryAsync(d => d.Code, d => d.Id, ct);
 
+        int created = 0;
         foreach (DemoUser demo in users)
         {
+            if (await userManager.FindByEmailAsync(demo.Email) is not null)
+            {
+                continue;
+            }
+
             var user = new ApplicationUser
             {
                 UserName = demo.Email,
@@ -95,14 +115,17 @@ public sealed class DevelopmentSeeder(
                 user.Departments.Add(new UserDepartment { DepartmentId = departmentsByCode[code] });
             }
 
-            IdentityResult created = await userManager.CreateAsync(user, password);
-            if (!created.Succeeded)
+            IdentityResult made = await userManager.CreateAsync(user, password);
+            IdentityResult roled = made.Succeeded ? await userManager.AddToRoleAsync(user, demo.Role) : made;
+            if (!roled.Succeeded)
             {
-                throw new InvalidOperationException($"Could not create demo user {demo.Email}: {string.Join("; ", created.Errors.Select(e => e.Description))}");
+                throw new InvalidOperationException($"Could not create demo user {demo.Email}: {string.Join("; ", roled.Errors.Select(e => e.Description))}");
             }
 
-            await userManager.AddToRoleAsync(user, demo.Role);
+            created++;
         }
+
+        return created;
     }
 
     private async Task<Government> SeedMapleRidgeAsync(CivicBudgetDbContext db, CancellationToken ct)

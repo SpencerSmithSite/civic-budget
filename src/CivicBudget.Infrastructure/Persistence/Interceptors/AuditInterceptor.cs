@@ -89,20 +89,71 @@ public sealed class AuditInterceptor(ICurrentUser currentUser, TimeProvider cloc
             }
         }
 
+        entries.AddRange(OwnedValueChanges(context, userId, userName, now));
+
         if (entries.Count > 0)
         {
             context.Set<AuditEntry>().AddRange(entries);
         }
     }
 
+    /// <summary>
+    /// Owned values (a government's account number format) are stored in the owner's row but tracked
+    /// as entries of their own, so the loop above never sees them change. A value that is replaced
+    /// rather than edited, which is how value objects change, shows up as the old one Deleted and the
+    /// new one Added. Each changed property is recorded against the owner, as
+    /// "AccountNumberFormat.FundWidth", like any other field of it.
+    /// </summary>
+    private static IEnumerable<AuditEntry> OwnedValueChanges(DbContext context, string userId, string userName, DateTimeOffset now)
+    {
+        var owned = context.ChangeTracker.Entries()
+            .Where(e => e.Metadata.IsOwned() && e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+            .Select(e => (Entry: e, Ownership: e.Metadata.FindOwnership()!))
+            .Where(x => IsAudited(x.Ownership.PrincipalEntityType.ClrType))
+            .GroupBy(x => (x.Ownership, OwnerId: x.Entry.Property(x.Ownership.Properties[0].Name).CurrentValue));
+
+        foreach (var group in owned)
+        {
+            if (group.Key.OwnerId is not Guid ownerId)
+            {
+                continue;
+            }
+
+            EntityEntry? owner = context.ChangeTracker.Entries()
+                .FirstOrDefault(e => e.Metadata == group.Key.Ownership.PrincipalEntityType && e.Entity is Entity entity && entity.Id == ownerId);
+            // A new owner's values are part of its Created entry; a deleted owner's go with it.
+            if (owner is null || owner.State is EntityState.Added or EntityState.Deleted || GovernmentIdOf(owner.Entity) is not { } governmentId)
+            {
+                continue;
+            }
+
+            EntityEntry? before = group.Select(x => x.Entry).FirstOrDefault(e => e.State == EntityState.Deleted);
+            EntityEntry? after = group.Select(x => x.Entry).FirstOrDefault(e => e.State is EntityState.Added or EntityState.Modified);
+            string prefix = group.Key.Ownership.PrincipalToDependent?.Name ?? group.Key.Ownership.DeclaringEntityType.ClrType.Name;
+            string ownerName = owner.Metadata.ClrType.Name;
+            foreach (Microsoft.EntityFrameworkCore.Metadata.IProperty property in (after ?? before)!.Metadata.GetProperties().Where(p => !p.IsKey() && !p.IsForeignKey()))
+            {
+                object? oldValue = before is not null
+                    ? before.Property(property.Name).CurrentValue
+                    : after!.State == EntityState.Modified ? after.Property(property.Name).OriginalValue : null;
+                object? newValue = after?.Property(property.Name).CurrentValue;
+                string? oldText = Format(oldValue), newText = Format(newValue);
+                if (oldText != newText)
+                {
+                    yield return AuditEntry.FieldChanged(governmentId, ownerName, ownerId, $"{prefix}.{property.Name}", oldText, newText, userId, userName, now);
+                }
+            }
+        }
+    }
+
     private static bool IsAudited(Type type) =>
         IsAuditedCache.GetOrAdd(type, t => t.GetCustomAttributes(typeof(AuditedAttribute), inherit: false).Length > 0);
 
-    /// <summary>Tenant-owned entities know their government; the Government row is its own tenant.</summary>
     /// <summary>Properties marked [NotAudited]; the domain records those changes as named events instead.</summary>
     private static bool IsOptedOut(PropertyEntry property) =>
         property.Metadata.PropertyInfo?.IsDefined(typeof(NotAuditedAttribute), inherit: false) == true;
 
+    /// <summary>Tenant-owned entities know their government; the Government row is its own tenant.</summary>
     private static Guid? GovernmentIdOf(object entity) => entity switch
     {
         ITenantOwned owned => owned.GovernmentId,

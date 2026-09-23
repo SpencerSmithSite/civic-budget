@@ -394,7 +394,6 @@ Every NuGet package and why. Add a row when adding a package.
 |---|---|---|---|
 | Microsoft.EntityFrameworkCore.SqlServer | Infrastructure | Provider for SQL Server | 0009 |
 | Microsoft.EntityFrameworkCore.Design | Infrastructure (PrivateAssets) | `dotnet ef` tooling; kept in Infrastructure so no startup project is needed | — |
-| Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore | Web | `/health/ready` checks SQL connectivity through the DbContext | — |
 | Microsoft.EntityFrameworkCore (abstractions) | Application | LINQ surface for `ICivicBudgetDbContext`; no provider | 0014 |
 | FluentValidation | Application | Request validation as testable classes | 0007 |
 | Microsoft.AspNetCore.Identity.EntityFrameworkCore | Infrastructure | Identity stores in the same DbContext | 0015 |

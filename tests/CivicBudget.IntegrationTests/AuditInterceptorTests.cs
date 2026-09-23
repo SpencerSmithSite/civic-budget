@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CivicBudget.Application.Auditing;
 using CivicBudget.Application.Budgets;
+using CivicBudget.Application.Common;
 using CivicBudget.Application.Security;
 using CivicBudget.Application.Setup;
 using CivicBudget.Domain.Auditing;
@@ -22,7 +23,8 @@ public class AuditInterceptorTests(SqlServerFixture fixture) : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        _database = await fixture.CreateDatabaseAsync("CivicBudget_Audit");
+        // One database per test: several tests write audit rows, and one asserts that only the seed has.
+        _database = await fixture.CreateDatabaseAsync("CivicBudget_Audit_" + Guid.NewGuid().ToString("N")[..8]);
         await using AsyncServiceScope scope = _database.CreateScope();
         await scope.ServiceProvider.GetRequiredService<DevelopmentSeeder>().SeedAsync();
 
@@ -115,5 +117,28 @@ public class AuditInterceptorTests(SqlServerFixture fixture) : IAsyncLifetime
 
         Assert.True(await maple.AuditEntries.AnyAsync());
         Assert.False(await anonymous.AuditEntries.AnyAsync());
+    }
+
+    [Fact]
+    public async Task Changing_the_account_number_format_is_recorded_field_by_field_on_the_government()
+    {
+        await using (AsyncServiceScope admin = _database.CreateScopeAs(Roles.Admin, _mapleRidge))
+        {
+            IGovernmentSettingsService settings = admin.ServiceProvider.GetRequiredService<IGovernmentSettingsService>();
+            GovernmentSettingsDto current = await settings.GetAsync();
+            Result saved = await settings.UpdateAsync(new UpdateGovernmentSettingsRequest(current.Name, current.PublicSlug, current.AppropriationLimitMode, current.Description,
+                3, current.AccountNumberFormat.DepartmentWidth, current.AccountNumberFormat.ObjectWidth, ".", current.AccountNumberFormat.DepartmentLabel));
+            Assert.True(saved.IsSuccess);
+        }
+
+        await using CivicBudgetDbContext db = _database.CreateContext(_mapleRidge);
+        List<AuditEntry> changes = await db.AuditEntries
+            .Where(a => a.EntityName == "Government" && a.PropertyName != null && a.PropertyName.StartsWith("AccountNumberFormat."))
+            .ToListAsync();
+
+        Assert.Equal(2, changes.Count);
+        Assert.Contains(changes, a => a.PropertyName == "AccountNumberFormat.FundWidth" && a.OldValue == "4" && a.NewValue == "3");
+        Assert.Contains(changes, a => a.PropertyName == "AccountNumberFormat.Separator" && a.OldValue == "-" && a.NewValue == ".");
+        Assert.All(changes, a => Assert.Equal(_mapleRidge, a.EntityId));
     }
 }

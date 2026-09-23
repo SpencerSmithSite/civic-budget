@@ -125,8 +125,14 @@ public sealed class UserAdminService(
 
         if (!currentRoles.SequenceEqual([request.Role]))
         {
-            await userManager.RemoveFromRolesAsync(user, currentRoles);
-            await userManager.AddToRoleAsync(user, request.Role);
+            // Checked, not assumed: a failed add after a successful remove would leave the user with no
+            // role at all while the trail said "Updated ... as Fiscal Officer".
+            IdentityResult removed = await userManager.RemoveFromRolesAsync(user, currentRoles);
+            IdentityResult added = removed.Succeeded ? await userManager.AddToRoleAsync(user, request.Role) : removed;
+            if (!added.Succeeded)
+            {
+                return Result.Failure(ToErrors(added, nameof(request.Role)));
+            }
         }
 
         await ReplaceDepartmentsAsync(user.Id, request.Role == Roles.DepartmentHead ? request.DepartmentIds : [], ct);
@@ -160,7 +166,13 @@ public sealed class UserAdminService(
 
         // The administrator knows this password, so it is temporary; the stamp change ends any open session.
         user.MustChangePassword = true;
-        await userManager.UpdateAsync(user);
+        IdentityResult flagged = await userManager.UpdateAsync(user);
+        if (!flagged.Succeeded)
+        {
+            // The password did change; if the flag did not save, the administrator must know it is not temporary.
+            return Result.Failure(ToErrors(flagged, nameof(request.NewPassword)));
+        }
+
         await userManager.UpdateSecurityStampAsync(user);
         await AuditAsync(user, $"Reset the password for {user.Email} (temporary, must be changed at sign-in)", ct);
         return Result.Success();
@@ -254,7 +266,7 @@ public sealed class UserAdminService(
     private async Task ReplaceDepartmentsAsync(string userId, IReadOnlyList<Guid> departmentIds, CancellationToken ct)
     {
         await using CivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
-        db.UserDepartments.RemoveRange(db.UserDepartments.Where(ud => ud.UserId == userId));
+        db.UserDepartments.RemoveRange(await db.UserDepartments.Where(ud => ud.UserId == userId).ToListAsync(ct));
         db.UserDepartments.AddRange(departmentIds.Distinct().Select(id => new UserDepartment { UserId = userId, DepartmentId = id }));
         await db.SaveChangesAsync(ct);
     }

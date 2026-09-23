@@ -125,4 +125,33 @@ public class SeedTests(SqlServerFixture fixture) : IAsyncLifetime
         Assert.Equal(_mapleRidge.ToString(), principal.FindFirst(CivicBudget.Application.Security.ClaimNames.GovernmentId)?.Value);
         Assert.Equal(2, principal.FindAll(CivicBudget.Application.Security.ClaimNames.DepartmentId).Count()); // ST and PR
     }
+
+    [Fact]
+    public async Task Seeding_again_fills_in_what_is_missing_and_duplicates_nothing()
+    {
+        // Its own database: this test deletes a seeded user.
+        TestDatabase database = await fixture.CreateDatabaseAsync("CivicBudget_Reseed_" + Guid.NewGuid().ToString("N")[..8]);
+        await using (AsyncServiceScope first = database.CreateScope())
+        {
+            await first.ServiceProvider.GetRequiredService<DevelopmentSeeder>().SeedAsync();
+            UserManager<ApplicationUser> users = first.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            Assert.True((await users.DeleteAsync((await users.FindByEmailAsync("viewer@mapleridge.example"))!)).Succeeded);
+        }
+
+        await using AsyncServiceScope second = database.CreateScope();
+        await second.ServiceProvider.GetRequiredService<DevelopmentSeeder>().SeedAsync();
+
+        ApplicationUser? viewer = await second.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>().FindByEmailAsync("viewer@mapleridge.example");
+        Assert.NotNull(viewer);
+        await using CivicBudgetDbContext db = database.CreateContext(tenant: null);
+        Assert.Equal(2, await db.Governments.CountAsync());
+
+        // A government whose address was changed is still recognised as seeded: no second copy appears.
+        Government pine = await db.Governments.SingleAsync(g => g.PublicSlug == "pine-hollow-twp-oh");
+        pine.SetPublicSlug("pine-hollow-renamed");
+        await db.SaveChangesAsync();
+        await using AsyncServiceScope third = database.CreateScope();
+        await third.ServiceProvider.GetRequiredService<DevelopmentSeeder>().SeedAsync();
+        Assert.Equal(2, await db.Governments.CountAsync());
+    }
 }
