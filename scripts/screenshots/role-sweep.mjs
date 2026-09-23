@@ -1,5 +1,10 @@
-// Role-by-role sweep: every route, capturing console errors, page errors, failed requests,
-// the Blazor error bar, suspicious text, and a screenshot. Output: one line per problem.
+// Signs in as each demo user and opens every page that user can reach (the menu, every budget
+// version, its reports and department pages), recording console errors, page errors, failed
+// requests, the Blazor error bar, text such as "NaN" or "Exception", and a full-page screenshot.
+// From the repo root, with the app running and Playwright set up (see mobile-sweep.mjs):
+//   BASE=https://localhost:5001 PW=<Seed:DemoPassword> OUT=/tmp/sweep node scripts/screenshots/role-sweep.mjs
+// Expected output is one "N routes" line per user; redirects for department users (to their
+// department) and for non-fiscal users on Import (access denied) are normal.
 import { chromium } from 'playwright';
 import fs from 'node:fs';
 const base = process.env.BASE, pw = process.env.PW, out = process.env.OUT;

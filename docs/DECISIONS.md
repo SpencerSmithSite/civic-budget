@@ -844,8 +844,9 @@ awake or a replica warm would exhaust the free allowances within days.
   browsers without script. Health endpoints and static assets pass through.
 - **Three health endpoints.** `/health` is liveness (the process is up) and is what the
   platform's startup probe hits, now with a two-second delay and period instead of ten.
-  `/health/startup` is the in-memory startup check, cheap enough to poll. `/health/ready` is
-  startup plus a real database round trip, for anything that must know the database answers.
+  `/health/startup` is the in-memory startup check, cheap enough to poll. `/health/ready` was
+  startup plus a real database round trip; it was removed in Phase 17 (ADR-0032) because nothing
+  used it and anyone could poll it to keep the free database awake.
 - **Data Protection reads its key ring lazily** (`DataProtectionStartup.DeferKeyRingLoad`). The
   first attempt at this ADR shipped and changed nothing: the site still showed a blank browser for
   about seventy seconds. The Azure logs put "Now listening" seventeen milliseconds after the
@@ -888,3 +889,45 @@ in silently. Local
 development gets the same screen for the 15 to 30 seconds SQL Server takes under Rosetta.
 Blazor circuits cannot start early (`/_blazor` is not exempt), so no page renders against a
 database that is not there. Tests: `WakingUpMiddlewareTests` (Web).
+
+---
+
+## ADR-0032 — Maintenance pass: services enforce their own roles, times are Eastern, static pages carry no script
+**Date:** 2026-09-23 · **Status:** Accepted
+
+**Context.** Phase 17 reviewed the whole codebase in five parallel passes (domain and application,
+infrastructure, admin UI, shared UI and portal, tests and CI) and walked the running app as every
+demo user. Most findings were plain bugs with one right fix; a few fixes are choices worth
+recording.
+
+**Decision.**
+- **Every service that writes checks the caller itself.** Workflow, publishing, import, and chart
+  sync already did; the setup services (funds, accounts, departments, fiscal years, settings)
+  relied on the page's `[Authorize]` attribute. They now check `IsFiscalAuthority()` (settings:
+  Administrator), and `AdminPagePolicyTests` pins every admin route to its policy so a dropped
+  attribute fails the build.
+- **Times are shown in Eastern time with the zone named** (`Display.Timestamp`, `ShortDate`,
+  `LongDate`). Every tenant is an Ohio government and Ohio is entirely Eastern; the server runs in
+  UTC, so `ToLocalTime()` showed a 2 PM sync as 6 PM. A multi-state product would store a zone per
+  government. Amounts format as en-US (`Display.Amount`) whatever the server culture.
+- **Pages that are not interactive load no script.** `App.razor` renders Blazor's script,
+  Bootstrap's, and the reconnect dialog only when the page has a render mode. The portal's promise
+  of "no JavaScript" is now literally true, and sign-in and error pages are plain HTML forms.
+- **The portal remembers a loaded budget for one request** (`SnapshotQueryService`): the service is
+  scoped and only static pages use it, so a scope is a request. The funds page went from about 54
+  queries per cache miss to 6. The output cache varies on `q`, `show`, and `view` only.
+- **A government's public address moves its published budgets with it**
+  (`PublishedBudgetSnapshot.MoveToSlug`): the slug is where a snapshot is found, not part of what was
+  published.
+- **No anonymous endpoint queries the database per call.** `/health/ready` is removed.
+- **Deploys follow CI** (`workflow_run` on success), check the image before `:latest` moves, and
+  wait for the new revision to be the latest ready one.
+
+**Alternatives.** Row-version concurrency on `BudgetVersion` (the reviews found lost-update races
+between an edit and adoption); worth doing for a multi-user production system, larger than a
+maintenance pass, left as a known gap along with the others in walkthrough 19.
+
+**Consequences.** Tests that change settings sign in as the Administrator; the setup tests use a
+shared `CreateScopeAs(role, government)`. Portal tests that change data read the result through a
+fresh scope, as the next request would.
+

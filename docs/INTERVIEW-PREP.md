@@ -1032,3 +1032,51 @@ month; for a portfolio demo we kept it free and wrote the trade-off down (ADR-00
 container also exposed a subtler case: the database can pause behind it, so after 55 minutes
 without a page request the next one checks the database before it is let through.
 **Look at:** `Web/Startup/` (six small files), the health-check mapping in `Program.cs`, `WakingUpMiddlewareTests`, `DataProtectionStartupTests`.
+
+## Phase 17 — Maintenance pass
+
+### Q: How do you find bugs in a codebase that already passes its tests?
+**A:** Two ways at once. Five reviews, one per layer, each required to quote the code and give a
+concrete failure; nothing was fixed on a reviewer's say-so, and the worst admin findings were
+reproduced in a browser first. And a sweep that signed in as every demo user and opened every page:
+about 220 page loads, zero errors. That second result is the interesting one. Loading pages is not
+using them; the bugs were all behind a click (Add line, Deactivate, Start an amendment).
+**Look at:** `docs/walkthroughs/19-maintenance.md`, `scripts/screenshots/role-sweep.mjs`.
+
+### Q: Name a Blazor bug that tests and a page-load sweep both miss.
+**A:** A `Func` callback. `ConfirmDialog.OnConfirm` is a `Func<Task<bool>>`, so after it runs Blazor
+re-renders the dialog (whose button was clicked), not the page that owns the list. Five pages
+reloaded their data and never showed it. An `EventCallback` would have re-rendered the owner; with a
+`Func` you call `StateHasChanged()` yourself. There is now a bUnit test that fails without it. Two
+cousins: a page reused when only its route parameter changes (load in `OnParametersSetAsync`, not
+`OnInitializedAsync`), and an input that keeps a refused value because Blazor diffs against what it
+rendered, not what the browser holds (`@key` bump in `AmountCell`).
+**Look at:** `FundListTests.Deactivating_a_fund_updates_the_row_as_soon_as_the_dialog_closes`, `AmountCell.razor`.
+
+### Q: Why check roles in the service when the page already has `[Authorize]`?
+**A:** Because the attribute is one typo from gone and nothing else would notice. Workflow,
+publishing, and import already checked; the setup services did not. Now they do, and a reflection
+test pins every admin route to its policy, so a new page fails until someone decides who may open it.
+**Look at:** `Application/Setup/SetupNotAllowed.cs`, `AdminPagePolicyTests`.
+
+### Q: What is an open redirect, and how did you have one?
+**A:** A sign-in link that sends you somewhere else after you type your password. The check was
+`Uri.IsWellFormedUriString(url, UriKind.Relative)`, which accepts `//evil.example`; browsers treat
+that as another host. `LocalUrl` follows ASP.NET Core's `IsLocalUrl` rules, and the tests list
+`//host`, `/\host`, `javascript:`, and a smuggled CRLF.
+**Look at:** `Web/Components/Account/LocalUrl.cs`, `LocalUrlTests`.
+
+### Q: Can cost be a security problem?
+**A:** On a free tier, yes. The portal cache varied on every query key, so `?x=1`, `?x=2`, ... each
+rebuilt a page from the database, and `/health/ready` opened a connection for anyone. Either could
+use up the month's free database allowance, and the database then pauses until the month turns over.
+The cache varies only on the keys pages read, and no anonymous endpoint queries the database per call.
+**Look at:** `PortalOutputCachePolicy.VaryByQueryKeys`, ADR-0032.
+
+### Q: What did you deliberately not fix?
+**A:** Optimistic concurrency. An amount edit can save after a concurrent adoption. The fix is a row
+version on `BudgetVersion` touched by every line change, which is real work across the aggregate,
+so it is written down as a known gap rather than half-done in a cleanup. Four budgeting questions
+went to the person with the domain knowledge instead of being guessed.
+**Look at:** walkthrough 19, sections 6 and 7.
+
