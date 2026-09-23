@@ -148,6 +148,40 @@ public class WakingUpMiddlewareTests
         Assert.True(state.MayBeAsleep);
     }
 
+    [Fact]
+    public async Task A_failed_check_is_retried_by_the_next_page_request()
+    {
+        var clock = new FakeTimeProvider();
+        var state = new StartupState(clock);
+        state.MarkReady();
+        clock.Advance(StartupState.QuietSpell + TimeSpan.FromMinutes(1));
+        int attempts = 0;
+        var waker = new FakeWaker(() =>
+        {
+            if (++attempts == 1)
+            {
+                state.MarkWakeFailed(); // what DatabaseWaker does when the database never answers
+            }
+            else
+            {
+                state.MarkReady();
+            }
+
+            return Task.CompletedTask;
+        });
+        var middleware = new WakingUpMiddleware(_ => Task.CompletedTask, state, waker);
+
+        var first = new DefaultHttpContext { Request = { Path = "/" }, Response = { Body = new MemoryStream() } };
+        await middleware.InvokeAsync(first);
+        var second = new DefaultHttpContext { Request = { Path = "/" }, Response = { Body = new MemoryStream() } };
+        await middleware.InvokeAsync(second);
+
+        Assert.Equal(503, first.Response.StatusCode);
+        Assert.Equal(2, attempts);
+        Assert.Equal(200, second.Response.StatusCode);
+        Assert.True(state.IsReady);
+    }
+
     private sealed class FakeWaker(Func<Task>? wake = null) : IDatabaseWaker
     {
         public int Calls { get; private set; }

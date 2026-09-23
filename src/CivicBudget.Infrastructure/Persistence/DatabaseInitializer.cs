@@ -1,6 +1,7 @@
 using CivicBudget.Infrastructure.Seed;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -101,7 +102,9 @@ public static class DatabaseInitializer
             {
                 return (await db.Database.GetPendingMigrationsAsync(ct)).Count();
             }
-            catch (SqlException ex) when (attempt < MaxAttempts)
+            // EF's own retry strategy (EnableRetryOnFailure) retries a few times and then gives up with
+            // RetryLimitExceededException wrapping the SqlException; both mean "not up yet".
+            catch (Exception ex) when (attempt < MaxAttempts && ex is SqlException or RetryLimitExceededException)
             {
                 logger.LogWarning("SQL Server is not ready yet (attempt {Attempt}/{Max}: {Message}). Retrying in {Delay}s.",
                     attempt, MaxAttempts, ex.Message.Split('\n')[0], RetryDelay.TotalSeconds);
