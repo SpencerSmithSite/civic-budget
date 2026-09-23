@@ -27,7 +27,7 @@ public class PortalOutputCachePolicyTests
         Assert.True(context.AllowCacheLookup);
         Assert.True(context.AllowCacheStorage);
         Assert.Equal(PortalOutputCachePolicy.Lifetime, context.ResponseExpirationTimeSpan);
-        Assert.Equal("*", context.CacheVaryByRules.QueryKeys); // "$ | %" and search terms live in the query string
+        Assert.Equal("q,show,view", string.Join(",", context.CacheVaryByRules.QueryKeys.ToArray())); // only the keys pages read, so ?x=random is not a new entry
         Assert.Equal(["portal:" + slug], context.Tags);
     }
 
@@ -50,14 +50,14 @@ public class PortalOutputCachePolicyTests
     }
 
     [Fact]
-    public async Task The_portal_root_is_cached_but_carries_no_government_tag()
+    public async Task The_portal_index_is_cached_under_its_own_tag_so_publishing_can_refresh_it()
     {
         OutputCacheContext context = Context("GET", "/transparency");
 
         await _policy.CacheRequestAsync(context, CancellationToken.None);
 
         Assert.True(context.EnableOutputCaching);
-        Assert.Empty(context.Tags);
+        Assert.Equal([PortalOutputCachePolicy.IndexTag], context.Tags);
     }
 
     [Theory]

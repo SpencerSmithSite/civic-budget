@@ -7,14 +7,14 @@ namespace CivicBudget.Web.Tests.Portal;
 public class OutputCacheSnapshotInvalidatorTests
 {
     [Fact]
-    public async Task Evicts_by_the_governments_portal_tag()
+    public async Task Evicts_the_governments_pages_and_the_portal_index()
     {
         var store = new RecordingStore();
         var invalidator = new OutputCacheSnapshotInvalidator(store);
 
         await invalidator.InvalidateAsync("Maple-Ridge-OH");
 
-        Assert.Equal(["portal:maple-ridge-oh"], store.EvictedTags);
+        Assert.Equal(["portal:maple-ridge-oh", PortalOutputCachePolicy.IndexTag], store.EvictedTags); // the index lists who has published
     }
 
     private sealed class RecordingStore : IOutputCacheStore

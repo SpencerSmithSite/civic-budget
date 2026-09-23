@@ -137,6 +137,17 @@ public sealed class PublishedBudgetSnapshot : Entity, ITenantOwned
         return snapshot;
     }
 
+    /// <summary>
+    /// The government changed its public address. The slug is where the snapshot is found, not part of
+    /// what was published, so it follows the government; left behind, the old address would keep
+    /// serving and another government could claim it and mix its years in.
+    /// </summary>
+    public void MoveToSlug(Government government)
+    {
+        Guard.Against(government.Id != GovernmentId, "Snapshots move only with their own government.");
+        GovernmentSlug = government.PublicSlug;
+    }
+
     public void Unpublish(string userId, DateTimeOffset nowUtc)
     {
         Guard.Against(Status != SnapshotStatus.Active, $"Only an Active snapshot can be unpublished (status: {Status}).");

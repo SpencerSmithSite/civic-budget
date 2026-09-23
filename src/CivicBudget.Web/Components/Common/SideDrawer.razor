@@ -1,3 +1,4 @@
+@inject IJSRuntime JS
 @* A right-side panel for detail that should not push the page around (line history, etc.).
    Escape and the backdrop close it. *@
 @if (IsOpen)
@@ -37,7 +38,12 @@
     {
         if (IsOpen && !wasOpen)
         {
+            await FocusJs.TryAsync(JS, "civicBudget.rememberFocus");
             await panel.FocusAsync();
+        }
+        else if (!IsOpen && wasOpen)
+        {
+            await FocusJs.TryAsync(JS, "civicBudget.restoreFocus");
         }
 
         wasOpen = IsOpen;

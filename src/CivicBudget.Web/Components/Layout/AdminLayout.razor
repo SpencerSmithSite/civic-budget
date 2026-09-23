@@ -12,7 +12,7 @@
    sidebar slides in over the page from a hamburger button; above it the sidebar can collapse to
    an icon rail (the choice is kept in a cookie so the prerender already knows it). *@
 <div class="cb-shell @(collapsed ? "collapsed" : "")">
-    <aside class="cb-sidebar @(menuOpen ? "open" : "")" id="admin-sidebar">
+    <aside class="cb-sidebar @(menuOpen ? "open" : "")" id="admin-sidebar" @onkeydown="OnSidebarKeyDown">
         <div class="cb-sidebar-head">
             <a class="cb-brand" href="admin" aria-label="@($"{governmentName ?? "CivicBudget"} home")" title="@governmentName">
                 <Logo Size="36" />
@@ -171,6 +171,15 @@
     private void OnPageStateChanged() => InvokeAsync(StateHasChanged);
 
     private void CloseMenu() => menuOpen = false;
+
+    // Escape closes the phone drawer, like the other panels that open over the page.
+    private void OnSidebarKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            menuOpen = false;
+        }
+    }
 
     private async Task ToggleCollapsedAsync()
     {

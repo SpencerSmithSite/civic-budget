@@ -21,16 +21,29 @@
        The portal and the account pages opt out with [ExcludeFromInteractiveRouting]; for those
        requests PageRenderMode is null and the page is plain static SSR with no circuit (ADR-0002). *@
     <Routes @rendermode="PageRenderMode" />
-    <ReconnectModal />
-    <script src="@Assets["_framework/blazor.web.js"]"></script>
-    <script src="@Assets["lib/bootstrap/js/bootstrap.bundle.min.js"]"></script>
-    <script>
-        // The admin app's only bespoke JavaScript: remember a UI preference (the collapsed menu) in a
-        // cookie, so the server can prerender the page the way the user left it.
-        window.civicBudget = {
-            setCookie: (name, value) => { document.cookie = `${name}=${value};path=/;max-age=31536000;SameSite=Lax`; }
-        };
-    </script>
+    @* Scripts only where something is interactive. The portal, the sign-in pages, and the error pages
+       are plain HTML and forms; without this every one of them downloaded Blazor, Bootstrap, and the
+       reconnect dialog for nothing, and the portal promised to work with no JavaScript at all. *@
+    @if (PageRenderMode is not null)
+    {
+        <ReconnectModal />
+        <script src="@Assets["_framework/blazor.web.js"]"></script>
+        <script src="@Assets["lib/bootstrap/js/bootstrap.bundle.min.js"]"></script>
+        <script>
+            // The admin app's only bespoke JavaScript: remember a UI preference (the collapsed menu) in a
+            // cookie, so the server can prerender the page the way the user left it.
+            window.civicBudget = {
+                setCookie: (name, value) => { document.cookie = `${name}=${value};path=/;max-age=31536000;SameSite=Lax`; },
+                // Dialogs and drawers remember what had focus when they opened and hand it back when they
+                // close, so a keyboard user carries on from the button they pressed, not the top of the page.
+                rememberFocus: () => { window.civicBudget.lastFocus = document.activeElement; },
+                restoreFocus: () => {
+                    const el = window.civicBudget.lastFocus;
+                    if (el && el.isConnected && typeof el.focus === "function") { el.focus(); }
+                }
+            };
+        </script>
+    }
 </body>
 
 </html>

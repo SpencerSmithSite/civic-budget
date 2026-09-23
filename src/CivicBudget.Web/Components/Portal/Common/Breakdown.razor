@@ -18,13 +18,15 @@
     }
     else
     {
-        <div class="pt-bars @Tone" role="img" aria-label="@AriaSummary">
+        @* An image role hides its children from assistive technology, so it is only used when the bars
+           have no links; linked bars stay a list people can tab through and hear. *@
+        <div class="pt-bars @Tone" role="@(LinkFor is null ? "img" : "list")" aria-label="@AriaSummary">
             @foreach (BreakdownItemDto item in Data.Items)
             {
                 decimal share = Data.ShareOf(item);
                 decimal max = Data.Items.Max(i => i.Amount);
                 decimal width = max <= 0 ? 0 : Math.Round(item.Amount / max * 100m, 1);
-                <div class="pt-bar-row">
+                <div class="pt-bar-row" role="@(LinkFor is null ? null : "listitem")">
                     <div class="pt-bar-label">
                         @if (LinkFor is not null && LinkFor(item) is { } href)
                         {
@@ -73,7 +75,9 @@
     [Parameter]
     public bool HideTitle { get; set; }
 
-    private readonly string headingId = "bd-" + Guid.NewGuid().ToString("N")[..6];
+    // Derived from the title, not random: the "$ | %" links reload the page and jump back to this
+    // chart by id, and a random id changes on every render, so the jump landed at the top.
+    private string headingId => "bd-" + System.Text.RegularExpressions.Regex.Replace(Title.ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-');
 
     [Parameter, EditorRequired]
     public string Title { get; set; } = "";

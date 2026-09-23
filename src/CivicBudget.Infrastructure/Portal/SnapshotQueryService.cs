@@ -11,11 +11,18 @@ namespace CivicBudget.Infrastructure.Portal;
 /// The portal's reads, over <see cref="PublicPortalDbContext"/> only. A published budget is small
 /// (a village has about a hundred lines), so each request loads the snapshot's lines once and
 /// computes breakdowns in memory. That keeps the code readable and, with output caching in front,
-/// costs one query per cached page. A county with thousands of lines would push the GROUP BYs into
+/// costs one load per cached page. A county with thousands of lines would push the GROUP BYs into
 /// SQL; the interface would not change.
+///
+/// A page asks several questions of the same budget (the layout's header, a breakdown, the lines,
+/// one fund after another), so the load is remembered for the life of the service. The service is
+/// scoped and only the statically rendered portal uses it, so that life is one request.
 /// </summary>
 public sealed class SnapshotQueryService(IDbContextFactory<PublicPortalDbContext> dbFactory) : ISnapshotQueryService
 {
+    // Concurrent only as a precaution: an SSR request renders on one dispatcher, but nothing here should depend on that.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<(string Slug, int? Year), Loaded?> loaded = [];
+
     public async Task<IReadOnlyList<(string Slug, string Name)>> ListGovernmentsAsync(CancellationToken ct = default)
     {
         await using PublicPortalDbContext db = await dbFactory.CreateDbContextAsync(ct);
@@ -212,6 +219,23 @@ public sealed class SnapshotQueryService(IDbContextFactory<PublicPortalDbContext
     private sealed record Loaded(PublishedBudgetSnapshot Snapshot, IReadOnlyList<PublishedBudgetSnapshotLine> Lines, IReadOnlyList<PortalYearDto> Years, long? LogoVersion);
 
     private async Task<Loaded?> LoadAsync(string slug, int? fiscalYear, CancellationToken ct)
+    {
+        if (loaded.TryGetValue((slug, fiscalYear), out Loaded? remembered))
+        {
+            return remembered;
+        }
+
+        Loaded? result = await LoadFromDatabaseAsync(slug, fiscalYear, ct);
+        loaded[(slug, fiscalYear)] = result;
+        if (result is not null)
+        {
+            loaded[(slug, result.Snapshot.FiscalYear)] = result; // "latest year" and that year by number are the same load
+        }
+
+        return result;
+    }
+
+    private async Task<Loaded?> LoadFromDatabaseAsync(string slug, int? fiscalYear, CancellationToken ct)
     {
         await using PublicPortalDbContext db = await dbFactory.CreateDbContextAsync(ct);
 

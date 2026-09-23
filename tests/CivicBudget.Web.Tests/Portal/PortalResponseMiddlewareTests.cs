@@ -12,10 +12,12 @@ namespace CivicBudget.Web.Tests.Portal;
 /// </summary>
 public class PortalResponseMiddlewareTests
 {
-    [Fact]
-    public async Task Portal_pages_become_public_and_lose_the_antiforgery_cookie()
+    [Theory]
+    [InlineData("/transparency/maple-ridge-oh/2026")]
+    [InlineData("/transparency")]
+    public async Task Portal_pages_become_public_and_lose_the_antiforgery_cookie(string path)
     {
-        (HttpContext http, StartingResponseFeature response) = Context("GET", "/transparency/maple-ridge-oh/2026");
+        (HttpContext http, StartingResponseFeature response) = Context("GET", path);
         var middleware = new PortalResponseMiddleware(ctx =>
         {
             // What Blazor's static SSR endpoint writes for every page.
@@ -68,7 +70,6 @@ public class PortalResponseMiddlewareTests
 
     [Theory]
     [InlineData("GET", "/admin/budgets")]
-    [InlineData("GET", "/transparency")]
     [InlineData("POST", "/transparency/maple-ridge-oh/2026/search")]
     public async Task Other_requests_are_not_touched(string method, string path)
     {
