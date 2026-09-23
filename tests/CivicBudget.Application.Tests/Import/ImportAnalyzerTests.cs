@@ -40,6 +40,40 @@ public class ImportAnalyzerTests
     }
 
     [Fact]
+    public void Codes_padded_with_zeros_by_an_export_match_their_unpadded_codes()
+    {
+        var shortFund = new ImportLookup(Guid.NewGuid(), "101", "Short Fund", true);
+
+        ImportRowDto row = ImportAnalyzer.Analyze([Row(2, "0101", "110", "05100", "10")], [shortFund], [Police], [Salaries], []).Single();
+
+        Assert.Empty(row.Errors);
+        Assert.Equal(("Short Fund", "Salaries"), (row.FundName, row.AccountName));
+    }
+
+    [Theory]
+    [InlineData("1234,56")]
+    [InlineData("1,23")]
+    [InlineData("12,34,567")]
+    public void A_comma_that_is_not_a_thousands_separator_is_an_error_not_a_bigger_number(string amount)
+    {
+        ImportRowDto row = Analyze([], Row(2, "1000", "110", "5100", amount)).Single();
+
+        Assert.Contains(row.Errors, e => e.Contains("comma in the wrong place", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("1,234.50", 1_234.50)]
+    [InlineData("12,345,678", 12_345_678)]
+    [InlineData("$1,000", 1_000)]
+    public void Thousands_separators_in_groups_of_three_are_accepted(string amount, double expected)
+    {
+        ImportRowDto row = Analyze([], Row(2, "1000", "110", "5100", amount)).Single();
+
+        Assert.Empty(row.Errors);
+        Assert.Equal((decimal)expected, row.Amount);
+    }
+
+    [Fact]
     public void Matching_an_existing_line_with_the_same_values_is_unchanged_and_shows_the_current_amount()
     {
         var existing = new ExistingLine(Guid.NewGuid(), General.Id, Police.Id, Salaries.Id, 500m, 480m, 450m, null);

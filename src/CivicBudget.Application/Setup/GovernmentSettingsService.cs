@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using CivicBudget.Application.Common;
 using CivicBudget.Application.Persistence;
+using CivicBudget.Application.Security;
 using CivicBudget.Application.Tenancy;
 using CivicBudget.Domain.Accounts;
 using CivicBudget.Domain.Common;
@@ -66,6 +67,7 @@ public interface IGovernmentSettingsService
 public sealed class GovernmentSettingsService(
     ICivicBudgetDbContextFactory dbFactory,
     ITenantContext tenant,
+    ICurrentUser currentUser,
     IValidator<UpdateGovernmentSettingsRequest> validator) : IGovernmentSettingsService
 {
     public async Task<GovernmentSettingsDto> GetAsync(CancellationToken ct = default)
@@ -79,6 +81,11 @@ public sealed class GovernmentSettingsService(
 
     public async Task<Result> UpdateAsync(UpdateGovernmentSettingsRequest request, CancellationToken ct = default)
     {
+        if (!currentUser.IsInRole(Roles.Admin))
+        {
+            return Result.Failure(SetupNotAllowed.Admin);
+        }
+
         if (await validator.ValidateToResultAsync(request, ct) is { } invalid)
         {
             return invalid;

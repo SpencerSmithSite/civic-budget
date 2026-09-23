@@ -22,8 +22,16 @@ public sealed class BudgetImportService(
     /// <summary>A generous ceiling: a village budget is a hundred rows, a county a few thousand.</summary>
     public const int MaxRows = 10_000;
 
+    private const string NotAllowed = "Only an Administrator or the Fiscal Officer can import budget lines.";
+
     public async Task<Result<ImportPreviewDto>> PreviewAsync(Guid budgetVersionId, string fileName, Stream content, CancellationToken ct = default)
     {
+        // Checked before the upload is parsed, so a user who may not import cannot make the server read ten thousand rows.
+        if (!currentUser.IsFiscalAuthority())
+        {
+            return Result.Failure<ImportPreviewDto>(NotAllowed);
+        }
+
         await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
         Government government = await db.Governments.SingleAsync(g => g.Id == currentUser.GovernmentId, ct);
         Result<IReadOnlyList<ImportRowInput>> parsed = ReadFile(fileName, content, government.AccountNumberFormat);
@@ -142,7 +150,7 @@ public sealed class BudgetImportService(
     {
         if (!currentUser.IsFiscalAuthority())
         {
-            return Result.Failure<Analysis>("Only an Administrator or the Fiscal Officer can import budget lines.");
+            return Result.Failure<Analysis>(NotAllowed);
         }
 
         BudgetVersion? version = await db.BudgetVersions

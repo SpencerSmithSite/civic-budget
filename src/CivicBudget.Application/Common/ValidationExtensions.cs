@@ -11,9 +11,6 @@ public static class ValidationExtensions
             ? Result.Success()
             : Result.Failure(validation.Errors.Select(e => new ValidationError(e.PropertyName, e.ErrorMessage)));
 
-    public static Result<T> ToResult<T>(this ValidationResult validation) =>
-        Result.Failure<T>(validation.Errors.Select(e => new ValidationError(e.PropertyName, e.ErrorMessage)));
-
     /// <summary>Runs the validator and returns a failed result, or null when the request is valid.</summary>
     public static async Task<Result?> ValidateToResultAsync<T>(this IValidator<T> validator, T request, CancellationToken ct)
     {

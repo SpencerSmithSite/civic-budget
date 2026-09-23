@@ -6,6 +6,7 @@ using CivicBudget.Application.Security;
 using CivicBudget.Application.Setup;
 using CivicBudget.Domain.Auditing;
 using CivicBudget.Domain.Budgets;
+using CivicBudget.Domain.FiscalYears;
 using CivicBudget.Domain.Governments;
 using CivicBudget.Domain.Publishing;
 using CivicBudget.Infrastructure.Persistence;
@@ -78,9 +79,15 @@ public class WorkflowAndPublishingTests(SqlServerFixture fixture) : IAsyncLifeti
     [Fact]
     public async Task Warn_mode_requires_an_acknowledgement_and_then_allows_it()
     {
+        // Settings are the Administrator's; the budget moves under the Fiscal Officer.
+        await using (AsyncServiceScope admin = As(Roles.Admin))
+        {
+            Result warn = await admin.ServiceProvider.GetRequiredService<IGovernmentSettingsService>().UpdateAsync(
+                new UpdateGovernmentSettingsRequest("Village of Maple Ridge", "maple-ridge-oh", AppropriationLimitMode.Warn, null, 4, 3, 4, "-", "Program"));
+            Assert.True(warn.IsSuccess);
+        }
+
         await using AsyncServiceScope scope = As(Roles.FinanceDirector);
-        await scope.ServiceProvider.GetRequiredService<IGovernmentSettingsService>().UpdateAsync(
-            new UpdateGovernmentSettingsRequest("Village of Maple Ridge", "maple-ridge-oh", AppropriationLimitMode.Warn, null, 4, 3, 4, "-", "Program"));
         IBudgetWorkflowService workflow = scope.ServiceProvider.GetRequiredService<IBudgetWorkflowService>();
 
         WorkflowStateDto state = (await workflow.GetStateAsync(_draft2027))!;
@@ -115,6 +122,27 @@ public class WorkflowAndPublishingTests(SqlServerFixture fixture) : IAsyncLifeti
     }
 
     // ---- transitions and amendments -----------------------------------------------------------
+
+    [Fact]
+    public async Task A_closed_fiscal_year_takes_no_new_amendment_until_it_is_reopened()
+    {
+        await using AsyncServiceScope scope = As(Roles.FinanceDirector);
+        IBudgetWorkflowService workflow = scope.ServiceProvider.GetRequiredService<IBudgetWorkflowService>();
+        IFiscalYearService years = scope.ServiceProvider.GetRequiredService<IFiscalYearService>();
+        await using CivicBudgetDbContext db = _database.CreateContext(_mapleRidge);
+        FiscalYear fy2026 = await db.FiscalYears.SingleAsync(f => f.Year == 2026);
+        Guid latest2026 = (await db.BudgetVersions.SingleAsync(v => v.FiscalYearId == fy2026.Id && v.Status == BudgetStatus.Adopted && v.SupersededByVersionId == null)).Id;
+
+        Assert.True((await years.SetClosedAsync(fy2026.Id, true)).IsSuccess);
+        Result<Guid> refused = await workflow.CreateAmendmentAsync(latest2026, "Late supplemental");
+        WorkflowStateDto closedState = (await workflow.GetStateAsync(latest2026))!;
+
+        Assert.Contains("FY2026 is closed", refused.Errors.Single().Message, StringComparison.Ordinal);
+        Assert.False(closedState.CanAmend);
+
+        Assert.True((await years.SetClosedAsync(fy2026.Id, false)).IsSuccess);
+        Assert.True((await workflow.CreateAmendmentAsync(latest2026, "Late supplemental")).IsSuccess);
+    }
 
     [Fact]
     public async Task Propose_adopt_publish_amend_records_audit_events_and_supersedes_history()

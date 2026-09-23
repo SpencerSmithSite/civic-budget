@@ -28,6 +28,7 @@ public sealed class BudgetEntryService(
             .OrderByDescending(x => x.fy.Year).ThenByDescending(x => x.v.VersionNumber)
             .Select(x => new BudgetVersionSummaryDto(
                 x.v.Id, x.fy.Year, x.v.VersionNumber,
+                // BudgetVersion.Label cannot be translated to SQL inside this projection, so its format is repeated here.
                 x.v.VersionNumber == 1 ? "Original" : "Amendment " + (x.v.VersionNumber - 1),
                 x.v.Status, x.v.AmendmentReason, x.v.ResolutionNumber,
                 db.BudgetLines.Count(l => l.BudgetVersionId == x.v.Id)))

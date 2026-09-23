@@ -4,6 +4,7 @@ using CivicBudget.Application.Security;
 using CivicBudget.Domain.Auditing;
 using CivicBudget.Domain.Budgets;
 using CivicBudget.Domain.Common;
+using CivicBudget.Domain.FiscalYears;
 using CivicBudget.Domain.Governments;
 using Microsoft.EntityFrameworkCore;
 
@@ -28,13 +29,14 @@ public sealed class BudgetWorkflowService(
         Government government = await db.Governments.SingleAsync(g => g.Id == version.GovernmentId, ct);
         bool isFd = currentUser.IsFiscalAuthority();
         bool hasOpenSibling = await db.BudgetVersions.AnyAsync(v => v.FiscalYearId == version.FiscalYearId && v.Id != version.Id && v.Status != BudgetStatus.Adopted, ct);
+        bool yearClosed = await db.FiscalYears.Where(f => f.Id == version.FiscalYearId).Select(f => f.IsClosed).SingleAsync(ct);
 
         return new WorkflowStateDto(
             version.Status,
             CanPropose: isFd && version.Status == BudgetStatus.Draft,
             CanReturnToDraft: isFd && version.Status == BudgetStatus.Proposed,
             CanAdopt: isFd && version.Status == BudgetStatus.Proposed,
-            CanAmend: isFd && version.Status == BudgetStatus.Adopted && version.SupersededByVersionId is null && !hasOpenSibling,
+            CanAmend: isFd && version.Status == BudgetStatus.Adopted && version.SupersededByVersionId is null && !hasOpenSibling && !yearClosed,
             hasOpenSibling,
             LimitResults(version, government));
     }
@@ -81,9 +83,11 @@ public sealed class BudgetWorkflowService(
         }
 
         List<BudgetVersion> siblings = await db.BudgetVersions.Where(v => v.FiscalYearId == adopted.FiscalYearId).ToListAsync(ct);
+        FiscalYear fiscalYear = await db.FiscalYears.SingleAsync(f => f.Id == adopted.FiscalYearId, ct);
         BudgetVersion amendment;
         try
         {
+            fiscalYear.EnsureOpenForNewVersions();
             BudgetVersion.EnsureNoOpenVersion(siblings);
             Guard.Against(adopted.SupersededByVersionId is not null, "This version has already been amended; amend the latest adopted version instead.");
             amendment = adopted.CreateAmendment(reason);

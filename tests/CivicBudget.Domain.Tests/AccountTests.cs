@@ -81,4 +81,14 @@ public class AccountTests
     [InlineData(FundCategory.Fiduciary, FundGroup.Fiduciary)]
     public void Fund_categories_roll_up_to_gasb_groups(FundCategory category, FundGroup group) =>
         Assert.Equal(group, category.ToGroup());
+
+    [Fact]
+    public void A_refused_update_leaves_the_account_as_it_was()
+    {
+        var account = new Account(Guid.CreateVersion7(), "5110", "Salaries & Wages", AccountType.Expenditure, ReportingCategory.PersonalServices);
+
+        Assert.Throws<DomainException>(() => account.Update("5111", "Renamed", AccountType.Expenditure, ReportingCategory.Taxes));
+
+        Assert.Equal(("5110", "Salaries & Wages", ReportingCategory.PersonalServices), (account.Code, account.Name, account.Category));
+    }
 }
