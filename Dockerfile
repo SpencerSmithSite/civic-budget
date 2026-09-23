@@ -23,7 +23,17 @@ COPY src/ src/
 # static web assets pipeline decides at restore time whether a project needs _framework/blazor.web.js
 # (it looks for Razor components); with --no-restore the script was left out of the image and every
 # interactive page went dead. The packages are already cached, so the second restore takes seconds.
-RUN dotnet publish src/CivicBudget.Web/CivicBudget.Web.csproj -c Release -o /app/publish \
+#
+# Published for the one platform the image runs on (framework-dependent, so the runtime still comes
+# from the base image): without a runtime identifier the output carries native libraries for Windows,
+# macOS, and the other Linux architecture, tens of megabytes the container never loads.
+ARG TARGETARCH
+RUN case "$TARGETARCH" in \
+        amd64|"") rid=linux-x64 ;; \
+        arm64) rid=linux-arm64 ;; \
+        *) echo "Unsupported architecture: $TARGETARCH" && exit 1 ;; \
+    esac \
+    && dotnet publish src/CivicBudget.Web/CivicBudget.Web.csproj -c Release -r "$rid" --self-contained false -o /app/publish \
     && test -f /app/publish/wwwroot/_framework/blazor.web.js
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
@@ -38,7 +48,7 @@ EXPOSE 8080
 
 COPY --from=build /app/publish .
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-    CMD curl -fsS http://localhost:8080/health || exit 1
+# No HEALTHCHECK: the runtime image has neither curl nor wget, so one always reported "unhealthy".
+# Azure's startup probe, the AWS load balancer, and compose all check /health from outside instead.
 
 ENTRYPOINT ["dotnet", "CivicBudget.Web.dll"]

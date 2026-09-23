@@ -31,10 +31,26 @@ SUBSCRIPTION_ID="$(az account show --query id -o tsv)"
 TENANT_ID="$(az account show --query tenantId -o tsv)"
 echo "Subscription $SUBSCRIPTION_ID, resource group $RESOURCE_GROUP in $LOCATION, image $IMAGE"
 
-# Passwords: the SQL admin password is kept only in the Container App's secrets; the demo password
-# is meant to be published. Both must satisfy Azure SQL's complexity rules, hence the shape below.
-SQL_PASSWORD="$(openssl rand -base64 24 | tr -d '/+=' | cut -c1-20)Aa1!"
-DEMO_PASSWORD="${DEMO_PASSWORD:-Demo-$(openssl rand -base64 12 | tr -d '/+=' | cut -c1-10)-1!}"
+# A rerun must not change what is already live: the region the group is in, the passwords (the demo
+# one is printed in the README), and the image the deploy workflow last rolled out (not :latest).
+if az group show --name "$RESOURCE_GROUP" --output none 2>/dev/null; then
+  LOCATION="$(az group show --name "$RESOURCE_GROUP" --query location -o tsv)"
+fi
+
+APP_NAME="civicbudget-app"
+if az containerapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --output none 2>/dev/null; then
+  echo "The demo already exists in $LOCATION: keeping its passwords and the image it runs."
+  CONNECTION="$(az containerapp secret show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --secret-name sql-connection --query value -o tsv)"
+  SQL_PASSWORD="$(printf '%s' "$CONNECTION" | sed -n 's/.*Password=\([^;]*\).*/\1/p')"
+  DEMO_PASSWORD="${DEMO_PASSWORD:-$(az containerapp secret show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --secret-name demo-password --query value -o tsv)}"
+  IMAGE="$(az containerapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query 'properties.template.containers[0].image' -o tsv)"
+else
+  # Passwords: the SQL admin password is kept only in the Container App's secrets; the demo password
+  # is meant to be published. Both must satisfy Azure SQL's complexity rules, hence the shape below.
+  SQL_PASSWORD="$(openssl rand -base64 24 | tr -d '/+=' | cut -c1-20)Aa1!"
+  DEMO_PASSWORD="${DEMO_PASSWORD:-Demo-$(openssl rand -base64 12 | tr -d '/+=' | cut -c1-10)-1!}"
+fi
+[ -n "$SQL_PASSWORD" ] || { echo "Could not read the SQL password from the existing app; stopping rather than resetting it."; exit 1; }
 
 az group create --name "$RESOURCE_GROUP" --location "$LOCATION" --output none
 

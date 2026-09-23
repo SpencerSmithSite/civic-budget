@@ -19,7 +19,7 @@ services:
       MSSQL_PID: Developer
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Run scripts/dev-setup.sh to create .env}
     ports:
-      - "1433:1433"
+      - "127.0.0.1:1433:1433" # this machine only: the sa login is not for the network
     volumes:
       - civicbudget-mssql:/var/opt/mssql
     healthcheck:
@@ -48,7 +48,7 @@ services:
       Database__SeedDemoData: "true"
       Seed__DemoPassword: ${DEMO_PASSWORD:?Run scripts/dev-setup.sh to create .env}
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
 
 volumes:
   civicbudget-mssql:
