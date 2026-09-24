@@ -240,4 +240,4 @@ Order: 9a → 9b → 9c → 9d. Each is a PR with the usual report; approve befo
 - [x] ECR repository in the one-time AWS stack
 - [x] Integration tests from a restored seeded template (1m40s to 40s)
 - [x] Actions and Bicep pinned; ADR-0033, walkthrough 20
-- [ ] Spencer approves Phase 18
+- [x] Spencer approves Phase 18
