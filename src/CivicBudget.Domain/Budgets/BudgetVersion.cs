@@ -131,18 +131,21 @@ public sealed class BudgetVersion : Entity, ITenantOwned
 
     public void Propose()
     {
+        Touch();
         Guard.Against(Status != BudgetStatus.Draft, $"Only a Draft budget can be proposed (current status: {Status}).");
         Status = BudgetStatus.Proposed;
     }
 
     public void ReturnToDraft()
     {
+        Touch();
         Guard.Against(Status != BudgetStatus.Proposed, $"Only a Proposed budget can be returned to Draft (current status: {Status}).");
         Status = BudgetStatus.Draft;
     }
 
     public void Adopt(string resolutionNumber, string adoptedByUserId, DateTimeOffset nowUtc)
     {
+        Touch();
         Guard.Against(Status != BudgetStatus.Proposed, $"Only a Proposed budget can be adopted (current status: {Status}).");
         ResolutionNumber = Guard.MaxLength(
             Guard.NotNullOrWhiteSpace(resolutionNumber, nameof(resolutionNumber)),
@@ -172,6 +175,7 @@ public sealed class BudgetVersion : Entity, ITenantOwned
     /// <summary>Called on the previously adopted version when an amendment is adopted.</summary>
     public void MarkSupersededBy(BudgetVersion amendment)
     {
+        Touch();
         Guard.Against(Status != BudgetStatus.Adopted, "Only an Adopted budget can be superseded.");
         Guard.Against(amendment.Status != BudgetStatus.Adopted, "A budget can only be superseded by an Adopted amendment.");
         Guard.Against(amendment.FiscalYearId != FiscalYearId, "The amendment belongs to a different fiscal year.");
@@ -190,6 +194,7 @@ public sealed class BudgetVersion : Entity, ITenantOwned
         decimal currentYearBudget = 0m,
         string? justification = null)
     {
+        Touch();
         EnsureEditable();
         Guard.Against(fund.GovernmentId != GovernmentId, "Fund belongs to a different government.");
         Guard.Against(account.GovernmentId != GovernmentId, "Account belongs to a different government.");
@@ -211,24 +216,28 @@ public sealed class BudgetVersion : Entity, ITenantOwned
 
     public void UpdateLineAmount(Guid lineId, decimal amount)
     {
+        Touch();
         EnsureEditable();
         FindLine(lineId).SetAmount(amount);
     }
 
     public void UpdateLineComparatives(Guid lineId, decimal priorYearActual, decimal currentYearBudget)
     {
+        Touch();
         EnsureEditable();
         FindLine(lineId).SetComparatives(priorYearActual, currentYearBudget);
     }
 
     public void UpdateLineJustification(Guid lineId, string? justification)
     {
+        Touch();
         EnsureEditable();
         FindLine(lineId).SetJustification(justification);
     }
 
     public void RemoveLine(Guid lineId)
     {
+        Touch();
         EnsureEditable();
         _lines.Remove(FindLine(lineId));
     }
@@ -237,6 +246,7 @@ public sealed class BudgetVersion : Entity, ITenantOwned
 
     public void SetBeginningBalance(Fund fund, decimal amount)
     {
+        Touch();
         EnsureEditable();
         Guard.Against(fund.GovernmentId != GovernmentId, "Fund belongs to a different government.");
 
@@ -265,6 +275,7 @@ public sealed class BudgetVersion : Entity, ITenantOwned
 
     public void SetDepartmentNarrative(Department department, string? narrative)
     {
+        Touch();
         EnsureEditable();
         EnsureOwnDepartment(department);
         DepartmentRequest request = GetDepartmentRequest(department.Id) ?? StartDepartmentRequest(department);
@@ -278,6 +289,7 @@ public sealed class BudgetVersion : Entity, ITenantOwned
     /// </summary>
     public void SubmitDepartment(Department department, string userId, string userName, DateTimeOffset nowUtc)
     {
+        Touch();
         Guard.Against(Status != BudgetStatus.Draft, $"Departments submit while the budget is Draft (current status: {Status}).");
         EnsureOwnDepartment(department);
         Guard.Against(_lines.All(l => l.DepartmentId != department.Id), $"{department.Name} has no budget lines in this version to submit.");
@@ -288,6 +300,7 @@ public sealed class BudgetVersion : Entity, ITenantOwned
     /// <summary>The fiscal officer sends a submitted request back to the department with a reason.</summary>
     public void ReturnDepartment(Department department, string note, DateTimeOffset nowUtc)
     {
+        Touch();
         Guard.Against(Status != BudgetStatus.Draft, $"Requests are returned while the budget is Draft (current status: {Status}).");
         EnsureOwnDepartment(department);
         DepartmentRequest request = GetDepartmentRequest(department.Id)
@@ -304,6 +317,17 @@ public sealed class BudgetVersion : Entity, ITenantOwned
 
     private void EnsureOwnDepartment(Department department) =>
         Guard.Against(department.GovernmentId != GovernmentId, "Department belongs to a different government.");
+
+    /// <summary>
+    /// Counts every change to the budget, its lines, balances, and department requests included. The
+    /// database checks it on save (a concurrency token), so two people who both loaded revision 7 cannot
+    /// both save: the second is told the budget changed under them instead of silently overwriting,
+    /// and an amount edit can no longer land on a budget adopted a moment earlier.
+    /// </summary>
+    [NotAudited]
+    public int Revision { get; private set; }
+
+    private void Touch() => Revision++;
 
     private void EnsureEditable() =>
         Guard.Against(!IsEditable, $"Budget version {Label} is Adopted and cannot be changed; create an amendment instead.");

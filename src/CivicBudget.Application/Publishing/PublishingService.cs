@@ -84,7 +84,11 @@ public sealed class PublishingService(
         db.AuditEntries.Add(Event(snapshot, $"Published FY{snapshot.FiscalYear} {snapshot.VersionLabel} ({snapshot.Lines.Count} lines)"));
         db.AuditEntries.Add(AuditEntry.Event(version.GovernmentId, nameof(BudgetVersion), version.Id, "Published to the public portal",
             currentUser.UserId!, currentUser.DisplayName ?? "", clock.GetUtcNow()));
-        await db.SaveChangesAsync(ct);
+        if (await db.TrySaveAsync(ct) is { } conflict)
+        {
+            return Result.Failure<Guid>(conflict.Errors);
+        }
+
 
         await cacheInvalidator.InvalidateAsync(government.PublicSlug, ct);
         return Result.Success(snapshot.Id);
@@ -114,7 +118,11 @@ public sealed class PublishingService(
         }
 
         db.AuditEntries.Add(Event(snapshot, $"Unpublished FY{snapshot.FiscalYear} {snapshot.VersionLabel}"));
-        await db.SaveChangesAsync(ct);
+        if (await db.TrySaveAsync(ct) is { } conflict)
+        {
+            return conflict;
+        }
+
 
         await cacheInvalidator.InvalidateAsync(snapshot.GovernmentSlug, ct);
         return Result.Success();

@@ -37,7 +37,11 @@ public sealed class DepartmentRequestService(
             return Result.Failure(nameof(narrative), ex.Message);
         }
 
-        await db.SaveChangesAsync(ct);
+        if (await db.TrySaveAsync(ct) is { } conflict)
+        {
+            return conflict;
+        }
+
         return Result.Success();
     }
 
@@ -66,7 +70,11 @@ public sealed class DepartmentRequestService(
         }
 
         db.AuditEntries.Add(Event(version, $"{department.Name} submitted its budget request"));
-        await db.SaveChangesAsync(ct);
+        if (await db.TrySaveAsync(ct) is { } conflict)
+        {
+            return conflict;
+        }
+
         return Result.Success();
     }
 
@@ -100,7 +108,11 @@ public sealed class DepartmentRequestService(
         }
 
         db.AuditEntries.Add(Event(version, $"Returned {department.Name}'s budget request: {note.Trim()}"));
-        await db.SaveChangesAsync(ct);
+        if (await db.TrySaveAsync(ct) is { } conflict)
+        {
+            return conflict;
+        }
+
         return Result.Success();
     }
 

@@ -100,7 +100,11 @@ public sealed class BudgetWorkflowService(
 
         db.BudgetVersions.Add(amendment);
         db.AuditEntries.Add(Event(amendment, $"Amendment started from {adopted.Label}: {reason.Trim()}"));
-        await db.SaveChangesAsync(ct);
+        if (await db.TrySaveAsync(ct) is { } conflict)
+        {
+            return Result.Failure<Guid>(conflict.Errors);
+        }
+
         return Result.Success(amendment.Id);
     }
 
@@ -155,7 +159,11 @@ public sealed class BudgetWorkflowService(
 
         db.BudgetVersions.Add(version);
         db.AuditEntries.Add(Event(version, description));
-        await db.SaveChangesAsync(ct);
+        if (await db.TrySaveAsync(ct) is { } conflict)
+        {
+            return Result.Failure<StartBudgetResultDto>(conflict.Errors);
+        }
+
         return Result.Success(new StartBudgetResultDto(version.Id, version.Lines.Count, skipped));
     }
 
@@ -241,7 +249,11 @@ public sealed class BudgetWorkflowService(
             await afterTransition(db, version, ct);
         }
 
-        await db.SaveChangesAsync(ct);
+        if (await db.TrySaveAsync(ct) is { } conflict)
+        {
+            return conflict;
+        }
+
         return Result.Success();
     }
 
