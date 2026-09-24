@@ -1,4 +1,4 @@
-# Walkthrough 14 — Branding and profile pictures
+# Walkthrough 14: Branding and profile pictures
 
 Phase 10, a small one after the v1.1 phases: the product gets a mark, the
 sidebar becomes the government's, and people get a face.

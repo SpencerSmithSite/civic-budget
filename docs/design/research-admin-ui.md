@@ -1,7 +1,7 @@
 # Research: staff-facing budgeting UIs (2026-09-17)
 
-Compiled by a research agent from public docs, help centers, and marketing pages. Sources are
-listed so claims can be checked. Used as input to the Phase 4.5 design brief.
+Compiled from public documentation, help centers, and marketing pages. Sources are
+listed so every claim can be checked. Used as input to the Phase 4.5 design brief.
 
 ## 1. What could be verified (sources and screenshots)
 

@@ -1,7 +1,9 @@
-# Walkthrough 20 — Budget rules and known gaps
+# Walkthrough 20: Budget rules and known gaps
 
-Phase 18. Spencer answered the four open questions from walkthrough 19 (one
-by asking for research), and the five known gaps were closed.
+Phase 18 settled the four budgeting questions left open in walkthrough 19 and
+closed the five known gaps. Three of the questions I could answer from how Ohio
+governments budget; the fourth, what a department's total is, I researched before
+deciding, because three screens were already giving three different answers.
 
 ## 1. Four budgeting decisions
 
@@ -17,8 +19,7 @@ into `BudgetLine` itself (construction, amount edits, comparative edits), and
 the import refuses a negative in any money column. It used to accept "(10)" as
 a prior-year actual.
 
-**A department's total is its expenditure appropriations.** This one was
-researched rather than guessed:
+**A department's total is its expenditure appropriations.** The sources:
 
 - ORC 5705.38(C): appropriation measures are classified by office, department,
   and division, with personal services shown separately within each.
@@ -82,7 +83,10 @@ reproduce all three races.
   push. The repository now lives in the one-time `GitHubOidcStack`.
 - **Test speed.** The fixture builds one migrated, seeded template per run,
   backs it up inside the container, and restores it under a unique name per
-  test (`CreateSeededDatabaseAsync`). 99 integration tests: 1m40s to 40s.
+  test (`CreateSeededDatabaseAsync`). 99 integration tests went from 1m40s to
+  40s. The unique name matters: restoring over a database the previous test's
+  pooled connections still held failed with "exclusive access could not be
+  obtained".
 - **Supply chain.** Every GitHub Action is pinned to a commit SHA with its tag
   in a comment; CI's Bicep is a fixed release checked against its sha256.
 

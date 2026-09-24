@@ -1,6 +1,7 @@
-# Walkthrough 03 — Budget entry, fund balances, and the audit trail
+# Walkthrough 03: Budget entry, fund balances, and the audit trail
 
-What Phase 3 built and the concepts behind it, written as interview prep.
+Phase 3 made the budget editable: two ways to enter it, live fund balances, and a
+field-by-field history of every change.
 
 ---
 
@@ -32,12 +33,12 @@ could return a delta instead, and nothing in the components would change.
 
 ---
 
-## 2. Department Heads: filtered lines, whole-fund balances
+## 2. Department users: filtered lines, whole-fund balances
 
 Two deliberate asymmetries in `GetWorkspaceAsync`:
 
 - **Lines** are filtered to the user's departments (from the
-  `department_id` claims). A Department Head never sees, and cannot edit,
+  `department_id` claims). A department user never sees, and cannot edit,
   another department's numbers. `BudgetEntryServiceTests.Department_head_cannot_edit_another_departments_line_even_by_id`
   proves that guessing a line id doesn't help.
 - **Fund balances** are computed from *every* line in the version. A fund
@@ -53,7 +54,7 @@ Two deliberate asymmetries in `GetWorkspaceAsync`:
 `AppropriationLimitResult` values from Phase 1's `FundBalanceCalculator`
 and `AppropriationLimitCheck`. The government's `AppropriationLimitMode`
 decides whether an over-appropriated fund is red (Block) or yellow (Warn).
-Beginning balances are editable inline for the Finance Director only
+Beginning balances are editable inline for the Administrator and Fiscal Officer only
 (`BudgetLinePermissions.CanEditBeginningBalances`).
 
 Enforcement of the limit at workflow transitions is Phase 4. Phase 3 makes
@@ -81,8 +82,8 @@ SaveChangesAsync
 
 Points worth being able to explain:
 
-- **Opt-in by attribute.** `[Audited]` sits on the seven domain entities
-  that carry financial meaning. The audit table itself and Identity's tables
+- **Opt-in by attribute.** `[Audited]` sat on the seven domain entities
+  that carried financial meaning at the time (nine now). The audit table itself and Identity's tables
   are not audited. A new entity is audited by adding one attribute.
 - **Same transaction.** The audit rows are added to the context *before*
   the save proceeds, so a change and its audit row commit together or not
@@ -113,7 +114,7 @@ Adding a line through the aggregate (`version.AddLine(...)` then
 `SaveChangesAsync`) threw `DbUpdateConcurrencyException: expected 1 row,
 affected 0`. EF had tracked the *new* line as **Modified**.
 
-Why: our entities assign their own Guid v7 in the constructor. EF's default
+Why: the entities assign their own Guid v7 in the constructor. EF's default
 for Guid keys is "generated on add". When `DetectChanges` discovers a new
 entity through a navigation from a tracked parent, it asks "is a generated
 key already set?" and, since it was, concluded the row must already exist
@@ -150,7 +151,7 @@ is a one-paragraph interview answer about the difference between
 - Workflow transitions and the Block/Warn *enforcement* (Phase 4).
 - Explicit `AuditKind.Event` rows (Phase 4, with the workflow).
 - Import of lines (Phase 6). The add-line form is for one-offs.
-- Optimistic concurrency between two Finance Directors editing the same
-  line at once. Last write wins today; a row version column plus a
-  friendly "this line changed since you loaded it" message is a small,
-  well-understood addition if it becomes a requirement.
+- Optimistic concurrency between two people editing the same budget at
+  once. At this point the last write won. Phase 18 added it, on the budget
+  version rather than the line, because an edit racing an adoption is the
+  case that matters (walkthrough 20).

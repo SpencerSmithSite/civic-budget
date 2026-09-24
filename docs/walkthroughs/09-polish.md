@@ -1,14 +1,15 @@
-# Walkthrough 09 — Polish
+# Walkthrough 09: Polish
 
-The final pass: what Spencer's review changed, what the accessibility
-check found, and how the README screenshots are made.
+Phase 8 was the last pass before v1.0: what my review of the running app
+changed, what the accessibility check found, and how the README screenshots are made.
 
 ---
 
 ## 1. Explanations behind an "i"
 
-The review: "every area doesn't need both a title and an explanation of
-what it does." Agreed. Every `<Subtitle>` that explained a page is gone.
+Using the app end to end, I found nearly every area had both a title and a
+sentence explaining what it was for. That is clutter to anyone who uses the
+screen daily. Every `<Subtitle>` that explained a page is gone.
 `PageHeader` and `KpiCard` gained a `Tip` parameter that renders
 `Components/Common/InfoTip.razor` beside the title or label:
 
@@ -73,8 +74,8 @@ Not done, and said so: a session with an actual screen-reader user.
 
 ## 4. Screenshots that regenerate
 
-`scripts/screenshots/capture.mjs` (Playwright) signs in as the Finance
-Director, uploads a sample import file to get a populated preview, and
+`scripts/screenshots/capture.mjs` (Playwright) signs in as the Fiscal
+Officer, uploads a sample import file to get a populated preview, and
 captures seven screens at 1440 px (portal at 390 px too). `sips` downsizes
 them for the repository. When the UI changes, run it again instead of
 letting the README drift.

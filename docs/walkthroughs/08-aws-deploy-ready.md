@@ -1,9 +1,8 @@
-# Walkthrough 08 — Deploy-ready on AWS
+# Walkthrough 08: Deploy-ready on AWS
 
-What Phase 7 built and how to explain it. Nothing here has been deployed
-(no account, ADR-0008); everything here is synthesized, asserted, and
-built on every commit, and `cdk bootstrap && cdk deploy` is the only step
-left.
+Phase 7 made the app deployable to AWS. Nothing here has been deployed (I have no
+account behind the repository, ADR-0008), but all of it is synthesized, asserted,
+and built on every commit, so `cdk bootstrap && cdk deploy` is the only step left.
 
 ---
 
@@ -14,8 +13,10 @@ restores and publishes, the ASP.NET runtime image gets only the published
 output (497 MB, most of it the runtime). Restore is its own layer keyed on
 the project files, so a code change does not re-download packages. The
 image runs as the non-root `app` user on port 8080, trusts
-`X-Forwarded-*` from the load balancer, and carries a `HEALTHCHECK` on
-`/health`.
+`X-Forwarded-*` from the load balancer, and carried a `HEALTHCHECK` on
+`/health`. (Phase 17 removed it: the runtime image has neither curl nor wget,
+so the check could only ever report unhealthy. The platforms probe `/health`
+from outside instead.)
 
 Two gotchas worth telling: `.editorconfig` has to be copied into the
 build context because it exempts the generated migrations from the
@@ -63,7 +64,7 @@ Read it top to bottom; each block has a comment saying why:
 | Block | What | The choice |
 |---|---|---|
 | Network | VPC, 2 AZs, 1 NAT | RDS and the ALB each want two subnets; one NAT is the cost/resilience trade for a demo |
-| Repository | ECR, scan on push, keep 10 | `EmptyOnDelete` so destroy works |
+| Repository | ECR, scan on push, keep 10 | `EmptyOnDelete` so destroy works. (Phase 18 moved it to the one-time OIDC stack: the workflow pushes before this stack exists, so a first deploy would have failed at the push.) |
 | Database | RDS SQL Server Express `db.t3.micro`, 20 GB gp3, encrypted, private, 7-day backups | Same engine as local dev; RDS generates the master password into Secrets Manager |
 | Secrets | A generated demo-login password | Never in a file or workflow; read it from Secrets Manager when you want to sign in |
 | Service | `ApplicationLoadBalancedFargateService`, 0.5 vCPU / 1 GB, private subnets, circuit breaker with rollback | The L2 pattern wires ALB, target group, task, and service; `MinHealthyPercent 100` gives zero-downtime deploys |

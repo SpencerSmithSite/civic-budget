@@ -3,7 +3,7 @@
 Visual research for the Phase 4.5 admin design pass and the Phase 5 portal.
 Kept as notes so the design brief can point at evidence rather than taste.
 
-## 1. VIP (the target employer's ERP), from a marketing screenshot supplied by Spencer (2026-09-17)
+## 1. VIP (the target employer's ERP), from a marketing screenshot (2026-09-17)
 
 The screenshot shows the product on a laptop (employee record), a tablet (employee survey), and a phone (pay stub with a deductions donut chart).
 

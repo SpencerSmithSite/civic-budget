@@ -1,4 +1,4 @@
-# Walkthrough 17 — Phone layouts
+# Walkthrough 17: Phone layouts
 
 Phases 14 and 15. Phase 14 made every page *fit* a phone; this phase makes
 the wide ones *work* on one. Three patterns, chosen by what a table is for.

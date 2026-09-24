@@ -1,6 +1,7 @@
-# Walkthrough 04 — Workflow, amendments, and publishing
+# Walkthrough 04: Workflow, amendments, and publishing
 
-What Phase 4 built and the concepts behind it, written as interview prep.
+Phase 4 moved a budget from draft to adopted, added amendments, and published
+adopted budgets to the snapshot tables the portal reads.
 
 ---
 
@@ -11,7 +12,8 @@ What Phase 4 built and the concepts behind it, written as interview prep.
 Phase 4 adds `Application/Budgets/BudgetWorkflowService`, which wraps each
 transition with the four things the domain cannot know on its own:
 
-1. **Who is asking.** Finance Director only (`ICurrentUser.IsInRole`).
+1. **Who is asking.** The fiscal officer only (a role check then; since Phase 9c,
+   `IsFiscalAuthority()`, which also admits the Administrator).
 2. **The appropriation limit** in the government's mode (SPEC section 5.1).
    Block: refuse. Warn: refuse unless the caller acknowledged.
 3. **The audit event.** `AuditEntry.Event(...)` with a sentence a person can
@@ -66,7 +68,8 @@ domain test `Snapshot_is_independent_of_later_changes_to_the_chart_of_accounts`
 proves it.
 
 `PublishingService.PublishAsync`:
-- Finance Director only; version must be Adopted (the domain refuses otherwise).
+- Fiscal officer only; the version must be Adopted (the domain refuses otherwise).
+  Since Phase 18 it must also be the *latest* adopted version of its year.
 - If the fiscal year already has an active snapshot, it is marked
   **Superseded** (kept, never deleted). Exactly one active snapshot per year.
 - Audit events on both the snapshot and the version.
@@ -85,8 +88,9 @@ published again.
 `Infrastructure/Persistence/PublicPortalDbContext.cs` is the portal's only
 door to the database:
 
-- It **maps three tables**. `Model.GetEntityTypes()` returns exactly
-  `PublishedBudgetSnapshots`, `PublishedBudgetSnapshotLines`,
+- It **maps three tables** (four once department narratives were published in
+  Phase 9d, plus the government logo in Phase 12). `Model.GetEntityTypes()`
+  returns exactly `PublishedBudgetSnapshots`, `PublishedBudgetSnapshotLines`,
   `PublishedBudgetSnapshotFunds`. There is no `BudgetLine`, no
   `AspNetUsers`, no `Governments` to query, join, or leak. A test asserts
   the list.
@@ -115,11 +119,12 @@ has two contexts (CLAUDE.md has the command).
 `Components/Common/ConfirmDialog.razor` renders Bootstrap's modal markup
 from Blazor state: `Show()` sets a flag, the markup appears with
 `modal show d-block` and a backdrop, and `OnConfirm` returns whether to
-close. No JS interop, so the dialogs can carry inputs (a resolution number,
-an amendment reason, an acknowledgement checkbox) and disable their confirm
-button until the input is valid. `window.confirm` from Phase 3 remains only
-for the simple "remove this line" case and is on the Phase 4.5 list to
-replace.
+close. No Bootstrap JavaScript, so the dialogs can carry inputs (a resolution
+number, an amendment reason, an acknowledgement checkbox) and disable their
+confirm button until the input is valid. `window.confirm` from Phase 3 remained
+only for "remove this line" until Phase 4.5 replaced it. (Phase 18 added a few
+lines of script that keep Tab inside an open dialog and hand focus back to the
+button that opened it.)
 
 `WorkflowBar.razor` owns six dialogs and asks the services; the workspace
 page just reloads on `OnChanged`. `AcknowledgeWarning.razor` is shared by
@@ -132,6 +137,7 @@ the Propose and Adopt dialogs.
 - Output caching and its invalidation (Phase 5; the hook exists).
 - A SQL login for the portal with `SELECT` only on the three tables
   (Phase 7 hardening; the code boundary is in place).
-- Publishing a version other than the latest adopted one for a year is
-  allowed by design (republishing history is a valid action) but the UI only
-  offers it from that version's workspace.
+- Publishing a version other than the latest adopted one was allowed at this
+  point. In Phase 18 I decided against it: once an amendment is adopted the
+  earlier version is history, and republishing it would put the pre-amendment
+  numbers back in front of citizens (walkthrough 20).

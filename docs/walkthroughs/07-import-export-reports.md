@@ -1,8 +1,7 @@
-# Walkthrough 07 — Import, export, and reports
+# Walkthrough 07: Import, export, and reports
 
-What Phase 6 built and how to explain it. Three features that every
-government ERP has and that interviewers ask about because they are where
-real systems get messy: files from Excel, files back to Excel, and paper.
+Phase 6 added three things every government ERP has, and where real systems get
+messy: files from Excel, files back to Excel, and paper.
 
 ---
 
@@ -118,7 +117,7 @@ over `BudgetWorkspaceDto`, the same read the entry screen uses:
 | Revenue vs. Expenditure by Category | Revenues by source, expenditures by category, same three comparatives, net at the bottom | The one-page picture for the finance committee |
 
 Building from the workspace DTO means two rules come for free: the tenant
-filter, and the Department Head visibility rule (their detail report shows
+filter, and the department user's visibility rule (their detail report shows
 only their departments, and `ReportServiceTests` proves it). It also means
 a report can never disagree with the screen next to it, which is the
 complaint every finance office has about reporting bolted on later.
@@ -128,8 +127,8 @@ admin page header with Print and Export XLSX, then a white report block
 that leads with the government, the report name, the version, and who
 prepared it when. That block is what prints: `@media print` in `app.css`
 hides the sidebar, top bar, page header, and toasts, drops the sticky
-header, and lets the tables flow across pages. The Print button is the
-admin app's one JavaScript call, `window.print`.
+header, and lets the tables flow across pages. The Print button calls the
+browser's `window.print`.
 
 ---
 

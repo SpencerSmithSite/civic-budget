@@ -1,4 +1,4 @@
-# Walkthrough 18 — Cold start
+# Walkthrough 18: Cold start
 
 Phase 16. The live demo scales to zero and its database pauses after an idle
 hour, so the first visitor of the afternoon used to look at a blank page for
@@ -59,7 +59,7 @@ for about seventy seconds. The logs said why, once read in order:
 Kestrel started listening **after** the database work, fifty-two seconds in,
 which is exactly what the change was supposed to prevent. The blocker was not
 in `Startup/` at all: `AddDataProtection` registers an internal hosted service
-that reads the key ring while the host starts, our keys live in SQL Server
+that reads the key ring while the host starts, the keys live in SQL Server
 (so sign-in cookies survive a restart), and EF's retry strategy spent that
 minute on the read before the web host service got its turn. Hosted services
 registered in `Program.cs` run before the one that starts Kestrel, so anything
@@ -116,10 +116,10 @@ so a visitor closing the tab does not cancel the wake for the next one.
 
 After a few idle minutes the first visit still waits about 17 seconds before
 anything shows. From this morning's logs: 15.2 seconds for Azure to provision
-a sandbox, under a second to pull the image, 0.3 seconds of our own startup.
+a sandbox, under a second to pull the image, 0.3 seconds of the app's own startup.
 Only a replica that is already running avoids it: `minReplicas: 1` for about
 $4 to $5 a month, or a weekday business-hours scale rule inside the free
-grant. Spencer kept the demo free and scale-to-zero; ADR-0031 records the
+grant. I kept the demo free and scale-to-zero; ADR-0031 records the
 numbers so the choice can be revisited with one line of Bicep.
 
 ## 4. Seeing it locally

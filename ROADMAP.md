@@ -1,19 +1,21 @@
 # CivicBudget Roadmap
 
-One phase at a time. Each phase is a branch (`phase-N-name`) merged to
-`main` by PR. A phase is done when its checklist is complete, tests pass,
-docs are updated, and Spencer has approved.
+I built CivicBudget one phase at a time. Each phase is a branch (`phase-N-name`)
+merged to `main` by pull request, and it is done when its checklist is complete,
+the tests pass, the docs are current, and I have reviewed it in the running app.
+Every phase has a walkthrough in [docs/walkthroughs](docs/walkthroughs) explaining
+what was built and why; [CHANGELOG.md](CHANGELOG.md) is the short version.
 
-## Phase 0 — Plan (no code)  `phase-0-plan`
-- [x] Clarifying questions answered (name, DevExpress: no, DB: SQL Server, tenancy, Ohio scope, no AWS account)
+## Phase 0: Plan (no code)  `phase-0-plan`
+- [x] Scope settled (name, DevExpress: no, DB: SQL Server, tenancy, Ohio scope, no AWS account)
 - [x] `docs/SPEC.md`
 - [x] `docs/ARCHITECTURE.md`
 - [x] `docs/DECISIONS.md` (ADR-0001…0011)
 - [x] `ROADMAP.md`, `CLAUDE.md`, `CHANGELOG.md`, README stub
 - [x] `git init`, GitHub repo `civic-budget` (public, unlicensed)
-- [x] Spencer approves Phase 0 (2026-09-16)
+- [x] Reviewed and approved (2026-09-16)
 
-## Phase 1 — Foundation  `phase-1-foundation`
+## Phase 1: Foundation  `phase-1-foundation`
 - [x] Verify Docker Desktop Rosetta; `docker-compose.yml` with SQL Server 2022 (healthy in ~15 s)
 - [x] Solution + 4 src projects + 4 test projects, `Directory.Build.props` (nullable, warnings-as-errors, analyzers), `Directory.Packages.props` (central package management), `global.json`, `.editorconfig`
 - [x] Domain entities, enums, invariants, `DomainException`, `Guard`, `Money`
@@ -24,9 +26,9 @@ docs are updated, and Spencer has approved.
 - [x] `ci.yml`: restore, build, format check, test (Testcontainers), test-results summary; PR template; Dependabot
 - [x] Domain unit tests for every rule in SPEC §5 (160); architecture tests (4); bUnit smoke (1); integration tests for migrations, tenancy, seed (14)
 - [x] `docs/walkthroughs/01-foundation.md`; `docs/INTERVIEW-PREP.md` Phase 1 section
-- [ ] Spencer approves Phase 1
+- [x] Reviewed and approved
 
-## Phase 2 — Identity & maintenance  `phase-2-identity`
+## Phase 2: Identity & maintenance  `phase-2-identity`
 - [x] ASP.NET Core Identity (`AddIdentityCore` + cookies), `ApplicationUser` with `GovernmentId` and `DisplayName`, `UserDepartments`; Account pages ported from the `-au Individual` template (login, logout, profile, change password only)
 - [x] Claims factory adds `government_id`, `display_name`, `department_id`; `CurrentUserContext` filled by `CurrentUserMiddleware` (HTTP) and `CurrentUserCircuitHandler` (circuits)
 - [x] Roles + policies (`AuthorizationPolicies`) + resource-based `BudgetLineEditHandler` over `BudgetLinePermissions`
@@ -36,9 +38,9 @@ docs are updated, and Spencer has approved.
 - [x] Demo users seeded (one per role; password in user-secrets via `scripts/dev-setup.sh`)
 - [x] Tests: 23 application, 38 web (policies + bUnit), 27 integration (user admin, setup services, seed)
 - [x] Walkthrough 02; interview prep Phase 2; ADR-0014/0015/0016
-- [ ] Spencer approves Phase 2
+- [x] Reviewed and approved
 
-## Phase 3 — Budget entry  `phase-3-budget-entry`
+## Phase 3: Budget entry  `phase-3-budget-entry`
 - [x] `BudgetEntryService`: workspace DTO (visible lines with `CanEdit`, whole-fund balances with limit results, lookups), update amount/justification, add/remove line, set beginning balance; every mutation re-checks `BudgetLinePermissions`
 - [x] By-department entry (department → fund → category, subtotals, inline amounts) via pure `BudgetGrouping`
 - [x] By-account grid (QuickGrid, filters, sort, inline amount, note toggle, add/remove) with Bootstrap theming
@@ -47,21 +49,21 @@ docs are updated, and Spencer has approved.
 - [x] `ValueGeneratedNever` key convention (ADR-0018)
 - [x] Tests: 4 grouping, 7 bUnit (panel, department view), 14 integration (budget entry, audit); 273 total
 - [x] Walkthrough 03; interview prep Phase 3; ADR-0017/0018
-- [ ] Spencer approves Phase 3
+- [x] Reviewed and approved
 
-## Phase 4 — Workflow & publishing  `phase-4-workflow`
+## Phase 4: Workflow & publishing  `phase-4-workflow`
 - [x] `BudgetWorkflowService`: Propose / Return to draft / Adopt (resolution number) with Block/Warn enforcement and acknowledgement, FD-only, audit events per transition
 - [x] Amendments: copy adopted version into a new draft with a reason; one open version per year; adoption supersedes the prior adopted version
 - [x] `PublishedBudgetSnapshot` (+ lines, funds) captured from adopted versions; Active / Superseded / Unpublished lifecycle (ADR-0019); `AddPublishedSnapshots` migration; seed publishes FY2025, FY2026 Amendment 1, Pine Hollow FY2026
 - [x] `PublicPortalDbContext`: three tables, Active-only query filter, read-only, shared mapping with the admin context (ADR-0006)
-- [x] `IPublishedSnapshotCacheInvalidator` hook (no-op until Phase 5)
+- [x] `IPublishedSnapshotCacheInvalidator` hook (a no-op until the portal's cache arrived in Phase 5)
 - [x] UI: `ConfirmDialog` (no JS), `WorkflowBar` with six dialogs, publish/unpublish, publishing history on the version list
 - [x] Tests: 6 domain, 4 bUnit, 9 integration; 292 total
 - [x] Walkthrough 04; interview prep Phase 4; ADR-0019
-- [ ] Spencer approves Phase 4
+- [x] Reviewed and approved
 
-## Phase 4.5 — Admin UI design pass  `phase-4.5-admin-design`
-Spencer's review of Phase 3 (2026-09-17): functional, but bare-bones Bootstrap will not impress in an interview. This phase gives the admin app a deliberate visual identity before the public portal reuses it.
+## Phase 4.5: Admin UI design pass  `phase-4.5-admin-design`
+My review of Phase 3 (2026-09-17): it worked, but bare-bones Bootstrap looked like a tutorial, not a product a government would buy. This phase gives the admin app a deliberate visual identity before the public portal reuses it.
 - [x] Research: Ohio ERP vendors, admin budgeting UIs, transparency portals (`docs/design/research-*.md`)
 - [x] Design brief approved 2026-09-18: "a modern civic ERP that fits in next to VIP" (`docs/design/DESIGN-BRIEF.md`)
 - [x] Eight mockups approved before implementation (`docs/design/mockups.html`)
@@ -72,9 +74,9 @@ Spencer's review of Phase 3 (2026-09-17): functional, but bare-bones Bootstrap w
 - [x] `window.confirm` retired; all outcomes via toasts; every list has empty and loading states
 - [x] Accessibility pass: contrast tokens, focus rings, Escape on dialogs, landmarks, `aria-current` stepper, reduced motion
 - [x] Checked at 1440 and 390 px; walkthrough 05; interview prep
-- [ ] Spencer approves Phase 4.5
+- [x] Reviewed and approved
 
-## Phase 5 — Public transparency portal  `phase-5-portal`
+## Phase 5: Public transparency portal  `phase-5-portal`
 Design-first: this is the screen a citizen (and an interviewer) sees without logging in.
 - [x] Portal mockup (approved with the Phase 4.5 set in `docs/design/mockups.html`): question-led navigation, bars with table twins, mobile
 - [x] `ISnapshotQueryService` (Application) over `PublicPortalDbContext` (Infrastructure): budget header, breakdowns by fund/category/department/source, fund and department pages, lines, year over year, search
@@ -86,9 +88,9 @@ Design-first: this is the screen a citizen (and an interviewer) sees without log
 - [x] Accessibility: landmarks, breadcrumb list, `aria-current`, chart text alternatives, works without JavaScript, checked at 1440 and 390 px
 - [x] Tests: 9 integration (`SnapshotQueryServiceTests`), 4 unit (CSV, XLSX), 42 Web (cache policy, invalidator, middleware, `Breakdown`, helpers); 347 total
 - [x] Walkthrough 06; interview prep Phase 5
-- [x] Spencer approves Phase 5 (2026-09-18)
+- [x] Reviewed and approved (2026-09-18)
 
-## Phase 6 — Import/export & reports  `phase-6-import-reports`
+## Phase 6: Import/export & reports  `phase-6-import-reports`
 - [x] `IBudgetImportService`: CSV/XLSX upload, preview with per-row Add/Update/Unchanged/Error, commit re-validates and applies through the aggregate with one audit event (ADR-0022)
 - [x] `ImportAnalyzer` (pure rules), `ImportFileParser` (columns by name), `CsvReader`, `ISpreadsheetReader` (ClosedXML)
 - [x] Import screen: file picker, four KPIs, preview grid with error rows, confirm dialog; Finance Director only, editable versions only
@@ -97,21 +99,21 @@ Design-first: this is the screen a citizen (and an interviewer) sees without log
 - [x] Report screens with a printable header block, Print (`window.print`) and Export XLSX; `@media print` stylesheet; Reports in the sidebar; Tools menu on the workspace
 - [x] Tests: 24 unit (readers, parser, analyser, builders), 8 integration (import service, report service), 8 bUnit; 387 total
 - [x] Walkthrough 07; interview prep Phase 6; ADR-0022
-- [x] Spencer approves Phase 6 (2026-09-18)
+- [x] Reviewed and approved (2026-09-18)
 
-## Phase 7 — AWS deployment (deploy-ready)  `phase-7-aws`
+## Phase 7: AWS deployment (deploy-ready)  `phase-7-aws`
 - [x] Multi-stage `Dockerfile` (non-root, healthcheck, forwarded headers), `.dockerignore`, `docker-compose.full.yml` (app + SQL Server, one command)
 - [x] App changes for containers: `DatabaseOptions` (compose the connection string from parts), `Database:MigrateOnStartup` / `SeedDemoData` switches, Data Protection keys in SQL Server (`AddDataProtectionKeys` migration)
 - [x] Checked current AWS docs: ECS Express Mode (L1 only, public subnets, single container) and Beanstalk rejected for `ApplicationLoadBalancedFargateService`; tradeoffs in ADR-0023
 - [x] CDK stack (C#): VPC (2 AZs, 1 NAT), ECR, RDS SQL Server Express (private, encrypted), Secrets Manager (RDS-managed + demo password), Fargate service behind a public ALB (sticky, `/health`, circuit breaker), CloudWatch logs, Budgets alarm, outputs
 - [x] `GitHubOidcStack`: OIDC provider + deploy role trusting one repo on `v*` tags / `production`; ECR push + CDK bootstrap roles only
-- [x] 17 CDK assertion tests (`tests/CivicBudget.Infra.Tests`); `cdk synth` + Docker build job in CI
+- [x] 17 CDK assertion tests (18 after Phase 18) (`tests/CivicBudget.Infra.Tests`); `cdk synth` + Docker build job in CI
 - [x] `deploy.yml` (OIDC, ECR push tagged by SHA, `cdk deploy -c imageTag`, `workflow_dispatch`, gated on `AWS_DEPLOY_ROLE_ARN`)
 - [x] Cost note (~$90/mo, NAT a third), teardown (`cdk destroy`), Budgets alarm; walkthrough 08; interview prep; ADR-0023
-- [x] Spencer approves Phase 7 (2026-09-18)
+- [x] Reviewed and approved (2026-09-18)
 
-## Phase 8 — Polish  `phase-8-polish`
-Spencer's review (2026-09-18): strip title-plus-explanation clutter into tooltips; fix overlapping elements on the overview.
+## Phase 8: Polish  `phase-8-polish`
+My review (2026-09-18): too many screens explained themselves in subtitles, and the overview had overlapping elements. Explanations move into tips; the overlap is fixed.
 - [x] `InfoTip` component (CSS only, keyboard focusable, accessible name); `Tip` on `PageHeader` and `KpiCard`; every explanatory subtitle removed or moved into a tip; subtitles carry data only
 - [x] Overview overlap fixed: the workspace-only sticky-header `overflow: visible` rule scoped to `.cb-workspace`
 - [x] Accessibility check from the accessibility tree and a keyboard walk: account menu and brand links named, amount inputs labelled with account name and department, dialogs and drawer take focus on open, access-denied page styled
@@ -120,19 +122,19 @@ Spencer's review (2026-09-18): strip title-plus-explanation clutter into tooltip
 - [x] Tests: 406 total (+2 InfoTip)
 - [x] Docs sweep: `docs/DEMO-SCRIPT.md`, spec status table (SPEC §12), 60-second pitch refreshed, walkthrough 09, interview prep Phase 8
 - [x] Tagged `v1.0.0` (2026-09-19); the deploy workflow ran and skipped as designed (no `AWS_DEPLOY_ROLE_ARN`)
-- [x] Spencer approves Phase 8 (2026-09-19)
+- [x] Reviewed and approved (2026-09-19)
 
 ---
 
-# v1.1 — Plugged into the ERP, department-first (2026-09-19)
+# v1.1: Plugged into the ERP, department-first (2026-09-19)
 
-Spencer's reframing after v1.0.0: the chart of accounts, funds, and departments come from a parent
-ERP (think VIP). CivicBudget plugs in beside it: it takes the chart from the ERP, its own admins
+After v1.0.0 I reframed the product around how Ohio governments actually work: the chart of
+accounts, funds, and departments come from a parent ERP (think VIP). CivicBudget plugs in beside it: it takes the chart from the ERP, its own admins
 create logons, and each user lands in their own department to enter budget against the accounts
 there. Full account numbers read the Ohio way (fund-department-object, e.g. `1000-725-121` for a
 UAN village or `101-110-5100` for a county), and permissions follow the department assignment.
 
-## Phase 9a — Ohio account numbers  `phase-9a-account-numbers`
+## Phase 9a: Ohio account numbers  `phase-9a-account-numbers`
 - [x] Research note: UAN structure (fund-program-object for appropriations, fund-receipt for revenues; fund ranges by type), county/VIP-style variants; `docs/research/ohio-account-numbers.md`
 - [x] `AccountNumberFormat` per government (segment widths, separator, middle-segment name "Program" or "Department"); `AccountNumber` value object that composes and parses `1000-725-121`, and `1000-110` for revenue lines; editable under Government settings with a live example
 - [x] Full account number everywhere a line appears: workspace grids, reports, exports, portal tables and download, portal and workspace search by full or partial number
@@ -140,104 +142,111 @@ UAN village or `101-110-5100` for a county), and permissions follow the departme
 - [x] Seed: Maple Ridge department codes are UAN program numbers (110 Police, 620 Streets, 725 Finance); Pine Hollow uses a dotted "Department" format
 - [x] Snapshot lines store the composed number; migration backfills existing ones
 - [x] Tests: compose/parse/validate (Domain), parser column (Application), settings round trip, snapshot and search (integration); walkthrough 10; ADR-0024
-- [x] Spencer approves Phase 9a (2026-09-19)
+- [x] Reviewed and approved (2026-09-19)
 
-## Phase 9b — The chart comes from the ERP  `phase-9b-erp-chart`
+## Phase 9b: The chart comes from the ERP  `phase-9b-erp-chart`
 - [x] `ErpChart` contract and `IErpChartSource` adapter in Application; `ErpChartFileSource` reads a one-row-per-code CSV/XLSX export (Kind, Code, Name, Type, Category, Description, Active), forgiving about spelling and order
 - [x] `ChartDiff` (pure): Add, Update, Deactivate, Reactivate, Unchanged per code with before/after; `ChartSyncService` preview then commit through the entities (audit interceptor sees every field), `ChartSync` log row, audit event
 - [x] Never deletes; the confirm dialog warns when a file would deactivate more than a quarter of the chart (a partial export)
 - [x] `Government.ChartSource` Local/Erp: setup services refuse writes under Erp (`ChartOwnership`); Funds/Departments/Accounts show a "Managed by the ERP · last synced" banner and lose New/Edit; Administrator can switch back
 - [x] Chart sync page under Setup: upload, preview grid, KPIs, apply, sync history with a change drawer; ADR-0025; walkthrough 11
 - [x] Tests: 10 unit (differ, file source incl. XLSX), 4 integration (preview, commit with audit and log, guards, source switch), 1 bUnit (read-only list)
-- [x] Spencer approves Phase 9b (2026-09-19)
+- [x] Reviewed and approved (2026-09-19)
 
-## Phase 9c — Users, logons, and permissions  `phase-9c-users-permissions`
+## Phase 9c: Users, logons, and permissions  `phase-9c-users-permissions`
 - [x] Administrator is a superset: `IsFiscalAuthority()` in every service, the four fiscal policies include Admin (may enter lines, set balances, run the workflow, publish, import, sync the chart, and manage users)
 - [x] Role names as the customer says them: Administrator, Fiscal Officer, Department User, Viewer (DB values unchanged)
 - [x] Temporary passwords: set on create and on admin reset (`MustChangePassword`), carried as a claim, enforced by `MustChangePasswordMiddleware`, cleared by the change-password page which then sends the user into the app
 - [x] User administration audited: created, updated, password reset, locked, unlocked, in the acting administrator's name
 - [x] Department assignment bounds every read: workspace, reports, exports, search, and now the audit trail (recent activity and line history)
 - [x] Tests: policy matrix with Admin, middleware, permissions per role through the services, audit scoping, user admin flag and audit; ADR-0026; walkthrough 12
-- [x] Spencer approves Phase 9c
+- [x] Reviewed and approved
 
-## Phase 9d — Department-first budgeting  `phase-9d-department-entry`
+## Phase 9d: Department-first budgeting  `phase-9d-department-entry`
 - [x] After sign-in a department user lands on "My department" for the open version (a picker when assigned to several)
 - [x] Department entry page: the department's accounts across its funds as full account numbers, prior year actual, current budget, request, change; running totals; a narrative/justification for the department as a whole
 - [x] Department submits to the fiscal officer (per-department Submitted status on the version; fiscal officer can return it); the workspace shows which departments are in
 - [x] Portal and Department Detail report carry the department narrative
 - [x] Tests (domain rules, permission matrix, services end to end, published narrative, pages), walkthrough 13, interview prep (v1.1 section), ADR-0027
-- [x] Spencer approves Phase 9d (2026-09-20)
+- [x] Reviewed and approved (2026-09-20)
 
-Order: 9a → 9b → 9c → 9d. Each is a PR with the usual report; approve before the next starts.
+Order: 9a → 9b → 9c → 9d, each its own pull request, reviewed before the next started.
 
-## Phase 10 — Branding and profile pictures  `phase-10-branding-and-avatars`
+## Phase 10: Branding and profile pictures  `phase-10-branding-and-avatars`
 - [x] CivicBudget logo mark (inline SVG `Logo` component, matching favicon) in place of the "CB" seal
 - [x] Sidebar brand is the government's name; the product name stays on the public header and sign-in
 - [x] Profile pictures: browser-side resize, `UserAvatars` table, versioned image endpoint, `Avatar` component everywhere initials were shown, admin removal; ADR-0028
 - [x] `[NotAudited]` so submit/return bookkeeping fields stay out of the activity feed
 - [x] Tests (service scoping and permissions, components, audit opt-out); walkthrough 14; interview prep
-- [x] Spencer approves Phase 10 (2026-09-20)
+- [x] Reviewed and approved (2026-09-20)
 
-## Phase 11 — Front door  `phase-11-sign-in`
+## Phase 11: Front door  `phase-11-sign-in`
 - [x] Home and sign-in: centered headline, no product or project copy, "Sign in to view and enter data", portal link; no "Sign in" link in the public header
 - [x] No portfolio/demo/fictional wording anywhere in the app's UI (README and docs keep it)
-- [x] Spencer approves Phase 11 (2026-09-20)
+- [x] Reviewed and approved (2026-09-20)
 
-## Phase 12 — Portal polish  `phase-12-portal-polish`
+## Phase 12: Portal polish  `phase-12-portal-polish`
 - [x] Portal brand: CivicBudget mark by default, the government's uploaded logo when set (settings upload, portal endpoint, read-only mapping); ADR-0029
 - [x] Overview: citation line at the foot, tail text removed, spending and revenue as sliding panels with radio tabs (no JavaScript)
 - [x] Glossary and accessibility statement on their own page; one-line footer
 - [x] Tests (logo service and portal read, panels component, portal table list)
-- [x] Spencer approves Phase 12 (2026-09-20)
+- [x] Reviewed and approved (2026-09-20)
 
-## Phase 13 — Live demo on Azure  `phase-13-azure`
+## Phase 13: Live demo on Azure  `phase-13-azure`
 - [x] `infra/azure/main.bicep`: free-offer Azure SQL, consumption Container App, nightly reset job, capped logs; ADR-0030
 - [x] `scripts/azure-setup.sh`: create once, wire GitHub OIDC, print the URL and demo password
 - [x] `deploy-azure.yml`: image to GHCR on every push to main, roll the app and the job, wait for /health; `bicep-build` in CI
 - [x] `--reseed` entry point and `DatabaseInitializer.ResetAsync` (integration test)
 - [x] README: live demo section with the logins
 - [x] Setup script run (Central US; East US 2 refused new SQL servers), URL and password in the README (2026-09-20)
-- [x] Spencer approves Phase 13 (2026-09-20, live)
+- [x] Reviewed and approved (2026-09-20, live)
 
-## Phase 14 — Mobile pass  `phase-14-mobile`
+## Phase 14: Mobile pass  `phase-14-mobile`
 - [x] Every route renders at 390px without sideways overflow (sweep script, 32 routes)
 - [x] Shrinkable grid columns, tooltips out of the layout, toolbar filters full width, shorter select labels
 - [x] Pinned first column on phone grids
-- [x] Spencer approves Phase 14 (2026-09-21)
+- [x] Reviewed and approved (2026-09-21)
 
-## Phase 15 — Phone layouts  `phase-15-mobile-layouts`
+## Phase 15: Phone layouts  `phase-15-mobile-layouts`
 - [x] Lists as cards under 768px (`ListCard`), status and row menu shared with the grid as RenderFragments
 - [x] Working grids: three columns on phones, chevron to a bottom-sheet drawer with `LineDetail` plus history
 - [x] Reports: Fund Summary certificate cards, Department Detail cards; tables kept for desktop and print
 - [x] Tests (ListCard, dual rendering on the board and fund summary); every route still clean at 390px
-- [x] Spencer approves Phase 15 (2026-09-21)
+- [x] Reviewed and approved (2026-09-21)
 
-## Phase 16 — Cold start  `phase-16-cold-start`
+## Phase 16: Cold start  `phase-16-cold-start`
 - [x] Migrate and seed in a hosted service; Kestrel listens immediately (`StartupState`, `DatabaseStartupService`)
 - [x] Waiting screen while the database wakes (`WakingUpMiddleware`, 503 + Retry-After, polls `/health/startup`, continues on its own)
 - [x] Azure startup probe every 2s; Docker healthcheck start period 15s
 - [x] Tests (middleware routing, page content, startup health check); ADR-0031, walkthrough 18
-- [x] Spencer approves Phase 16 (2026-09-21)
+- [x] Reviewed and approved (2026-09-21)
 
-## Phase 17 — Maintenance  `phase-17-maintenance`
-- [x] Five parallel reviews by layer (domain/app, infrastructure, admin UI, shared UI/portal/CSS, tests/CI), each finding verified
+## Phase 17: Maintenance  `phase-17-maintenance`
+- [x] A review of every layer (domain and application, infrastructure, admin UI, shared UI and portal and CSS, tests and CI), each finding reproduced before it was fixed
 - [x] The app used as every demo user (`scripts/screenshots/role-sweep.mjs`), top findings reproduced in a browser before fixing
 - [x] Security: open redirect, password reuse, export gate, uploads, CSV formulas, setup service roles, cache bypass, anonymous DB probe
 - [x] Admin UI: refresh after Func callbacks, route-parameter loads, paged cards, amount cell, error boundary, double submits, races
 - [x] Rules: ERP retype, closed years, audit length, import padding and commas, slug moves, owned-value audit
 - [x] Performance: portal load memo, cache keys, edit reloads, indexes, image size, CI cache
 - [x] Tests: order-independent databases, vacuous asserts, missing rule and policy coverage; ADR-0032, walkthrough 19
-- [x] Spencer answers the four open questions (walkthrough 19, section 6; 2026-09-23)
-- [x] Spencer approves Phase 17 (2026-09-23)
+- [x] Four open budgeting questions answered (walkthrough 19, section 6; 2026-09-23)
+- [x] Reviewed and approved (2026-09-23)
 
-## Phase 18 — Budget rules and known gaps  `phase-18-budget-rules`
-- [x] Publish only the latest adopted version (Spencer)
+## Phase 18: Budget rules and known gaps  `phase-18-budget-rules`
+- [x] Publish only the latest adopted version
 - [x] Department totals researched and applied: expenditures only; revenue and transfers beside, outside the total
-- [x] Amounts are never negative, typed or imported (Spencer)
-- [x] Start the budget: empty, or from last year's adopted with a percentage change (Spencer)
+- [x] Amounts are never negative, typed or imported
+- [x] Start the budget: empty, or from last year's adopted with a percentage change
 - [x] Optimistic concurrency on budget versions
 - [x] Focus trapped in dialogs and drawers
 - [x] ECR repository in the one-time AWS stack
 - [x] Integration tests from a restored seeded template (1m40s to 40s)
 - [x] Actions and Bicep pinned; ADR-0033, walkthrough 20
-- [x] Spencer approves Phase 18
+- [x] Reviewed and approved
+
+## Phase 19: Documentation and comments  `phase-19-docs`
+- [x] README rewritten for a first-time reader: what it is, the live demo, how to run it, how to read the code
+- [x] ARCHITECTURE, SPEC, DECISIONS (ADRs in order), walkthroughs, interview prep, demo script, and infra READMEs brought up to date and written in my voice
+- [x] Every code comment reread against the code: stale statements fixed, phase history removed, missing "why" added
+- [x] Fixed on the way: an import commit crashed on codes written with leading zeros
+- [ ] Reviewed and approved

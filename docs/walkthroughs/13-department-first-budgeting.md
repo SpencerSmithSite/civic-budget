@@ -1,4 +1,4 @@
-# Walkthrough 13 — Department-first budgeting
+# Walkthrough 13: Department-first budgeting
 
 Phase 9d, the last step of v1.1. The fire chief signs in and is standing in
 the fire department: every account across its funds, last year's actual,
@@ -96,6 +96,9 @@ workspace (already scoped by the service) and filters to one department:
 - Revenue credited to the department (fines, fees) in its own small table,
   because it belongs to the fund's estimated resources, not to the
   department's appropriation total.
+  (At this point transfers out still counted in the department's total on this
+  page, while the report counted expenditures only. Phase 18 researched the
+  question and settled on expenditures only everywhere; walkthrough 20.)
 - The narrative editor with a character count; the Submit dialog saves
   unsaved narrative text first, then submits.
 - A returned request shows the officer's note in a warning alert; a

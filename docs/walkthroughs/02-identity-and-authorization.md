@@ -1,6 +1,9 @@
-# Walkthrough 02 — Identity, authorization, and the admin area
+# Walkthrough 02: Identity, authorization, and the admin area
 
-What Phase 2 built and the concepts behind it, written as interview prep.
+Phase 2 added sign-in, roles, permissions, and the setup screens. The role names
+here are the ones the app launched with; in Phase 9c they became Administrator,
+Fiscal Officer, Department User, and Viewer on screen (walkthrough 12), while the
+stored names stayed the same.
 
 ---
 
@@ -8,7 +11,7 @@ What Phase 2 built and the concepts behind it, written as interview prep.
 
 | Kind | Question it answers | Where | Example |
 |---|---|---|---|
-| **Role** | Is this user a Finance Director? | Identity role claims | `Roles.FinanceDirector` |
+| **Role** | Is this user the Fiscal Officer? | Identity role claims | `Roles.FinanceDirector` |
 | **Policy** | May this user *publish*? | `Web/Security/AuthorizationPolicies.cs` maps names to roles | `[Authorize(Policy = Policies.CanPublish)]` |
 | **Resource-based** | May this user edit *this* line? | `BudgetLineEditHandler` + `BudgetLinePermissions` | `AuthorizeAsync(user, new BudgetLineResource(status, deptId), Policies.CanEditBudgetLine)` |
 
@@ -25,7 +28,7 @@ policy through `IAuthorizationService`; both get the same answer. Unit tests
 adapter.
 
 *Interview question:* "Why not just check the role in the component?"
-Because the Department Head rule depends on the line's department and the
+Because the department user's rule depends on the line's department and the
 version's status. Roles can't express that. And a rule in a component can't
 protect an import or an API.
 
@@ -154,7 +157,9 @@ history must keep pointing at the fund it was budgeted in.
 `[ExcludeFromInteractiveRouting]`. Login must set a cookie on an HTTP
 response, and a circuit has no HTTP response. So the Account pages are plain
 form posts (`method="post"`, `[SupplyParameterFromForm]`), while admin pages
-declare `@rendermode InteractiveServer` for grids and live validation.
+are Interactive Server for grids and live validation. (In this phase each admin page
+declared `@rendermode InteractiveServer`; that left the layout static, and the fix was
+to set the mode once on `Routes` in `App.razor`, see ADR-0002.)
 `RedirectToLogin` uses `forceLoad: true` for the same reason: a circuit
 cannot navigate into a static page without a full request.
 

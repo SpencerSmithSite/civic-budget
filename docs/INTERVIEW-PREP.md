@@ -1,4 +1,4 @@
-# Interview Prep — CivicBudget
+# Interview prep
 
 Questions an interviewer is likely to ask about this project, the answer,
 and **where to look** to back it up. Grows by one section per phase.
@@ -12,39 +12,34 @@ rejected and why.
 
 ## The 60-second pitch
 
-CivicBudget is a multi-tenant budgeting tool for Ohio local governments: a
-village finance director builds next year's appropriations fund by fund,
-department heads enter their lines, the app checks every fund against its
-certified estimated resources, council adopts, and the adopted budget is
-published to a public transparency portal citizens browse without logging
-in. It's .NET 10 and Blazor end to end. The admin side is Interactive
-Server because staff need live grids and validation; the public side is
-static server-rendered HTML with no JavaScript because it has to be fast,
-cacheable, and accessible at scale. Data is in SQL Server through EF Core,
-tenancy is enforced in the data layer with global query filters, every
-change is audited by an interceptor, and the portal reads only immutable
-published snapshots through a separate read-only context. Budgets round
-trip through Excel (import with a validation preview, export of every
-grid) and print as three standard reports. It ships as a container with a
-CDK stack in C# that CI synthesizes and asserts, deployed over OIDC with
-no stored AWS keys. Version 1.1 reframed it as a plug-in beside a
-government ERP: the chart of accounts comes from the ERP through an
-adapter, account numbers read the Ohio way (`1000-725-121`), an
-administrator creates the logons, and a fire chief who signs in lands in
-the fire department, enters the request against its accounts, writes the
-narrative, and submits it to the fiscal officer. About 480 tests,
-including a real SQL Server in Testcontainers, and every phase is a PR
-with a written walkthrough.
+CivicBudget is budgeting and transparency software for Ohio local governments. Each
+department enters its request against its own accounts and submits it with a written
+narrative; the fiscal officer assembles the budget and sees every fund checked live
+against its certified estimated resources, the Ohio appropriation limit; council adopts
+it by resolution; amendments during the year are new versions; and the adopted budget is
+published to a public portal that citizens browse without signing in. It is designed to
+sit beside the government's ERP: the chart of accounts syncs in from the ERP through a
+small adapter, and account numbers read the way Ohio writes them (`1000-725-121`).
+
+Technically it is .NET 10 and Blazor end to end. The admin app is Interactive Server
+because staff need live grids; the portal is static HTML with no JavaScript because it
+has to be fast, cacheable, and accessible. Data is SQL Server through EF Core. Tenancy is
+enforced in the data layer by query filters and a save interceptor, every change is
+audited by another interceptor, concurrent edits are caught by a revision on the budget,
+and the portal reads only immutable published snapshots through a separate read-only
+context, so it cannot show a draft even by mistake. It is live on Azure's free tier,
+deploy-ready on AWS with a CDK stack in C#, has about 640 tests including a real SQL
+Server in Docker, and every phase is a pull request with a written walkthrough.
 
 ---
 
-## Phase 0 — Planning & architecture
+## Phase 0: Planning and architecture
 
 ### Q: Walk me through the architecture.
 **A:** Four projects with inward-pointing dependencies: `Domain` (entities
 and rules, no framework references), `Application` (use cases, DTOs,
 validators, interfaces), `Infrastructure` (EF Core, Identity stores, Excel
-I/O — implements the interfaces), and `Web` (Blazor + composition root).
+I/O; it implements the interfaces), and `Web` (Blazor + composition root).
 Components call application services; they never touch `DbContext`.
 **Look at:** `docs/ARCHITECTURE.md` §1; `src/*/**.csproj` project references
 (Phase 1).
@@ -58,15 +53,17 @@ grids justify a SignalR circuit each; twenty thousand citizens on
 adoption night do not. Static SSR makes every portal hit a cacheable HTTP
 response with no per-visitor server state, works without JavaScript, and is
 crawlable.
-**Look at:** `docs/ARCHITECTURE.md` §3; portal pages will have no
-`@rendermode` directive (Phase 5). ADR-0002.
+**Look at:** `docs/ARCHITECTURE.md` §3; `App.razor` (the render mode is set once,
+and the portal folder opts out with `[ExcludeFromInteractiveRouting]`). ADR-0002.
 
 ### Q: How do you stop one government from seeing another's budget?
 **A:** Every tenant-owned entity carries `GovernmentId`. The `DbContext`
-adds a global query filter for each of them bound to an `ITenantContext`
-(populated from a claim in the admin app, from the URL slug in the portal).
-A `SaveChanges` interceptor stamps new rows and rejects mismatches. If no
-tenant is set, the filter returns *nothing* — the safe default. Integration
+adds a global query filter for each of them bound to an `ITenantContext`,
+which is filled from the signed-in user's `government_id` claim. A
+`SaveChanges` interceptor rejects any write for another government. If no
+tenant is set, the filter returns *nothing*, which is the safe default. The
+portal never sets a tenant: it reads through its own context and takes the
+government's slug from the URL. Integration
 tests seed two tenants and prove the other's rows are invisible.
 **Look at:** `docs/ARCHITECTURE.md` §5; `CivicBudgetDbContext.OnModelCreating`
 and `TenantSaveChangesInterceptor` (Phase 1). ADR-0004.
@@ -74,11 +71,11 @@ and `TenantSaveChangesInterceptor` (Phase 1). ADR-0004.
 needs), SQL row-level security (good later as defense-in-depth).
 
 ### Q: Why can't the public site just show the adopted budget?
-**A:** Three reasons. Security — a forgotten `.Where(status == Adopted)`
+**A:** Three reasons. Security: a forgotten `.Where(status == Adopted)`
 would leak drafts, so the portal uses a separate read-only `DbContext` that
-doesn't even map the live tables. Immutability — renaming an account next
+doesn't even map the live tables. Immutability: renaming an account next
 year shouldn't rewrite what citizens saw last year, so the snapshot carries
-its own copies of names and codes. Performance — denormalized rows
+its own copies of names and codes. Performance: denormalized rows
 aggregate with a `GROUP BY` and invalidate with one cache tag.
 **Look at:** `docs/ARCHITECTURE.md` §6; `PublicPortalDbContext` (Phase 4).
 ADR-0005, ADR-0006.
@@ -86,7 +83,7 @@ ADR-0005, ADR-0006.
 ### Q: Why `IDbContextFactory` instead of injecting `DbContext`?
 **A:** In Blazor Server the DI scope is the *circuit*, not the request. A
 scoped `DbContext` would live as long as the browser tab, accumulate tracked
-entities, and be shared by concurrent event handlers — and `DbContext` isn't
+entities, and be shared by concurrent event handlers, and `DbContext` isn't
 thread-safe. The factory gives one short-lived context per unit of work.
 **Look at:** `docs/ARCHITECTURE.md` §4.1; any application service's
 `await using var db = await _dbFactory.CreateDbContextAsync(ct);` (Phase 1+).
@@ -115,7 +112,7 @@ are unit-tested.
 unit-testable, and handle cross-field/async rules (department required only
 for expenditure accounts) cleanly. DataAnnotations would be zero packages
 but pushes rule logic into attribute metadata.
-**Look at:** ADR-0007; `Application/**/Validators` (Phase 3).
+**Look at:** ADR-0007; each validator sits beside its request, e.g. `SaveFundRequestValidator` in `Application/Setup/FundService.cs`.
 
 ### Q: You don't have an AWS account. How is this an AWS project?
 **A:** The deployment *engineering* is done and verifiable: multi-stage
@@ -128,7 +125,7 @@ IAM gets a wildcard, and an OIDC-based `deploy.yml`. If an account appears,
 ### Q: What's in the seed data and why those funds?
 **A:** A fictional Ohio village with the funds every village actually has:
 General, Street Construction Maintenance & Repair (state gas tax and license
-fees — restricted), Capital Projects, and Water and Sewer enterprise funds.
+fees, restricted by law), Capital Projects, and Water and Sewer enterprise funds.
 Fund codes follow the Auditor of State's UAN numbering so they look familiar
 to Ohio staff. Three fiscal years give a prior-year actual, a current year
 with an amendment, and a draft that is deliberately over its limit in one
@@ -150,7 +147,7 @@ fund so the validation demo has something to show.
 
 ---
 
-## Phase 1 — Foundation
+## Phase 1: Foundation
 
 ### Q: Show me the domain model. Where are the rules?
 **A:** `BudgetVersion` is the aggregate root: all changes to lines and
@@ -162,7 +159,7 @@ entities (`FundBalanceCalculator`, `AppropriationLimitCheck`) are pure
 static functions on plain inputs so they're testable without EF.
 **Look at:** `src/CivicBudget.Domain/Budgets/BudgetVersion.cs`,
 `Common/Guard.cs`, `Budgets/FundBalanceCalculator.cs`.
-**Tests:** `tests/CivicBudget.Domain.Tests/Budgets/*` — 160 tests, ~30 ms.
+**Tests:** `tests/CivicBudget.Domain.Tests/Budgets/*` (160 tests in about 30 ms at the time; 222 now).
 
 ### Q: How does the tenant filter actually work under the hood?
 **A:** `OnModelCreating` reflects over every entity implementing
@@ -204,11 +201,11 @@ clustered primary key doesn't fragment the way random GUIDs cause.
 **Look at:** `src/CivicBudget.Domain/Common/Entity.cs`.
 
 ### Q: Why Testcontainers instead of an in-memory provider or SQLite?
-**A:** The things worth integration-testing — query filters, interceptors,
-unique indexes with NULLs, `decimal(18,2)`, migrations — are exactly the
+**A:** The things worth integration-testing (query filters, interceptors,
+unique indexes with NULLs, `decimal(18,2)`, migrations) are exactly the
 things in-memory providers don't emulate. Testcontainers runs the same
-SQL Server 2022 image as local dev and CI; the suite takes ~2 s after
-container start.
+SQL Server 2022 image as local dev and CI. The whole suite (100 tests) runs in
+about 40 seconds, most of it starting the container.
 **Look at:** `tests/CivicBudget.IntegrationTests/SqlServerFixture.cs`.
 
 ### Q: How does the seed avoid being a pile of magic numbers?
@@ -220,7 +217,7 @@ It runs through the domain API, so the seed obeys every rule.
 **Look at:** `src/CivicBudget.Infrastructure/Seed/SeedLine.cs`,
 `MapleRidgeSeed.cs`, `DevelopmentSeeder.cs`.
 
-### Q: Central Package Management — why?
+### Q: Why Central Package Management?
 **A:** One `Directory.Packages.props` holds every version; project files
 list packages without versions. No version drift between projects, one
 place for Dependabot to update, and it pairs with the DECISIONS "Packages"
@@ -228,18 +225,18 @@ table that justifies each one.
 
 ### General information worth having ready
 - **Banker's rounding vs. away-from-zero:** .NET's `Math.Round` default is
-  `ToEven` (0.125 → 0.12); Excel and finance expect 0.13. We're explicit.
+  `ToEven` (0.125 → 0.12); Excel and finance expect 0.13. I'm explicit.
 - **`HasQueryFilter` limits:** filters are per entity type, apply to
   navigations/Include as well, can be bypassed with `IgnoreQueryFilters()`
-  (banned here), and don't affect `Add`/`Update` (hence the interceptor).
+  (kept out of application code), and don't affect `Add`/`Update` (hence the interceptor).
 - **Testcontainers on Apple Silicon:** the SQL Server image is amd64 and
   runs under Rosetta; works, ~15 s to healthy.
 
 ---
 
-## Phase 2 — Identity, authorization, admin maintenance
+## Phase 2: Identity, authorization, admin maintenance
 
-### Q: Walk me through what happens when a Finance Director logs in and opens the Funds page.
+### Q: Walk me through what happens when the Fiscal Officer signs in and opens the Funds page.
 **A:** The login page is a static form post. `SignInManager` checks the
 password, the claims factory builds the principal (id, name, role, plus our
 `government_id`, `display_name`, and `department_id` claims), and Identity
@@ -249,7 +246,7 @@ passes, and the page is pre-rendered. Then the browser opens the SignalR
 circuit, which gets its own DI scope; `CurrentUserCircuitHandler` copies the
 authentication state into that scope's `CurrentUserContext`, so the
 `FundService` the grid calls creates a DbContext whose tenant filter is the
-FD's government.
+Fiscal Officer's government.
 **Look at:** `Web/Security/CurrentUserCircuitHandler.cs`,
 `Infrastructure/Identity/ApplicationUserClaimsPrincipalFactory.cs`.
 
@@ -257,8 +254,9 @@ FD's government.
 **A:** All three, in layers. Roles are the data (a user has one). Policies
 are the vocabulary pages use (`CanPublish`), mapped to roles in one file so
 the mapping is testable and changeable. Resource-based handles the one rule
-roles can't express: a Department Head may edit a line only if it is in
-their department and the version is still Draft. That rule is a pure
+roles can't express: a department user may edit a line only if it is in
+their department, the version is still Draft, and the department has not
+submitted its request. That rule is a pure
 function shared by the handler, the services, and the tests.
 **Look at:** `Web/Security/AuthorizationPolicies.cs`,
 `Application/Security/BudgetLinePermissions.cs`.
@@ -335,7 +333,7 @@ to the county's identity provider than turn them on.
 
 ---
 
-## Phase 3 — Budget entry, fund balances, audit trail
+## Phase 3: Budget entry, fund balances, audit trail
 
 ### Q: How does the audit trail work, and why an interceptor?
 **A:** `AuditInterceptor` is an EF Core `SaveChangesInterceptor`. Inside
@@ -352,7 +350,7 @@ service has to remember to write audit rows, and none can forget.
 temporal tables (great for point-in-time queries, but they do not record
 *who*, and they version whole rows rather than answering "what changed").
 
-### Q: What does a Department Head see, and how do you stop them editing other departments?
+### Q: What does a department user see, and how do you stop them editing other departments?
 **A:** `GetWorkspaceAsync` filters lines to the departments in the user's
 claims and sets `CanEdit` per line with `BudgetLinePermissions`. Every
 mutation re-loads the version and re-checks the same rule against the
@@ -371,7 +369,7 @@ components would not change, because they only render the DTO.
 
 ### Q: Tell me about a bug you hit and what you learned.
 **A:** Adding a line through the aggregate threw a concurrency exception:
-EF tracked the new child as Modified. Our entities assign Guid v7 keys in
+EF tracked the new child as Modified. The entities assign Guid v7 keys in
 their constructors, and EF's default for Guid keys is "generated on add",
 so when it discovered the child through the parent's collection it saw a
 set key and assumed the row existed. Marking `Id` as `ValueGeneratedNever`
@@ -388,11 +386,11 @@ children. The component only walks the tree and prints. Unit-tested
 without a database or a renderer.
 **Look at:** `Application/Budgets/BudgetGrouping.cs`, `BudgetGroupingTests`.
 
-### Q: What about two Finance Directors editing the same line at once?
-**A:** Last write wins today, and the audit trail shows both writes. A
-`rowversion` concurrency token plus a "this line changed since you loaded
-it" message is the standard EF Core answer and would be a small change; it
-was not in the spec, so it is documented as a known gap rather than built.
+### Q: What about two people editing the same budget at once?
+**A:** At this stage the last write won, and the audit trail showed both. I
+wrote it down as a known gap and closed it in Phase 18 with optimistic
+concurrency on the budget version (see the Phase 18 answers below): an edit
+racing an adoption was the case that mattered, not two edits to one line.
 
 ### Q: Why is Bootstrap's table styling fighting QuickGrid?
 **A:** QuickGrid ships a default theme with its own cell padding at higher
@@ -413,9 +411,9 @@ and pagination are behavior, not styling, so they keep working.
 
 ---
 
-## Phase 4 — Workflow, amendments, publishing
+## Phase 4: Workflow, amendments, publishing
 
-### Q: Walk me through what happens when the Finance Director clicks Adopt.
+### Q: Walk me through what happens when the Fiscal Officer clicks Adopt.
 **A:** The dialog collects the resolution number (and an acknowledgement if
 the government is in Warn mode and a fund is over its limit). The page
 calls `BudgetWorkflowService.AdoptAsync`, which checks the role, reloads the
@@ -466,15 +464,18 @@ portal context has none. `dotnet ef` needs `--context` now.
 
 ### Q: What is superseded vs unpublished?
 **A:** Superseded: replaced by a newer publish of the same fiscal year
-(after an amendment). Unpublished: withdrawn by the Finance Director. Both
+(after an amendment). Unpublished: withdrawn by the Administrator or Fiscal
+Officer. Both
 keep every row for history and both are invisible to the portal; the
 publishing history table in the admin app shows all of them.
 
 ### Q: How did you build confirmation dialogs in Blazor Server?
 **A:** A `ConfirmDialog` component that renders Bootstrap's modal markup
 from a boolean, with the body as a `RenderFragment` and an `OnConfirm`
-callback returning whether to close. No JavaScript, so the dialog can hold
-inputs and validation. The workflow bar owns six of them.
+callback returning whether to close. No Bootstrap JavaScript, so the dialog
+can hold inputs and validation. The workflow bar owns six of them. (Phase 18
+added a few lines of script that trap Tab inside an open dialog and return
+focus to the button that opened it.)
 
 ### General information worth having ready
 - **Audit events vs field changes:** the interceptor records what changed;
@@ -483,11 +484,12 @@ inputs and validation. The workflow bar owns six of them.
   Added because the root is added explicitly, unlike children discovered
   through an existing root (ADR-0018).
 - **Cache invalidation hook:** `IPublishedSnapshotCacheInvalidator` is
-  called on publish/unpublish today and is a no-op until Phase 5.
+  was called on publish and unpublish from the start, as a no-op until
+  Phase 5 built the cache it clears.
 
 ---
 
-## Phase 4.5 — Design pass
+## Phase 4.5: Design pass
 
 ### Q: How did you decide what it should look like?
 **A:** Research first. Three passes: which products Ohio governments
@@ -527,7 +529,7 @@ below it the wrapper scrolls sideways and the header does not stick.
 **A:** Tokens chosen for AA contrast, visible focus rings, Escape on
 dialogs and the drawer, labelled landmarks and menus, `aria-current` on
 the stepper, decorative icons hidden from assistive tech, reduced-motion
-respected. A screen-reader pass is scheduled for Phase 8.
+respected. Phase 8 added a pass over the accessibility tree and a keyboard walk.
 
 ### General information worth having ready
 - Bootstrap 5.3 exposes most of its theme as CSS variables; overriding
@@ -537,7 +539,7 @@ respected. A screen-reader pass is scheduled for Phase 8.
 - `prefers-reduced-motion` is a media query; respect it for anything that
   animates continuously (skeleton shimmer).
 
-## Phase 5 — Public transparency portal
+## Phase 5: Public transparency portal
 
 ### Q: Why is the portal static SSR when the admin app is Interactive Server?
 **A:** Different audiences with different costs. An Interactive Server
@@ -546,8 +548,8 @@ visitor, which is right for twenty finance staff editing a worksheet and
 wrong for thousands of anonymous citizens. A static SSR page is one HTTP
 request that renders once and can be cached; there is no per-visitor
 state. The switch is one attribute: the portal folder's `_Imports.razor`
-adds `[ExcludeFromInteractiveRouting]`, the admin pages declare
-`@rendermode InteractiveServer`.
+adds `[ExcludeFromInteractiveRouting]`, and everything else gets Interactive
+Server from `App.razor`, which sets the mode once on `Routes`.
 **Look at:** `Components/Portal/_Imports.razor`, `docs/walkthroughs/06-public-portal.md` section 2.
 
 ### Q: How do you guarantee the portal can never show a draft?
@@ -562,7 +564,8 @@ the row still exists for auditors while every portal query returns nothing.
 
 ### Q: Walk me through the output caching.
 **A:** Three pieces. A base `IOutputCachePolicy` enables caching only for
-`GET /transparency/**`, keys by path and query, tags the entry
+`GET /transparency/**`, keys by path and the three query values the pages
+read (`q`, `show`, `view`), tags the entry
 `portal:{slug}`, and refuses to store non-200s or anything setting a
 cookie. A middleware before `UseOutputCache` rewrites Blazor's
 `Cache-Control: no-store` to `public, max-age=600` and drops the
@@ -635,7 +638,7 @@ with the pages.
 - `IOutputCacheStore` has an in-memory default and a Redis package
   (`Microsoft.AspNetCore.OutputCaching.StackExchangeRedis`) for multi-instance hosting.
 
-## Phase 6 — Import, export, reports
+## Phase 6: Import, export, reports
 
 ### Q: How does the import make sure a bad file cannot half-apply?
 **A:** Two calls. `PreviewAsync` parses and classifies every row (Add,
@@ -694,7 +697,7 @@ anonymous request is redirected to sign in.
 
 ### Q: Why are reports built from the workspace DTO?
 **A:** So a report can never disagree with the screen beside it, and so
-the tenant filter and the Department Head visibility rule are applied
+the tenant filter and the department user's visibility rule are applied
 once. `ReportBuilder` is pure over `BudgetWorkspaceDto`; `ReportTables`
 maps each report to an `ExportTable` for XLSX next to its DTO. A
 county-scale tenant would push grouping into SQL behind the same
@@ -705,8 +708,7 @@ county-scale tenant would push grouping into SQL behind the same
 **A:** CSS. `@media print` hides the shell (sidebar, top bar, page
 header, toasts), removes the sticky header, and leads with the report
 block that carries the government, version, and who prepared it. The
-Print button calls `window.print`, the admin app's one JavaScript call.
-No PDF library.
+Print button calls `window.print`. No PDF library.
 
 ### General information worth having ready
 - `InputFile` streams over the SignalR circuit; `OpenReadStream(maxAllowedSize)`
@@ -720,12 +722,12 @@ No PDF library.
 - Blazor: a named `RenderFragment` parameter (`<Filters>`) means the rest
   of the child content must be wrapped in `<ChildContent>`.
 
-## Phase 7 — AWS, deploy-ready
+## Phase 7: AWS, deploy-ready
 
 ### Q: You never deployed this. What does "deploy-ready" mean here?
 **A:** Everything up to `cdk deploy` exists and is exercised on every
 commit: a multi-stage Dockerfile that CI builds, a CDK app in C# that CI
-synthesizes with no credentials, 17 assertion tests on the CloudFormation
+synthesizes with no credentials, 18 assertion tests on the CloudFormation
 it produces, and a complete OIDC-based deploy workflow that is gated on a
 repository variable. With an account, the steps are `cdk bootstrap`,
 deploy the OIDC stack once, set one variable, push a tag. I chose that
@@ -798,10 +800,10 @@ update. The switch keeps both stories honest.
   on first migration.
 - ALB WebSockets need no configuration; stickiness is a target group attribute.
 
-## Phase 8 — Polish
+## Phase 8: Polish
 
 ### Q: What changed in the final pass and why?
-**A:** Spencer's review: every screen had a title and a sentence
+**A:** My own review: every screen had a title and a sentence
 explaining it, which is clutter to someone who uses the screen daily. The
 sentences are gone. Where one actually helped (what "estimated resources"
 means, how the import matches rows) it lives behind an ⓘ: a CSS-only tip
@@ -828,7 +830,7 @@ a sample import file, and captures each screen at 1440 px and the portal at
 390 px, so they can be regenerated after any UI change instead of drifting.
 
 
-## v1.1 — Plugging in beside the ERP (Phases 9a–9d)
+## v1.1: Plugging in beside the ERP (Phases 9a–9d)
 
 ### Q: What changed in v1.1 and why?
 **A:** The framing. v1.0 was a stand-alone budgeting app that owned its
@@ -937,12 +939,12 @@ segment is per government or per fund (I made it per government). Whether
 a department's narrative should be public at all (I publish it, because
 budget books do, but that is a policy question for the fiscal officer).
 
-## Phase 10 — Branding and profile pictures
+## Phase 10: Branding and profile pictures
 
 ### Q: How do profile pictures work without an image library or blob storage?
 **A:** The browser does the resizing. Blazor's `RequestImageFileAsync` draws
 the chosen file onto a canvas at 256 px and gives me a PNG; the server checks
-type and size and stores the bytes in their own table, separate from the
+the size and that the first bytes really are a PNG, JPEG, or WebP, and stores the bytes in their own table, separate from the
 user row so lists never load images. The image is served from a URL that
 carries the upload time as a version, with a year-long private cache: a new
 upload is a new URL, so nothing is stale and nothing is re-fetched. The
@@ -967,7 +969,7 @@ named event already records the change; Status, Narrative, and the return
 note are still audited field by field.
 **Look at:** `Domain/Common/AuditedAttribute.cs`, `AuditInterceptor.IsOptedOut`.
 
-## Phase 12 — Portal polish
+## Phase 12: Portal polish
 
 ### Q: The portal context was "snapshot tables only". Why does it map the logo table now, and is that a hole?
 **A:** A government's logo is live data the portal has to show, and copying it into every
@@ -988,7 +990,7 @@ readers see everything. The $/% toggle reloads the page, so it carries `?view=re
 on the same panel. Reduced motion turns the slide off.
 **Look at:** `Components/Portal/Common/PortalPanels.razor`, the `.pt-panels` block in `app.css`.
 
-## Phase 13 — Live demo on Azure
+## Phase 13: Live demo on Azure
 
 ### Q: The repo has an AWS CDK stack. Why is the live demo on Azure?
 **A:** Money and SQL Server. The app needs a real SQL Server and a persistent process, and
@@ -1000,7 +1002,7 @@ production-shaped design, tested in CI, and Azure is the free showcase. Same ima
 `DatabaseOptions`; the template is 150 lines of Bicep.
 **Look at:** `infra/azure/main.bicep`, `scripts/azure-setup.sh`, `.github/workflows/deploy-azure.yml`, ADR-0030.
 
-### Q: Five logins and a password are in the README. How is that safe?
+### Q: Six logins and a password are in the README. How is that safe?
 **A:** They reach the demo tenant's data and nothing else: no host, no secrets, no other
 government. Whatever a visitor does, including changing a password or locking the admin out,
 is undone by a scheduled job at 08:00 UTC that runs the same image with `--reseed`. That drops
@@ -1027,17 +1029,17 @@ key ring at startup, the keys are in SQL Server, and EF retried that read agains
 database for the better part of a minute. Dropping that one registration leaves the provider's
 lazy load and took time-to-first-page from 31 seconds to 1 against a database that hangs.
 What is left is Azure's: about 15 seconds provisioning a sandbox before the image is pulled,
-against 0.3 seconds of our own startup. One warm replica would remove it for about $4 to $5 a
-month; for a portfolio demo we kept it free and wrote the trade-off down (ADR-0031). A warm
+against 0.3 seconds of the app's own startup. One warm replica would remove it for about $4 to
+$5 a month; for a portfolio demo I kept it free and wrote the trade-off down (ADR-0031). A warm
 container also exposed a subtler case: the database can pause behind it, so after 55 minutes
 without a page request the next one checks the database before it is let through.
 **Look at:** `Web/Startup/` (six small files), the health-check mapping in `Program.cs`, `WakingUpMiddlewareTests`, `DataProtectionStartupTests`.
 
-## Phase 17 — Maintenance pass
+## Phase 17: Maintenance pass
 
 ### Q: How do you find bugs in a codebase that already passes its tests?
-**A:** Two ways at once. Five reviews, one per layer, each required to quote the code and give a
-concrete failure; nothing was fixed on a reviewer's say-so, and the worst admin findings were
+**A:** Two ways at once. A review of each layer in turn, where every finding had to quote the code and
+give a concrete failure; nothing was fixed on a finding's say-so, and the worst admin findings were
 reproduced in a browser first. And a sweep that signed in as every demo user and opened every page:
 about 220 page loads, zero errors. That second result is the interesting one. Loading pages is not
 using them; the bugs were all behind a click (Add line, Deactivate, Start an amendment).
@@ -1076,14 +1078,15 @@ The cache varies only on the keys pages read, and no anonymous endpoint queries 
 ### Q: What did you deliberately not fix?
 **A:** Optimistic concurrency. An amount edit can save after a concurrent adoption. The fix is a row
 version on `BudgetVersion` touched by every line change, which is real work across the aggregate,
-so it is written down as a known gap rather than half-done in a cleanup. Four budgeting questions
-went to the person with the domain knowledge instead of being guessed.
+so I wrote it down as a known gap rather than half-do it in a cleanup, and Phase 18 built it properly.
+Four budgeting questions were also written down to decide deliberately instead of being settled by
+whatever the code happened to do.
 **Look at:** walkthrough 19, sections 6 and 7.
 
-## Phase 18 — Budget rules and known gaps
+## Phase 18: Budget rules and known gaps
 
 ### Q: What counts toward a department's budget total, and how did you decide?
-**A:** Its expenditure appropriations only. I didn't guess: ORC 5705.38(C) classifies appropriations by
+**A:** Its expenditure appropriations only. I looked it up rather than guess: ORC 5705.38(C) classifies appropriations by
 office, department, and division with personal services within each; the Auditor of State's UAN chart
 budgets transfers out under their own "Other Financing Uses" program (910), not in a department; and
 Michigan's uniform chart does the same with activity 965. Revenue a department collects is the fund's
@@ -1113,3 +1116,26 @@ one seeded template is built per run, backed up inside the container, and restor
 per test. 99 tests went from 1m40s to 40s with the same isolation.
 **Look at:** `SqlServerFixture.CreateSeededDatabaseAsync`.
 
+
+## Phase 19: Documentation and comments
+
+### Q: How do you keep documentation honest in a project this size?
+**A:** By treating it like code: it gets reviewed against the code, not against memory. In the
+documentation pass I checked every class, method, and file name the docs mention against the
+source, reread every code comment beside the code it describes, and fixed what had drifted: a
+comment on the budget line index that contradicted the one below it (EF Core adds an `IS NOT NULL`
+filter to a unique index over a nullable column, so fund-level lines need their own index), a class
+still described as a placeholder long after it stopped being one, and a README that listed
+the roles under two different sets of names. Decisions that later changed are amended on the
+original ADR rather than rewritten, so the reasoning at each point is still readable.
+**Look at:** `docs/DECISIONS.md` (the amended ADRs), `BudgetLineConfiguration.cs`.
+
+### Q: Did anything turn up while you were writing it down?
+**A:** A real bug. Explaining the import's preview and commit, I noticed the preview matched codes
+loosely (any case, `01000` for `1000`) but commit looked the typed text up again by exact code. A file
+whose codes were padded with zeros previewed as clean and then crashed the commit. The fix makes the
+analysed rows carry the ids the preview matched, so commit applies exactly what the user approved;
+the integration test that reproduces it failed before the fix. Writing an explanation is a good
+review, because you have to follow each step instead of skimming it.
+**Look at:** `ImportRowDto`, `BudgetImportService.CommitAsync`,
+`BudgetImportServiceTests.Codes_written_with_leading_zeros_commit_as_well_as_preview`.
