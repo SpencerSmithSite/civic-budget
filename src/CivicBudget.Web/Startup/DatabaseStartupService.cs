@@ -7,8 +7,8 @@ namespace CivicBudget.Web.Startup;
 /// Migrates and seeds in the background after the host starts listening, then flips
 /// <see cref="StartupState"/> to ready. Development always does both; elsewhere each is opt-in
 /// (<see cref="DatabaseOptions"/>). A failure is fatal on purpose: the process exits, the platform
-/// restarts the container, and the next attempt starts from scratch, which is exactly what the
-/// old inline startup did by throwing before the host ran.
+/// restarts the container, and the next attempt starts from scratch. Carrying on would leave a site
+/// that shows the waiting screen forever.
 /// </summary>
 public sealed class DatabaseStartupService(
     IServiceProvider services,

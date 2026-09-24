@@ -2,6 +2,7 @@ using CivicBudget.Domain.Common;
 
 namespace CivicBudget.Domain.Auditing;
 
+/// <summary>What kind of history line an <see cref="AuditEntry"/> is.</summary>
 public enum AuditKind
 {
     /// <summary>A row was inserted.</summary>

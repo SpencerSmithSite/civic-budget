@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace CivicBudget.Web.Tests;
 
-/// <summary>Phase 8 moved explanations out of subtitles and into tips; the tip must stay reachable by keyboard and screen reader.</summary>
+/// <summary>Explanations live in tips rather than subtitles, so the tip must stay reachable by keyboard and screen reader.</summary>
 public class InfoTipTests : BunitContext
 {
     [Fact]

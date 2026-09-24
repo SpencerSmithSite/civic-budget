@@ -124,6 +124,7 @@ public sealed class AccountService(
         {
             return managed;
         }
+
         Account? account = await db.Accounts.FirstOrDefaultAsync(a => a.Id == id, ct);
         if (account is null)
         {

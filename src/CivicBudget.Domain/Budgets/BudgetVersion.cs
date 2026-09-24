@@ -6,9 +6,10 @@ using CivicBudget.Domain.Funds;
 namespace CivicBudget.Domain.Budgets;
 
 /// <summary>
-/// Aggregate root for one version of a fiscal year's budget: the original (version 1) or an
-/// amendment (2, 3, …). All edits to lines and beginning balances go through this class so the
-/// "adopted versions are immutable" rule lives in exactly one place.
+/// One version of a fiscal year's budget: the original (version 1) or an amendment (2, 3, …).
+/// This is the aggregate root: lines, beginning balances, and department requests are only ever
+/// changed through its methods, so rules like "an adopted budget cannot change" live in exactly one
+/// place instead of being re-checked (or forgotten) by every screen and service that edits a budget.
 /// </summary>
 [Audited]
 public sealed class BudgetVersion : Entity, ITenantOwned
@@ -116,8 +117,9 @@ public sealed class BudgetVersion : Entity, ITenantOwned
     }
 
     /// <summary>
-    /// Ohio rule of thumb encoded as a domain rule: a fiscal year has at most one budget in progress.
-    /// Call with the year's existing versions before creating a new one.
+    /// A fiscal year has at most one budget in progress. Two open drafts for the same year would leave
+    /// no clear answer to "which one is the budget?". Call with the year's existing versions before
+    /// creating a new one.
     /// </summary>
     public static void EnsureNoOpenVersion(IEnumerable<BudgetVersion> existingVersionsForYear)
     {
@@ -327,6 +329,10 @@ public sealed class BudgetVersion : Entity, ITenantOwned
     [NotAudited]
     public int Revision { get; private set; }
 
+    /// <summary>
+    /// Every mutating method calls this first, before its guards. If a guard then throws, the change is
+    /// never saved, so the extra count is harmless; and a method that returns early cannot skip it.
+    /// </summary>
     private void Touch() => Revision++;
 
     private void EnsureEditable() =>

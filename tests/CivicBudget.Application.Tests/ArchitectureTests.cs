@@ -54,7 +54,7 @@ public class ArchitectureTests
     public void Razor_components_never_touch_the_db_context()
     {
         // Components call application services; no component may hold a DbContext or a DbContext factory.
-        // (Program.cs is allowed to reference the context for the health check registration.)
+        // (Program.cs may name the context: it is the composition root, and Data Protection keeps its keys there.)
         Assembly web = typeof(Web.Components.App).Assembly;
         IEnumerable<Type> components = web.GetTypes()
             .Where(t => typeof(Microsoft.AspNetCore.Components.IComponent).IsAssignableFrom(t));

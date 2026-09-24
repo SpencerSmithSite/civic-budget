@@ -3,9 +3,9 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 namespace CivicBudget.Web.Startup;
 
 /// <summary>
-/// Healthy once migrations and seeding have finished. It answers from memory, so the waiting page
-/// can poll it every couple of seconds without opening a database connection each time; the
-/// readiness endpoint pairs it with the real database round trip.
+/// Healthy once migrations and seeding have finished (<c>/health/startup</c>). It answers from memory,
+/// so the waiting page can poll it every couple of seconds without opening a database connection,
+/// and nobody can use it to keep the free database awake.
 /// </summary>
 public sealed class StartupHealthCheck(StartupState state) : IHealthCheck
 {

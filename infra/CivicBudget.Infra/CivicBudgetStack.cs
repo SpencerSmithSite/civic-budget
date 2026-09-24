@@ -30,9 +30,9 @@ public sealed class CivicBudgetStackProps : StackProps
 }
 
 /// <summary>
-/// The whole running application in one stack: a VPC, the container image repository, SQL Server
-/// on RDS in private subnets, the app on Fargate behind a public load balancer, its secrets, its
-/// logs, and a spending alarm. One stack because the pieces have one lifecycle for a demo; a
+/// The whole running application in one stack: a VPC, SQL Server on RDS in private subnets, the app
+/// on Fargate behind a public load balancer, its secrets, its logs, and a spending alarm. The image
+/// repository is the one piece outside it (see <see cref="GitHubOidcStack"/>). One stack because the pieces have one lifecycle for a demo; a
 /// production account would split the network and database from the service so the app can be
 /// redeployed without touching the data (see ADR-0023 for the choices made here).
 /// </summary>

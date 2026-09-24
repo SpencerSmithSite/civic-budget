@@ -29,8 +29,10 @@ public sealed class AddBudgetLineRequestValidator : AbstractValidator<AddBudgetL
         RuleFor(r => r.AccountId).NotEmpty();
         RuleFor(r => r.Amount).GreaterThanOrEqualTo(0m).WithMessage("Budgeted amounts cannot be negative.")
             .LessThanOrEqualTo(Money.MaxAmount).WithMessage(Money.TooLargeMessage);
-        RuleFor(r => r.PriorYearActual).GreaterThanOrEqualTo(0m).LessThanOrEqualTo(Money.MaxAmount).WithMessage(Money.TooLargeMessage);
-        RuleFor(r => r.CurrentYearBudget).GreaterThanOrEqualTo(0m).LessThanOrEqualTo(Money.MaxAmount).WithMessage(Money.TooLargeMessage);
+        RuleFor(r => r.PriorYearActual).GreaterThanOrEqualTo(0m).WithMessage("Prior year actuals cannot be negative.")
+            .LessThanOrEqualTo(Money.MaxAmount).WithMessage(Money.TooLargeMessage);
+        RuleFor(r => r.CurrentYearBudget).GreaterThanOrEqualTo(0m).WithMessage("Current year budgets cannot be negative.")
+            .LessThanOrEqualTo(Money.MaxAmount).WithMessage(Money.TooLargeMessage);
         RuleFor(r => r.Justification).MaximumLength(Domain.Budgets.BudgetLine.JustificationMaxLength);
     }
 }

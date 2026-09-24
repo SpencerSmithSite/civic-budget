@@ -3,8 +3,10 @@ using CivicBudget.Domain.Common;
 namespace CivicBudget.Domain.Funds;
 
 /// <summary>
-/// A self-balancing set of accounts (e.g. General, Street Construction Maintenance &amp; Repair, Water).
-/// Codes are tenant-defined strings; seed data uses Ohio UAN-style numbers.
+/// A fund: a separate pot of money with its own balance and its own legal limits on what it can pay
+/// for (General, Street Construction Maintenance &amp; Repair, Water). Accountants call it a
+/// "self-balancing set of accounts". Codes are whatever the government uses; the seed data uses
+/// Ohio UAN-style numbers.
 /// </summary>
 [Audited]
 public sealed class Fund : Entity, ITenantOwned
@@ -51,6 +53,10 @@ public sealed class Fund : Entity, ITenantOwned
     public void SetDescription(string? description) =>
         Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
 
+    /// <summary>
+    /// Funds are retired, never deleted: last year's budget and every published snapshot still point
+    /// at them. A retired fund drops out of pick lists and new budgets.
+    /// </summary>
     public void Deactivate() => IsActive = false;
 
     public void Reactivate() => IsActive = true;

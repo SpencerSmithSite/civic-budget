@@ -1,5 +1,7 @@
-@* By-department mode: department, fund, category with subtotals at each level. department users see
-   only their departments here (the service already filtered); the Fiscal Officer sees all. *@
+@* By-department mode: department, fund, category with subtotals at each level. A department's total
+   is its expenditures; its revenue and transfer lines are listed under it but kept out of the total.
+   Department users see only their departments here (the service already filtered); the Fiscal
+   Officer sees all. *@
 @if (groups.Count == 0)
 {
     <EmptyState Icon="bi-diagram-3" Title="No department lines" Text="Lines budgeted at fund level (revenues and transfers) appear in the by-account-line view." />

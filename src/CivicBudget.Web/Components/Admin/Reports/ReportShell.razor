@@ -52,6 +52,6 @@
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
 
-    /// <summary>The one JavaScript call in the admin app: the browser's own print dialog, driven by the print stylesheet.</summary>
+    /// <summary>The browser's own print dialog; the print stylesheet decides what goes on paper.</summary>
     private async Task PrintAsync() => await JS.InvokeVoidAsync("window.print");
 }

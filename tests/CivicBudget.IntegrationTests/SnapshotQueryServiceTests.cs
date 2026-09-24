@@ -157,7 +157,7 @@ public class SnapshotQueryServiceTests(SqlServerFixture fixture) : IAsyncLifetim
             police.Lines);
         Assert.Null(await portal.GetDepartmentAsync(Maple, 2026, "2011", "110")); // no police lines in the Street fund
 
-        // The narrative written on the FY2026 original travelled through the amendment into the published snapshot (Phase 9d).
+        // The narrative written on the FY2026 original travelled through the amendment into the published snapshot.
         Assert.StartsWith("The department requests funding for eight sworn officers", police.Narrative, StringComparison.Ordinal);
         Assert.Null((await portal.GetDepartmentAsync(Maple, 2026, "1000", "725"))!.Narrative); // Finance wrote none
     }

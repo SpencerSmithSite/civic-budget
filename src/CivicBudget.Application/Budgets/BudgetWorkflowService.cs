@@ -27,16 +27,16 @@ public sealed class BudgetWorkflowService(
         }
 
         Government government = await db.Governments.SingleAsync(g => g.Id == version.GovernmentId, ct);
-        bool isFd = currentUser.IsFiscalAuthority();
+        bool isFiscalAuthority = currentUser.IsFiscalAuthority();
         bool hasOpenSibling = await db.BudgetVersions.AnyAsync(v => v.FiscalYearId == version.FiscalYearId && v.Id != version.Id && v.Status != BudgetStatus.Adopted, ct);
         bool yearClosed = await db.FiscalYears.Where(f => f.Id == version.FiscalYearId).Select(f => f.IsClosed).SingleAsync(ct);
 
         return new WorkflowStateDto(
             version.Status,
-            CanPropose: isFd && version.Status == BudgetStatus.Draft,
-            CanReturnToDraft: isFd && version.Status == BudgetStatus.Proposed,
-            CanAdopt: isFd && version.Status == BudgetStatus.Proposed,
-            CanAmend: isFd && version.Status == BudgetStatus.Adopted && version.SupersededByVersionId is null && !hasOpenSibling && !yearClosed,
+            CanPropose: isFiscalAuthority && version.Status == BudgetStatus.Draft,
+            CanReturnToDraft: isFiscalAuthority && version.Status == BudgetStatus.Proposed,
+            CanAdopt: isFiscalAuthority && version.Status == BudgetStatus.Proposed,
+            CanAmend: isFiscalAuthority && version.Status == BudgetStatus.Adopted && version.SupersededByVersionId is null && !hasOpenSibling && !yearClosed,
             hasOpenSibling,
             LimitResults(version, government),
             IsSuperseded: version.SupersededByVersionId is not null);

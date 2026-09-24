@@ -6,7 +6,7 @@ services:
     platform: linux/amd64
     container_name: civicbudget-sql
     # SQL Server under Rosetta occasionally segfaults (exit 139). Let Docker bring it straight back;
-    # the app's DatabaseInitializer retries for a minute, and the data volume is untouched.
+    # the app's DatabaseInitializer retries for about two minutes, and the data volume is untouched.
     restart: unless-stopped
     environment:
       ACCEPT_EULA: "Y"

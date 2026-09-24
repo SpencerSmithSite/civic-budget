@@ -1117,7 +1117,7 @@ table.cb-grid-tight > thead > tr > th {
 }
 
 /* --------------------------------------------------------------------------
-   Department entry (Phase 9d)
+   Department entry
    -------------------------------------------------------------------------- */
 
 /* The running total under the fund tables: one line, money first, change second. */
@@ -1822,7 +1822,7 @@ h1:focus {
 }
 
 /* ==========================================================================
-   Info tips (Phase 8). Explanations live behind an "i" instead of under every heading.
+   Info tips. Explanations live behind an "i" instead of under every heading.
    ========================================================================== */
 
 .cb-tip {
@@ -1927,7 +1927,7 @@ table.cb-grid > thead > tr > th .cb-tip {
 }
 
 /* ==========================================================================
-   Import preview and reports (Phase 6). Reports are the one admin surface meant for paper, so
+   Import preview and reports. Reports are the one admin surface meant for paper, so
    they carry a print stylesheet: the shell disappears and the report block leads the page.
    ========================================================================== */
 

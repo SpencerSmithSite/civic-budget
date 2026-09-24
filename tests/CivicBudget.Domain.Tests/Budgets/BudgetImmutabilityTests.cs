@@ -57,7 +57,7 @@ public class BudgetImmutabilityTests
     [Fact]
     public void Proposed_version_is_still_editable_by_design()
     {
-        // The finance director may adjust a proposed budget before council adopts it (SPEC §4).
+        // The fiscal officer may adjust a proposed budget before council adopts it (SPEC §4).
         BudgetVersion version = TestData.DraftVersion();
         Guid lineId = version.AddLine(TestData.GeneralFund(), TestData.Police(), TestData.Salaries(), 100m).Id;
         version.Propose();

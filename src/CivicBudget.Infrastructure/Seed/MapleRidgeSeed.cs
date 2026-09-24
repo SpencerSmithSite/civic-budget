@@ -233,7 +233,7 @@ internal static class MapleRidgeSeed
         "Supplemental appropriation for police overtime coverage and the county dispatch contract increase effective July 1.";
 
     /// <summary>
-    /// Department narratives: the "budget message" each department head writes with the request. Set on
+    /// Department narratives: the "budget message" each department writes with the request. Set on
     /// FY2026 (so the published amendment carries them to the portal) and again on the FY2027 draft.
     /// </summary>
     public static IReadOnlyDictionary<string, string> Narratives { get; } = new Dictionary<string, string>

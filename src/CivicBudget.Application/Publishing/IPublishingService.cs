@@ -15,9 +15,10 @@ public sealed record SnapshotSummaryDto(
     int LineCount);
 
 /// <summary>
-/// Publish an adopted version to the public portal as an immutable snapshot, or withdraw one.
-/// Administrator or Fiscal Officer only. Publishing a fiscal year that already has an active snapshot supersedes
-/// it, so citizens always see exactly one budget per year and history is never lost.
+/// Publish the latest adopted version of a year to the public portal as an immutable snapshot, or
+/// withdraw one. Administrator or Fiscal Officer only. Publishing a fiscal year that already has an
+/// active snapshot supersedes it, so citizens always see exactly one budget per year and the earlier
+/// snapshot is kept as history.
 /// </summary>
 public interface IPublishingService
 {

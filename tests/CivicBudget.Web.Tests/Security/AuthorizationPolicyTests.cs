@@ -57,7 +57,7 @@ public class AuthorizationPolicyTests
         Row(Policies.CanManageUsers, Roles.Admin);
         Row(Policies.CanMaintainSetup, Roles.Admin, Roles.FinanceDirector);
         Row(Policies.CanViewBudget, Roles.Admin, Roles.FinanceDirector, Roles.DepartmentHead, Roles.Viewer);
-        // An Administrator is a superset of the Fiscal Officer (v1.1, Phase 9c).
+        // An Administrator is a superset of the Fiscal Officer (ADR-0026).
         Row(Policies.CanEditBeginningBalances, Roles.Admin, Roles.FinanceDirector);
         Row(Policies.CanAdvanceWorkflow, Roles.Admin, Roles.FinanceDirector);
         Row(Policies.CanPublish, Roles.Admin, Roles.FinanceDirector);

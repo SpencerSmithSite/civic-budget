@@ -2,7 +2,7 @@ using CivicBudget.Web.Components.Common;
 
 namespace CivicBudget.Web.Tests;
 
-/// <summary>Phase 15: the phone card for one list row carries code, title, summary, aside, and menu in fixed places.</summary>
+/// <summary>The phone card for one list row carries code, title, summary, aside, and menu in fixed places.</summary>
 public class ListCardTests : BunitContext
 {
     [Fact]

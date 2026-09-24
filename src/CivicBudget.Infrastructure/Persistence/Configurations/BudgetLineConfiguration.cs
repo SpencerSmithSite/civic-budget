@@ -13,13 +13,14 @@ internal sealed class BudgetLineConfiguration : IEntityTypeConfiguration<BudgetL
         builder.Ignore(l => l.DollarChange);
         builder.Ignore(l => l.PercentChange);
 
-        // One line per fund/department/account within a version. SQL Server treats NULL as a value
-        // in unique indexes, so a fund-only revenue line (DepartmentId NULL) is also unique per fund+account.
+        // One line per fund/department/account within a version. On SQL Server, EF Core gives a unique
+        // index over a nullable column the filter "[DepartmentId] IS NOT NULL", so this one only covers
+        // lines that have a department.
         builder.HasIndex(l => new { l.BudgetVersionId, l.FundId, l.DepartmentId, l.AccountId }).IsUnique();
 
-        // SQL Server leaves NULL department ids out of the index above, so fund-level lines (revenue,
-        // transfers) need their own. Without it two users adding the same revenue line at once, or an
-        // import racing a manual add, would count that revenue twice and break every later import.
+        // Fund-level lines (revenue and transfers with no department) therefore need their own index.
+        // Without it two users adding the same revenue line at once, or an import racing a manual add,
+        // would count that revenue twice and break every later import.
         builder.HasIndex(l => new { l.BudgetVersionId, l.FundId, l.AccountId })
             .IsUnique()
             .HasFilter("[DepartmentId] IS NULL")
