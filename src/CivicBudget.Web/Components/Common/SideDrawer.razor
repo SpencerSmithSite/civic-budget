@@ -38,12 +38,12 @@
     {
         if (IsOpen && !wasOpen)
         {
-            await FocusJs.TryAsync(JS, "civicBudget.rememberFocus");
+            await FocusJs.TryAsync(JS, "civicBudget.openModal", panel);
             await panel.FocusAsync();
         }
         else if (!IsOpen && wasOpen)
         {
-            await FocusJs.TryAsync(JS, "civicBudget.restoreFocus");
+            await FocusJs.TryAsync(JS, "civicBudget.closeModal");
         }
 
         wasOpen = IsOpen;

@@ -21,10 +21,7 @@ public class SetupServiceTests(SqlServerFixture fixture) : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        _database = await fixture.CreateDatabaseAsync("CivicBudget_Setup");
-
-        await using AsyncServiceScope scope = _database.CreateScope();
-        await scope.ServiceProvider.GetRequiredService<DevelopmentSeeder>().SeedAsync();
+        _database = await fixture.CreateSeededDatabaseAsync("CivicBudget_Setup");
 
         await using CivicBudgetDbContext db = _database.CreateContext(tenant: null);
         // By name, not slug: one test below changes Pine Hollow's slug, and tests in a class share the database.

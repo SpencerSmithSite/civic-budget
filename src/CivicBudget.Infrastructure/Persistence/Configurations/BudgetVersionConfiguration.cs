@@ -13,6 +13,10 @@ internal sealed class BudgetVersionConfiguration : IEntityTypeConfiguration<Budg
         builder.Property(v => v.AmendmentReason).HasMaxLength(BudgetVersion.ReasonMaxLength);
         builder.Property(v => v.ResolutionNumber).HasMaxLength(BudgetVersion.ResolutionNumberMaxLength);
         builder.Property(v => v.AdoptedByUserId).HasMaxLength(450); // matches ASP.NET Core Identity's key length
+        // Optimistic concurrency: an UPDATE of the version carries "WHERE Revision = <the value loaded>",
+        // and every change to the aggregate bumps it, so a save based on a stale read affects no row
+        // and EF throws DbUpdateConcurrencyException instead of overwriting someone else's change.
+        builder.Property(v => v.Revision).IsConcurrencyToken();
         builder.Ignore(v => v.IsAmendment);
         builder.Ignore(v => v.IsEditable);
         builder.Ignore(v => v.Label);

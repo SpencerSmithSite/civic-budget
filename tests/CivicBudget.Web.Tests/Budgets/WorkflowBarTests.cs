@@ -32,8 +32,8 @@ public class WorkflowBarTests : BunitContext
         Services.AddSingleton<IPublishingService>(new FakePublishing());
         Services.AddSingleton<ToastService>();
         // Dialogs hand focus back to the button that opened them when they close.
-        JSInterop.SetupVoid("civicBudget.rememberFocus");
-        JSInterop.SetupVoid("civicBudget.restoreFocus");
+        JSInterop.SetupVoid("civicBudget.openModal", _ => true);
+        JSInterop.SetupVoid("civicBudget.closeModal");
         var auth = AddAuthorization();
         auth.SetAuthorized("dana");
         if (asFinanceDirector)
@@ -116,6 +116,8 @@ public class WorkflowBarTests : BunitContext
             return Task.FromResult(Result.Success());
         }
         public Task<Result<Guid>> CreateAmendmentAsync(Guid adoptedVersionId, string reason, CancellationToken ct = default) => Task.FromResult(Result.Success(Guid.CreateVersion7()));
+
+        public Task<Result<StartBudgetResultDto>> StartBudgetAsync(StartBudgetRequest request, CancellationToken ct = default) => throw new NotSupportedException();
     }
 
     private sealed class FakePublishing : IPublishingService

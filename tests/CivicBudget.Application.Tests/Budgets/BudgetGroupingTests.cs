@@ -66,6 +66,19 @@ public class BudgetGroupingTests
     }
 
     [Fact]
+    public void A_departments_total_is_its_expenditures_while_its_revenue_and_transfers_sit_beside_it()
+    {
+        BudgetLineDto fines = Line(General, "1000", Police, "110", "4310", AccountType.Revenue, ReportingCategory.ChargesForServices, 48m, 40m);
+        BudgetLineDto transfer = Line(General, "1000", Police, "110", "5910", AccountType.TransferOut, ReportingCategory.Transfers, 25m, 25m);
+
+        LineGroup police = BudgetGrouping.ByDepartment([.. Lines, fines, transfer])[0];
+
+        Assert.Equal(370m, police.Amount);                                  // unchanged by the revenue and the transfer
+        Assert.Equal([fines.Id, transfer.Id], police.OutsideTotal!.Select(l => l.Id));
+        Assert.DoesNotContain(police.Children.SelectMany(f => f.Children), c => c.Title == "Transfers Out");
+    }
+
+    [Fact]
     public void Transfer_categories_are_titled_by_direction()
     {
         BudgetLineDto[] transfers =

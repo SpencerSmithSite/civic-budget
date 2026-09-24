@@ -31,9 +31,7 @@ public class SnapshotQueryServiceTests(SqlServerFixture fixture) : IAsyncLifetim
     {
         // Read-only against Maple Ridge, so one seeded database serves every test in the class.
         // The one test that unpublishes touches Pine Hollow only.
-        _database = await fixture.CreateDatabaseAsync("CivicBudget_Portal_" + Guid.NewGuid().ToString("N")[..8]);
-        await using AsyncServiceScope scope = _database.CreateScope();
-        await scope.ServiceProvider.GetRequiredService<DevelopmentSeeder>().SeedAsync();
+        _database = await fixture.CreateSeededDatabaseAsync("CivicBudget_Portal");
     }
 
     public Task DisposeAsync() => Task.CompletedTask;
@@ -237,11 +235,7 @@ public class SnapshotQueryServiceTests(SqlServerFixture fixture) : IAsyncLifetim
     public async Task Changing_the_public_address_moves_the_published_budgets_with_it()
     {
         // Its own database: this test changes Maple Ridge, which the rest of the class reads.
-        TestDatabase database = await fixture.CreateDatabaseAsync("CivicBudget_Slug_" + Guid.NewGuid().ToString("N")[..8]);
-        await using (AsyncServiceScope seed = database.CreateScope())
-        {
-            await seed.ServiceProvider.GetRequiredService<DevelopmentSeeder>().SeedAsync();
-        }
+        TestDatabase database = await fixture.CreateSeededDatabaseAsync("CivicBudget_Slug");
 
         Guid maple;
         await using (CivicBudgetDbContext db = database.CreateContext(tenant: null))

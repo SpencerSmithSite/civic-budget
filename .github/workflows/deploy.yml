@@ -1,6 +1,7 @@
 # Deploys CivicBudget to AWS. Fully written, never run: there is no AWS account behind this
 # repository (ADR-0008). When one exists, the steps are:
 #   1. cdk bootstrap, then deploy the OIDC stack once by hand:  cdk deploy CivicBudget-GitHubOidc
+#      (it also creates the ECR repository, which must exist before this workflow's first push)
 #   2. Put its DeployRoleArn output in the repository variable AWS_DEPLOY_ROLE_ARN
 #   3. Push a tag like v1.0.0, or run this workflow by hand
 # No AWS access key is stored in GitHub: the job asks GitHub for an OIDC token and AWS trades it
@@ -39,25 +40,25 @@ jobs:
     environment: production
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7, pinned 2026-09-23
 
-      - uses: actions/setup-dotnet@v6
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6, pinned 2026-09-23
         with:
           global-json-file: global.json
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6, pinned 2026-09-23
         with:
           node-version: 22
 
       - name: Assume the deploy role with OIDC
-        uses: aws-actions/configure-aws-credentials@v5
+        uses: aws-actions/configure-aws-credentials@61815dcd50bd041e203e49132bacad1fd04d2708 # v5, pinned 2026-09-23
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Log in to ECR
         id: ecr
-        uses: aws-actions/amazon-ecr-login@v2
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2, pinned 2026-09-23
 
       - name: Build and push the image
         env:

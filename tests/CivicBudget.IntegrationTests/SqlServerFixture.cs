@@ -17,13 +17,19 @@ namespace CivicBudget.IntegrationTests;
 /// One SQL Server 2022 container for the whole test run (same image as docker-compose). Each test
 /// class gets its own database on that server so classes can't see each other's rows.
 /// </summary>
-public sealed class SqlServerFixture : IAsyncLifetime
+public sealed class SqlServerFixture : IAsyncLifetime, IDisposable
 {
     private readonly MsSqlContainer _container = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-latest").Build();
 
     public Task InitializeAsync() => _container.StartAsync();
 
-    public Task DisposeAsync() => _container.DisposeAsync().AsTask();
+    void IDisposable.Dispose() => _templateGate.Dispose();
+
+    public async Task DisposeAsync()
+    {
+        _templateGate.Dispose();
+        await _container.DisposeAsync();
+    }
 
     /// <summary>Creates (or migrates) a database and returns a helper bound to it.</summary>
     public async Task<TestDatabase> CreateDatabaseAsync(string name)
@@ -34,6 +40,80 @@ public sealed class SqlServerFixture : IAsyncLifetime
         await using CivicBudgetDbContext db = database.CreateContext(tenant: null);
         await db.Database.MigrateAsync();
         return database;
+    }
+
+    // Most tests want the seeded demo data. Migrating and seeding (six users' password hashes
+    // included) for every test was most of the run; instead one template is built per run, backed up
+    // inside the container, and restored under each test's own name, which takes a fraction of it.
+    private const string TemplateName = "CivicBudget_Template";
+    private const string TemplateBackup = "/var/opt/mssql/data/civicbudget_template.bak";
+    private readonly SemaphoreSlim _templateGate = new(1, 1);
+    private bool _templateReady;
+
+    /// <summary>
+    /// A fresh database holding the migrated, seeded demo data, as if the seeder had just run. The
+    /// name gets a unique suffix: xUnit makes a new class instance per test, and restoring over a
+    /// database the previous test's pooled connections still hold would fail.
+    /// </summary>
+    public async Task<TestDatabase> CreateSeededDatabaseAsync(string prefix)
+    {
+        string name = $"{prefix}_{Guid.NewGuid():N}"[..Math.Min(prefix.Length + 9, 100)];
+        await EnsureTemplateAsync();
+        await using SqlConnection master = await OpenMasterAsync();
+        var files = new List<(string Logical, string Type)>();
+        await using (SqlCommand list = new($"RESTORE FILELISTONLY FROM DISK = N'{TemplateBackup}'", master))
+        await using (SqlDataReader reader = await list.ExecuteReaderAsync())
+        {
+            while (await reader.ReadAsync())
+            {
+                files.Add((reader.GetString(reader.GetOrdinal("LogicalName")), reader.GetString(reader.GetOrdinal("Type"))));
+            }
+        }
+
+        string moves = string.Join(", ", files.Select(f => $"MOVE N'{f.Logical}' TO N'/var/opt/mssql/data/{name}{(f.Type == "L" ? "_log.ldf" : ".mdf")}'"));
+        await using (SqlCommand restore = new($"RESTORE DATABASE [{name}] FROM DISK = N'{TemplateBackup}' WITH {moves}, REPLACE", master))
+        {
+            restore.CommandTimeout = 120;
+            await restore.ExecuteNonQueryAsync();
+        }
+
+        return new TestDatabase(new SqlConnectionStringBuilder(_container.GetConnectionString()) { InitialCatalog = name }.ConnectionString);
+    }
+
+    private async Task EnsureTemplateAsync()
+    {
+        await _templateGate.WaitAsync();
+        try
+        {
+            if (_templateReady)
+            {
+                return;
+            }
+
+            TestDatabase template = await CreateDatabaseAsync(TemplateName);
+            await using (AsyncServiceScope scope = template.CreateScope())
+            {
+                await scope.ServiceProvider.GetRequiredService<DevelopmentSeeder>().SeedAsync();
+            }
+
+            SqlConnection.ClearAllPools(); // nothing may hold the template open while it is backed up
+            await using SqlConnection master = await OpenMasterAsync();
+            await using SqlCommand backup = new($"BACKUP DATABASE [{TemplateName}] TO DISK = N'{TemplateBackup}' WITH INIT, COPY_ONLY", master);
+            backup.CommandTimeout = 120;
+            await backup.ExecuteNonQueryAsync();
+            _templateReady = true;
+        }
+        finally
+        {
+            _templateGate.Release();
+        }
+    }
+
+    private async Task<SqlConnection> OpenMasterAsync()
+    {
+        var connection = new SqlConnection(new SqlConnectionStringBuilder(_container.GetConnectionString()) { InitialCatalog = "master" }.ConnectionString);
+        await connection.OpenAsync();
+        return connection;
     }
 }
 

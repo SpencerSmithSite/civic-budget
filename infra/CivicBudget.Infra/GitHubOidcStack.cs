@@ -1,4 +1,5 @@
 using Amazon.CDK;
+using Amazon.CDK.AWS.ECR;
 using Amazon.CDK.AWS.IAM;
 using Constructs;
 
@@ -16,14 +17,31 @@ public sealed class GitHubOidcStackProps : StackProps
 /// only for release tags or the production environment, and hands back temporary credentials for
 /// a role that can push images and run CDK deployments. Deployed once, by hand, by an account
 /// admin; the deploy workflow then only needs the role's ARN (a repository variable, not a secret).
+/// The image repository lives here too: the workflow pushes the image before it deploys the app
+/// stack, so the repository has to exist before the first deploy, not be created by it.
 /// </summary>
 public sealed class GitHubOidcStack : Stack
 {
     public const string ProviderUrl = "https://token.actions.githubusercontent.com";
 
+    /// <summary>The ECR repository the workflow pushes to and the app stack runs from.</summary>
+    public const string ImageRepositoryName = "civicbudget";
+
     public GitHubOidcStack(Construct scope, string id, GitHubOidcStackProps props) : base(scope, id, props)
     {
         Amazon.CDK.Tags.Of(this).Add("Project", "CivicBudget"); // on every taggable resource, for the cost explorer
+
+        // Images are scanned on push and only the last ten kept. It deletes with this stack, which is
+        // only ever torn down together with everything else.
+        var images = new Repository(this, "Repository", new RepositoryProps
+        {
+            RepositoryName = ImageRepositoryName,
+            ImageScanOnPush = true,
+            RemovalPolicy = RemovalPolicy.DESTROY,
+            EmptyOnDelete = true,
+            LifecycleRules = [new LifecycleRule { MaxImageCount = 10, Description = "Keep the last ten images" }],
+        });
+        _ = new CfnOutput(this, "RepositoryUri", new CfnOutputProps { Value = images.RepositoryUri, Description = "Push images here" });
 
         // One provider per account. GitHub's certificate thumbprint is no longer required because
         // AWS validates the provider's certificate chain itself.
@@ -69,7 +87,7 @@ public sealed class GitHubOidcStack : Stack
                 "ecr:BatchCheckLayerAvailability", "ecr:CompleteLayerUpload", "ecr:InitiateLayerUpload",
                 "ecr:PutImage", "ecr:UploadLayerPart", "ecr:BatchGetImage", "ecr:DescribeRepositories",
             ],
-            Resources = [Arn.Format(new ArnComponents { Service = "ecr", Resource = "repository", ResourceName = "civicbudget" }, this)],
+            Resources = [images.RepositoryArn],
         }));
 
         // CDK deploys by assuming the roles `cdk bootstrap` created (lookup, file publishing, deploy),

@@ -74,7 +74,7 @@ else
     }
 
     <div class="cb-kpis">
-        <KpiCard Label="@($"FY{workspace.Version.Year} request")" Value="@Display.Money(request.Amount)" Detail="@($"{request.LineCount} lines across {lineGroups.Count} fund{(lineGroups.Count == 1 ? "" : "s")}")" />
+        <KpiCard Label="@($"FY{workspace.Version.Year} request")" Value="@Display.Money(request.Amount)" Detail="@($"{lineGroups.Sum(g => g.Lines.Count)} appropriation lines across {lineGroups.Count} fund{(lineGroups.Count == 1 ? "" : "s")}")" />
         <KpiCard Label="@($"FY{workspace.Version.Year - 1} budget")" Value="@Display.Money(request.CurrentYearBudget)" Detail="@($"FY{workspace.Version.Year - 2} actual {Display.Money(request.PriorYearActual)}")" />
         <KpiCard Label="Change" Value="@Display.SignedChange(request.DollarChange)" Detail="@Display.Percent(request.PercentChange)"
                  Tone="@(request.DollarChange > 0 ? "warn" : "ok")" DetailTone="@(request.DollarChange < 0 ? "down" : request.DollarChange > 0 ? "up" : "")"
@@ -180,13 +180,13 @@ else
                     <div class="card mt-3">
                         <div class="cb-grid-wrap">
                             <table class="cb-grid">
-                                <caption class="caption-top px-3 pt-2 pb-1 fw-semibold small">Revenue credited to this @workspace.NumberFormat.DepartmentLabel.ToLowerInvariant() <InfoTip Text="Fines, fees, and charges the department collects. They belong to the fund, not to the appropriation total above." /></caption>
+                                <caption class="caption-top px-3 pt-2 pb-1 fw-semibold small">Revenue and transfers recorded against this @workspace.NumberFormat.DepartmentLabel.ToLowerInvariant() <InfoTip Text="Fines, fees, and charges the department collects, and any transfers coded to it. Revenue is the fund's estimated resource and a transfer out is the fund's other financing use, so neither is part of the appropriation total above." /></caption>
                                 <thead><tr><th>Account</th><th class="cb-num">FY@(workspace.Version.Year - 1) budget</th><th class="cb-num">FY@(workspace.Version.Year) estimate</th><th></th></tr></thead>
                                 <tbody>
                                     @foreach (BudgetLineDto line in revenueLines)
                                     {
                                         <tr>
-                                            <td class="cb-wrap"><span class="cb-code">@line.AccountNumber</span> @line.AccountName <small class="text-secondary">· @line.FundCode</small></td>
+                                            <td class="cb-wrap"><span class="cb-code">@line.AccountNumber</span> @line.AccountName <small class="text-secondary">· @line.FundCode · @Display.Enum(line.AccountType).ToLowerInvariant()</small></td>
                                             <td class="cb-num">@Display.Amount(line.CurrentYearBudget)</td>
                                             <td class="cb-num"><AmountCell Value="line.Amount" CanEdit="line.CanEdit" Label="@($"FY{workspace.Version.Year} estimate for {line.AccountNumber} {line.AccountName}")" ValueChanged="amount => UpdateAmountAsync(line.Id, amount)" /></td>
                                             <td class="text-end"><RowMenu Label="@($"Actions for {line.AccountNumber}")"><li><button type="button" class="dropdown-item" @onclick="() => ShowHistory(line)"><i class="bi bi-clock-history me-2" aria-hidden="true"></i>History</button></li></RowMenu></td>
@@ -353,12 +353,12 @@ else
         fixedDepartment = new LookupDto(request.DepartmentId, request.DepartmentCode, request.DepartmentName);
         List<BudgetLineDto> mine = workspace.Lines.Where(l => l.DepartmentId == DepartmentId).ToList();
         lineGroups = mine
-            .Where(l => l.AccountType is AccountType.Expenditure or AccountType.TransferOut)
+            .Where(l => l.AccountType.CountsTowardDepartmentTotal())
             .GroupBy(l => (l.FundCode, l.FundName))
             .OrderBy(g => g.Key.FundCode)
             .Select(g => new FundGroup(g.Key.FundCode, g.Key.FundName, g.OrderBy(l => l.AccountCode).ToList()))
             .ToList();
-        revenueLines = mine.Where(l => l.AccountType is AccountType.Revenue or AccountType.TransferIn).OrderBy(l => l.FundCode).ThenBy(l => l.AccountCode).ToList();
+        revenueLines = mine.Where(l => !l.AccountType.CountsTowardDepartmentTotal()).OrderBy(l => l.FundCode).ThenBy(l => l.AccountCode).ToList();
 
         // Keep what the user is typing across reloads caused by amount edits; take the saved text otherwise.
         if (narrativeDraft is null || !NarrativeChanged)

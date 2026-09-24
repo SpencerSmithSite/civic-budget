@@ -140,7 +140,11 @@ public sealed class BudgetEntryService(
         }
 
         version.UpdateLineAmount(line.Id, amount);
-        await db.SaveChangesAsync(ct);
+        if (await db.TrySaveAsync(ct) is { } conflict)
+        {
+            return conflict;
+        }
+
         return Result.Success();
     }
 
@@ -162,7 +166,11 @@ public sealed class BudgetEntryService(
             return Result.Failure(nameof(justification), ex.Message);
         }
 
-        await db.SaveChangesAsync(ct);
+        if (await db.TrySaveAsync(ct) is { } conflict)
+        {
+            return conflict;
+        }
+
         return Result.Success();
     }
 
@@ -207,7 +215,11 @@ public sealed class BudgetEntryService(
             return Result.Failure<Guid>(ex.Message);
         }
 
-        await db.SaveChangesAsync(ct);
+        if (await db.TrySaveAsync(ct) is { } conflict)
+        {
+            return Result.Failure<Guid>(conflict.Errors);
+        }
+
         return Result.Success(line.Id);
     }
 
@@ -221,7 +233,11 @@ public sealed class BudgetEntryService(
         }
 
         version.RemoveLine(line.Id);
-        await db.SaveChangesAsync(ct);
+        if (await db.TrySaveAsync(ct) is { } conflict)
+        {
+            return conflict;
+        }
+
         return Result.Success();
     }
 
@@ -251,7 +267,11 @@ public sealed class BudgetEntryService(
         }
 
         version.SetBeginningBalance(fund, amount);
-        await db.SaveChangesAsync(ct);
+        if (await db.TrySaveAsync(ct) is { } conflict)
+        {
+            return conflict;
+        }
+
         return Result.Success();
     }
 
@@ -296,7 +316,7 @@ public sealed class BudgetEntryService(
     {
         DepartmentRequest? request = version.GetDepartmentRequest(department.Id);
         DepartmentRequestStatus status = request?.Status ?? DepartmentRequestStatus.InProgress;
-        List<BudgetLine> expenditures = lines.Where(l => l.Account.Type == AccountType.Expenditure).ToList();
+        List<BudgetLine> expenditures = lines.Where(l => l.Account.Type.CountsTowardDepartmentTotal()).ToList();
         return new DepartmentRequestDto(
             department.Id, department.Code, department.Name,
             status,

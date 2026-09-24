@@ -109,7 +109,11 @@ public sealed class BudgetImportService(
         db.AuditEntries.Add(AuditEntry.Event(version.GovernmentId, nameof(BudgetVersion), version.Id,
             $"Imported {fileName}: {added} added, {updated} updated, {unchanged} unchanged",
             currentUser.UserId!, currentUser.DisplayName ?? "", clock.GetUtcNow()));
-        await db.SaveChangesAsync(ct);
+        if (await db.TrySaveAsync(ct) is { } conflict)
+        {
+            return Result.Failure<ImportResultDto>(conflict.Errors);
+        }
+
         return Result.Success(new ImportResultDto(added, updated, unchanged));
     }
 

@@ -46,13 +46,19 @@ public static partial class ImportAnalyzer
             }
 
             decimal? amount = ParseMoney(row.Amount, "Amount", required: true, errors);
-            if (amount < 0m)
-            {
-                errors.Add("Amount cannot be negative.");
-            }
 
             decimal? prior = ParseMoney(row.PriorYearActual, ImportFileParser.PriorYearActualHeader, required: false, errors);
             decimal? current = ParseMoney(row.CurrentYearBudget, ImportFileParser.CurrentYearBudgetHeader, required: false, errors);
+            // Revenues and expenditures are both entered as positive numbers (the account type says
+            // which way they count), so a negative in any money column is a mistake in the file.
+            foreach ((decimal? value, string column) in new[] { (amount, "Amount"), (prior, ImportFileParser.PriorYearActualHeader), (current, ImportFileParser.CurrentYearBudgetHeader) })
+            {
+                if (value < 0m)
+                {
+                    errors.Add($"{column} cannot be negative. Enter revenues and expenditures as positive numbers.");
+                }
+            }
+
             if (new[] { amount, prior, current }.Any(a => a is { } value && !Money.IsStorable(value)))
             {
                 errors.Add(Money.TooLargeMessage);
@@ -129,7 +135,7 @@ public static partial class ImportAnalyzer
         return match;
     }
 
-    /// <summary>Accepts "1,234.50", "$1,234.50", "(500)" for a negative, and plain numbers; anything else is an error.</summary>
+    /// <summary>Accepts "1,234.50", "$1,234.50", and plain numbers. "(500)" is read as -500 so the negative-amount rule can name it, rather than calling it "not a number".</summary>
     private static decimal? ParseMoney(string? text, string column, bool required, List<string> errors)
     {
         if (string.IsNullOrWhiteSpace(text))

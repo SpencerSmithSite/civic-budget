@@ -5,6 +5,19 @@ All notable changes to CivicBudget. Format loosely follows
 
 ## [Unreleased]
 
+## Phase 18 — 2026-09-24 (budget rules and known gaps)
+### Added
+- **Start the budget** on the fiscal years page: an open year with no budget starts empty or from last year's latest adopted version, changed by a percentage (every line, appropriations only, or revenue estimates only; optionally rounded to whole dollars). Last year's adopted amount becomes the comparative, each fund begins with last year's projected ending balance, and lines on retired codes are listed, not silently dropped.
+- Optimistic concurrency on budget versions (`Revision`): a save based on a stale read is refused with "someone else changed this budget" instead of overwriting.
+### Changed
+- Only the latest adopted version of a year can be published.
+- A department's total is its expenditure appropriations everywhere (researched: ORC 5705.38(C), the UAN chart's Other Financing Uses program, Michigan's uniform chart); its revenue and transfers are shown beside it, outside the total. The workspace's by-department view used to add revenue in, and the department page transfers out.
+- Every amount on a line is positive, for revenues and expenditures alike, enforced in the domain and in every import column.
+- Tab stays inside an open dialog or drawer.
+- The ECR repository moved to the one-time AWS stack so a first AWS deploy can push.
+- Integration tests restore a seeded template per test: 1m40s to 40s.
+- GitHub Actions pinned by commit SHA; CI's Bicep pinned by version and sha256.
+
 ## Phase 17 — 2026-09-23 (maintenance)
 A review of the whole codebase (five parallel reviews by layer, each finding checked against the code) and a walk through the running app as every demo user. About 90 fixes; the headline ones:
 ### Security

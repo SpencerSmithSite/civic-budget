@@ -96,7 +96,7 @@ public class DepartmentPagesTests : BunitContext
 
         page.WaitForAssertion(() => Assert.Contains("Trim overtime to last year's level.", page.Find(".alert-warning").TextContent));
         Assert.Contains("Returned", page.Find(".cb-pill").TextContent);
-        Assert.Contains("Revenue credited to this program", page.Markup);   // revenue lines are listed apart from appropriations
+        Assert.Contains("Revenue and transfers recorded against this program", page.Markup);   // listed apart from the appropriation total
         Assert.Contains("Department total, FY2027 request", page.Markup);
         Assert.Equal("Narrative for Streets", page.Find("textarea#narrative").GetAttribute("value") ?? page.Find("textarea#narrative").TextContent);
 

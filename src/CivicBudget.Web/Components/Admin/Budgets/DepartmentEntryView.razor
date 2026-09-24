@@ -83,6 +83,31 @@ else
                     </div>
                 </div>
             }
+            @if (department.OutsideTotal is { Count: > 0 } outside)
+            {
+                <div class="card mb-3">
+                    <div class="cb-grid-wrap">
+                        <table class="cb-grid">
+                            <caption class="caption-top px-3 pt-2 pb-1 fw-semibold small">Revenue and transfers recorded against this department <InfoTip Text="Revenue is the fund's estimated resource and a transfer out is the fund's other financing use, so neither is part of the department total." /></caption>
+                            <thead><tr><th>Account</th><th class="cb-num">@CurrentLabel budget</th><th class="cb-num">@ProposedLabel estimate</th><th></th></tr></thead>
+                            <tbody>
+                                @foreach (BudgetLineDto line in outside)
+                                {
+                                    <tr @key="line.Id">
+                                        <td class="cb-wrap"><span class="cb-code">@line.AccountNumber</span> @line.AccountName <small class="text-secondary">· @Display.Enum(line.AccountType).ToLowerInvariant()</small></td>
+                                        <td class="cb-num">@Display.Amount(line.CurrentYearBudget)</td>
+                                        <td class="cb-num">
+                                            <AmountCell Value="line.Amount" CanEdit="line.CanEdit" Label="@($"{ProposedLabel} estimate for {line.AccountNumber} {line.AccountName}")"
+                                                        ValueChanged="amount => OnAmountChanged.InvokeAsync((line.Id, amount))" />
+                                        </td>
+                                        <td class="text-end"><button type="button" class="cb-row-open" @onclick="() => OnShowHistory.InvokeAsync(line)" aria-label="@($"Details for {line.AccountNumber}")"><i class="bi bi-chevron-right" aria-hidden="true"></i></button></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
         </section>
     }
 }

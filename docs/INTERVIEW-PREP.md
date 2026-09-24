@@ -1080,3 +1080,36 @@ so it is written down as a known gap rather than half-done in a cleanup. Four bu
 went to the person with the domain knowledge instead of being guessed.
 **Look at:** walkthrough 19, sections 6 and 7.
 
+## Phase 18 — Budget rules and known gaps
+
+### Q: What counts toward a department's budget total, and how did you decide?
+**A:** Its expenditure appropriations only. I didn't guess: ORC 5705.38(C) classifies appropriations by
+office, department, and division with personal services within each; the Auditor of State's UAN chart
+budgets transfers out under their own "Other Financing Uses" program (910), not in a department; and
+Michigan's uniform chart does the same with activity 965. Revenue a department collects is the fund's
+estimated resource. Three screens had three answers before; one extension method, `CountsTowardDepartmentTotal`,
+is now the only answer, and the other lines are shown beside the department, labelled.
+**Look at:** `Domain/Accounts/AccountType.cs`, `BudgetGrouping.ByDepartment`.
+
+### Q: How does a new year's budget get started?
+**A:** From the fiscal year: empty, or from last year's latest adopted version. Last year's adopted
+amount becomes the comparative, the request is that amount changed by a percentage (all lines,
+appropriations only, or revenue only, optionally rounded to dollars), prior-year actuals start at zero
+because an adopted budget is not what was spent, and each fund begins with last year's projected ending
+balance. Retired codes are listed, never silently dropped.
+**Look at:** `BudgetVersion.CreateOriginalFrom`, `BudgetSeedOptions`, `BudgetStartTests`.
+
+### Q: How do you stop two people overwriting each other's budget changes?
+**A:** Optimistic concurrency on the aggregate root. `BudgetVersion.Revision` is an EF concurrency
+token, and every mutating method calls `Touch()`, so even a line edit updates the version row with
+`WHERE Revision = @loaded`. A SQL `rowversion` would miss that case, because it only changes when the
+version's own row does. The loser gets "someone else changed this budget; reload", and the tests hold
+two contexts open to reproduce an edit racing an adoption and two adoptions racing each other.
+**Look at:** `SaveConflicts.TrySaveAsync`, `ConcurrencyTests`.
+
+### Q: Your integration tests use a real SQL Server. Aren't they slow?
+**A:** They were: every test migrated a database and ran the full seed, password hashing included. Now
+one seeded template is built per run, backed up inside the container, and restored under a unique name
+per test. 99 tests went from 1m40s to 40s with the same isolation.
+**Look at:** `SqlServerFixture.CreateSeededDatabaseAsync`.
+

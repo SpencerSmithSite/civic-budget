@@ -30,9 +30,7 @@ public class BudgetImportServiceTests(SqlServerFixture fixture) : IAsyncLifetime
     public async Task InitializeAsync()
     {
         // Commits change the draft, so every test gets its own seeded database.
-        _database = await fixture.CreateDatabaseAsync("CivicBudget_Import_" + Guid.NewGuid().ToString("N")[..8]);
-        await using AsyncServiceScope scope = _database.CreateScope();
-        await scope.ServiceProvider.GetRequiredService<DevelopmentSeeder>().SeedAsync();
+        _database = await fixture.CreateSeededDatabaseAsync("CivicBudget_Import");
 
         await using CivicBudgetDbContext db = _database.CreateContext(tenant: null);
         _mapleRidge = (await db.Governments.SingleAsync(g => g.PublicSlug == "maple-ridge-oh")).Id;

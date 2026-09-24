@@ -121,18 +121,36 @@ Rules:
   be edited. Attempts throw a domain exception.
 - Creating an amendment **copies** the currently adopted version (all lines
   and beginning balances) into a new Draft with `VersionNumber + 1`.
+- **Starting a year's budget** (the Original) happens from the fiscal year, once,
+  while it is open. It starts empty, or from the prior year's latest adopted
+  version: each line's adopted amount becomes the new comparative ("current year
+  budget") and, changed by an optional percentage (every line, appropriations
+  only, or revenue estimates only; optionally rounded to whole dollars), the
+  starting amount. Prior-year actuals start at zero until imported; each fund's
+  beginning balance is the prior year's projected ending balance. Lines on
+  retired funds, departments, or accounts are left out and listed.
+- Two saves based on the same read of a version cannot both succeed: the version
+  carries a revision checked on save, and the second is told to reload.
 
 ### 3.7 Budget Line
 | Field | Notes |
 |---|---|
 | BudgetVersionId, FundId, AccountId | Required |
 | DepartmentId | **Required for Expenditure accounts; optional for Revenue and Transfer accounts.** Revenue is usually budgeted by fund alone, but a government may attribute revenue to a department (e.g. water sales → Water Utility), so the line allows fund-only *or* fund + department. |
-| Amount | The budgeted/appropriated amount for this version |
-| PriorYearActual | Entered or imported figure (there is no general ledger in scope) |
-| CurrentYearBudget | The comparison figure from the current year, entered or imported |
+| Amount | The budgeted/appropriated amount for this version. **Never negative**: revenues and expenditures are both entered as positive numbers; the account type says which way they count |
+| PriorYearActual | Entered or imported figure (there is no general ledger in scope). Never negative |
+| CurrentYearBudget | The comparison figure from the current year, entered or imported. Never negative |
 | Justification | Free text |
 
 Uniqueness: `(BudgetVersionId, FundId, DepartmentId, AccountId)`.
+
+**A department's total** (its request, its appropriation) is the sum of its
+**expenditure** lines only. Ohio appropriates by fund, then by office,
+department, and division, with personal services shown within each (ORC
+5705.38(C)); transfers out are appropriated as the fund's "other financing
+uses" (UAN program 910), not inside an operating department; revenue a
+department collects is an estimated resource of the fund. Revenue and transfer
+lines coded to a department are shown beside it, outside its total.
 
 Derived (not stored): `$ change = Amount − CurrentYearBudget`,
 `% change = $ change ÷ CurrentYearBudget` (null when CurrentYearBudget is 0).
@@ -217,7 +235,9 @@ Razor components display the validation results; they never contain rules.
 
 ## 6. Publishing & the public snapshot
 
-- A Finance Director can **Publish** any Adopted version.
+- A Finance Director can **Publish** the **latest** Adopted version of a year.
+  Once an amendment is adopted the earlier version is history and cannot be
+  published over it.
 - Publishing creates an immutable **PublishedBudgetSnapshot**: a header
   (government, fiscal year, version label, `PublishedAtUtc`, `PublishedBy`)
   plus **denormalized snapshot lines** (fund code/name/category/description,
