@@ -20,9 +20,7 @@ public class ReportServiceTests(SqlServerFixture fixture) : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        _database = await fixture.CreateDatabaseAsync("CivicBudget_Reports");
-        await using AsyncServiceScope scope = _database.CreateScope();
-        await scope.ServiceProvider.GetRequiredService<DevelopmentSeeder>().SeedAsync();
+        _database = await fixture.CreateSeededDatabaseAsync("CivicBudget_Reports");
 
         await using CivicBudgetDbContext db = _database.CreateContext(tenant: null);
         _mapleRidge = (await db.Governments.SingleAsync(g => g.PublicSlug == "maple-ridge-oh")).Id;

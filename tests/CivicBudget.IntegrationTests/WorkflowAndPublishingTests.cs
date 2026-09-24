@@ -32,9 +32,7 @@ public class WorkflowAndPublishingTests(SqlServerFixture fixture) : IAsyncLifeti
     public async Task InitializeAsync()
     {
         // Each test adopts, publishes, or amends, so each gets its own freshly seeded database.
-        _database = await fixture.CreateDatabaseAsync("CivicBudget_Workflow_" + Guid.NewGuid().ToString("N")[..8]);
-        await using AsyncServiceScope scope = _database.CreateScope();
-        await scope.ServiceProvider.GetRequiredService<DevelopmentSeeder>().SeedAsync();
+        _database = await fixture.CreateSeededDatabaseAsync("CivicBudget_Workflow");
 
         await using CivicBudgetDbContext db = _database.CreateContext(tenant: null);
         _mapleRidge = (await db.Governments.SingleAsync(g => g.PublicSlug == "maple-ridge-oh")).Id;
