@@ -107,7 +107,7 @@ namespace CivicBudget.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GovernmentId");
+                    b.HasIndex("GovernmentId", "TimestampUtc");
 
                     b.HasIndex("EntityName", "EntityId", "TimestampUtc");
 
@@ -159,6 +159,11 @@ namespace CivicBudget.Infrastructure.Persistence.Migrations
                     b.HasIndex("FundId");
 
                     b.HasIndex("GovernmentId");
+
+                    b.HasIndex("BudgetVersionId", "FundId", "AccountId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_BudgetLines_FundLevel_Unique")
+                        .HasFilter("[DepartmentId] IS NULL");
 
                     b.HasIndex("BudgetVersionId", "FundId", "DepartmentId", "AccountId")
                         .IsUnique()
@@ -562,7 +567,10 @@ namespace CivicBudget.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GovernmentId");
+                    b.HasIndex("GovernmentId", "FiscalYear")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PublishedBudgetSnapshots_OneActivePerYear")
+                        .HasFilter("[Status] = 1");
 
                     b.HasIndex("GovernmentSlug", "FiscalYear", "Status");
 

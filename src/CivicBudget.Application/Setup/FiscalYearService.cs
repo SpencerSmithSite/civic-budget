@@ -1,5 +1,6 @@
 using CivicBudget.Application.Common;
 using CivicBudget.Application.Persistence;
+using CivicBudget.Application.Security;
 using CivicBudget.Application.Tenancy;
 using CivicBudget.Domain.FiscalYears;
 using CivicBudget.Domain.Governments;
@@ -34,6 +35,7 @@ public interface IFiscalYearService
 public sealed class FiscalYearService(
     ICivicBudgetDbContextFactory dbFactory,
     ITenantContext tenant,
+    ICurrentUser currentUser,
     IValidator<CreateFiscalYearRequest> validator) : IFiscalYearService
 {
     public async Task<IReadOnlyList<FiscalYearDto>> ListAsync(CancellationToken ct = default)
@@ -42,6 +44,7 @@ public sealed class FiscalYearService(
         return await db.FiscalYears
             .OrderByDescending(fy => fy.Year)
             .Select(fy => new FiscalYearDto(
+                // FiscalYear.Label cannot be translated to SQL inside this projection, so its format is repeated here.
                 fy.Id, fy.Year, "FY" + fy.Year, fy.StartDate, fy.EndDate, fy.IsClosed,
                 db.BudgetVersions.Count(v => v.FiscalYearId == fy.Id)))
             .ToListAsync(ct);
@@ -49,6 +52,11 @@ public sealed class FiscalYearService(
 
     public async Task<Result<Guid>> CreateAsync(CreateFiscalYearRequest request, CancellationToken ct = default)
     {
+        if (!currentUser.IsFiscalAuthority())
+        {
+            return Result.Failure<Guid>(SetupNotAllowed.FiscalAuthority);
+        }
+
         if (await validator.ValidateToResultAsync(request, ct) is { } invalid)
         {
             return Result.Failure<Guid>(invalid.Errors);
@@ -72,6 +80,11 @@ public sealed class FiscalYearService(
 
     public async Task<Result> SetClosedAsync(Guid id, bool isClosed, CancellationToken ct = default)
     {
+        if (!currentUser.IsFiscalAuthority())
+        {
+            return Result.Failure(SetupNotAllowed.FiscalAuthority);
+        }
+
         await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
         FiscalYear? fiscalYear = await db.FiscalYears.FirstOrDefaultAsync(fy => fy.Id == id, ct);
         if (fiscalYear is null)

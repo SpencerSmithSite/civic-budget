@@ -1,3 +1,4 @@
+using CivicBudget.Application.Common;
 using CivicBudget.Domain.Common;
 using Microsoft.AspNetCore.Identity;
 
@@ -41,7 +42,7 @@ public sealed class ApplicationUser : IdentityUser
 /// </summary>
 public sealed class UserAvatar
 {
-    public const int MaxBytes = 512 * 1024;
+    public const int MaxBytes = UploadedImage.MaxBytes;
 
     public string UserId { get; set; } = string.Empty;
     public string ContentType { get; set; } = string.Empty;

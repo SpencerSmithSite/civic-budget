@@ -119,4 +119,42 @@ public class BudgetAmendmentTests
 
         Assert.Throws<DomainException>(() => original.MarkSupersededBy(amendment));
     }
+
+    private static BudgetVersion AdoptedAmendmentOf(BudgetVersion adopted)
+    {
+        BudgetVersion amendment = adopted.CreateAmendment("reason");
+        amendment.Propose();
+        amendment.Adopt("2027-02", "user-fd", DateTimeOffset.UtcNow);
+        return amendment;
+    }
+
+    [Fact]
+    public void Only_an_adopted_budget_can_be_superseded()
+    {
+        BudgetVersion draft = TestData.DraftVersion();
+        BudgetVersion amendment = AdoptedAmendmentOf(AdoptedWithData());
+
+        DomainException ex = Assert.Throws<DomainException>(() => draft.MarkSupersededBy(amendment));
+        Assert.Contains("Only an Adopted budget", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_amendment_from_another_fiscal_year_cannot_supersede()
+    {
+        BudgetVersion original = AdoptedWithData();
+        BudgetVersion otherYearsAmendment = AdoptedAmendmentOf(AdoptedWithData()); // a different FY2027 row
+
+        DomainException ex = Assert.Throws<DomainException>(() => original.MarkSupersededBy(otherYearsAmendment));
+        Assert.Contains("different fiscal year", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_budget_cannot_be_superseded_by_an_earlier_version()
+    {
+        BudgetVersion original = AdoptedWithData();
+        BudgetVersion amendment = AdoptedAmendmentOf(original);
+
+        DomainException ex = Assert.Throws<DomainException>(() => amendment.MarkSupersededBy(original));
+        Assert.Contains("later version", ex.Message, StringComparison.Ordinal);
+    }
 }

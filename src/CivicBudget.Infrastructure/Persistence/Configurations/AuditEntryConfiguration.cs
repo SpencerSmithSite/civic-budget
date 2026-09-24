@@ -19,6 +19,9 @@ internal sealed class AuditEntryConfiguration : IEntityTypeConfiguration<AuditEn
 
         // The history screen asks "everything about this entity, newest first".
         builder.HasIndex(a => new { a.EntityName, a.EntityId, a.TimestampUtc });
+        // The overview's "recent activity": the newest entries for one government. Without it every
+        // dashboard load sorts the whole audit trail, the fastest-growing table in the database.
+        builder.HasIndex(a => new { a.GovernmentId, a.TimestampUtc });
         builder.HasOne<Government>().WithMany().HasForeignKey(a => a.GovernmentId).OnDelete(DeleteBehavior.Cascade);
     }
 }

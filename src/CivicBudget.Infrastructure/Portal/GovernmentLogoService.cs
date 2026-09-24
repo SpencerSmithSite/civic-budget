@@ -16,8 +16,6 @@ public sealed class GovernmentLogoService(
     IPublishedSnapshotCacheInvalidator cache,
     TimeProvider clock) : IGovernmentLogoService
 {
-    private static readonly HashSet<string> AllowedTypes = new(StringComparer.OrdinalIgnoreCase) { "image/png", "image/jpeg", "image/webp", "image/svg+xml" };
-
     public async Task<PortalLogoDto?> GetAsync(CancellationToken ct = default)
     {
         Guid governmentId = RequireTenant();
@@ -35,14 +33,10 @@ public sealed class GovernmentLogoService(
             return Result.Failure("Only an Administrator can change the government's logo.");
         }
 
-        if (!AllowedTypes.Contains(contentType))
+        Result valid = UploadedImage.Validate(data, contentType, "logo");
+        if (valid.IsFailure)
         {
-            return Result.Failure("Choose a PNG, JPEG, WebP, or SVG image.");
-        }
-
-        if (data.Length == 0 || data.Length > GovernmentLogo.MaxBytes)
-        {
-            return Result.Failure($"The logo must be under {GovernmentLogo.MaxBytes / 1024} KB.");
+            return valid;
         }
 
         Guid governmentId = RequireTenant();

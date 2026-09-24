@@ -1,4 +1,5 @@
 using CivicBudget.Application.Common;
+using CivicBudget.Application.Security;
 using CivicBudget.Application.Setup;
 using CivicBudget.Domain.Accounts;
 using CivicBudget.Domain.Funds;
@@ -37,7 +38,7 @@ public class SetupServiceTests(SqlServerFixture fixture) : IAsyncLifetime
     public async Task Fund_codes_are_unique_per_government_not_globally()
     {
         // Both seeded tenants already have a "1000" General fund; that is allowed. A second "1000" in one tenant is not.
-        await using AsyncServiceScope scope = _database.CreateScope(tenant: _mapleRidge);
+        await using AsyncServiceScope scope = _database.CreateScopeAs(Roles.Admin, _mapleRidge);
         IFundService funds = scope.ServiceProvider.GetRequiredService<IFundService>();
 
         Result<Guid> duplicate = await funds.SaveAsync(new SaveFundRequest(null, "1000", "Another General", FundCategory.General, null));
@@ -55,8 +56,8 @@ public class SetupServiceTests(SqlServerFixture fixture) : IAsyncLifetime
     [Fact]
     public async Task Lists_are_scoped_to_the_tenant_of_the_scope()
     {
-        await using AsyncServiceScope maple = _database.CreateScope(tenant: _mapleRidge);
-        await using AsyncServiceScope pine = _database.CreateScope(tenant: _pineHollow);
+        await using AsyncServiceScope maple = _database.CreateScopeAs(Roles.Admin, _mapleRidge);
+        await using AsyncServiceScope pine = _database.CreateScopeAs(Roles.Admin, _pineHollow);
 
         IReadOnlyList<DepartmentDto> mapleDepartments = await maple.ServiceProvider.GetRequiredService<IDepartmentService>().ListAsync(includeInactive: true);
         IReadOnlyList<DepartmentDto> pineDepartments = await pine.ServiceProvider.GetRequiredService<IDepartmentService>().ListAsync(includeInactive: true);
@@ -68,7 +69,7 @@ public class SetupServiceTests(SqlServerFixture fixture) : IAsyncLifetime
     [Fact]
     public async Task Account_type_cannot_change_once_the_account_has_budget_lines()
     {
-        await using AsyncServiceScope scope = _database.CreateScope(tenant: _mapleRidge);
+        await using AsyncServiceScope scope = _database.CreateScopeAs(Roles.Admin, _mapleRidge);
         IAccountService accounts = scope.ServiceProvider.GetRequiredService<IAccountService>();
         AccountDto salaries = (await accounts.ListAsync(includeInactive: false)).Single(a => a.Code == "5110");
 
@@ -83,7 +84,7 @@ public class SetupServiceTests(SqlServerFixture fixture) : IAsyncLifetime
     [Fact]
     public async Task Fiscal_years_follow_the_governments_start_month_and_cannot_repeat()
     {
-        await using AsyncServiceScope scope = _database.CreateScope(tenant: _pineHollow); // July start
+        await using AsyncServiceScope scope = _database.CreateScopeAs(Roles.Admin, _pineHollow); // July start
         IFiscalYearService fiscalYears = scope.ServiceProvider.GetRequiredService<IFiscalYearService>();
 
         Result<Guid> created = await fiscalYears.CreateAsync(new CreateFiscalYearRequest(2028));
@@ -100,7 +101,7 @@ public class SetupServiceTests(SqlServerFixture fixture) : IAsyncLifetime
     [Fact]
     public async Task Public_slug_must_be_unique_across_governments()
     {
-        await using AsyncServiceScope scope = _database.CreateScope(tenant: _pineHollow);
+        await using AsyncServiceScope scope = _database.CreateScopeAs(Roles.Admin, _pineHollow);
         IGovernmentSettingsService settings = scope.ServiceProvider.GetRequiredService<IGovernmentSettingsService>();
 
         Result taken = await settings.UpdateAsync(new UpdateGovernmentSettingsRequest("Pine Hollow Township", "maple-ridge-oh", AppropriationLimitMode.Warn, null, 4, 3, 4, "-", "Program"));
@@ -116,5 +117,27 @@ public class SetupServiceTests(SqlServerFixture fixture) : IAsyncLifetime
         Assert.Equal(new AccountNumberFormat(3, 3, 4, "-", "Department"), after.AccountNumberFormat); // a county-style chart, saved as a value
         Assert.Equal("pine-hollow", after.PublicSlug);
         Assert.Equal(AppropriationLimitMode.Block, after.AppropriationLimitMode);
+    }
+
+    [Fact]
+    public async Task Setup_changes_need_the_fiscal_authority_and_settings_need_an_administrator()
+    {
+        await using AsyncServiceScope viewer = _database.CreateScopeAs(Roles.Viewer, _mapleRidge);
+        await using AsyncServiceScope head = _database.CreateScopeAs(Roles.DepartmentHead, _mapleRidge);
+        await using AsyncServiceScope officer = _database.CreateScopeAs(Roles.FinanceDirector, _mapleRidge);
+        var fund = new SaveFundRequest(null, "2099", "Viewer Fund", FundCategory.SpecialRevenue, null);
+
+        Assert.True((await viewer.ServiceProvider.GetRequiredService<IFundService>().SaveAsync(fund)).IsFailure);
+        Assert.True((await head.ServiceProvider.GetRequiredService<IFundService>().SaveAsync(fund)).IsFailure);
+        Assert.True((await viewer.ServiceProvider.GetRequiredService<IAccountService>().SetActiveAsync(Guid.CreateVersion7(), false)).IsFailure);
+        Assert.True((await viewer.ServiceProvider.GetRequiredService<IDepartmentService>().SetActiveAsync(Guid.CreateVersion7(), false)).IsFailure);
+        Assert.True((await viewer.ServiceProvider.GetRequiredService<IFiscalYearService>().CreateAsync(new CreateFiscalYearRequest(2031))).IsFailure);
+
+        IGovernmentSettingsService settings = officer.ServiceProvider.GetRequiredService<IGovernmentSettingsService>();
+        GovernmentSettingsDto current = await settings.GetAsync();
+        Result officerSettings = await settings.UpdateAsync(new UpdateGovernmentSettingsRequest(current.Name, current.PublicSlug, current.AppropriationLimitMode, current.Description, 4, 3, 4, "-", "Department"));
+        Assert.Contains("Only an Administrator", officerSettings.Errors.Single().Message, StringComparison.Ordinal);
+
+        Assert.True((await officer.ServiceProvider.GetRequiredService<IFundService>().SaveAsync(fund with { Name = "Officer Fund" })).IsSuccess);
     }
 }

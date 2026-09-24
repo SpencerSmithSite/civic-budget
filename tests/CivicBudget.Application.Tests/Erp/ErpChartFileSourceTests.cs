@@ -56,6 +56,21 @@ public class ErpChartFileSourceTests
     }
 
     [Fact]
+    public void A_code_listed_twice_names_both_rows()
+    {
+        Result<ErpChart> result = _source.Read("chart.csv", Csv(
+            "Kind,Code,Name,Category",
+            "Fund,1000,General Fund,General",
+            "Fund,1000,General Fund again,General",
+            "Department,110,Police,",
+            "Program,110,Police again,"));
+
+        Assert.True(result.IsFailure);
+        Assert.Contains(result.Errors, e => e.Message == "Row 3: fund 1000 is listed twice (first on row 2).");
+        Assert.Contains(result.Errors, e => e.Message == "Row 5: department 110 is listed twice (first on row 4).");
+    }
+
+    [Fact]
     public void Rejects_files_that_are_not_a_chart_export()
     {
         Assert.Contains("Kind, Code, and Name", _source.Read("x.csv", Csv("Fund,Amount", "1000,5")).Errors.Single().Message, StringComparison.Ordinal);

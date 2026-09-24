@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using CivicBudget.Application;
+using CivicBudget.Application.Security;
 using CivicBudget.Infrastructure;
 using CivicBudget.Infrastructure.Persistence;
 using CivicBudget.Infrastructure.Persistence.Interceptors;
@@ -100,6 +101,17 @@ public sealed class TestDatabase
         }
 
         return scope;
+    }
+
+    /// <summary>A scope signed in as a test user holding one role in one government.</summary>
+    public AsyncServiceScope CreateScopeAs(string role, Guid governmentId)
+    {
+        var identity = new ClaimsIdentity("Test");
+        identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, "user-" + role));
+        identity.AddClaim(new Claim(ClaimNames.DisplayName, "Test " + role));
+        identity.AddClaim(new Claim(ClaimTypes.Role, role));
+        identity.AddClaim(new Claim(ClaimNames.GovernmentId, governmentId.ToString()));
+        return CreateScope(user: new ClaimsPrincipal(identity));
     }
 }
 

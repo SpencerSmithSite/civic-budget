@@ -71,7 +71,8 @@ else if (years is not null)
     protected override async Task OnInitializedAsync()
     {
         IReadOnlyList<YearTotalsDto> all = await Snapshots.YearOverYearAsync(Slug);
-        years = all.Count == 0 ? null : all;
+        // The page hangs off one year's budget (the crumb links back to it), so that year must be published.
+        years = all.Any(y => y.FiscalYear == Year) ? all : null;
         loaded = true;
     }
 }

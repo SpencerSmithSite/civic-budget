@@ -218,3 +218,14 @@ Order: 9a → 9b → 9c → 9d. Each is a PR with the usual report; approve befo
 - [x] Azure startup probe every 2s; Docker healthcheck start period 15s
 - [x] Tests (middleware routing, page content, startup health check); ADR-0031, walkthrough 18
 - [x] Spencer approves Phase 16 (2026-09-21)
+
+## Phase 17 — Maintenance  `phase-17-maintenance`
+- [x] Five parallel reviews by layer (domain/app, infrastructure, admin UI, shared UI/portal/CSS, tests/CI), each finding verified
+- [x] The app used as every demo user (`scripts/screenshots/role-sweep.mjs`), top findings reproduced in a browser before fixing
+- [x] Security: open redirect, password reuse, export gate, uploads, CSV formulas, setup service roles, cache bypass, anonymous DB probe
+- [x] Admin UI: refresh after Func callbacks, route-parameter loads, paged cards, amount cell, error boundary, double submits, races
+- [x] Rules: ERP retype, closed years, audit length, import padding and commas, slug moves, owned-value audit
+- [x] Performance: portal load memo, cache keys, edit reloads, indexes, image size, CI cache
+- [x] Tests: order-independent databases, vacuous asserts, missing rule and policy coverage; ADR-0032, walkthrough 19
+- [ ] Spencer answers the four open questions (walkthrough 19, section 6)
+- [ ] Spencer approves Phase 17

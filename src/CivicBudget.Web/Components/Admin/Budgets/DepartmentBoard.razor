@@ -34,20 +34,26 @@ else
     <div class="cb-kpis">
         <KpiCard Label="Submitted" Value="@($"{workspace.DepartmentsSubmitted} of {workspace.DepartmentRequests.Count}")"
                  Tone="@(workspace.DepartmentRequests.Count > 0 && workspace.DepartmentsSubmitted == workspace.DepartmentRequests.Count ? "ok" : "")"
-                 Detail="@(returned > 0 ? $"{returned} returned for changes" : inProgress > 0 ? $"{inProgress} still in progress" : "Every department is in")" />
+                 Detail="@(workspace.DepartmentRequests.Count == 0 ? "No departments yet" : returned > 0 ? $"{returned} returned for changes" : inProgress > 0 ? $"{inProgress} still in progress" : "Every department is in")" />
         <KpiCard Label="@($"FY{workspace.Version.Year} requests")" Value="@Display.Money(workspace.DepartmentRequests.Sum(r => r.Amount))" Detail="Appropriations across the departments shown" />
         <KpiCard Label="@($"Change vs FY{workspace.Version.Year - 1}")" Value="@Display.SignedChange(totalChange)" Detail="@Display.Percent(Domain.Common.Money.PercentChange(workspace.DepartmentRequests.Sum(r => r.CurrentYearBudget), workspace.DepartmentRequests.Sum(r => r.Amount)))"
                  DetailTone="@(totalChange < 0 ? "down" : totalChange > 0 ? "up" : "")" />
     </div>
 
     <div class="card">
+        @if (workspace.DepartmentRequests.Count == 0)
+        {
+            <EmptyState Icon="bi-diagram-3" Title="No departments to show" Text="There are no active departments in this budget that you can see." />
+        }
+        else
+        {
         <div class="cb-cards d-md-none">
             @foreach (DepartmentRequestDto r in workspace.DepartmentRequests)
             {
                 <ListCard Code="@r.DepartmentCode" Title="@r.DepartmentName" Href="@($"admin/budgets/{VersionId}/departments/{r.DepartmentId}")" Menu="@RowActions(r)">
-                    <Summary>@r.LineCount lines · FY@(workspace.Version.Year - 1) @r.CurrentYearBudget.ToString("N0") · <span class="@(r.DollarChange < 0 ? "cb-neg" : r.DollarChange > 0 ? "cb-pos" : "")">@Display.SignedChange(r.DollarChange) (@Display.Percent(r.PercentChange))</span></Summary>
+                    <Summary>@r.LineCount lines · FY@(workspace.Version.Year - 1) @Display.WholeAmount(r.CurrentYearBudget) · <span class="@(r.DollarChange < 0 ? "cb-neg" : r.DollarChange > 0 ? "cb-pos" : "")">@Display.SignedChange(r.DollarChange) (@Display.Percent(r.PercentChange))</span></Summary>
                     <ChildContent><div class="cb-list-card-chips"><StatusPill Request="r.Status" />@StatusNote(r)</div></ChildContent>
-                    <Aside><span class="cb-num-lg">@r.Amount.ToString("N0")</span></Aside>
+                    <Aside><span class="cb-num-lg">@Display.WholeAmount(r.Amount)</span></Aside>
                 </ListCard>
             }
         </div>
@@ -70,8 +76,8 @@ else
                         <tr>
                             <td class="cb-wrap"><a href="admin/budgets/@VersionId/departments/@r.DepartmentId"><span class="cb-code">@r.DepartmentCode</span> @r.DepartmentName</a></td>
                             <td class="cb-num">@r.LineCount</td>
-                            <td class="cb-num">@r.CurrentYearBudget.ToString("N2")</td>
-                            <td class="cb-num">@r.Amount.ToString("N2")</td>
+                            <td class="cb-num">@Display.Amount(r.CurrentYearBudget)</td>
+                            <td class="cb-num">@Display.Amount(r.Amount)</td>
                             <td class="cb-num @(r.DollarChange < 0 ? "cb-neg" : r.DollarChange > 0 ? "cb-pos" : "")">@Display.SignedChange(r.DollarChange) <small class="text-secondary">@Display.Percent(r.PercentChange)</small></td>
                             <td class="cb-dept-status"><StatusPill Request="r.Status" />@StatusNote(r)</td>
                             <td class="text-end">@RowActions(r)</td>
@@ -80,6 +86,7 @@ else
                 </tbody>
             </table>
         </div>
+        }
     </div>
 
     <ConfirmDialog @ref="returnDialog" Title="@(toReturn is null ? "Return this request?" : $"Return {toReturn.DepartmentName}'s request?")" ConfirmText="Return to department" ConfirmClass="btn-warning"

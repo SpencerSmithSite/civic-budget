@@ -30,6 +30,13 @@ public static class PublishedSnapshotModel
             // The portal's main lookup: "the active snapshot for this slug and year".
             snapshot.HasIndex(s => new { s.GovernmentSlug, s.FiscalYear, s.Status });
 
+            // One budget per year on the portal. Publishing checks first; this stops two publishes
+            // that race past that check from leaving the portal to pick one at random.
+            snapshot.HasIndex(s => new { s.GovernmentId, s.FiscalYear })
+                .IsUnique()
+                .HasFilter($"[Status] = {(int)SnapshotStatus.Active}")
+                .HasDatabaseName("IX_PublishedBudgetSnapshots_OneActivePerYear");
+
             snapshot.HasMany(s => s.Lines).WithOne().HasForeignKey(l => l.SnapshotId).OnDelete(DeleteBehavior.Cascade);
             snapshot.Navigation(s => s.Lines).UsePropertyAccessMode(PropertyAccessMode.Field).HasField("_lines");
             snapshot.HasMany(s => s.Funds).WithOne().HasForeignKey(f => f.SnapshotId).OnDelete(DeleteBehavior.Cascade);

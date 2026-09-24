@@ -24,7 +24,7 @@
             </div>
         </div>
         <div class="cb-report-meta text-end">
-            Prepared @Header.GeneratedAtUtc.ToLocalTime().ToString("MMMM d, yyyy h:mm tt")<br />
+            Prepared @Display.Timestamp(Header.GeneratedAtUtc)<br />
             by @Header.GeneratedBy
         </div>
     </div>

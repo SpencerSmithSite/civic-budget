@@ -1,9 +1,12 @@
 using System.Security.Claims;
+using CivicBudget.Application.Common;
 using CivicBudget.Application.Portal;
 using CivicBudget.Application.Publishing;
 using CivicBudget.Application.Security;
+using CivicBudget.Application.Setup;
 using CivicBudget.Domain.Accounts;
 using CivicBudget.Domain.Funds;
+using CivicBudget.Domain.Governments;
 using CivicBudget.Infrastructure.Persistence;
 using CivicBudget.Infrastructure.Seed;
 using Microsoft.EntityFrameworkCore;
@@ -221,9 +224,44 @@ public class SnapshotQueryServiceTests(SqlServerFixture fixture) : IAsyncLifetim
         Assert.True((await publishing.UnpublishAsync(only.Id)).IsSuccess);
 
         // The row still exists for the auditors; the portal context filters it out, so the service never sees it.
+        // A fresh scope, as the next portal request would have: one request remembers what it loaded.
+        await using AsyncServiceScope next = _database.CreateScope();
+        portal = next.ServiceProvider.GetRequiredService<ISnapshotQueryService>();
         Assert.Null(await portal.GetBudgetAsync(Pine, null));
         Assert.Empty(await portal.YearOverYearAsync(Pine));
         Assert.Empty(await portal.GetLinesAsync(Pine, only.FiscalYear));
         Assert.DoesNotContain(await portal.ListGovernmentsAsync(), g => g.Slug == Pine);
+    }
+
+    [Fact]
+    public async Task Changing_the_public_address_moves_the_published_budgets_with_it()
+    {
+        // Its own database: this test changes Maple Ridge, which the rest of the class reads.
+        TestDatabase database = await fixture.CreateDatabaseAsync("CivicBudget_Slug_" + Guid.NewGuid().ToString("N")[..8]);
+        await using (AsyncServiceScope seed = database.CreateScope())
+        {
+            await seed.ServiceProvider.GetRequiredService<DevelopmentSeeder>().SeedAsync();
+        }
+
+        Guid maple;
+        await using (CivicBudgetDbContext db = database.CreateContext(tenant: null))
+        {
+            maple = (await db.Governments.SingleAsync(g => g.PublicSlug == Maple)).Id;
+        }
+
+        await using (AsyncServiceScope admin = database.CreateScopeAs(Roles.Admin, maple))
+        {
+            IGovernmentSettingsService settings = admin.ServiceProvider.GetRequiredService<IGovernmentSettingsService>();
+            GovernmentSettingsDto current = await settings.GetAsync();
+            AccountNumberFormat format = current.AccountNumberFormat;
+            Result renamed = await settings.UpdateAsync(new UpdateGovernmentSettingsRequest(current.Name, "maple-ridge-village", current.AppropriationLimitMode, current.Description,
+                format.FundWidth, format.DepartmentWidth, format.ObjectWidth, format.Separator, format.DepartmentLabel));
+            Assert.True(renamed.IsSuccess, string.Join("; ", renamed.Errors.Select(e => e.Message)));
+        }
+
+        await using AsyncServiceScope scope = database.CreateScope();
+        ISnapshotQueryService portal = scope.ServiceProvider.GetRequiredService<ISnapshotQueryService>();
+        Assert.NotNull(await portal.GetBudgetAsync("maple-ridge-village", 2026));
+        Assert.Null(await portal.GetBudgetAsync(Maple, 2026));   // the old address no longer answers, so no one else can inherit it half-used
     }
 }

@@ -1,11 +1,13 @@
 @implements IDisposable
 @inject ToastService Toasts
 
-@* Renders queued toasts top-right and dismisses each after four seconds. Lives once in AdminLayout. *@
+@* Renders queued toasts top-right. Confirmations go after four seconds; a failure stays for twelve
+   and is announced as an alert, because "Save failed" is the one message nobody can afford to miss.
+   Lives once in AdminLayout. *@
 <div class="cb-toasts" aria-live="polite" aria-atomic="false">
     @foreach (ToastMessage toast in Toasts.Toasts)
     {
-        <div class="cb-toast @toast.Kind.ToString().ToLowerInvariant()" role="status">
+        <div class="cb-toast @toast.Kind.ToString().ToLowerInvariant()" role="@(toast.Kind == ToastKind.Danger ? "alert" : "status")">
             <i class="bi @(toast.Kind switch { ToastKind.Success => "bi-check-circle-fill", ToastKind.Warning => "bi-exclamation-triangle-fill", _ => "bi-x-circle-fill" })" aria-hidden="true"></i>
             <span>@toast.Text</span>
             <button type="button" class="btn-close" aria-label="Dismiss" @onclick="() => Toasts.Remove(toast.Id)"></button>
@@ -29,7 +31,7 @@
                 {
                     timer.Dispose();
                 }
-            }), null, TimeSpan.FromSeconds(4), Timeout.InfiniteTimeSpan);
+            }), null, TimeSpan.FromSeconds(toast.Kind == ToastKind.Danger ? 12 : 4), Timeout.InfiniteTimeSpan);
         }
 
         InvokeAsync(StateHasChanged);

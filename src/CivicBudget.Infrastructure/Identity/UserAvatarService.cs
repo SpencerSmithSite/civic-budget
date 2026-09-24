@@ -13,7 +13,6 @@ public sealed class UserAvatarService(
     ICurrentUser currentUser,
     TimeProvider clock) : IUserAvatarService
 {
-    private static readonly HashSet<string> AllowedTypes = new(StringComparer.OrdinalIgnoreCase) { "image/png", "image/jpeg", "image/webp" };
 
     private readonly Dictionary<string, long?> _versions = [];
 
@@ -56,14 +55,10 @@ public sealed class UserAvatarService(
             return Result.Failure("Sign in to set a profile picture.");
         }
 
-        if (!AllowedTypes.Contains(contentType))
+        Result valid = UploadedImage.Validate(data, contentType, "picture");
+        if (valid.IsFailure)
         {
-            return Result.Failure("Choose a PNG, JPEG, or WebP image.");
-        }
-
-        if (data.Length == 0 || data.Length > UserAvatar.MaxBytes)
-        {
-            return Result.Failure($"The picture must be under {UserAvatar.MaxBytes / 1024} KB after resizing.");
+            return valid;
         }
 
         Guid governmentId = RequireTenant();

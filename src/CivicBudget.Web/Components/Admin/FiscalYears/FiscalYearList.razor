@@ -56,7 +56,7 @@
                         <ValidationMessage For="() => model.Year" class="text-danger" />
                         <div class="form-text">The label year is the calendar year in which the fiscal year ends.</div>
                     </div>
-                    <button type="submit" class="btn btn-primary">Add year</button>
+                    <button type="submit" class="btn btn-primary" disabled="@creating">Add year</button>
                 </EditForm>
             </div>
         </div>
@@ -103,16 +103,32 @@
 
     private async Task LoadAsync() => fiscalYears = await FiscalYearService.ListAsync();
 
+    private bool creating;
+
     private async Task CreateAsync()
     {
-        Result<Guid> created = await FiscalYearService.CreateAsync(new CreateFiscalYearRequest(model.Year));
-        result = created.IsSuccess ? null : created;
-        editContext.ApplyErrors(messages, created);
-        if (created.IsSuccess)
+        // A double click would otherwise send the same year twice: one success toast, one "already exists".
+        if (creating)
         {
-            Toasts.Success($"FY{model.Year} added.");
-            model.Year++;
-            await LoadAsync();
+            return;
+        }
+
+        creating = true;
+        try
+        {
+            Result<Guid> created = await FiscalYearService.CreateAsync(new CreateFiscalYearRequest(model.Year));
+            result = created.IsSuccess ? null : created;
+            editContext.ApplyErrors(messages, created);
+            if (created.IsSuccess)
+            {
+                Toasts.Success($"FY{model.Year} added.");
+                model.Year++;
+                await LoadAsync();
+            }
+        }
+        finally
+        {
+            creating = false;
         }
     }
 
@@ -141,6 +157,8 @@
         }
 
         await LoadAsync();
+        // OnConfirm is a Func, not an EventCallback, so Blazor does not re-render this page after it.
+        StateHasChanged();
         return true;
     }
 

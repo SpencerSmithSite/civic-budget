@@ -42,6 +42,10 @@ public sealed class DatabaseWaker(IServiceProvider services, StartupState state,
         }
         catch (Exception ex)
         {
+            // Without this the state would stay not ready with nothing left to flip it back: the
+            // quiet-spell check only starts from ready, so every page would get the waiting screen
+            // until the process restarted.
+            state.MarkWakeFailed();
             logger.LogError(ex, "The database did not answer; the next page request will try again.");
         }
     }

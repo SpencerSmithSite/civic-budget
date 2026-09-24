@@ -105,8 +105,7 @@ builder.Services.AddSingleton<IDatabaseWaker, DatabaseWaker>();
 builder.Services.AddHostedService<DatabaseStartupService>();
 
 builder.Services.AddHealthChecks()
-    .AddCheck<StartupHealthCheck>("startup", tags: ["startup", "ready"])
-    .AddDbContextCheck<CivicBudgetDbContext>("database", tags: ["ready"]);
+    .AddCheck<StartupHealthCheck>("startup", tags: ["startup"]);
 
 WebApplication app = builder.Build();
 
@@ -150,10 +149,11 @@ app.UseAntiforgery();
 
 // Liveness: the process is up (the platform's startup probe, so traffic arrives while the database
 // is still waking). Startup: migrations and seed are done, answered from memory for the waiting
-// page's poll. Readiness: that, plus a real round trip to the database.
+// page's poll. Neither touches the database on purpose: both are anonymous, and an endpoint that
+// opened a connection per call would let anyone keep the free serverless database awake until its
+// monthly allowance ran out (ADR-0031).
 app.MapHealthChecks("/health", new() { Predicate = _ => false });
 app.MapHealthChecks("/health/startup", new() { Predicate = check => check.Tags.Contains("startup") });
-app.MapHealthChecks("/health/ready", new() { Predicate = check => check.Tags.Contains("ready") });
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

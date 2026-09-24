@@ -89,7 +89,7 @@ else
                             <Avatar UserId="@Id" Name="@model.DisplayName" Version="avatarVersion" Size="56" />
                             <div>
                                 <div class="small text-secondary mb-2">Users upload their own picture; an administrator can only remove it.</div>
-                                <button type="button" class="btn btn-outline-danger btn-sm" @onclick="RemovePictureAsync"><i class="bi bi-trash me-1" aria-hidden="true"></i>Remove picture</button>
+                                <button type="button" class="btn btn-outline-danger btn-sm" @onclick="RemovePictureAsync" disabled="@removingPicture"><i class="bi bi-trash me-1" aria-hidden="true"></i>Remove picture</button>
                             </div>
                         </div>
                     </div>
@@ -105,7 +105,7 @@ else
                                 <InputText id="newPassword" type="password" class="form-control" @bind-Value="resetModel.NewPassword" autocomplete="new-password" />
                                 <ValidationMessage For="() => resetModel.NewPassword" class="text-danger" />
                             </div>
-                            <button type="submit" class="btn btn-outline-danger">Reset password</button>
+                            <button type="submit" class="btn btn-outline-danger" disabled="@resetting">Reset password</button>
                         </EditForm>
                     </div>
                 </div>
@@ -195,16 +195,32 @@ else
         editContext.ApplyErrors(messages, saved);
     }
 
+    private bool resetting;
+    private bool removingPicture;
+
     private async Task ResetPasswordAsync()
     {
-        resetMessage = null;
-        Result reset = await UserAdmin.ResetPasswordAsync(new ResetPasswordRequest(Id!, resetModel.NewPassword));
-        resetResult = reset.IsSuccess ? null : reset;
-        resetContext.ApplyErrors(resetMessages, reset);
-        if (reset.IsSuccess)
+        if (resetting)
         {
-            resetModel.NewPassword = "";
-            resetMessage = "Password reset. Share it with the user out of band; they must choose their own at their next sign-in.";
+            return;
+        }
+
+        resetting = true;
+        try
+        {
+            resetMessage = null;
+            Result reset = await UserAdmin.ResetPasswordAsync(new ResetPasswordRequest(Id!, resetModel.NewPassword));
+            resetResult = reset.IsSuccess ? null : reset;
+            resetContext.ApplyErrors(resetMessages, reset);
+            if (reset.IsSuccess)
+            {
+                resetModel.NewPassword = "";
+                resetMessage = "Password reset. Share it with the user out of band; they must choose their own at their next sign-in.";
+            }
+        }
+        finally
+        {
+            resetting = false;
         }
     }
 
@@ -224,15 +240,28 @@ else
 
     private async Task RemovePictureAsync()
     {
-        Result removed = await Avatars.RemoveAsync(Id!);
-        if (removed.IsSuccess)
+        if (removingPicture)
         {
-            avatarVersion = null;
-            Toasts.Success("Profile picture removed.");
+            return;
         }
-        else
+
+        removingPicture = true;
+        try
         {
-            Toasts.Danger(removed.Errors[0].Message);
+            Result removed = await Avatars.RemoveAsync(Id!);
+            if (removed.IsSuccess)
+            {
+                avatarVersion = null;
+                Toasts.Success("Profile picture removed.");
+            }
+            else
+            {
+                Toasts.Danger(removed.Errors[0].Message);
+            }
+        }
+        finally
+        {
+            removingPicture = false;
         }
     }
 }

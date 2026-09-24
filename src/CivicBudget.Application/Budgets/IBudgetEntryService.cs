@@ -1,4 +1,5 @@
 using CivicBudget.Application.Common;
+using CivicBudget.Domain.Common;
 using FluentValidation;
 
 namespace CivicBudget.Application.Budgets;
@@ -26,9 +27,10 @@ public sealed class AddBudgetLineRequestValidator : AbstractValidator<AddBudgetL
         RuleFor(r => r.BudgetVersionId).NotEmpty();
         RuleFor(r => r.FundId).NotEmpty();
         RuleFor(r => r.AccountId).NotEmpty();
-        RuleFor(r => r.Amount).GreaterThanOrEqualTo(0m).WithMessage("Budgeted amounts cannot be negative.");
-        RuleFor(r => r.PriorYearActual).GreaterThanOrEqualTo(0m);
-        RuleFor(r => r.CurrentYearBudget).GreaterThanOrEqualTo(0m);
+        RuleFor(r => r.Amount).GreaterThanOrEqualTo(0m).WithMessage("Budgeted amounts cannot be negative.")
+            .LessThanOrEqualTo(Money.MaxAmount).WithMessage(Money.TooLargeMessage);
+        RuleFor(r => r.PriorYearActual).GreaterThanOrEqualTo(0m).LessThanOrEqualTo(Money.MaxAmount).WithMessage(Money.TooLargeMessage);
+        RuleFor(r => r.CurrentYearBudget).GreaterThanOrEqualTo(0m).LessThanOrEqualTo(Money.MaxAmount).WithMessage(Money.TooLargeMessage);
         RuleFor(r => r.Justification).MaximumLength(Domain.Budgets.BudgetLine.JustificationMaxLength);
     }
 }

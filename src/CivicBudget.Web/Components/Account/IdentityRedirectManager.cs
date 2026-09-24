@@ -25,10 +25,13 @@ internal sealed class IdentityRedirectManager(NavigationManager navigationManage
     {
         uri ??= "";
 
-        // Prevent open redirects: anything that is not a relative URI is reduced to a path on this site.
-        if (!Uri.IsWellFormedUriString(uri, UriKind.Relative))
+        // Prevent open redirects. An absolute URL on this site becomes its path; anything else that is
+        // not local (another host, "//host", "/\host") goes to the home page rather than off the site.
+        if (!LocalUrl.IsLocal(uri))
         {
-            uri = navigationManager.ToBaseRelativePath(uri);
+            uri = uri.StartsWith(navigationManager.BaseUri, StringComparison.OrdinalIgnoreCase)
+                ? navigationManager.ToBaseRelativePath(uri)
+                : "";
         }
 
         navigationManager.NavigateTo(uri);

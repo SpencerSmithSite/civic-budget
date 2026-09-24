@@ -1,0 +1,66 @@
+@implements IDisposable
+
+@* Page controls for a list shown both as a QuickGrid (desktop) and as cards (phones). QuickGrid's own
+   Paginator re-renders only itself and the grid, so the cards, which read the same PaginationState,
+   stayed on the old page. This one raises PageChanged, which re-renders the page that owns both.
+   QuickGrid also moves the page index itself when a filter shrinks the list, so a change in the
+   total raises PageChanged too. *@
+@if (State.LastPageIndex is > 0)
+{
+    <div class="paginator">
+        <nav aria-label="@($"{Noun} pages")">
+            <button type="button" @onclick="() => GoAsync(0)" disabled="@(State.CurrentPageIndex == 0)" aria-label="First page"><i class="bi bi-chevron-bar-left" aria-hidden="true"></i></button>
+            <button type="button" @onclick="() => GoAsync(State.CurrentPageIndex - 1)" disabled="@(State.CurrentPageIndex == 0)" aria-label="Previous page"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+            <span aria-live="polite">Page <strong>@(State.CurrentPageIndex + 1)</strong> of <strong>@(State.LastPageIndex + 1)</strong></span>
+            <button type="button" @onclick="() => GoAsync(State.CurrentPageIndex + 1)" disabled="@(State.CurrentPageIndex >= State.LastPageIndex)" aria-label="Next page"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+            <button type="button" @onclick="() => GoAsync(State.LastPageIndex ?? 0)" disabled="@(State.CurrentPageIndex >= State.LastPageIndex)" aria-label="Last page"><i class="bi bi-chevron-bar-right" aria-hidden="true"></i></button>
+        </nav>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public PaginationState State { get; set; } = default!;
+
+    /// <summary>Raised after the page changes; the owning page passes a handler so it re-renders its cards.</summary>
+    [Parameter]
+    public EventCallback PageChanged { get; set; }
+
+    /// <summary>What is being paged, for the navigation's accessible name ("Funds pages").</summary>
+    [Parameter]
+    public string Noun { get; set; } = "List";
+
+    private PaginationState? subscribed;
+
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(subscribed, State))
+        {
+            Unsubscribe();
+            State.TotalItemCountChanged += OnTotalChanged;
+            subscribed = State;
+        }
+    }
+
+    private async Task GoAsync(int pageIndex)
+    {
+        await State.SetCurrentPageIndexAsync(pageIndex);
+        await PageChanged.InvokeAsync();
+    }
+
+    private void OnTotalChanged(object? sender, int? total) => _ = InvokeAsync(async () =>
+    {
+        StateHasChanged();
+        await PageChanged.InvokeAsync();
+    });
+
+    private void Unsubscribe()
+    {
+        if (subscribed is not null)
+        {
+            subscribed.TotalItemCountChanged -= OnTotalChanged;
+        }
+    }
+
+    public void Dispose() => Unsubscribe();
+}

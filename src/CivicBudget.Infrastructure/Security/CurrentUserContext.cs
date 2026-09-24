@@ -12,8 +12,8 @@ namespace CivicBudget.Infrastructure.Security;
 /// Who fills it in depends on where the scope came from:
 /// the Web project's CurrentUserMiddleware (HTTP requests, including static SSR pages),
 /// its CurrentUserCircuitHandler (Interactive Server circuits),
-/// the public portal's slug resolver (Phase 5, tenant only, no user),
-/// and the seeder and tests, which call <see cref="SetTenant"/> directly.
+/// and the seeder and tests, which call <see cref="SetTenant"/> directly. The public portal does not
+/// use it: it reads through PublicPortalDbContext, which has no tenant.
 /// </para>
 /// </summary>
 public sealed class CurrentUserContext : ICurrentUser, ITenantContext

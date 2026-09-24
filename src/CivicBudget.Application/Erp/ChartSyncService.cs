@@ -44,6 +44,12 @@ public sealed class ChartSyncService(
 
         await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
         Local local = await LoadLocalAsync(db, ct);
+        List<Account> accounts = await db.Accounts.AsNoTracking().ToListAsync(ct);
+        if (await RetypedAccountsInUseAsync(db, chart.Value, accounts, ct) is { Count: > 0 } retyped)
+        {
+            return Result.Failure<ChartSyncPreviewDto>(RetypeRefusal(retyped));
+        }
+
         return Result.Success(new ChartSyncPreviewDto(chartSource.Name, fileName, ChartDiff.Compute(chart.Value, local.Funds, local.Departments, local.Objects), chart.Value.NumberFormat));
     }
 
@@ -67,6 +73,11 @@ public sealed class ChartSyncService(
         List<Department> departments = await db.Departments.ToListAsync(ct);
         List<Account> accounts = await db.Accounts.ToListAsync(ct);
         IReadOnlyList<ChartChange> changes = ChartDiff.Compute(chart, ToLocal(funds), ToLocal(departments), ToLocal(accounts));
+        if (await RetypedAccountsInUseAsync(db, chart, accounts, ct) is { Count: > 0 } retyped)
+        {
+            return Result.Failure<ChartSyncDto>(RetypeRefusal(retyped));
+        }
+
         if (changes.All(c => c.Change == ChartChangeKind.Unchanged))
         {
             return Result.Failure<ChartSyncDto>("The chart already matches the file; nothing to sync.");
@@ -91,11 +102,13 @@ public sealed class ChartSyncService(
         int added = changes.Count(c => c.Change == ChartChangeKind.Add), updated = changes.Count(c => c.Change == ChartChangeKind.Update);
         int deactivated = changes.Count(c => c.Change == ChartChangeKind.Deactivate), reactivated = changes.Count(c => c.Change == ChartChangeKind.Reactivate);
         int unchanged = changes.Count(c => c.Change == ChartChangeKind.Unchanged);
-        var sync = new ChartSync(government.Id, chartSource.Name, fileName, clock.GetUtcNow(), currentUser.UserId!, currentUser.DisplayName ?? currentUser.UserId!,
+        // The name comes from the user's computer; the log keeps what fits rather than refusing the sync.
+        string loggedName = fileName.Length <= ChartSync.NameMaxLength ? fileName : fileName[..(ChartSync.NameMaxLength - 1)] + "…";
+        var sync = new ChartSync(government.Id, chartSource.Name, loggedName, clock.GetUtcNow(), currentUser.UserId!, currentUser.DisplayName ?? currentUser.UserId!,
             added, updated, deactivated, reactivated, unchanged, JsonSerializer.Serialize(changes.Where(c => c.Change != ChartChangeKind.Unchanged), JsonOptions));
         db.ChartSyncs.Add(sync);
         db.AuditEntries.Add(AuditEntry.Event(government.Id, nameof(Government), government.Id,
-            $"Synced the chart of accounts from {chartSource.Name} ({fileName}): {added} added, {updated} updated, {deactivated} deactivated, {reactivated} reactivated",
+            $"Synced the chart of accounts from {chartSource.Name} ({loggedName}): {added} added, {updated} updated, {deactivated} deactivated, {reactivated} reactivated",
             currentUser.UserId!, currentUser.DisplayName ?? "", clock.GetUtcNow()));
         await db.SaveChangesAsync(ct);
         return Result.Success(ToDto(sync));
@@ -229,6 +242,31 @@ public sealed class ChartSyncService(
             }
         }
     }
+
+    /// <summary>
+    /// Codes whose account type the file would change although budget lines use them. The same rule
+    /// as editing an account by hand (AccountService): a revenue account turning into an expenditure
+    /// would move money between resources and appropriations in every version, adopted ones included,
+    /// because balances read the type from the account.
+    /// </summary>
+    private static async Task<List<string>> RetypedAccountsInUseAsync(ICivicBudgetDbContext db, ErpChart chart, List<Account> accounts, CancellationToken ct)
+    {
+        List<Account> retyped = accounts
+            .Where(a => chart.Objects.FirstOrDefault(o => o.Code.Equals(a.Code, StringComparison.OrdinalIgnoreCase)) is { } erp && erp.Type != a.Type)
+            .ToList();
+        if (retyped.Count == 0)
+        {
+            return [];
+        }
+
+        List<Guid> ids = retyped.Select(a => a.Id).ToList();
+        HashSet<Guid> used = (await db.BudgetLines.Where(l => ids.Contains(l.AccountId)).Select(l => l.AccountId).Distinct().ToListAsync(ct)).ToHashSet();
+        return retyped.Where(a => used.Contains(a.Id)).Select(a => a.Code).Order(StringComparer.Ordinal).ToList();
+    }
+
+    private static string RetypeRefusal(List<string> codes) =>
+        $"The file changes the account type of {string.Join(", ", codes)}, which budget lines already use. " +
+        "Retire those codes in the ERP and add new ones instead; changing the type would move money between revenues and appropriations in every budget, adopted ones included.";
 
     private static ChartSyncDto ToDto(ChartSync s) => new(
         s.Id, s.SourceName, s.FileName, s.SyncedAtUtc, s.UserName, s.Added, s.Updated, s.Deactivated, s.Reactivated, s.Unchanged,

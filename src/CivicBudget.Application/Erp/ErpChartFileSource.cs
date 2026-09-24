@@ -47,6 +47,9 @@ public sealed class ErpChartFileSource(ISpreadsheetReader spreadsheetReader) : I
         var departments = new List<ErpDepartment>();
         var objects = new List<ErpObject>();
         var problems = new List<string>();
+        // A code listed twice would become two funds (or accounts) with the same code, which the
+        // database refuses only at save time; catch it here and name both rows.
+        var firstRowOf = new Dictionary<(string Kind, string Code), int>();
 
         for (int i = 0; i < file.Rows.Count; i++)
         {
@@ -61,6 +64,19 @@ public sealed class ErpChartFileSource(ISpreadsheetReader spreadsheetReader) : I
             if (c is null || n is null)
             {
                 problems.Add($"Row {row}: Code and Name are required.");
+                continue;
+            }
+
+            string? kindGroup = Normalize(k) switch
+            {
+                "fund" => "fund",
+                "department" or "program" => "department",
+                "object" or "account" => "object",
+                _ => null,
+            };
+            if (kindGroup is not null && !firstRowOf.TryAdd((kindGroup, c.ToUpperInvariant()), row))
+            {
+                problems.Add($"Row {row}: {kindGroup} {c} is listed twice (first on row {firstRowOf[(kindGroup, c.ToUpperInvariant())]}).");
                 continue;
             }
 

@@ -73,9 +73,12 @@ public sealed class AuditEntry : Entity, ITenantOwned
         EntityId = entityId;
         Kind = kind;
         PropertyName = propertyName;
-        OldValue = Truncate(oldValue);
-        NewValue = Truncate(newValue);
-        Description = description is null ? null : Guard.MaxLength(description, DescriptionMaxLength, nameof(description));
+        OldValue = Truncate(oldValue, ValueMaxLength);
+        NewValue = Truncate(newValue, ValueMaxLength);
+        // An event's text often quotes what a user typed (a return note, an amendment reason), which
+        // can be as long as the field allows; a history line that fails to save would take the
+        // user's action down with it, so it is cut like a value instead of rejected.
+        Description = Truncate(description, DescriptionMaxLength);
         UserId = Guard.MaxLength(userId, UserIdMaxLength, nameof(userId));
         UserName = Guard.MaxLength(userName, UserNameMaxLength, nameof(userName));
         TimestampUtc = timestampUtc;
@@ -102,7 +105,7 @@ public sealed class AuditEntry : Entity, ITenantOwned
     public static AuditEntry Event(Guid governmentId, string entityName, Guid entityId, string description, string userId, string userName, DateTimeOffset nowUtc) =>
         new(governmentId, entityName, entityId, AuditKind.Event, null, null, null, description, userId, userName, nowUtc);
 
-    /// <summary>Values are for humans reading history, not for replay; long text is cut rather than rejected.</summary>
-    private static string? Truncate(string? value) =>
-        value is { Length: > ValueMaxLength } ? value[..(ValueMaxLength - 1)] + "…" : value;
+    /// <summary>Values and descriptions are for humans reading history, not for replay; long text is cut rather than rejected.</summary>
+    private static string? Truncate(string? value, int maxLength) =>
+        value is { } text && text.Length > maxLength ? text[..(maxLength - 1)] + "…" : value;
 }

@@ -6,7 +6,7 @@
     {
         string css = index < Current ? "done" : index == Current ? "current" : "";
         <li class="cb-step @css" aria-current="@(index == Current ? "step" : null)">
-            <span class="n" aria-hidden="true">@(index < Current ? "✓" : (index + 1).ToString())</span>@label
+            <span class="n" aria-hidden="true">@(index < Current ? "✓" : (index + 1).ToString())</span>@label@if (index < Current) { <span class="visually-hidden"> (completed)</span> }
         </li>
     }
 </ol>

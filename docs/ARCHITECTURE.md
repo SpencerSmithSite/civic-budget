@@ -290,7 +290,7 @@ or bypass attempts, not user input errors.
 |---|---|
 | Logging | Built-in `ILogger` with the JSON console formatter; scopes carry `GovernmentId`, `UserId`, `TraceId`. |
 | Errors | `UseExceptionHandler("/error")` with a friendly page; `ProblemDetails` for API-style endpoints (downloads). |
-| Health | `/health` (liveness) and `/health/ready` (checks SQL connectivity). |
+| Health | `/health` (liveness) and `/health/startup` (migrations and seed done). Neither queries the database; see ADR-0031. |
 | Config & secrets | `appsettings.json` for non-secrets; `dotnet user-secrets` locally; AWS Secrets Manager → environment at container start. |
 | Output caching | `AddOutputCache` with `PortalOutputCachePolicy` as the base policy: `GET /transparency/**` only, keyed by path + query, tagged `portal:{slug}`, evicted on publish/unpublish. `PortalResponseMiddleware` rewrites Blazor's `no-store` to `public, max-age=600` and drops the antiforgery cookie (ADR-0021). |
 | Time | `IClock` abstraction (`TimeProvider`) so tests control "now". |

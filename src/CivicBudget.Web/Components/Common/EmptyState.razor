@@ -1,6 +1,13 @@
 <div class="cb-empty">
     <i class="bi @Icon" aria-hidden="true"></i>
-    <h2>@Title</h2>
+    @if (IsPageHeading)
+    {
+        <h1>@Title</h1>
+    }
+    else
+    {
+        <h2>@Title</h2>
+    }
     <p>@Text</p>
     @ChildContent
 </div>
@@ -17,4 +24,8 @@
 
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>True when the empty state is the whole page (not allowed, not found), so its title is the page's h1.</summary>
+    [Parameter]
+    public bool IsPageHeading { get; set; }
 }

@@ -1,11 +1,14 @@
-# Deploys the live demo to Azure Container Apps on every push to main: build the image, push it to
-# GitHub's registry, and point the Container App and the nightly reset job at the new tag. Signs in
-# to Azure with OIDC (no stored credentials); scripts/azure-setup.sh creates the federated identity
-# and sets the three secrets and the AZURE_DEPLOY variable this workflow keys on.
+# Deploys the live demo to Azure Container Apps after CI passes on main: build the image, check it,
+# push it to GitHub's registry, and point the Container App and the nightly reset job at the new tag.
+# Signs in to Azure with OIDC (no stored credentials); scripts/azure-setup.sh creates the federated
+# identity and sets the three secrets and the AZURE_DEPLOY variable this workflow keys on.
 name: deploy-azure
 
 on:
-  push:
+  # After CI, not beside it: a commit whose tests fail must not go live.
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -22,17 +25,23 @@ env:
   RESOURCE_GROUP: civicbudget-rg
   APP_NAME: civicbudget-app
   JOB_NAME: civicbudget-reset
+  # The commit CI tested (a workflow_run runs on the default branch's latest commit otherwise).
+  SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
 
 jobs:
-  # The image is built on every push to main whether or not Azure is set up, so the package exists
+  # The image is built after every green CI run on main whether or not Azure is set up, so the package exists
   # (and can be made public) before scripts/azure-setup.sh creates the Container App that pulls it.
   image:
+    # A green CI run on main, or a manual run from main; never another branch's code.
+    if: ${{ (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     outputs:
       image: ${{ steps.name.outputs.image }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.SHA }}
 
       # GHCR names are lowercase; github.repository keeps the owner's capitalization.
       - name: Image name
@@ -49,20 +58,30 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push the image
+      # Built into the local Docker first and checked before anything is pushed, so a broken image
+      # never becomes :latest (the tag scripts/azure-setup.sh deploys).
+      - name: Build the image
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: true
-          tags: |
-            ${{ steps.name.outputs.image }}:${{ github.sha }}
-            ${{ steps.name.outputs.image }}:latest
+          load: true
+          tags: ${{ steps.name.outputs.image }}:${{ env.SHA }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       # The one file whose absence makes every interactive page silently dead (see the Dockerfile).
       - name: Check the image serves the Blazor script
-        run: docker run --rm --entrypoint sh "${{ steps.name.outputs.image }}:${{ github.sha }}" -c "test -f wwwroot/_framework/blazor.web.js && grep -q blazor.web CivicBudget.Web.staticwebassets.endpoints.json"
+        run: docker run --rm --entrypoint sh "${{ steps.name.outputs.image }}:${{ env.SHA }}" -c "test -f wwwroot/_framework/blazor.web.js && grep -q blazor.web CivicBudget.Web.staticwebassets.endpoints.json"
+
+      - name: Push the image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.name.outputs.image }}:${{ env.SHA }}
+            ${{ steps.name.outputs.image }}:latest
+          cache-from: type=gha
 
   deploy:
     # Skips cleanly until setup has run, so a push to a fork or before setup is a no-op.
@@ -82,21 +101,28 @@ jobs:
       - name: Roll the site to the new image
         run: |
           az containerapp update --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" \
-            --image "${{ needs.image.outputs.image }}:${{ github.sha }}" --output none
+            --image "${{ needs.image.outputs.image }}:${{ env.SHA }}" --output none
           echo "url=https://$(az containerapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query properties.configuration.ingress.fqdn -o tsv)" >> "$GITHUB_OUTPUT"
         id: site
 
       - name: Point the nightly reset at the same image
         run: |
           az containerapp job update --name "$JOB_NAME" --resource-group "$RESOURCE_GROUP" \
-            --image "${{ needs.image.outputs.image }}:${{ github.sha }}" --output none
+            --image "${{ needs.image.outputs.image }}:${{ env.SHA }}" --output none
 
-      - name: Wait for the new revision to answer
+      # The old revision keeps serving until the new one is ready, so /health alone could be answered
+      # by the old image. Wait until the revision just created is the latest ready one, then check it
+      # answers.
+      - name: Wait for the new revision to be ready
         run: |
+          latest=$(az containerapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query properties.latestRevisionName -o tsv)
           for i in $(seq 1 30); do
-            if curl -fsS --max-time 20 "${{ steps.site.outputs.url }}/health" > /dev/null; then
-              echo "Healthy: ${{ steps.site.outputs.url }}"; exit 0
+            ready=$(az containerapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query properties.latestReadyRevisionName -o tsv)
+            if [ "$ready" = "$latest" ] && curl -fsS --max-time 20 "${{ steps.site.outputs.url }}/health" > /dev/null; then
+              echo "Revision $latest is ready: ${{ steps.site.outputs.url }}"; exit 0
             fi
             sleep 10
           done
-          echo "The site did not answer within five minutes; check the Container App's revisions and logs."; exit 1
+          echo "Revision $latest did not become ready within five minutes; check its logs:"
+          az containerapp revision show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --revision "$latest" --query "properties.{running:runningState,health:healthState}" -o table
+          exit 1

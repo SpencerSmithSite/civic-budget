@@ -36,9 +36,11 @@ public sealed class Account : Entity, ITenantOwned
 
     public void Update(string code, string name, AccountType type, ReportingCategory category)
     {
-        Code = Guard.MaxLength(Guard.NotNullOrWhiteSpace(code, nameof(code)), CodeMaxLength, nameof(code));
-        Name = Guard.MaxLength(Guard.NotNullOrWhiteSpace(name, nameof(name)), NameMaxLength, nameof(name));
-        (Type, Category) = ValidateTypeAndCategory(type, category);
+        // Everything is validated before anything is assigned, so a bad category leaves the account as it was.
+        string validCode = Guard.MaxLength(Guard.NotNullOrWhiteSpace(code, nameof(code)), CodeMaxLength, nameof(code));
+        string validName = Guard.MaxLength(Guard.NotNullOrWhiteSpace(name, nameof(name)), NameMaxLength, nameof(name));
+        (AccountType validType, ReportingCategory validCategory) = ValidateTypeAndCategory(type, category);
+        (Code, Name, Type, Category) = (validCode, validName, validType, validCategory);
     }
 
     public void Deactivate() => IsActive = false;

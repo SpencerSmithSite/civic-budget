@@ -12,7 +12,10 @@
 }
 else if (governments.Count == 0)
 {
-    <PortalNotFound Text="No government has published a budget yet." />
+    @* The index exists even when it is empty, so this is a page, not a 404. *@
+    <div class="pt-empty">
+        <p>No government has published a budget yet. Budgets appear here as soon as they are adopted and published.</p>
+    </div>
 }
 else
 {

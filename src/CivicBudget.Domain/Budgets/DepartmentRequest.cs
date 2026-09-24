@@ -76,8 +76,11 @@ public sealed class DepartmentRequest : Entity, ITenantOwned
     internal void Submit(string userId, string userName, DateTimeOffset nowUtc)
     {
         Guard.Against(IsSubmitted, "This department's request has already been submitted.");
-        SubmittedByUserId = Guard.NotNullOrWhiteSpace(userId, nameof(userId));
-        SubmittedByUserName = Guard.NotNullOrWhiteSpace(userName, nameof(userName));
+        // Validate before mutating, as Return does: a bad argument must not leave a half-submitted request.
+        string byId = Guard.NotNullOrWhiteSpace(userId, nameof(userId));
+        string byName = Guard.NotNullOrWhiteSpace(userName, nameof(userName));
+        SubmittedByUserId = byId;
+        SubmittedByUserName = byName;
         Status = DepartmentRequestStatus.Submitted;
         SubmittedAtUtc = nowUtc;
         ReturnNote = null;

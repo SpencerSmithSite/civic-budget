@@ -26,7 +26,9 @@ public class BudgetEntryServiceTests(SqlServerFixture fixture) : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        _database = await fixture.CreateDatabaseAsync("CivicBudget_BudgetEntry");
+        // One database per test: tests here add lines or users and others assert exact counts, so a
+        // shared database made the result depend on the order xUnit happened to run them in.
+        _database = await fixture.CreateDatabaseAsync("CivicBudget_BudgetEntry_" + Guid.NewGuid().ToString("N")[..8]);
 
         await using AsyncServiceScope scope = _database.CreateScope();
         await scope.ServiceProvider.GetRequiredService<DevelopmentSeeder>().SeedAsync();

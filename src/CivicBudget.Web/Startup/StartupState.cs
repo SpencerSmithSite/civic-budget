@@ -7,6 +7,7 @@ namespace CivicBudget.Web.Startup;
 /// hangs. It can also go back to not ready: serverless SQL pauses after an hour without
 /// connections even while the container stays up, so after a long quiet spell the next page
 /// request checks the database before it is let through (<see cref="WakingUpMiddleware"/>).
+/// Every request thread reads it, so the fields are read and written atomically.
 /// </summary>
 public sealed class StartupState
 {
@@ -18,46 +19,75 @@ public sealed class StartupState
 
     private readonly TimeProvider clock;
     private readonly Lock gate = new();
-    private DateTimeOffset waitingSince;
-    private DateTimeOffset lastPageServed;
+    private volatile bool isReady;
+    private bool wakeFailed;
+    private long waitingSinceTicks;
+    private long lastPageServedTicks;
 
     public StartupState(TimeProvider clock)
     {
         this.clock = clock;
-        waitingSince = clock.GetUtcNow();
+        waitingSinceTicks = NowTicks;
     }
 
-    public bool IsReady { get; private set; }
+    public bool IsReady => isReady;
 
     /// <summary>Seconds since the current wait began, so the waiting page can keep its counter across reloads.</summary>
-    public int ElapsedSeconds => (int)(clock.GetUtcNow() - waitingSince).TotalSeconds;
+    public int ElapsedSeconds => (int)TimeSpan.FromTicks(NowTicks - Interlocked.Read(ref waitingSinceTicks)).TotalSeconds;
 
     /// <summary>Ready, but nobody has loaded a page for long enough that the database may have paused.</summary>
-    public bool MayBeAsleep => IsReady && clock.GetUtcNow() - lastPageServed > QuietSpell;
+    public bool MayBeAsleep => isReady && NowTicks - Interlocked.Read(ref lastPageServedTicks) > QuietSpell.Ticks;
+
+    private long NowTicks => clock.GetUtcNow().UtcTicks;
 
     public void MarkReady()
     {
         lock (gate)
         {
-            IsReady = true;
-            lastPageServed = clock.GetUtcNow();
+            Interlocked.Exchange(ref lastPageServedTicks, NowTicks);
+            wakeFailed = false;
+            isReady = true;
         }
     }
 
-    public void RecordPageServed() => lastPageServed = clock.GetUtcNow();
+    public void RecordPageServed() => Interlocked.Exchange(ref lastPageServedTicks, NowTicks);
 
     /// <summary>Back to not ready while the database is checked. Returns false if another request already did it.</summary>
     public bool BeginWaiting()
     {
         lock (gate)
         {
-            if (!IsReady)
+            if (!isReady)
             {
                 return false;
             }
 
-            IsReady = false;
-            waitingSince = clock.GetUtcNow();
+            isReady = false;
+            Interlocked.Exchange(ref waitingSinceTicks, NowTicks);
+            return true;
+        }
+    }
+
+    /// <summary>A database check gave up. The next page request starts another rather than waiting on nothing.</summary>
+    public void MarkWakeFailed()
+    {
+        lock (gate)
+        {
+            wakeFailed = true;
+        }
+    }
+
+    /// <summary>Claims the retry after a failed check. True for exactly one caller per failure.</summary>
+    public bool TakeWakeRetry()
+    {
+        lock (gate)
+        {
+            if (isReady || !wakeFailed)
+            {
+                return false;
+            }
+
+            wakeFailed = false;
             return true;
         }
     }

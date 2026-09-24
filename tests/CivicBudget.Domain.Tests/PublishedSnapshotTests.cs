@@ -126,4 +126,37 @@ public class PublishedSnapshotTests
         Assert.Equal("General", snapshot.Funds.Single(f => f.Code == "1000").Name);
         Assert.Equal("General", snapshot.Lines.First().FundName);
     }
+
+    [Fact]
+    public void A_government_cannot_publish_another_governments_budget()
+    {
+        (_, FiscalYear year, BudgetVersion version, List<Fund> funds) = AdoptedBudget();
+        (Government other, _, _, _) = AdoptedBudget();
+
+        DomainException ex = Assert.Throws<DomainException>(() => PublishedBudgetSnapshot.Capture(other, year, version, funds, "user-fd", "Dana", Now));
+        Assert.Contains("different government", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_fiscal_year_must_be_the_versions_own()
+    {
+        (Government government, _, BudgetVersion version, List<Fund> funds) = AdoptedBudget();
+        var wrongYear = new FiscalYear(government.Id, 2028, 1);
+
+        DomainException ex = Assert.Throws<DomainException>(() => PublishedBudgetSnapshot.Capture(government, wrongYear, version, funds, "user-fd", "Dana", Now));
+        Assert.Contains("Fiscal year does not match", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_snapshot_is_superseded_only_by_one_for_the_same_budget()
+    {
+        (Government government, FiscalYear year, BudgetVersion version, List<Fund> funds) = AdoptedBudget();
+        (Government otherGovernment, FiscalYear otherYear, BudgetVersion otherVersion, List<Fund> otherFunds) = AdoptedBudget();
+        PublishedBudgetSnapshot mine = PublishedBudgetSnapshot.Capture(government, year, version, funds, "user-fd", "Dana", Now);
+        PublishedBudgetSnapshot theirs = PublishedBudgetSnapshot.Capture(otherGovernment, otherYear, otherVersion, otherFunds, "user-fd", "Dana", Now);
+
+        DomainException ex = Assert.Throws<DomainException>(() => mine.MarkSuperseded(theirs, "user-fd", Now));
+        Assert.Contains("different budgets", ex.Message, StringComparison.Ordinal);
+        Assert.Equal(SnapshotStatus.Active, mine.Status);
+    }
 }

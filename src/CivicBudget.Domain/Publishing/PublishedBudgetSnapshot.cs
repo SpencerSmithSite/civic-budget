@@ -137,12 +137,24 @@ public sealed class PublishedBudgetSnapshot : Entity, ITenantOwned
         return snapshot;
     }
 
+    /// <summary>
+    /// The government changed its public address. The slug is where the snapshot is found, not part of
+    /// what was published, so it follows the government; left behind, the old address would keep
+    /// serving and another government could claim it and mix its years in.
+    /// </summary>
+    public void MoveToSlug(Government government)
+    {
+        Guard.Against(government.Id != GovernmentId, "Snapshots move only with their own government.");
+        GovernmentSlug = government.PublicSlug;
+    }
+
     public void Unpublish(string userId, DateTimeOffset nowUtc)
     {
         Guard.Against(Status != SnapshotStatus.Active, $"Only an Active snapshot can be unpublished (status: {Status}).");
+        string by = Guard.NotNullOrWhiteSpace(userId, nameof(userId));
         Status = SnapshotStatus.Unpublished;
         StatusChangedAtUtc = nowUtc;
-        StatusChangedByUserId = Guard.NotNullOrWhiteSpace(userId, nameof(userId));
+        StatusChangedByUserId = by;
     }
 
     /// <summary>Called on the previously active snapshot of the same fiscal year when a newer one is published.</summary>
@@ -151,9 +163,10 @@ public sealed class PublishedBudgetSnapshot : Entity, ITenantOwned
         Guard.Against(Status != SnapshotStatus.Active, "Only an Active snapshot can be superseded.");
         Guard.Against(newer.FiscalYear != FiscalYear || newer.GovernmentId != GovernmentId, "Snapshots are for different budgets.");
         Guard.Against(newer.Id == Id, "A snapshot cannot supersede itself.");
+        string by = Guard.NotNullOrWhiteSpace(userId, nameof(userId));
         Status = SnapshotStatus.Superseded;
         StatusChangedAtUtc = nowUtc;
-        StatusChangedByUserId = Guard.NotNullOrWhiteSpace(userId, nameof(userId));
+        StatusChangedByUserId = by;
     }
 }
 

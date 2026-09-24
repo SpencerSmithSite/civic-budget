@@ -1,6 +1,7 @@
 using System.Globalization;
 using CivicBudget.Domain.Accounts;
 using CivicBudget.Domain.Budgets;
+using CivicBudget.Domain.Common;
 
 namespace CivicBudget.Application.Import;
 
@@ -16,7 +17,7 @@ public sealed record ExistingLine(Guid LineId, Guid FundId, Guid? DepartmentId, 
 /// Rules mirror <see cref="BudgetVersion.AddLine"/> (active codes, a department on expenditure
 /// lines, no duplicate key) plus the file-level ones (parseable numbers, no duplicate rows).
 /// </summary>
-public static class ImportAnalyzer
+public static partial class ImportAnalyzer
 {
     public static IReadOnlyList<ImportRowDto> Analyze(
         IReadOnlyList<ImportRowInput> rows,
@@ -52,6 +53,10 @@ public static class ImportAnalyzer
 
             decimal? prior = ParseMoney(row.PriorYearActual, ImportFileParser.PriorYearActualHeader, required: false, errors);
             decimal? current = ParseMoney(row.CurrentYearBudget, ImportFileParser.CurrentYearBudgetHeader, required: false, errors);
+            if (new[] { amount, prior, current }.Any(a => a is { } value && !Money.IsStorable(value)))
+            {
+                errors.Add(Money.TooLargeMessage);
+            }
             string? justification = row.Justification;
             if (justification is { Length: > BudgetLine.JustificationMaxLength })
             {
@@ -101,7 +106,15 @@ public static class ImportAnalyzer
             return null;
         }
 
-        if (!byCode.TryGetValue(code, out ImportLookup? match))
+        // Exports pad numeric codes to the account number format ("101" is written "0101" in a
+        // four-digit fund segment), so a file that came out of CivicBudget must match on the way back in.
+        if (!byCode.TryGetValue(code, out ImportLookup? match) && code.All(char.IsAsciiDigit))
+        {
+            string unpadded = code.TrimStart('0');
+            match = byCode.Values.FirstOrDefault(l => l.Code.All(char.IsAsciiDigit) && l.Code.TrimStart('0') == unpadded);
+        }
+
+        if (match is null)
         {
             errors.Add($"No {kind} has the code \"{code}\".");
             return null;
@@ -136,6 +149,14 @@ public static class ImportAnalyzer
             cleaned = "-" + cleaned[1..^1];
         }
 
+        // NumberStyles.Number accepts a comma anywhere, so "1234,56" (a decimal comma) would import as
+        // 123,456.00. Commas are only accepted as thousands separators in groups of three.
+        if (cleaned.Contains(',', StringComparison.Ordinal) && !ThousandsSeparated().IsMatch(cleaned))
+        {
+            errors.Add($"{column} \"{text}\" has a comma in the wrong place. Use a period for cents, as in 1,234.50.");
+            return null;
+        }
+
         if (decimal.TryParse(cleaned, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal value))
         {
             return Domain.Common.Money.Round(value);
@@ -144,4 +165,7 @@ public static class ImportAnalyzer
         errors.Add($"{column} \"{text}\" is not a number.");
         return null;
     }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"^-?\d{1,3}(,\d{3})+(\.\d+)?$")]
+    private static partial System.Text.RegularExpressions.Regex ThousandsSeparated();
 }

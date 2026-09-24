@@ -35,5 +35,9 @@ public sealed class FiscalYear : Entity, ITenantOwned
 
     public void Close() => IsClosed = true;
 
+    /// <summary>The rule on <see cref="IsClosed"/>: call before starting a new budget version for this year.</summary>
+    public void EnsureOpenForNewVersions() =>
+        Guard.Against(IsClosed, $"{Label} is closed. Reopen the fiscal year before starting a new budget version.");
+
     public void Reopen() => IsClosed = false;
 }

@@ -14,7 +14,8 @@ public sealed class PortalResponseMiddleware(RequestDelegate next)
 
     public Task InvokeAsync(HttpContext context)
     {
-        if (HttpMethods.IsGet(context.Request.Method) && PortalOutputCachePolicy.SlugFromPath(context.Request.Path) is not null)
+        // The whole portal, the /transparency index included: its page is as public as the rest.
+        if (HttpMethods.IsGet(context.Request.Method) && context.Request.Path.StartsWithSegments("/transparency", StringComparison.OrdinalIgnoreCase))
         {
             context.Response.OnStarting(static state =>
             {

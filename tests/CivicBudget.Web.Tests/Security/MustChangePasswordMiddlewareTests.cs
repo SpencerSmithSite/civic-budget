@@ -12,6 +12,8 @@ public class MustChangePasswordMiddlewareTests
     [InlineData("/admin")]
     [InlineData("/admin/budgets")]
     [InlineData("/")]
+    [InlineData("/admin/export/setup/funds.xlsx")]
+    [InlineData("/admin/export/budgets/01a0cf4d-3707-7aad-a3d3-c8112b0d67b9/lines.xlsx")]
     public async Task Redirects_a_flagged_user_away_from_the_app(string path)
     {
         DefaultHttpContext http = Context(path, flagged: true);
@@ -29,6 +31,8 @@ public class MustChangePasswordMiddlewareTests
     [InlineData("/Account/Logout")]
     [InlineData("/_blazor/negotiate")]
     [InlineData("/app.css")]
+    [InlineData("/_framework/blazor.web.js")]
+    [InlineData("/favicon.svg")]
     [InlineData("/transparency/maple-ridge-oh")]
     public async Task Lets_a_flagged_user_reach_the_pages_they_need(string path)
     {

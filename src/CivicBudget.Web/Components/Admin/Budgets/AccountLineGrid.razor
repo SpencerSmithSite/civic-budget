@@ -35,6 +35,7 @@
     <a class="btn btn-outline-primary btn-sm" href="admin/export/budgets/@Workspace.Version.Id/lines.xlsx"><i class="bi bi-download me-1" aria-hidden="true"></i>Export</a>
 </div>
 
+@{ visible = Filtered.ToList(); }
 <div class="cb-grid-wrap">
     <table class="cb-grid">
         <thead>
@@ -52,29 +53,30 @@
         </thead>
         <tbody>
             @{ string? lastGroup = null; }
-            @foreach (BudgetLineDto line in Filtered)
+            @foreach (BudgetLineDto line in visible)
             {
                 string group = $"{line.FundCode} {line.FundName} · {(line.DepartmentCode is null ? (line.AccountType.IsResource() ? "Revenues and transfers in" : "Fund level") : $"{line.DepartmentCode} {line.DepartmentName}")}";
                 if (group != lastGroup)
                 {
                     lastGroup = group;
-                    <tr class="cb-group"><td colspan="7">@group</td></tr>
+                    <tr @key="group" class="cb-group"><td colspan="7">@group</td></tr>
                 }
-                <tr>
+                @* Keyed so a cell's own state (a red "invalid" border, the saving tint) stays with its line when the filters reorder rows. *@
+                <tr @key="line.Id">
                     <td class="cb-wrap" title="@Display.Enum(line.Category)">
                         <span class="cb-code">@line.AccountNumber</span> @line.AccountName
                         @if (editingNoteId == line.Id)
                         {
-                            <input type="text" class="form-control form-control-sm mt-1" value="@line.Justification" aria-label="@($"Justification for {line.AccountCode}")"
-                                   @onchange="e => SaveNoteAsync(line.Id, e.Value?.ToString())" @onblur="() => editingNoteId = null" autofocus />
+                            <input @ref="noteInput" type="text" class="form-control form-control-sm mt-1" value="@line.Justification" aria-label="@($"Justification for {line.AccountCode}")"
+                                   @onchange="e => SaveNoteAsync(line.Id, e.Value?.ToString())" @onblur="() => editingNoteId = null" />
                         }
                         else if (!string.IsNullOrEmpty(line.Justification))
                         {
                             <div class="small text-secondary fst-italic text-wrap"><i class="bi bi-chat-left-text me-1" aria-hidden="true"></i>@line.Justification</div>
                         }
                     </td>
-                    <td class="cb-num cb-col-wide">@line.PriorYearActual.ToString("N2")</td>
-                    <td class="cb-num">@line.CurrentYearBudget.ToString("N2")</td>
+                    <td class="cb-num cb-col-wide">@Display.Amount(line.PriorYearActual)</td>
+                    <td class="cb-num">@Display.Amount(line.CurrentYearBudget)</td>
                     <td class="cb-num">
                         <AmountCell Value="line.Amount" CanEdit="line.CanEdit" Label="@($"Proposed amount for {line.AccountCode} {line.AccountName}, {line.DepartmentCode ?? line.FundCode}")"
                                     ValueChanged="amount => OnAmountChanged.InvokeAsync((line.Id, amount))" />
@@ -95,7 +97,7 @@
                     </td>
                 </tr>
             }
-            @if (!Filtered.Any())
+            @if (visible.Count == 0)
             {
                 <tr><td colspan="7"><EmptyState Icon="bi-funnel" Title="No lines match" Text="Clear a filter or the search box to see more." /></td></tr>
             }
@@ -103,7 +105,7 @@
     </table>
 </div>
 <div class="cb-grid-foot">
-    <span>@Filtered.Count() of @Workspace.Lines.Count lines</span>
+    <span>@visible.Count of @Workspace.Lines.Count lines</span>
 </div>
 
 @code {
@@ -112,6 +114,12 @@
     private string departmentFilter = "";
     private string typeFilter = "";
     private Guid? editingNoteId;
+    private Guid? focusedNoteId;
+    private ElementReference noteInput;
+
+    // The filters and sort run once per render (the list, the empty check, and the count all read it)
+    // rather than three times on every keystroke in the search box.
+    private List<BudgetLineDto> visible = [];
 
     [Parameter, EditorRequired]
     public BudgetWorkspaceDto Workspace { get; set; } = default!;
@@ -134,6 +142,20 @@
     private string PriorLabel => $"FY{Workspace.Version.Year - 2}";
     private string CurrentLabel => $"FY{Workspace.Version.Year - 1}";
     private string ProposedLabel => $"FY{Workspace.Version.Year}";
+
+    // "autofocus" only works on the first page load, not on an input Blazor inserts later.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (editingNoteId is { } id && focusedNoteId != id)
+        {
+            focusedNoteId = id;
+            await noteInput.FocusAsync();
+        }
+        else if (editingNoteId is null)
+        {
+            focusedNoteId = null;
+        }
+    }
 
     private async Task SaveNoteAsync(Guid lineId, string? note)
     {

@@ -28,6 +28,7 @@ public sealed class BudgetEntryService(
             .OrderByDescending(x => x.fy.Year).ThenByDescending(x => x.v.VersionNumber)
             .Select(x => new BudgetVersionSummaryDto(
                 x.v.Id, x.fy.Year, x.v.VersionNumber,
+                // BudgetVersion.Label cannot be translated to SQL inside this projection, so its format is repeated here.
                 x.v.VersionNumber == 1 ? "Original" : "Amendment " + (x.v.VersionNumber - 1),
                 x.v.Status, x.v.AmendmentReason, x.v.ResolutionNumber,
                 db.BudgetLines.Count(l => l.BudgetVersionId == x.v.Id)))
@@ -126,6 +127,11 @@ public sealed class BudgetEntryService(
             return Result.Failure(nameof(amount), "Budgeted amounts cannot be negative.");
         }
 
+        if (!Money.IsStorable(amount))
+        {
+            return Result.Failure(nameof(amount), Money.TooLargeMessage);
+        }
+
         await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
         (BudgetVersion version, BudgetLine line, Result? denied) = await LoadLineForEditAsync(db, versionId, lineId, ct);
         if (denied is not null)
@@ -221,6 +227,11 @@ public sealed class BudgetEntryService(
 
     public async Task<Result> SetBeginningBalanceAsync(Guid versionId, Guid fundId, decimal amount, CancellationToken ct = default)
     {
+        if (!Money.IsStorable(amount))
+        {
+            return Result.Failure(nameof(amount), Money.TooLargeMessage);
+        }
+
         await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
         BudgetVersion? version = await LoadVersionAsync(db, versionId, ct);
         if (version is null)
@@ -298,7 +309,8 @@ public sealed class BudgetEntryService(
             expenditures.Sum(l => l.Amount),
             CanEditNarrative: BudgetLinePermissions.CanEditNarrative(user, version.Status, department.Id, request?.IsSubmitted == true),
             CanSubmit: BudgetLinePermissions.CanSubmitDepartment(user, version.Status, department.Id, status),
-            CanReturn: BudgetLinePermissions.CanReturnDepartment(user, version.Status, status));
+            CanReturn: BudgetLinePermissions.CanReturnDepartment(user, version.Status, status),
+            CanAddLines: BudgetLinePermissions.CanAddLine(user, version.Status, department.Id, request?.IsSubmitted == true));
     }
 
     private static BudgetVersionSummaryDto ToSummary(BudgetVersion v, int year, int lineCount) =>

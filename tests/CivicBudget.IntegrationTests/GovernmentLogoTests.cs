@@ -47,6 +47,9 @@ public class GovernmentLogoTests(SqlServerFixture fixture) : IAsyncLifetime
         Assert.True(set.IsSuccess, string.Join("; ", set.Errors.Select(e => e.Message)));
         Assert.Equal(Png, (await logos.GetAsync())!.Data);
 
+        // The next portal request (a new scope): one request remembers the budget it loaded.
+        await using AsyncServiceScope afterUpload = _database.CreateScope();
+        portal = afterUpload.ServiceProvider.GetRequiredService<ISnapshotQueryService>();
         PortalLogoDto served = (await portal.GetLogoAsync("maple-ridge-oh"))!;
         Assert.Equal(Png, served.Data);
         Assert.Equal(served.UpdatedAtUtc.UtcTicks, (await portal.GetBudgetAsync("maple-ridge-oh", null))!.LogoVersion);

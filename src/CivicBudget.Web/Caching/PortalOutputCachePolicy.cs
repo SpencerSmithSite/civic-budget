@@ -18,6 +18,11 @@ namespace CivicBudget.Web.Caching;
 public sealed class PortalOutputCachePolicy : IOutputCachePolicy
 {
     public const string TagPrefix = "portal:";
+
+    /// <summary>The list of governments at /transparency; any publish, unpublish, or address change can alter it.</summary>
+    public const string IndexTag = "portal-index"; // not "portal:" + something, so no government slug can collide with it
+
+    public static readonly Microsoft.Extensions.Primitives.StringValues VaryByQueryKeys = new(["q", "show", "view"]);
     public static readonly TimeSpan Lifetime = TimeSpan.FromHours(6);
 
     public ValueTask CacheRequestAsync(OutputCacheContext context, CancellationToken cancellation)
@@ -34,13 +39,12 @@ public sealed class PortalOutputCachePolicy : IOutputCachePolicy
 
         if (isPortalGet)
         {
-            // Key by the full URL (path + query), because "$ | %" and search live in the query string.
-            context.CacheVaryByRules.QueryKeys = "*";
+            // Key by the path plus the query values the pages read ("$ | %", the revenue view, search).
+            // Not "*": any other key (?x=1, ?x=2, ...) would be a new cache entry, so anyone could skip
+            // the cache and make every request rebuild a page from the database.
+            context.CacheVaryByRules.QueryKeys = VaryByQueryKeys;
             string? slug = SlugFromPath(request.Path);
-            if (slug is not null)
-            {
-                context.Tags.Add(TagPrefix + slug);
-            }
+            context.Tags.Add(slug is null ? IndexTag : TagPrefix + slug);
         }
 
         return ValueTask.CompletedTask;

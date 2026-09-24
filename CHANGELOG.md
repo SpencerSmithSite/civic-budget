@@ -5,6 +5,26 @@ All notable changes to CivicBudget. Format loosely follows
 
 ## [Unreleased]
 
+## Phase 17 — 2026-09-23 (maintenance)
+A review of the whole codebase (five parallel reviews by layer, each finding checked against the code) and a walk through the running app as every demo user. About 90 fixes; the headline ones:
+### Security
+- Sign-in no longer follows a return URL of `//other-host` (`LocalUrl`); a temporary password cannot be "changed" to itself; exports (`*.xlsx`) no longer skip the forced password change; uploaded images must be PNG, JPEG, or WebP whose bytes match (no SVG), capped at the stored size, and are served with `nosniff` and a sandboxing CSP; CSV text that a spreadsheet would run as a formula is written as text.
+- Setup services (funds, accounts, departments, fiscal years, settings) check the caller's role themselves; every admin page is pinned to its policy by a test.
+- The portal cache varies only on the query keys pages read, so it cannot be bypassed with junk parameters; the anonymous `/health/ready`, which queried the database per call, is removed.
+### Fixed
+- Admin pages that did not refresh: Add line, deactivate/lock/close on five lists, Start an amendment (the page kept showing the adopted budget), and phone cards that ignored the pager.
+- An amount cell keeps showing a refused value; amounts past `decimal(18,2)` crashed the save; the settings preview crashed on a negative width; an admin page error killed the connection with no message (now an error boundary and the error bar).
+- ERP chart sync could retype an account budget lines use; closed fiscal years accepted amendments; audit text could exceed its column after the action succeeded; import rejected its own zero-padded export and read `1234,56` as 123,456.
+- Changing a government's public address stranded its published budgets on the old one; portal not-found pages were empty; search and year pages answered 200 for unknown years.
+- A failed database wake-up check left the site on the waiting screen until restart.
+- Owned values (the account number format) were never audited.
+### Changed
+- Times show in Eastern time with the zone named; amounts format as en-US whatever the server culture.
+- Portal and sign-in pages load no JavaScript; the portal loads a budget once per request (the funds page made about 54 queries).
+- Indexes: fund-level lines unique per version, one active snapshot per year, recent activity by government and time.
+- Deploys wait for CI and check the image before pushing; the image is published for its platform (about 64 MB smaller on disk); NuGet is cached in CI.
+- Accessibility: contrast, focus returned from dialogs and drawers, one h1 per page, error toasts that stay, linked charts that screen readers can use.
+
 ## Phase 16 — 2026-09-21 (v1.1)
 ### Fixed
 - A database that paused while the container stayed up (an open admin tab can keep it running) no longer hangs the next page load: after 55 minutes without a page request, the next one checks the database first and shows the waiting screen if it is asleep (`DatabaseWaker`).

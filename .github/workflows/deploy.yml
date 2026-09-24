@@ -72,15 +72,22 @@ jobs:
 
       # The image tag is the commit, so the running task definition says exactly what is deployed.
       # The CDK CLI assumes the bootstrap roles for CloudFormation; the deploy role only pushes images.
+      # Dispatch inputs reach the shell as environment variables, never pasted into the script: typed
+      # text such as "x; rm -rf /" is then only ever a value.
       - name: cdk deploy
         working-directory: infra/CivicBudget.Infra
-        run: >
-          npx --yes aws-cdk@2 deploy CivicBudget-App
-          --require-approval never
-          -c imageTag=${GITHUB_SHA}
-          ${{ inputs.alert_email && format('-c alertEmail={0}', inputs.alert_email) || '' }}
-          ${{ inputs.certificate_arn && format('-c certificateArn={0}', inputs.certificate_arn) || '' }}
-          --outputs-file outputs.json
+        env:
+          ALERT_EMAIL: ${{ inputs.alert_email }}
+          CERTIFICATE_ARN: ${{ inputs.certificate_arn }}
+        run: |
+          extra=()
+          if [ -n "$ALERT_EMAIL" ]; then extra+=(-c "alertEmail=$ALERT_EMAIL"); fi
+          if [ -n "$CERTIFICATE_ARN" ]; then extra+=(-c "certificateArn=$CERTIFICATE_ARN"); fi
+          npx --yes aws-cdk@2 deploy CivicBudget-App \
+            --require-approval never \
+            -c "imageTag=${GITHUB_SHA}" \
+            "${extra[@]}" \
+            --outputs-file outputs.json
 
       - name: Show where it is
         working-directory: infra/CivicBudget.Infra

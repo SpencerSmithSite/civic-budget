@@ -4,6 +4,7 @@ using CivicBudget.Application.Common;
 using CivicBudget.Application.Erp;
 using CivicBudget.Application.Security;
 using CivicBudget.Application.Setup;
+using CivicBudget.Domain.Accounts;
 using CivicBudget.Domain.Auditing;
 using CivicBudget.Domain.Erp;
 using CivicBudget.Infrastructure.Persistence;
@@ -102,6 +103,25 @@ public class ChartSyncServiceTests(SqlServerFixture fixture) : IAsyncLifetime
         string[] chart = await FullChartAsync(admin);
         Assert.True((await sync.CommitAsync("same.csv", Csv(chart))).IsFailure);      // identical to what is seeded: nothing to sync
         Assert.Empty(await sync.HistoryAsync());
+    }
+
+    [Fact]
+    public async Task A_file_that_changes_the_type_of_an_account_in_use_is_refused_before_anything_changes()
+    {
+        await using AsyncServiceScope admin = As(Roles.Admin);
+        IChartSyncService sync = admin.ServiceProvider.GetRequiredService<IChartSyncService>();
+        // 5110 Salaries & Wages carries lines in every seeded budget, adopted ones included.
+        string[] chart = (await FullChartAsync(admin, renamePolice: true))
+            .Select(l => l.StartsWith("Object,5110,", StringComparison.Ordinal) ? "Object,5110,\"Salaries & Wages\",Revenue,Taxes," : l)
+            .ToArray();
+
+        Result<ChartSyncPreviewDto> preview = await sync.PreviewAsync("retyped.csv", Csv(chart));
+        Result<ChartSyncDto> committed = await sync.CommitAsync("retyped.csv", Csv(chart));
+
+        Assert.Contains("5110", preview.Errors.Single().Message, StringComparison.Ordinal);
+        Assert.Contains("5110", committed.Errors.Single().Message, StringComparison.Ordinal);
+        Assert.Empty(await sync.HistoryAsync());
+        Assert.Equal(AccountType.Expenditure, (await admin.ServiceProvider.GetRequiredService<IAccountService>().ListAsync(includeInactive: true)).Single(a => a.Code == "5110").Type);
     }
 
     /// <summary>The seeded chart as an export file, optionally with one fund left out, one row added, and Police renamed.</summary>

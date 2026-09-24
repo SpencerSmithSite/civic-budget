@@ -41,6 +41,7 @@ internal static class IdentityEndpoints
             }
 
             context.Response.Headers.CacheControl = "private, max-age=31536000, immutable";
+            ImageResponse.Harden(context.Response);
             return Results.Bytes(avatar.Data, avatar.ContentType, lastModified: avatar.UpdatedAtUtc);
         }).RequireAuthorization();
 

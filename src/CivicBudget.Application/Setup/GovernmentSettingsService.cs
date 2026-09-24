@@ -1,10 +1,13 @@
 using System.Text.RegularExpressions;
 using CivicBudget.Application.Common;
 using CivicBudget.Application.Persistence;
+using CivicBudget.Application.Publishing;
+using CivicBudget.Application.Security;
 using CivicBudget.Application.Tenancy;
 using CivicBudget.Domain.Accounts;
 using CivicBudget.Domain.Common;
 using CivicBudget.Domain.Governments;
+using CivicBudget.Domain.Publishing;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
@@ -66,6 +69,8 @@ public interface IGovernmentSettingsService
 public sealed class GovernmentSettingsService(
     ICivicBudgetDbContextFactory dbFactory,
     ITenantContext tenant,
+    ICurrentUser currentUser,
+    IPublishedSnapshotCacheInvalidator portalCache,
     IValidator<UpdateGovernmentSettingsRequest> validator) : IGovernmentSettingsService
 {
     public async Task<GovernmentSettingsDto> GetAsync(CancellationToken ct = default)
@@ -79,6 +84,11 @@ public sealed class GovernmentSettingsService(
 
     public async Task<Result> UpdateAsync(UpdateGovernmentSettingsRequest request, CancellationToken ct = default)
     {
+        if (!currentUser.IsInRole(Roles.Admin))
+        {
+            return Result.Failure(SetupNotAllowed.Admin);
+        }
+
         if (await validator.ValidateToResultAsync(request, ct) is { } invalid)
         {
             return invalid;
@@ -93,6 +103,7 @@ public sealed class GovernmentSettingsService(
             return Result.Failure(nameof(request.PublicSlug), $"The address {request.PublicSlug} is used by another government.");
         }
 
+        string previousSlug = government.PublicSlug;
         government.Rename(request.Name);
         government.SetPublicSlug(request.PublicSlug);
         government.SetAppropriationLimitMode(request.AppropriationLimitMode);
@@ -106,7 +117,23 @@ public sealed class GovernmentSettingsService(
             return Result.Failure(nameof(request.Separator), ex.Message);
         }
 
+        bool moved = previousSlug != government.PublicSlug;
+        if (moved)
+        {
+            foreach (PublishedBudgetSnapshot snapshot in await db.PublishedBudgetSnapshots.Where(s => s.GovernmentId == government.Id).ToListAsync(ct))
+            {
+                snapshot.MoveToSlug(government);
+            }
+        }
+
         await db.SaveChangesAsync(ct);
+        if (moved)
+        {
+            // Portal pages are cached per address: the old one must stop answering, the new one start fresh.
+            await portalCache.InvalidateAsync(previousSlug, ct);
+            await portalCache.InvalidateAsync(government.PublicSlug, ct);
+        }
+
         return Result.Success();
     }
 

@@ -4,7 +4,7 @@
    in "unsaved" blue (a convention from planning tools like Adaptive). *@
 @if (CanEdit)
 {
-    <input type="text" inputmode="decimal"
+    <input @key="resetKey" type="text" inputmode="decimal"
            class="cb-amount-input @(invalid ? "is-invalid" : "") @(saving ? "cb-saving" : "")"
            value="@Value.ToString("N2", Culture)"
            aria-label="@Label"
@@ -19,6 +19,12 @@ else
     private static readonly System.Globalization.CultureInfo Culture = System.Globalization.CultureInfo.GetCultureInfo("en-US");
     private bool invalid;
     private bool saving;
+
+    // Blazor diffs against what it rendered last, not what is in the browser. When a save is refused
+    // (or the text was just a reformatting of the same amount), Value does not change, so no update
+    // is sent and the input keeps the typed text while the totals around it show the saved amount.
+    // A new key renders a fresh input that shows Value.
+    private int resetKey;
 
     [Parameter, EditorRequired]
     public decimal Value { get; set; }
@@ -35,7 +41,7 @@ else
     private async Task OnChangedAsync(ChangeEventArgs e)
     {
         string text = (e.Value?.ToString() ?? "").Replace("$", "", StringComparison.Ordinal).Trim();
-        if (!decimal.TryParse(text, System.Globalization.NumberStyles.Number, Culture, out decimal parsed) || parsed < 0)
+        if (!decimal.TryParse(text, System.Globalization.NumberStyles.Number, Culture, out decimal parsed) || parsed < 0 || !CivicBudget.Domain.Common.Money.IsStorable(parsed))
         {
             invalid = true;
             return;
@@ -44,6 +50,7 @@ else
         invalid = false;
         if (parsed == Value)
         {
+            resetKey++;
             return;
         }
 
@@ -55,6 +62,10 @@ else
         finally
         {
             saving = false;
+            if (Value != parsed)
+            {
+                resetKey++;
+            }
         }
     }
 }

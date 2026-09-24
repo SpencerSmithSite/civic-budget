@@ -1,6 +1,7 @@
 using CivicBudget.Application.Common;
 using CivicBudget.Application.Erp;
 using CivicBudget.Application.Persistence;
+using CivicBudget.Application.Security;
 using CivicBudget.Application.Tenancy;
 using CivicBudget.Domain.Funds;
 using FluentValidation;
@@ -40,6 +41,7 @@ public interface IFundService
 public sealed class FundService(
     ICivicBudgetDbContextFactory dbFactory,
     ITenantContext tenant,
+    ICurrentUser currentUser,
     IValidator<SaveFundRequest> validator) : IFundService
 {
     public async Task<IReadOnlyList<FundDto>> ListAsync(bool includeInactive, CancellationToken ct = default)
@@ -61,6 +63,11 @@ public sealed class FundService(
 
     public async Task<Result<Guid>> SaveAsync(SaveFundRequest request, CancellationToken ct = default)
     {
+        if (!currentUser.IsFiscalAuthority())
+        {
+            return Result.Failure<Guid>(SetupNotAllowed.FiscalAuthority);
+        }
+
         if (await validator.ValidateToResultAsync(request, ct) is { } invalid)
         {
             return Result.Failure<Guid>(invalid.Errors);
@@ -98,6 +105,11 @@ public sealed class FundService(
 
     public async Task<Result> SetActiveAsync(Guid id, bool isActive, CancellationToken ct = default)
     {
+        if (!currentUser.IsFiscalAuthority())
+        {
+            return Result.Failure(SetupNotAllowed.FiscalAuthority);
+        }
+
         await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
         if (await ChartOwnership.RefuseIfErpManagedAsync(db, tenant.GovernmentId, ct) is { } managed)
         {

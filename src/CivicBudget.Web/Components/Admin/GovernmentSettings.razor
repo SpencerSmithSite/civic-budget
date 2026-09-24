@@ -138,8 +138,12 @@ else
         model.DepartmentLabel = current.AccountNumberFormat.DepartmentLabel;
     }
 
-    private string Example => string.Join(model.Separator, new[] { new string('1', model.FundWidth), new string('7', model.DepartmentWidth), new string('5', model.ObjectWidth) });
-    private string RevenueExample => string.Join(model.Separator, new[] { new string('1', model.FundWidth), new string('4', model.ObjectWidth) });
+    // The preview renders while the user types, before the service validates the widths, so it
+    // clamps them: new string('1', -1) throws, and a huge width would allocate a huge string.
+    private string Example => string.Join(model.Separator, new[] { Digits('1', model.FundWidth), Digits('7', model.DepartmentWidth), Digits('5', model.ObjectWidth) });
+    private string RevenueExample => string.Join(model.Separator, new[] { Digits('1', model.FundWidth), Digits('4', model.ObjectWidth) });
+
+    private static string Digits(char digit, int width) => new(digit, Math.Clamp(width, 0, 12));
 
     private async Task SaveAsync()
     {
@@ -164,7 +168,7 @@ else
         try
         {
             IBrowserFile resized = await e.File.RequestImageFileAsync("image/png", 512, 512);
-            await using Stream stream = resized.OpenReadStream(20 * 1024 * 1024);
+            await using Stream stream = resized.OpenReadStream(UploadedImage.MaxBytes);
             using var buffer = new MemoryStream();
             await stream.CopyToAsync(buffer);
             logoResult = await Logos.SetAsync(buffer.ToArray(), "image/png");

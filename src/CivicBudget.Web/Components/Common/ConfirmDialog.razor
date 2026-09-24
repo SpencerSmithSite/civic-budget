@@ -1,3 +1,4 @@
+@inject IJSRuntime JS
 @* A Bootstrap modal driven entirely by Blazor state (no JavaScript): the parent calls Show() and
    Hide(), and the body is whatever the parent renders. Replaces window.confirm so dialogs can carry
    inputs (a resolution number, an acknowledgement) and validation messages. *@
@@ -63,9 +64,18 @@
         if (focusPending && isOpen)
         {
             focusPending = false;
+            await FocusJs.TryAsync(JS, "civicBudget.rememberFocus");
             await modal.FocusAsync();
+            wasOpen = true;
+        }
+        else if (wasOpen && !isOpen)
+        {
+            wasOpen = false;
+            await FocusJs.TryAsync(JS, "civicBudget.restoreFocus");
         }
     }
+
+    private bool wasOpen;
 
     public void Hide()
     {
