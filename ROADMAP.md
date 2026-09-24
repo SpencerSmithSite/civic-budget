@@ -227,5 +227,5 @@ Order: 9a → 9b → 9c → 9d. Each is a PR with the usual report; approve befo
 - [x] Rules: ERP retype, closed years, audit length, import padding and commas, slug moves, owned-value audit
 - [x] Performance: portal load memo, cache keys, edit reloads, indexes, image size, CI cache
 - [x] Tests: order-independent databases, vacuous asserts, missing rule and policy coverage; ADR-0032, walkthrough 19
-- [ ] Spencer answers the four open questions (walkthrough 19, section 6)
-- [ ] Spencer approves Phase 17
+- [x] Spencer answers the four open questions (walkthrough 19, section 6; 2026-09-23)
+- [x] Spencer approves Phase 17 (2026-09-23)
