@@ -296,7 +296,7 @@ public sealed class BudgetEntryService(
     {
         DepartmentRequest? request = version.GetDepartmentRequest(department.Id);
         DepartmentRequestStatus status = request?.Status ?? DepartmentRequestStatus.InProgress;
-        List<BudgetLine> expenditures = lines.Where(l => l.Account.Type == AccountType.Expenditure).ToList();
+        List<BudgetLine> expenditures = lines.Where(l => l.Account.Type.CountsTowardDepartmentTotal()).ToList();
         return new DepartmentRequestDto(
             department.Id, department.Code, department.Name,
             status,

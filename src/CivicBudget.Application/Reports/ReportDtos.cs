@@ -67,9 +67,9 @@ public sealed record DepartmentDetailDto(
     string? Narrative,
     IReadOnlyList<DetailLineDto> Lines)
 {
-    public decimal PriorYearActual => Lines.Where(l => l.AccountType == AccountType.Expenditure).Sum(l => l.PriorYearActual);
-    public decimal CurrentYearBudget => Lines.Where(l => l.AccountType == AccountType.Expenditure).Sum(l => l.CurrentYearBudget);
-    public decimal Amount => Lines.Where(l => l.AccountType == AccountType.Expenditure).Sum(l => l.Amount);
+    public decimal PriorYearActual => Lines.Where(l => l.AccountType.CountsTowardDepartmentTotal()).Sum(l => l.PriorYearActual);
+    public decimal CurrentYearBudget => Lines.Where(l => l.AccountType.CountsTowardDepartmentTotal()).Sum(l => l.CurrentYearBudget);
+    public decimal Amount => Lines.Where(l => l.AccountType.CountsTowardDepartmentTotal()).Sum(l => l.Amount);
     public decimal DollarChange => Amount - CurrentYearBudget;
     public decimal? PercentChange => Domain.Common.Money.PercentChange(CurrentYearBudget, Amount);
 }

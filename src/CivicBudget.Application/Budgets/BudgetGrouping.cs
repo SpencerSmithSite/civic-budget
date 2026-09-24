@@ -2,8 +2,12 @@ using CivicBudget.Domain.Accounts;
 
 namespace CivicBudget.Application.Budgets;
 
-/// <summary>A group of lines with subtotals, for the by-department view. Nested: department, fund, category.</summary>
-public sealed record LineGroup(string Key, string Title, IReadOnlyList<BudgetLineDto> Lines, IReadOnlyList<LineGroup> Children)
+/// <summary>
+/// A group of lines with subtotals, for the by-department view. Nested: department, fund, category.
+/// <see cref="OutsideTotal"/> holds a department's revenue and transfer lines: shown with it, never
+/// added into its total (<see cref="AccountTypeExtensions.CountsTowardDepartmentTotal"/>).
+/// </summary>
+public sealed record LineGroup(string Key, string Title, IReadOnlyList<BudgetLineDto> Lines, IReadOnlyList<LineGroup> Children, IReadOnlyList<BudgetLineDto>? OutsideTotal = null)
 {
     public decimal Amount => Lines.Sum(l => l.Amount) + Children.Sum(c => c.Amount);
     public decimal PriorYearActual => Lines.Sum(l => l.PriorYearActual) + Children.Sum(c => c.PriorYearActual);
@@ -27,7 +31,8 @@ public static class BudgetGrouping
                 dept.Key.DepartmentId!.Value.ToString(),
                 $"{dept.Key.DepartmentCode} {dept.Key.DepartmentName}",
                 [],
-                ByFund(dept)))
+                ByFund(dept.Where(l => l.AccountType.CountsTowardDepartmentTotal())),
+                dept.Where(l => !l.AccountType.CountsTowardDepartmentTotal()).OrderBy(l => l.FundCode).ThenBy(l => l.AccountCode).ToList()))
             .ToList();
 
     public static IReadOnlyList<LineGroup> ByFund(IEnumerable<BudgetLineDto> lines) =>
