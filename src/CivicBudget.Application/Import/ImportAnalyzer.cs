@@ -63,6 +63,7 @@ public static partial class ImportAnalyzer
             {
                 errors.Add(Money.TooLargeMessage);
             }
+
             string? justification = row.Justification;
             if (justification is { Length: > BudgetLine.JustificationMaxLength })
             {
@@ -98,7 +99,8 @@ public static partial class ImportAnalyzer
                 row.RowNumber, row.FundCode ?? "", row.DepartmentCode, row.AccountCode ?? "",
                 fund?.Name, department?.Name, account?.Name,
                 amount, prior, current, justification, existingAmount,
-                errors.Count == 0 ? action : ImportRowAction.Error, errors));
+                errors.Count == 0 ? action : ImportRowAction.Error, errors,
+                fund?.Id, department?.Id, account?.Id));
         }
 
         return result;

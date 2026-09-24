@@ -67,9 +67,9 @@ public sealed class BudgetImportService(
         {
             foreach (ImportRowDto row in analysedRows)
             {
-                Fund fund = lookups.Funds[row.FundCode];
-                Department? department = row.DepartmentCode is null ? null : lookups.Departments[row.DepartmentCode];
-                Account account = lookups.Accounts[row.AccountCode];
+                Fund fund = lookups.Funds[row.FundId!.Value];
+                Department? department = row.DepartmentId is { } departmentId ? lookups.Departments[departmentId] : null;
+                Account account = lookups.Accounts[row.AccountId!.Value];
 
                 switch (row.Action)
                 {
@@ -119,7 +119,7 @@ public sealed class BudgetImportService(
 
     // ---- helpers ------------------------------------------------------------------------------
 
-    private sealed record Lookups(Dictionary<string, Fund> Funds, Dictionary<string, Department> Departments, Dictionary<string, Account> Accounts);
+    private sealed record Lookups(Dictionary<Guid, Fund> Funds, Dictionary<Guid, Department> Departments, Dictionary<Guid, Account> Accounts);
 
     private sealed record Analysis(BudgetVersion Version, IReadOnlyList<ImportRowDto> Rows, Lookups Lookups);
 
@@ -183,10 +183,7 @@ public sealed class BudgetImportService(
             accounts.Select(a => new ImportLookup(a.Id, a.Code, a.Name, a.IsActive, a.Type)).ToList(),
             version.Lines.Select(l => new ExistingLine(l.Id, l.FundId, l.DepartmentId, l.AccountId, l.Amount, l.PriorYearActual, l.CurrentYearBudget, l.Justification)).ToList());
 
-        var lookups = new Lookups(
-            funds.ToDictionary(f => f.Code, StringComparer.OrdinalIgnoreCase),
-            departments.ToDictionary(d => d.Code, StringComparer.OrdinalIgnoreCase),
-            accounts.ToDictionary(a => a.Code, StringComparer.OrdinalIgnoreCase));
+        var lookups = new Lookups(funds.ToDictionary(f => f.Id), departments.ToDictionary(d => d.Id), accounts.ToDictionary(a => a.Id));
         return Result.Success(new Analysis(version, analysed, lookups));
     }
 }
