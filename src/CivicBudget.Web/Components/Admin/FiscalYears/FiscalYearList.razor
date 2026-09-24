@@ -2,6 +2,10 @@
 @attribute [Authorize(Policy = Policies.CanMaintainSetup)]
 @inject IFiscalYearService FiscalYearService
 @inject ToastService Toasts
+@inject IBudgetWorkflowService Workflow
+@inject NavigationManager Navigation
+@using CivicBudget.Application.Budgets
+@using CivicBudget.Domain.Budgets
 
 <PageTitle>Fiscal years</PageTitle>
 
@@ -25,8 +29,8 @@
                             {
                                 <tr>
                                     <td class="fw-semibold">@fy.Label</td>
-                                    <td>@fy.StartDate.ToString("MMM d, yyyy")</td>
-                                    <td>@fy.EndDate.ToString("MMM d, yyyy")</td>
+                                    <td>@Display.Date(fy.StartDate)</td>
+                                    <td>@Display.Date(fy.EndDate)</td>
                                     <td class="cb-num">@fy.VersionCount</td>
                                     <td>@StatusOf(fy)</td>
                                     <td class="text-end">@RowActions(fy)</td>
@@ -63,18 +67,81 @@
     </div>
 </div>
 
+<ConfirmDialog @ref="startDialog" Title="@($"Start the {starting?.Label} budget")" ConfirmText="Start the budget" OnConfirm="StartAsync"
+               ConfirmDisabled="@(fromPrior && !PercentIsValid)">
+    <Body>
+        @if (starting is not null)
+        {
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" name="start-from" id="start-empty" checked="@(!fromPrior)" @onchange="() => fromPrior = false" />
+                <label class="form-check-label" for="start-empty">Start empty <span class="text-secondary small d-block">Add lines by hand or import them.</span></label>
+            </div>
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="radio" name="start-from" id="start-prior" checked="@fromPrior" disabled="@(starting.StartFrom is null)" @onchange="() => fromPrior = true" />
+                <label class="form-check-label" for="start-prior">
+                    Start from FY@(starting.Year - 1)'s adopted budget@(starting.StartFrom is null ? "" : $" ({starting.StartFrom})")
+                    <span class="text-secondary small d-block">
+                        @(starting.StartFrom is null
+                            ? $"FY{starting.Year - 1} has no adopted budget yet."
+                            : "Every line comes over with last year's adopted amount as the comparison, and each fund starts with last year's projected ending balance.")
+                    </span>
+                </label>
+            </div>
+            @if (fromPrior)
+            {
+                <div class="row g-2 align-items-end mb-2">
+                    <div class="col-5">
+                        <label class="form-label fw-semibold small" for="seed-percent">Change amounts by</label>
+                        <div class="input-group input-group-sm">
+                            <input id="seed-percent" type="number" step="0.1" min="@BudgetSeedOptions.MinPercent" max="@BudgetSeedOptions.MaxPercent" class="form-control text-end @(PercentIsValid ? "" : "is-invalid")" @bind="percent" @bind:event="oninput" />
+                            <span class="input-group-text">%</span>
+                        </div>
+                    </div>
+                    <div class="col-7">
+                        <label class="form-label fw-semibold small" for="seed-scope">Apply to</label>
+                        <select id="seed-scope" class="form-select form-select-sm" @bind="scope">
+                            <option value="@SeedAdjustmentScope.AllLines">Every line</option>
+                            <option value="@SeedAdjustmentScope.AppropriationsOnly">Appropriations only</option>
+                            <option value="@SeedAdjustmentScope.RevenueEstimatesOnly">Revenue estimates only</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="seed-round" @bind="roundToDollars" />
+                    <label class="form-check-label small" for="seed-round">Round to whole dollars</label>
+                </div>
+                <p class="small text-secondary mb-0" aria-live="polite">
+                    @if (PercentIsValid)
+                    {
+                        <span>Example: an adopted @Display.Money(100_000m) @ExampleNoun becomes @Display.Money(Options.Apply(100_000m, ExampleType)); the @Display.Money(100_000m) stays as last year's figure for comparison.</span>
+                    }
+                    else
+                    {
+                        <span class="text-danger">Enter a change between @BudgetSeedOptions.MinPercent% and @BudgetSeedOptions.MaxPercent%.</span>
+                    }
+                </p>
+            }
+        }
+    </Body>
+</ConfirmDialog>
+
 <ConfirmDialog @ref="dialog" Title="@($"{(pendingClosed ? "Close" : "Reopen")} {pending?.Label}?")" ConfirmText="@(pendingClosed ? "Close year" : "Reopen year")" ConfirmClass="@(pendingClosed ? "btn-danger" : "btn-primary")" OnConfirm="ConfirmAsync">
     <Body><p>@(pendingClosed ? "No new budget versions can be created for this year. Existing versions are unaffected." : "New budget versions can be created for this year again.")</p></Body>
 </ConfirmDialog>
 
 @code {
-    private static RenderFragment MetaOf(FiscalYearDto fy) => @<text>@fy.StartDate.ToString("MMM d, yyyy") to @fy.EndDate.ToString("MMM d, yyyy") · @fy.VersionCount budget version@(fy.VersionCount == 1 ? "" : "s")</text>;
+    private static RenderFragment MetaOf(FiscalYearDto fy) => @<text>@Display.Date(fy.StartDate) to @Display.Date(fy.EndDate) · @fy.VersionCount budget version@(fy.VersionCount == 1 ? "" : "s")</text>;
 
     private static RenderFragment StatusOf(FiscalYearDto fy) => fy.IsClosed
         ? @<StatusPill Label="Closed" />
         : @<StatusPill Tone="success" Label="Open" />;
 
     private RenderFragment RowActions(FiscalYearDto fy) => @<RowMenu Label="@($"Actions for {fy.Label}")">
+        @if (fy.CanStartBudget)
+        {
+            <li><button type="button" class="dropdown-item" @onclick="() => AskStart(fy)"><i class="bi bi-plus-square me-2" aria-hidden="true"></i>Start the budget</button></li>
+            <li><hr class="dropdown-divider"></li>
+        }
         @if (fy.IsClosed)
         {
             <li><button type="button" class="dropdown-item" @onclick="() => Ask(fy, false)"><i class="bi bi-unlock me-2" aria-hidden="true"></i>Reopen</button></li>
@@ -84,6 +151,58 @@
             <li><button type="button" class="dropdown-item" @onclick="() => Ask(fy, true)"><i class="bi bi-lock me-2" aria-hidden="true"></i>Close</button></li>
         }
     </RowMenu>;
+
+    private ConfirmDialog startDialog = default!;
+    private FiscalYearDto? starting;
+    private bool fromPrior;
+    private decimal percent;
+    private SeedAdjustmentScope scope = SeedAdjustmentScope.AllLines;
+    private bool roundToDollars = true;
+
+    private bool PercentIsValid => percent is >= BudgetSeedOptions.MinPercent and <= BudgetSeedOptions.MaxPercent;
+
+    private BudgetSeedOptions Options => new(percent, scope, roundToDollars);
+
+    // The example follows the choice: a revenue line when only revenue estimates change, an appropriation otherwise.
+    private CivicBudget.Domain.Accounts.AccountType ExampleType => scope == SeedAdjustmentScope.RevenueEstimatesOnly
+        ? CivicBudget.Domain.Accounts.AccountType.Revenue
+        : CivicBudget.Domain.Accounts.AccountType.Expenditure;
+
+    private string ExampleNoun => scope == SeedAdjustmentScope.RevenueEstimatesOnly ? "revenue estimate" : "appropriation";
+
+    private void AskStart(FiscalYearDto fy)
+    {
+        starting = fy;
+        fromPrior = fy.StartFrom is not null;
+        percent = 0m;
+        scope = SeedAdjustmentScope.AllLines;
+        roundToDollars = true;
+        startDialog.Show();
+    }
+
+    private async Task<bool> StartAsync()
+    {
+        if (starting is null)
+        {
+            return true;
+        }
+
+        Result<StartBudgetResultDto> started = await Workflow.StartBudgetAsync(new StartBudgetRequest(starting.Id, fromPrior, percent, scope, roundToDollars));
+        if (started.IsFailure)
+        {
+            Toasts.Danger(started.Errors[0].Message);
+            return false;
+        }
+
+        Toasts.Success($"{starting.Label} budget started with {started.Value.LineCount} line{(started.Value.LineCount == 1 ? "" : "s")}.");
+        if (started.Value.Skipped.Count > 0)
+        {
+            Toasts.Warning($"{started.Value.Skipped.Count} line(s) were left out because their fund, department, or account is retired: {string.Join("; ", started.Value.Skipped.Take(5))}{(started.Value.Skipped.Count > 5 ? "…" : "")}");
+        }
+
+        Navigation.NavigateTo($"admin/budgets/{started.Value.VersionId}");
+        return true;
+    }
 
     private IReadOnlyList<FiscalYearDto>? fiscalYears;
     private readonly FormModel model = new() { Year = DateTime.Today.Year + 1 };

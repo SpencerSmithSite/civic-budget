@@ -104,6 +104,90 @@ public sealed class BudgetWorkflowService(
         return Result.Success(amendment.Id);
     }
 
+    public async Task<Result<StartBudgetResultDto>> StartBudgetAsync(StartBudgetRequest request, CancellationToken ct = default)
+    {
+        if (!currentUser.IsFiscalAuthority())
+        {
+            return Result.Failure<StartBudgetResultDto>(NotAllowed);
+        }
+
+        await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
+        FiscalYear? year = await db.FiscalYears.FirstOrDefaultAsync(f => f.Id == request.FiscalYearId, ct);
+        if (year is null)
+        {
+            return Result.Failure<StartBudgetResultDto>("Fiscal year was not found.");
+        }
+
+        if (await db.BudgetVersions.AnyAsync(v => v.FiscalYearId == year.Id, ct))
+        {
+            return Result.Failure<StartBudgetResultDto>($"{year.Label} already has a budget. Open it from Budget versions.");
+        }
+
+        BudgetVersion version;
+        IReadOnlyList<string> skipped = [];
+        string description;
+        try
+        {
+            year.EnsureOpenForNewVersions();
+            if (!request.StartFromPriorYear)
+            {
+                version = BudgetVersion.CreateOriginal(year.GovernmentId, year.Id);
+                description = $"Started the {year.Label} budget with no lines";
+            }
+            else
+            {
+                BudgetVersion? prior = await LatestAdoptedAsync(db, year.Year - 1, ct);
+                if (prior is null)
+                {
+                    return Result.Failure<StartBudgetResultDto>($"FY{year.Year - 1} has no adopted budget to start from. Start an empty budget instead.");
+                }
+
+                Dictionary<Guid, Domain.Funds.Fund> funds = await db.Funds.ToDictionaryAsync(f => f.Id, ct);
+                var options = new BudgetSeedOptions(request.AdjustmentPercent, request.Scope, request.RoundToWholeDollars);
+                (version, skipped) = BudgetVersion.CreateOriginalFrom(prior, year.Id, funds, options);
+                description = $"Started the {year.Label} budget from FY{year.Year - 1} {prior.Label}{SeedNote(options)}";
+            }
+        }
+        catch (DomainException ex)
+        {
+            return Result.Failure<StartBudgetResultDto>(ex.Message);
+        }
+
+        db.BudgetVersions.Add(version);
+        db.AuditEntries.Add(Event(version, description));
+        await db.SaveChangesAsync(ct);
+        return Result.Success(new StartBudgetResultDto(version.Id, version.Lines.Count, skipped));
+    }
+
+    /// <summary>The version of that year citizens would see: adopted, and not replaced by a later amendment.</summary>
+    private static Task<BudgetVersion?> LatestAdoptedAsync(ICivicBudgetDbContext db, int fiscalYear, CancellationToken ct) =>
+        db.BudgetVersions
+            .Include(v => v.Lines).ThenInclude(l => l.Account)
+            .Include(v => v.Lines).ThenInclude(l => l.Fund)
+            .Include(v => v.Lines).ThenInclude(l => l.Department)
+            .Include(v => v.BeginningBalances)
+            .Where(v => v.Status == BudgetStatus.Adopted && v.SupersededByVersionId == null
+                && db.FiscalYears.Any(f => f.Id == v.FiscalYearId && f.Year == fiscalYear))
+            .OrderByDescending(v => v.VersionNumber)
+            .FirstOrDefaultAsync(ct);
+
+    private static string SeedNote(BudgetSeedOptions options)
+    {
+        if (options.AdjustmentPercent == 0m)
+        {
+            return options.RoundToWholeDollars ? ", amounts rounded to whole dollars" : ", amounts unchanged";
+        }
+
+        string which = options.Scope switch
+        {
+            SeedAdjustmentScope.AppropriationsOnly => "appropriations",
+            SeedAdjustmentScope.RevenueEstimatesOnly => "revenue estimates",
+            _ => "every line",
+        };
+        string change = (options.AdjustmentPercent > 0 ? "+" : "") + options.AdjustmentPercent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "%";
+        return $", {which} {change}{(options.RoundToWholeDollars ? ", rounded to whole dollars" : "")}";
+    }
+
     // ---- shared transition plumbing --------------------------------------------------------------
 
     private async Task<Result> TransitionAsync(

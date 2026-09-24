@@ -77,6 +77,9 @@ public static class Display
     public static string Timestamp(DateTimeOffset when) =>
         InEastern(when).ToString("MMM d, yyyy h:mm tt", UsCulture) + (Eastern is null ? " UTC" : " ET");
 
+    /// <summary>"Jul 1, 2027": a calendar date such as a fiscal year's start, in US format whatever the server culture.</summary>
+    public static string Date(DateOnly date) => date.ToString("MMM d, yyyy", UsCulture);
+
     /// <summary>"Sep 23, 2026", on the Eastern calendar.</summary>
     public static string ShortDate(DateTimeOffset when) => InEastern(when).ToString("MMM d, yyyy", UsCulture);
 

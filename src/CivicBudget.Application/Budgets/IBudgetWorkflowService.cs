@@ -35,4 +35,16 @@ public interface IBudgetWorkflowService
     Task<Result> ReturnToDraftAsync(Guid versionId, CancellationToken ct = default);
     Task<Result> AdoptAsync(Guid versionId, string resolutionNumber, bool acknowledgeWarnings, CancellationToken ct = default);
     Task<Result<Guid>> CreateAmendmentAsync(Guid adoptedVersionId, string reason, CancellationToken ct = default);
+
+    /// <summary>
+    /// Creates a fiscal year's Original budget: empty, or started from the prior year's latest adopted
+    /// version (optionally changed by a percentage). The year must be open and have no budget yet.
+    /// </summary>
+    Task<Result<StartBudgetResultDto>> StartBudgetAsync(StartBudgetRequest request, CancellationToken ct = default);
 }
+
+/// <param name="StartFromPriorYear">False starts an empty budget; true copies the prior year's latest adopted version.</param>
+public sealed record StartBudgetRequest(Guid FiscalYearId, bool StartFromPriorYear, decimal AdjustmentPercent = 0m, SeedAdjustmentScope Scope = SeedAdjustmentScope.AllLines, bool RoundToWholeDollars = false);
+
+/// <param name="Skipped">Prior-year lines left out because their fund, department, or account has been retired.</param>
+public sealed record StartBudgetResultDto(Guid VersionId, int LineCount, IReadOnlyList<string> Skipped);

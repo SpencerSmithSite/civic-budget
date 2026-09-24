@@ -4,6 +4,7 @@ using CivicBudget.Application.Common;
 using CivicBudget.Application.Publishing;
 using CivicBudget.Application.Security;
 using CivicBudget.Application.Setup;
+using CivicBudget.Domain.Accounts;
 using CivicBudget.Domain.Auditing;
 using CivicBudget.Domain.Budgets;
 using CivicBudget.Domain.FiscalYears;
@@ -147,6 +148,60 @@ public class WorkflowAndPublishingTests(SqlServerFixture fixture) : IAsyncLifeti
     }
 
     // ---- transitions and amendments -----------------------------------------------------------
+
+    [Fact]
+    public async Task A_new_year_starts_empty_or_from_last_years_adopted_budget_changed_by_a_percentage()
+    {
+        await using AsyncServiceScope scope = As(Roles.FinanceDirector);
+        IBudgetWorkflowService workflow = scope.ServiceProvider.GetRequiredService<IBudgetWorkflowService>();
+        IFiscalYearService years = scope.ServiceProvider.GetRequiredService<IFiscalYearService>();
+        IBudgetEntryService entry = scope.ServiceProvider.GetRequiredService<IBudgetEntryService>();
+        await FixStreetFundAsync(scope.ServiceProvider);
+
+        Guid fy2028 = (await years.CreateAsync(new CreateFiscalYearRequest(2028))).Value;
+        Result<StartBudgetResultDto> tooEarly = await workflow.StartBudgetAsync(new StartBudgetRequest(fy2028, StartFromPriorYear: true, 3m));
+        Assert.Contains("FY2027 has no adopted budget", tooEarly.Errors.Single().Message, StringComparison.Ordinal);
+        Assert.Null((await years.ListAsync()).Single(y => y.Year == 2028).StartFrom);
+
+        Assert.True((await workflow.ProposeAsync(_draft2027, false)).IsSuccess);
+        Assert.True((await workflow.AdoptAsync(_draft2027, "2027-50", false)).IsSuccess);
+        Assert.Equal("Original", (await years.ListAsync()).Single(y => y.Year == 2028).StartFrom);
+
+        Result<StartBudgetResultDto> started = await workflow.StartBudgetAsync(new StartBudgetRequest(fy2028, StartFromPriorYear: true, 3m, SeedAdjustmentScope.AppropriationsOnly, RoundToWholeDollars: true));
+        Assert.True(started.IsSuccess, string.Join("; ", started.Errors.Select(e => e.Message)));
+
+        BudgetWorkspaceDto prior = (await entry.GetWorkspaceAsync(_draft2027))!;
+        BudgetWorkspaceDto next = (await entry.GetWorkspaceAsync(started.Value.VersionId))!;
+        Assert.Equal(prior.Lines.Count, started.Value.LineCount);
+        BudgetLineDto priorSalaries = prior.Lines.First(l => l.AccountType == AccountType.Expenditure);
+        BudgetLineDto nextSalaries = next.Lines.Single(l => l.FundId == priorSalaries.FundId && l.DepartmentId == priorSalaries.DepartmentId && l.AccountId == priorSalaries.AccountId);
+        Assert.Equal(priorSalaries.Amount, nextSalaries.CurrentYearBudget);
+        Assert.Equal(Math.Round(priorSalaries.Amount * 1.03m, 0, MidpointRounding.AwayFromZero), nextSalaries.Amount);
+        BudgetLineDto priorRevenue = prior.Lines.First(l => l.AccountType == AccountType.Revenue);
+        Assert.Equal(Math.Round(priorRevenue.Amount, 0, MidpointRounding.AwayFromZero), next.Lines.Single(l => l.FundId == priorRevenue.FundId && l.AccountId == priorRevenue.AccountId && l.DepartmentId == priorRevenue.DepartmentId).Amount);
+
+        // Once a year has a budget, it is not started again; a closed year is not started at all.
+        Assert.Contains("already has a budget", (await workflow.StartBudgetAsync(new StartBudgetRequest(fy2028, false))).Errors.Single().Message, StringComparison.Ordinal);
+        Guid fy2029 = (await years.CreateAsync(new CreateFiscalYearRequest(2029))).Value;
+        Assert.True((await years.SetClosedAsync(fy2029, true)).IsSuccess);
+        Assert.True((await workflow.StartBudgetAsync(new StartBudgetRequest(fy2029, false))).IsFailure);
+    }
+
+    [Fact]
+    public async Task Only_the_fiscal_authority_starts_a_budget()
+    {
+        Guid fy2030;
+        await using (AsyncServiceScope fd = As(Roles.FinanceDirector))
+        {
+            fy2030 = (await fd.ServiceProvider.GetRequiredService<IFiscalYearService>().CreateAsync(new CreateFiscalYearRequest(2030))).Value;
+        }
+
+        foreach (string role in new[] { Roles.DepartmentHead, Roles.Viewer })
+        {
+            await using AsyncServiceScope scope = As(role);
+            Assert.True((await scope.ServiceProvider.GetRequiredService<IBudgetWorkflowService>().StartBudgetAsync(new StartBudgetRequest(fy2030, false))).IsFailure, role);
+        }
+    }
 
     [Fact]
     public async Task A_closed_fiscal_year_takes_no_new_amendment_until_it_is_reopened()

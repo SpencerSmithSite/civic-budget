@@ -2,6 +2,7 @@ using CivicBudget.Application.Common;
 using CivicBudget.Application.Persistence;
 using CivicBudget.Application.Security;
 using CivicBudget.Application.Tenancy;
+using CivicBudget.Domain.Budgets;
 using CivicBudget.Domain.FiscalYears;
 using CivicBudget.Domain.Governments;
 using FluentValidation;
@@ -9,7 +10,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CivicBudget.Application.Setup;
 
-public sealed record FiscalYearDto(Guid Id, int Year, string Label, DateOnly StartDate, DateOnly EndDate, bool IsClosed, int VersionCount);
+/// <param name="StartFrom">The prior year's latest adopted version a new budget could start from ("Amendment 1"), or null when there is none.</param>
+public sealed record FiscalYearDto(Guid Id, int Year, string Label, DateOnly StartDate, DateOnly EndDate, bool IsClosed, int VersionCount, string? StartFrom = null)
+{
+    /// <summary>A year gets its budget once: while it is open and has no version yet.</summary>
+    public bool CanStartBudget => !IsClosed && VersionCount == 0;
+}
 
 public sealed record CreateFiscalYearRequest(int Year);
 
@@ -41,13 +47,27 @@ public sealed class FiscalYearService(
     public async Task<IReadOnlyList<FiscalYearDto>> ListAsync(CancellationToken ct = default)
     {
         await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
-        return await db.FiscalYears
+        List<FiscalYearDto> years = await db.FiscalYears
             .OrderByDescending(fy => fy.Year)
             .Select(fy => new FiscalYearDto(
                 // FiscalYear.Label cannot be translated to SQL inside this projection, so its format is repeated here.
                 fy.Id, fy.Year, "FY" + fy.Year, fy.StartDate, fy.EndDate, fy.IsClosed,
-                db.BudgetVersions.Count(v => v.FiscalYearId == fy.Id)))
+                db.BudgetVersions.Count(v => v.FiscalYearId == fy.Id),
+                null))
             .ToListAsync(ct);
+
+        // What each year could start from: the latest adopted, unreplaced version of the year before.
+        var adopted = await (from v in db.BudgetVersions
+                             join fy in db.FiscalYears on v.FiscalYearId equals fy.Id
+                             where v.Status == BudgetStatus.Adopted && v.SupersededByVersionId == null
+                             select new { fy.Year, v.VersionNumber })
+                            .ToListAsync(ct);
+        Dictionary<int, int> latestByYear = adopted.GroupBy(a => a.Year).ToDictionary(g => g.Key, g => g.Max(a => a.VersionNumber));
+        return years
+            .Select(y => latestByYear.TryGetValue(y.Year - 1, out int number)
+                ? y with { StartFrom = number == 1 ? "Original" : $"Amendment {number - 1}" }
+                : y)
+            .ToList();
     }
 
     public async Task<Result<Guid>> CreateAsync(CreateFiscalYearRequest request, CancellationToken ct = default)

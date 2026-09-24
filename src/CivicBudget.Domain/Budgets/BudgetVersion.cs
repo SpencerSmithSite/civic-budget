@@ -69,6 +69,53 @@ public sealed class BudgetVersion : Entity, ITenantOwned
         new(governmentId, fiscalYearId, versionNumber: 1, amendmentReason: null);
 
     /// <summary>
+    /// Starts a fiscal year's Original budget from the prior year's latest adopted version. Each line
+    /// carries over with last year's adopted amount as the comparative and, changed by the options'
+    /// percentage, as the starting request; the prior-year actual starts at zero until actuals are
+    /// imported, because the adopted budget is not what was actually spent. Each fund's beginning
+    /// balance is last year's projected ending balance, the best estimate until the books close.
+    /// Lines whose fund, department, or account has since been retired are left out and listed, so
+    /// nothing is silently dropped.
+    /// </summary>
+    /// <param name="funds">Every fund of the government, active or not (a fund with only a balance has no line to reach it through).</param>
+    public static (BudgetVersion Version, IReadOnlyList<string> Skipped) CreateOriginalFrom(
+        BudgetVersion priorAdopted, Guid fiscalYearId, IReadOnlyDictionary<Guid, Fund> funds, BudgetSeedOptions options)
+    {
+        Guard.Against(priorAdopted.Status != BudgetStatus.Adopted, "A new budget can only start from an adopted one.");
+        Guard.Against(priorAdopted.SupersededByVersionId is not null, "Start from the latest adopted version; a later amendment replaced this one.");
+        Guard.Against(priorAdopted.FiscalYearId == fiscalYearId, "A budget cannot be started from its own fiscal year.");
+        Guard.Against(
+            options.AdjustmentPercent < BudgetSeedOptions.MinPercent || options.AdjustmentPercent > BudgetSeedOptions.MaxPercent,
+            $"The change must be between {BudgetSeedOptions.MinPercent}% and {BudgetSeedOptions.MaxPercent}%.");
+
+        BudgetVersion version = CreateOriginal(priorAdopted.GovernmentId, fiscalYearId);
+        var skipped = new List<string>();
+        foreach (BudgetLine line in priorAdopted.Lines.OrderBy(l => l.Fund.Code).ThenBy(l => l.Department?.Code).ThenBy(l => l.Account.Code))
+        {
+            if (!line.Fund.IsActive || !line.Account.IsActive || line.Department is { IsActive: false })
+            {
+                skipped.Add($"{line.Fund.Code} {line.Department?.Code} {line.Account.Code} {line.Account.Name}".Replace("  ", " ", StringComparison.Ordinal));
+                continue;
+            }
+
+            version.AddLine(line.Fund, line.Department, line.Account,
+                amount: options.Apply(line.Amount, line.Account.Type),
+                priorYearActual: 0m,
+                currentYearBudget: line.Amount);
+        }
+
+        foreach (FundBalanceSummary summary in FundBalanceCalculator.CalculateAll(priorAdopted))
+        {
+            if (funds.TryGetValue(summary.FundId, out Fund? fund) && fund.IsActive)
+            {
+                version.SetBeginningBalance(fund, summary.ProjectedEndingBalance);
+            }
+        }
+
+        return (version, skipped);
+    }
+
+    /// <summary>
     /// Ohio rule of thumb encoded as a domain rule: a fiscal year has at most one budget in progress.
     /// Call with the year's existing versions before creating a new one.
     /// </summary>

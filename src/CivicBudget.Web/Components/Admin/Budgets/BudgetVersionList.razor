@@ -7,6 +7,12 @@
 <PageTitle>Budget versions</PageTitle>
 
 <PageHeader Title="Budget versions" Eyebrow="Budget" Crumbs="@([new Crumb("Budget"), new Crumb("Budget versions")])" Tip="Each fiscal year has an original budget and, after adoption, any amendments. Open a version to enter or review its lines.">
+    <Actions>
+        @* A new year's budget is started from its fiscal year, which is where "empty or from last year" is chosen. *@
+        <AuthorizeView Policy="@Policies.CanMaintainSetup">
+            <a class="btn btn-outline-primary btn-sm" href="admin/fiscal-years"><i class="bi bi-plus-square me-1" aria-hidden="true"></i>Start a new year's budget</a>
+        </AuthorizeView>
+    </Actions>
     </PageHeader>
 
 @if (versions is null)
