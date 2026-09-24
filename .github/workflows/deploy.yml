@@ -1,6 +1,7 @@
 # Deploys CivicBudget to AWS. Fully written, never run: there is no AWS account behind this
 # repository (ADR-0008). When one exists, the steps are:
 #   1. cdk bootstrap, then deploy the OIDC stack once by hand:  cdk deploy CivicBudget-GitHubOidc
+#      (it also creates the ECR repository, which must exist before this workflow's first push)
 #   2. Put its DeployRoleArn output in the repository variable AWS_DEPLOY_ROLE_ARN
 #   3. Push a tag like v1.0.0, or run this workflow by hand
 # No AWS access key is stored in GitHub: the job asks GitHub for an OIDC token and AWS trades it

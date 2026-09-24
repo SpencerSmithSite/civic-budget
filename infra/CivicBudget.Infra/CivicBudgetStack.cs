@@ -51,14 +51,9 @@ public sealed class CivicBudgetStack : Stack
         var vpc = new Vpc(this, "Vpc", new VpcProps { MaxAzs = 2, NatGateways = 1 });
 
         // ---- Image repository ----------------------------------------------------------------------
-        var repository = new Repository(this, "Repository", new RepositoryProps
-        {
-            RepositoryName = "civicbudget",
-            ImageScanOnPush = true,
-            RemovalPolicy = RemovalPolicy.DESTROY,
-            EmptyOnDelete = true,
-            LifecycleRules = [new LifecycleRule { MaxImageCount = 10, Description = "Keep the last ten images" }],
-        });
+        // Created by the one-time GitHubOidcStack, because the deploy workflow pushes the image before
+        // this stack exists; here it is only looked up by name (the task role gets pull access).
+        IRepository repository = Repository.FromRepositoryName(this, "Repository", GitHubOidcStack.ImageRepositoryName);
 
         // ---- Database ------------------------------------------------------------------------------
         // SQL Server Express on the smallest burstable instance: license included, 10 GB database
@@ -207,7 +202,6 @@ public sealed class CivicBudgetStack : Stack
             Value = (certificate is null ? "http://" : "https://") + service.LoadBalancer.LoadBalancerDnsName,
             Description = certificate is null ? "The app (HTTP only: pass -c certificateArn=... for HTTPS)" : "The app",
         });
-        _ = new CfnOutput(this, "RepositoryUri", new CfnOutputProps { Value = repository.RepositoryUri, Description = "Push images here" });
         _ = new CfnOutput(this, "DemoPasswordSecretArn", new CfnOutputProps { Value = demoPassword.SecretArn, Description = "aws secretsmanager get-secret-value --secret-id <this>" });
         _ = new CfnOutput(this, "LogGroupName", new CfnOutputProps { Value = logGroup.LogGroupName });
     }

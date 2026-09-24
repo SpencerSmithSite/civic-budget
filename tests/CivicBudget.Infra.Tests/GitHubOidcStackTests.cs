@@ -75,4 +75,17 @@ public class GitHubOidcStackTests
         Assert.Contains("repo:someone/else:ref:refs/tags/v*", json, StringComparison.Ordinal);
         Assert.DoesNotContain("SpencerSmithSite", json, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void The_image_repository_exists_before_any_deploy_scanned_and_trimmed()
+    {
+        Template.HasResourceProperties("AWS::ECR::Repository", new Dictionary<string, object>
+        {
+            ["RepositoryName"] = GitHubOidcStack.ImageRepositoryName,
+            ["ImageScanningConfiguration"] = new Dictionary<string, object> { ["ScanOnPush"] = true },
+            ["EmptyOnDelete"] = true,
+        });
+        Template.HasResource("AWS::ECR::Repository", new Dictionary<string, object> { ["DeletionPolicy"] = "Delete" });
+        Template.HasOutput("RepositoryUri", Match.AnyValue());
+    }
 }

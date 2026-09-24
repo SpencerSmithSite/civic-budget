@@ -145,13 +145,10 @@ public class CivicBudgetStackTests
     }
 
     [Fact]
-    public void Images_are_scanned_and_the_repository_keeps_only_recent_ones()
+    public void The_image_repository_comes_from_the_one_time_stack_not_this_one()
     {
-        App.HasResourceProperties("AWS::ECR::Repository", new Dictionary<string, object>
-        {
-            ["RepositoryName"] = "civicbudget",
-            ["ImageScanningConfiguration"] = new Dictionary<string, object> { ["ScanOnPush"] = true },
-        });
+        // The workflow pushes before this stack deploys; creating the repository here made a first deploy fail at the push.
+        App.ResourceCountIs("AWS::ECR::Repository", 0);
     }
 
     [Fact]
@@ -179,12 +176,10 @@ public class CivicBudgetStackTests
     [Fact]
     public void Everything_can_be_torn_down_by_cdk_destroy()
     {
-        // No resource may survive a destroy and keep billing: the database, the log group, and the
-        // image repository all delete with the stack. A real deployment would flip the database.
+        // No resource may survive a destroy and keep billing: the database and the log group delete
+        // with the stack (the image repository is in GitHubOidcStack). A real deployment would flip the database.
         App.HasResource("AWS::RDS::DBInstance", new Dictionary<string, object> { ["DeletionPolicy"] = "Delete", ["UpdateReplacePolicy"] = "Delete" });
         App.HasResource("AWS::Logs::LogGroup", new Dictionary<string, object> { ["DeletionPolicy"] = "Delete" });
-        App.HasResource("AWS::ECR::Repository", new Dictionary<string, object> { ["DeletionPolicy"] = "Delete" });
-        App.HasResourceProperties("AWS::ECR::Repository", new Dictionary<string, object> { ["EmptyOnDelete"] = true });
     }
 
     [Fact]
@@ -200,7 +195,6 @@ public class CivicBudgetStackTests
     public void Outputs_tell_the_operator_where_things_are()
     {
         App.HasOutput("ServiceUrl", Match.AnyValue());
-        App.HasOutput("RepositoryUri", Match.AnyValue());
         App.HasOutput("DemoPasswordSecretArn", Match.AnyValue());
     }
 }
