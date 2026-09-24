@@ -114,9 +114,8 @@ else
 }
 
 @code {
-    // One helper for the grid and the phone card, so the two cannot drift (the card used to drop the
-    // previously-published state, and the grid called it "Superseded" where the versions list says
-    // "Previously published").
+    // One helper for the grid and the phone card, so the two always agree, and with the versions list,
+    // on what a version's publishing state is called.
     private RenderFragment? PortalPill(BudgetVersionSummaryDto version) =>
         snapshots?.Any(s => s.BudgetVersionId == version.Id && s.Status == Domain.Publishing.SnapshotStatus.Active) == true
             ? @<StatusPill Tone="success" Label="Published" />
@@ -136,7 +135,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // A department user's home is their department, not the government-wide overview (Phase 9d).
+        // A department user's home is their department, not the government-wide overview.
         if ((await AuthenticationState).User.IsInRole(Roles.DepartmentHead))
         {
             Navigation.NavigateTo("admin/my-department", replace: true);

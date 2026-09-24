@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace CivicBudget.Web.Tests.Budgets;
 
 /// <summary>
-/// Phase 9d pages over a hand-built workspace: the strip and board read statuses from the DTO, the
+/// The department pages over a hand-built workspace: the strip and board read statuses from the DTO, the
 /// entry page shows the return note, locks a submitted request, and routes submit and return through
 /// the request service; My department sends a one-department user straight to their page.
 /// </summary>

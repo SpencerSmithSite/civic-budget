@@ -1,6 +1,10 @@
 namespace CivicBudget.Domain.Funds;
 
-/// <summary>GASB fund types. Grouped into <see cref="FundGroup"/> for reporting.</summary>
+/// <summary>
+/// The fund types GASB (the body that sets accounting standards for US state and local governments)
+/// defines. A fund is a separate set of books for money that can only be spent on certain things,
+/// such as a street levy that can only pay for streets. Reports group them into <see cref="FundGroup"/>.
+/// </summary>
 public enum FundCategory
 {
     // Governmental

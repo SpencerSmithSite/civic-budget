@@ -89,7 +89,6 @@ public sealed class PublishingService(
             return Result.Failure<Guid>(conflict.Errors);
         }
 
-
         await cacheInvalidator.InvalidateAsync(government.PublicSlug, ct);
         return Result.Success(snapshot.Id);
     }
@@ -122,7 +121,6 @@ public sealed class PublishingService(
         {
             return conflict;
         }
-
 
         await cacheInvalidator.InvalidateAsync(snapshot.GovernmentSlug, ct);
         return Result.Success();

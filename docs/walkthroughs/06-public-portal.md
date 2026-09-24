@@ -1,9 +1,8 @@
-# Walkthrough 06 — The public transparency portal
+# Walkthrough 06: The public transparency portal
 
-What Phase 5 built and how to explain it. The portal is the one part of
-CivicBudget a citizen (or an interviewer) sees without logging in, so it is
-where the architectural choices from Phase 0 finally pay off: static SSR,
-the snapshot boundary, and output caching.
+Phase 5 built the public portal. It is the one part of CivicBudget a citizen
+(or an interviewer) sees without signing in, and it is where the choices from
+Phase 0 pay off: static SSR, the snapshot boundary, and output caching.
 
 ---
 
@@ -129,7 +128,9 @@ What each does:
 
 1. **`PortalOutputCachePolicy`** decides per request. `GET /transparency/**`
    is cached for six hours, keyed by path and query, tagged
-   `portal:{slug}`. It refuses to store a non-200 (a not-found for a
+   `portal:{slug}`. (In Phase 17 I narrowed the key to the three query values the
+   pages read, `q`, `show`, and `view`: keying by every query string let anyone
+   skip the cache with `?x=1`, `?x=2`, and so on.) It refuses to store a non-200 (a not-found for a
    government published later must not stick) or anything that still sets
    a cookie. Every other path is left alone.
 2. **`PortalResponseMiddleware`** fixes the headers Blazor writes. Static
@@ -144,7 +145,7 @@ What each does:
    and unpublish (Phase 4 registered a no-op); Web now registers the real
    one after `AddInfrastructure`, so the last registration wins.
 
-Things that went wrong on the way, all now in `CLAUDE.md` gotchas: the
+Things that went wrong on the way, all now in the gotchas list in `CLAUDE.md`: the
 default policy silently refused to cache anything (`no-store`), response
 headers are read-only inside `ServeResponseAsync`, and a middleware placed
 after `UseOutputCache` never runs on a hit.
@@ -188,7 +189,7 @@ invariant number formats, typed cells with a frozen bold header.
 - Works with JavaScript disabled and at 390px (no horizontal scroll; wide
   tables scroll inside their own wrapper).
 - A footer accessibility statement names the target (WCAG 2.1 AA) and how
-  to report a problem; the screen-reader pass is scheduled for Phase 8.
+  to report a problem. (Phase 12 moved it, with the glossary, to its own page.)
 
 ---
 

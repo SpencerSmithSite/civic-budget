@@ -1,7 +1,7 @@
 # CLAUDE.md — CivicBudget
 
-Portfolio project for a .NET / Blazor interview at a government ERP company.
-Spencer will be asked to **explain this code**, so: clarity over cleverness,
+My portfolio project for a .NET / Blazor role at a government ERP company.
+I will be asked to **explain this code**, so: clarity over cleverness,
 idiomatic modern C#, small reviewable changes, and every non-obvious choice
 written down.
 
@@ -123,7 +123,17 @@ dotnet format                                          # CI runs --verify-no-cha
 - Branch per phase: `phase-1-foundation`, `phase-2-identity`, …; PR to `main`.
 - Conventional commits: `feat:`, `fix:`, `test:`, `docs:`, `chore:`, `refactor:`.
 - PR description: what / why / how to test / screenshots.
-- Commit messages end with `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`.
+- Commit messages end with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+
+## Writing docs and comments
+- Docs are in my voice: first person ("I chose", "I kept"), never "Spencer" in the third person,
+  never "we" for a team that does not exist. Plain words a newcomer can follow; explain the Ohio
+  term the first time it appears. No em dashes in docs or comments.
+- Code comments explain why, in the present tense, with no phase numbers or project history
+  ("used to", "Phase 9d"); history belongs in walkthroughs, the changelog, and ADR amendments.
+- When a later phase changes an earlier decision, amend the original ADR (dated) rather than
+  rewriting it, and add a short "since Phase N" note to the walkthrough that described it.
+- Check names in docs against the code: every backticked class, method, or file should exist.
 
 ## Docs to keep current
 `ROADMAP.md` (check boxes), `CHANGELOG.md` (per phase), `docs/DECISIONS.md`

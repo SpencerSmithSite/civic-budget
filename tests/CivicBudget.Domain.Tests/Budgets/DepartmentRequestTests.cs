@@ -5,7 +5,7 @@ using CivicBudget.Domain.Departments;
 namespace CivicBudget.Domain.Tests.Budgets;
 
 /// <summary>
-/// Phase 9d: each department hands its request to the fiscal officer. The version owns the rules:
+/// Each department hands its request to the fiscal officer. The version owns the rules:
 /// submit only while Draft and only with lines, return only what was submitted, narratives travel
 /// into amendments but statuses do not.
 /// </summary>

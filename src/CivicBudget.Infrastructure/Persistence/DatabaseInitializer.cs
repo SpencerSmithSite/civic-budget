@@ -8,10 +8,12 @@ using Microsoft.Extensions.Logging;
 namespace CivicBudget.Infrastructure.Persistence;
 
 /// <summary>
-/// Startup helper: wait for SQL Server, apply pending migrations, then seed. Development does both
-/// on every start; the demo deploys opt in (DatabaseOptions); a real pipeline would run migrations
-/// as its own step. <see cref="ResetAsync"/> is the nightly demo reset: everything dropped and
-/// rebuilt from the seed so visitors always find the two fictional governments as designed.
+/// Wait for SQL Server, apply pending migrations, then seed. The Web project's DatabaseStartupService
+/// calls these after the site is already listening, behind the "waking up" screen (ADR-0031), when
+/// DatabaseOptions ask for it: always in Development and on the demo, never by default in production,
+/// where a real pipeline would run migrations as its own step. <see cref="ResetAsync"/> is the
+/// nightly demo reset: everything dropped and rebuilt from the seed so visitors always find the two
+/// fictional governments as designed.
 /// </summary>
 public static class DatabaseInitializer
 {

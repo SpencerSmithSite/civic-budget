@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace CivicBudget.IntegrationTests;
 
-/// <summary>Reports agree with the workspace they are built from, and a Department Head's detail report is limited to their departments.</summary>
+/// <summary>Reports agree with the workspace they are built from, and a department user's detail report is limited to their departments.</summary>
 [Collection(SqlServerTests.Name)]
 public class ReportServiceTests(SqlServerFixture fixture) : IAsyncLifetime
 {

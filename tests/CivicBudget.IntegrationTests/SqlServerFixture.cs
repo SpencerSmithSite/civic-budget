@@ -14,8 +14,9 @@ using Testcontainers.MsSql;
 namespace CivicBudget.IntegrationTests;
 
 /// <summary>
-/// One SQL Server 2022 container for the whole test run (same image as docker-compose). Each test
-/// class gets its own database on that server so classes can't see each other's rows.
+/// One SQL Server 2022 container for the whole test run (same image as docker-compose). Tests get
+/// their own databases on that server, so no test can see another's rows or depend on the order
+/// xUnit runs them in.
 /// </summary>
 public sealed class SqlServerFixture : IAsyncLifetime, IDisposable
 {

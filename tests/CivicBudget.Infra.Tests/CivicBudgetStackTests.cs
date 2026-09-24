@@ -147,7 +147,7 @@ public class CivicBudgetStackTests
     [Fact]
     public void The_image_repository_comes_from_the_one_time_stack_not_this_one()
     {
-        // The workflow pushes before this stack deploys; creating the repository here made a first deploy fail at the push.
+        // The workflow pushes before this stack deploys, so a repository created here would make a first deploy fail at the push.
         App.ResourceCountIs("AWS::ECR::Repository", 0);
     }
 

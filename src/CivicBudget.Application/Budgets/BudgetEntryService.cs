@@ -48,9 +48,9 @@ public sealed class BudgetEntryService(
         FiscalYear fiscalYear = await db.FiscalYears.SingleAsync(fy => fy.Id == version.FiscalYearId, ct);
         Government government = await db.Governments.SingleAsync(g => g.Id == version.GovernmentId, ct);
 
-        // department users see only their departments' lines; everyone else sees the whole version.
-        bool isDepartmentHead = currentUser.IsDepartmentUser();
-        IEnumerable<BudgetLine> visible = isDepartmentHead
+        // Department users see only their departments' lines; everyone else sees the whole version.
+        bool isDepartmentUser = currentUser.IsDepartmentUser();
+        IEnumerable<BudgetLine> visible = isDepartmentUser
             ? version.Lines.Where(l => l.DepartmentId is { } d && currentUser.DepartmentIds.Contains(d))
             : version.Lines;
 
@@ -59,8 +59,8 @@ public sealed class BudgetEntryService(
             .Select(l => ToDto(l, government.AccountNumberFormat, CanEdit(version, l)))
             .ToList();
 
-        // Fund balances always use every line in the version, not just the visible ones: a Department
-        // Head's fund total must reflect the whole fund or the appropriation check would be meaningless.
+        // Fund balances always use every line in the version, not just the visible ones: a department
+        // user's fund total must reflect the whole fund or the appropriation check would be meaningless.
         // Active funds plus any inactive fund that still has lines in this version (history must keep its fund).
         List<Guid> usedFundIds = version.Lines.Select(l => l.FundId).Distinct().ToList();
         Dictionary<Guid, Fund> fundsById = await db.Funds
@@ -87,7 +87,7 @@ public sealed class BudgetEntryService(
         List<AccountLookupDto> accounts = await db.Accounts.Where(a => a.IsActive).OrderBy(a => a.Code)
             .Select(a => new AccountLookupDto(a.Id, a.Code, a.Name, a.Type, a.Category)).ToListAsync(ct);
 
-        if (isDepartmentHead)
+        if (isDepartmentUser)
         {
             departments = departments.Where(d => currentUser.DepartmentIds.Contains(d.Id)).ToList();
         }
@@ -100,7 +100,7 @@ public sealed class BudgetEntryService(
             .Where(d => d.IsActive || linesByDepartment.Select(g => g.Key).Contains(d.Id))
             .OrderBy(d => d.Code)
             .ToListAsync(ct);
-        if (isDepartmentHead)
+        if (isDepartmentUser)
         {
             visibleDepartments = visibleDepartments.Where(d => currentUser.DepartmentIds.Contains(d.Id)).ToList();
         }
@@ -112,7 +112,7 @@ public sealed class BudgetEntryService(
         // A department user who has submitted every department they hold has nothing left to add to.
         bool canAddLines = version.IsEditable
             && (currentUser.IsFiscalAuthority()
-                || (isDepartmentHead && version.Status == BudgetStatus.Draft && departments.Any(d => !version.IsDepartmentSubmitted(d.Id))));
+                || (isDepartmentUser && version.Status == BudgetStatus.Draft && departments.Any(d => !version.IsDepartmentSubmitted(d.Id))));
 
         return new BudgetWorkspaceDto(
             ToSummary(version, fiscalYear.Year, version.Lines.Count),
@@ -311,8 +311,11 @@ public sealed class BudgetEntryService(
         BudgetLinePermissions.CanEdit(currentUser, version.Status, line.DepartmentId,
             line.DepartmentId is { } departmentId && version.IsDepartmentSubmitted(departmentId));
 
-    /// <summary>Shared with <see cref="DepartmentRequestService"/> so both screens describe a department the same way.</summary>
-    internal static DepartmentRequestDto ToRequestDto(ICurrentUser user, BudgetVersion version, Department department, IReadOnlyList<BudgetLine> lines)
+    /// <summary>
+    /// Where one department stands, with its totals counted by the department-total rule (expenditures
+    /// only) and every button decided for the current user, so the pages only render.
+    /// </summary>
+    private static DepartmentRequestDto ToRequestDto(ICurrentUser user, BudgetVersion version, Department department, List<BudgetLine> lines)
     {
         DepartmentRequest? request = version.GetDepartmentRequest(department.Id);
         DepartmentRequestStatus status = request?.Status ?? DepartmentRequestStatus.InProgress;

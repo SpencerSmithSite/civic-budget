@@ -2,7 +2,14 @@ namespace CivicBudget.Application.Security;
 
 /// <summary>
 /// The four roles from SPEC section 7.1. A user has exactly one role within their government.
-/// Role names are also the ASP.NET Core Identity role names, so they never change once deployed.
+/// <para>
+/// The constants are the role names stored in the Identity tables, and they are older than the
+/// labels people see. The app first said "Finance Director" and "Department Head"; Ohio villages and
+/// townships say "Fiscal Officer", and a department's logon is often a clerk rather than the head,
+/// so the screens now say "Fiscal Officer" and "Department User". Renaming the stored names would
+/// mean migrating every user's role row for no change in behavior, so only <see cref="DisplayName"/>
+/// changed.
+/// </para>
 /// </summary>
 public static class Roles
 {

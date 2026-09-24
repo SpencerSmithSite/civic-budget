@@ -72,7 +72,7 @@ public class FundListTests : BunitContext
         page.FindAll("table button.dropdown-item").First(b => b.TextContent.Contains("Deactivate")).Click();
         page.Find(".modal .btn-danger").Click();
 
-        // The dialog's OnConfirm is a Func, so without an explicit re-render the row kept saying Active.
+        // The dialog's OnConfirm is a Func, so without an explicit re-render the row would keep saying Active.
         page.WaitForAssertion(() => Assert.Contains("Inactive", page.FindAll("table tbody tr")[0].TextContent));
     }
 

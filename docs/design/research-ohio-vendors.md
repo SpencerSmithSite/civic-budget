@@ -1,6 +1,6 @@
 # Research: ERP and budgeting software used by Ohio local governments (2026-09-18)
 
-Compiled by a research agent from vendor sites, customer training guides, Capterra listings, and
+Compiled from vendor sites, customer training guides, Capterra listings, and
 press releases. Ohio usage is marked verified only where a named Ohio customer or an official
 Ohio source was found.
 

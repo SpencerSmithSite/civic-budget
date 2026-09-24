@@ -58,7 +58,11 @@ public sealed record DetailLineDto(
     public decimal? PercentChange => Domain.Common.Money.PercentChange(CurrentYearBudget, Amount);
 }
 
-/// <summary>A department's section: its lines (expenditures and any revenue budgeted to it) with subtotals.</summary>
+/// <summary>
+/// A department's section: every line recorded against it, but subtotals of its expenditures only.
+/// Revenue and transfer lines print for reference and stay out of the total, the same rule as every
+/// other screen (<see cref="AccountTypeExtensions.CountsTowardDepartmentTotal"/>).
+/// </summary>
 public sealed record DepartmentDetailDto(
     Guid DepartmentId,
     string DepartmentCode,

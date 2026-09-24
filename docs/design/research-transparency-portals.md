@@ -1,6 +1,6 @@
 # Research: budget transparency portals, Ohio emphasis (2026-09-18)
 
-Compiled by a research agent by browsing live portals and vendor pages. Live pages were visually
+Compiled by browsing live portals and vendor pages. Live pages were visually
 confirmed; items marked "could not verify" were not.
 
 ## 1. Products, Ohio usage, live examples

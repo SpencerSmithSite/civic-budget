@@ -43,6 +43,7 @@ public sealed class Account : Entity, ITenantOwned
         (Code, Name, Type, Category) = (validCode, validName, validType, validCategory);
     }
 
+    /// <summary>Retired rather than deleted, for the same reason as <see cref="Funds.Fund.Deactivate"/>.</summary>
     public void Deactivate() => IsActive = false;
 
     public void Reactivate() => IsActive = true;

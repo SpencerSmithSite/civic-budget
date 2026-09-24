@@ -18,6 +18,7 @@ internal static class DemoUsers
 
     public static readonly IReadOnlyList<DemoUser> PineHollow =
     [
+        // A small township's fiscal officer often runs the whole system, so this login is an Administrator.
         new("admin@pinehollow.example", "Jordan Blake (Fiscal Officer)", Roles.Admin),
     ];
 }

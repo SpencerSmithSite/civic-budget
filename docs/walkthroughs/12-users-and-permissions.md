@@ -1,4 +1,4 @@
-# Walkthrough 12 — Users, logons, and permissions
+# Walkthrough 12: Users, logons, and permissions
 
 Phase 9c. Three things a county administrator expects: complete access for
 themselves, a fire chief who sees the fire department and nothing else,

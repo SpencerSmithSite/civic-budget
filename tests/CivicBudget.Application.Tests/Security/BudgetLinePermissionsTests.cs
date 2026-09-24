@@ -69,7 +69,7 @@ public class BudgetLinePermissionsTests
         Assert.False(BudgetLinePermissions.CanEditBeginningBalances(new FakeUser(Roles.Viewer), BudgetStatus.Draft));
     }
 
-    // ---- Phase 9d: department requests -------------------------------------------------------------
+    // ---- Department requests -------------------------------------------------------------------------
 
     [Fact]
     public void Submitting_locks_the_department_for_its_users_but_not_for_the_fiscal_authority()

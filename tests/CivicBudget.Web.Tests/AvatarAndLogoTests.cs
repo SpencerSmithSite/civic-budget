@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace CivicBudget.Web.Tests;
 
-/// <summary>Phase 10: the mark renders as accessible inline SVG; a person shows their picture when they have one and initials otherwise.</summary>
+/// <summary>The mark renders as accessible inline SVG; a person shows their picture when they have one and initials otherwise.</summary>
 public class AvatarAndLogoTests : BunitContext
 {
     private readonly FakeAvatarService _avatars = new();

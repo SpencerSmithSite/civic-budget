@@ -34,9 +34,10 @@ public interface IFundService
 }
 
 /// <summary>
-/// Fund maintenance. The pattern every setup service follows: validate the request, load through
-/// the tenant-filtered context, apply the change through the entity's own methods, save.
-/// Uniqueness is checked here (a friendly error) and also enforced by a unique index (the guarantee).
+/// Fund maintenance, and the pattern every setup service follows: check the caller's role, refuse if
+/// the ERP owns the chart, validate the request, load through the tenant-filtered context, change
+/// the entity through its own methods, save. Uniqueness is checked here so the user gets a friendly
+/// message, and a unique index enforces it anyway in case two people save at the same moment.
 /// </summary>
 public sealed class FundService(
     ICivicBudgetDbContextFactory dbFactory,
@@ -115,6 +116,7 @@ public sealed class FundService(
         {
             return managed;
         }
+
         Fund? fund = await db.Funds.FirstOrDefaultAsync(f => f.Id == id, ct);
         if (fund is null)
         {

@@ -1,4 +1,4 @@
-# Walkthrough 11 — The chart comes from the ERP
+# Walkthrough 11: The chart comes from the ERP
 
 Phase 9b. CivicBudget stops being where funds, departments, and objects are
 *maintained* and becomes where they are *received*.
@@ -45,8 +45,8 @@ mistake this feature can make expensive.
 
 `Government.ChartSource` is `Local` until the first sync. Under `Erp`:
 
-- `FundService`, `DepartmentService`, and `AccountService` refuse `Save`
-  and `SetActive` through `ChartOwnership.RefuseIfErpManagedAsync`, with a
+- `FundService`, `DepartmentService`, and `AccountService` refuse `SaveAsync`
+  and `SetActiveAsync` through `ChartOwnership.RefuseIfErpManagedAsync`, with a
   message that says where changes come from now.
 - The three setup lists load `IChartSyncService.StatusAsync()` and render
   `ChartSourceBanner` ("Managed by the ERP. Last synced ... by ...") instead

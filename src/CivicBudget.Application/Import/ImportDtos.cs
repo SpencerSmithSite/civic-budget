@@ -35,7 +35,14 @@ public sealed record ImportRowDto(
     string? Justification,
     decimal? ExistingAmount,
     ImportRowAction Action,
-    IReadOnlyList<string> Errors);
+    IReadOnlyList<string> Errors,
+    /// <summary>
+    /// What the codes matched, so commit applies exactly what the preview showed. Codes match loosely
+    /// (any case, "01000" for "1000"), and looking the typed text up a second time would not.
+    /// </summary>
+    Guid? FundId = null,
+    Guid? DepartmentId = null,
+    Guid? AccountId = null);
 
 /// <summary>
 /// The analysed file: rows plus the counts the preview screen shows before asking for confirmation.

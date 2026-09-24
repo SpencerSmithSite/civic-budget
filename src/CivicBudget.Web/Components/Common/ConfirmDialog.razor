@@ -1,7 +1,8 @@
 @inject IJSRuntime JS
-@* A Bootstrap modal driven entirely by Blazor state (no JavaScript): the parent calls Show() and
-   Hide(), and the body is whatever the parent renders. Replaces window.confirm so dialogs can carry
-   inputs (a resolution number, an acknowledgement) and validation messages. *@
+@* A Bootstrap modal driven by Blazor state rather than Bootstrap's JavaScript: the parent calls Show()
+   and Hide(), and the body is whatever the parent renders. The only script involved is the focus
+   helper in App.razor. Replaces window.confirm so dialogs can carry inputs (a resolution number, an
+   acknowledgement) and validation messages. *@
 @if (isOpen)
 {
     <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="@titleId" @onkeydown="OnKeyDown" @ref="modal">

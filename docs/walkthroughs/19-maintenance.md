@@ -1,4 +1,4 @@
-# Walkthrough 19 — Maintenance pass
+# Walkthrough 19: Maintenance pass
 
 Phase 17. No new features: a review of every layer, a walk through the running
 app as every demo user, and about ninety fixes. This is the phase to read for
@@ -6,15 +6,15 @@ app as every demo user, and about ninety fixes. This is the phase to read for
 
 ## 1. How the review ran
 
-Five reviewers read the code in parallel, one per layer: domain and
-application; infrastructure and server plumbing; the admin Blazor pages; the
-shared UI, portal, account pages, and CSS; and the tests, CI, Docker, and
-infrastructure scripts. Each was told to quote the lines, give a concrete
-failure scenario, and say PLAUSIBLE when unsure. About 130 findings came back.
-None was trusted as written: each fix started by reading the code, and the top
-admin findings were reproduced in a browser first.
+The code was reviewed one layer at a time: domain and application;
+infrastructure and server plumbing; the admin Blazor pages; the shared UI,
+portal, account pages, and CSS; and the tests, CI, Docker, and infrastructure
+scripts. Every finding had to quote the lines and give a concrete failure
+scenario, and anything uncertain was marked as such. About 130 findings came
+out. None was trusted as written: each fix started by reading the code again,
+and the top admin findings were reproduced in a browser first.
 
-In parallel, `scripts/screenshots/role-sweep.mjs` signed in as each of the six
+Alongside that, `scripts/screenshots/role-sweep.mjs` signed in as each of the six
 demo users and opened every page they can reach (about 220 page loads),
 recording console errors, failed requests, the Blazor error bar, and text such
 as "NaN". It found nothing. That was the lesson of the pass: pages that load
@@ -80,8 +80,8 @@ one. `ListPager` does the same job and tells the page when the page changes.
   out) and read `1234,56` as 123,456.
 - Renaming a government's public address stranded its published budgets; they
   now move with it and both addresses' cached pages are evicted.
-- Three indexes: fund-level lines unique per version (SQL Server leaves NULL
-  departments out of the existing unique index), one active snapshot per year,
+- Three indexes: fund-level lines unique per version (EF Core's unique index
+  over a nullable department skips lines that have none), one active snapshot per year,
   and recent activity by government and time.
 
 ## 5. Things the fixes taught
@@ -98,10 +98,10 @@ one. `ListPager` does the same job and tells the page when the page changes.
   back through the same scope. The tests now use a fresh scope, as a real next
   request would.
 
-## 6. Open questions (for Spencer)
+## 6. Open questions
 
-*Answered and implemented in Phase 18; see walkthrough 20.* These are budgeting
-rules, not bugs, so they were left as they were:
+*Answered and implemented in Phase 18; see walkthrough 20.* These were budgeting
+rules, not bugs, so I left the code alone until I had decided each one:
 
 1. **Publishing an older adopted version.** After Amendment 1 is adopted and
    published, the Original can still be published, which replaces the

@@ -62,8 +62,8 @@ public sealed class CivicBudgetDbContext(DbContextOptions<CivicBudgetDbContext> 
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
-        // Money is decimal(18,2) everywhere. A convention means a new decimal property can't be
-        // accidentally mapped as decimal(18,2)-by-default-with-a-warning or, worse, float.
+        // Money is decimal(18,2) everywhere. Declared once as a convention, a new decimal property gets
+        // the right column without anyone remembering to configure it.
         configurationBuilder.Properties<decimal>().HavePrecision(18, 2);
     }
 

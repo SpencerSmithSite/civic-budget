@@ -11,7 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace CivicBudget.IntegrationTests;
 
 /// <summary>
-/// Phase 9d through the services: a department user enters and submits their own department's
+/// The department round through the services: a department user enters and submits their own department's
 /// request, submitting locks it for them and not for the fiscal officer, and the officer can send
 /// it back with a note. The seed leaves FY2027 mid-round: Police submitted, Parks returned, the
 /// rest in progress.

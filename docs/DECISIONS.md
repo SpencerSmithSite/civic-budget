@@ -1,970 +1,955 @@
 # Architecture Decision Records
 
-Lightweight ADRs. Newest at the bottom. Every NuGet package added to the
-solution must be justified here (see "Packages" at the end).
+An ADR records one decision that had real alternatives: the situation, what I chose,
+what I turned down and why, and what the choice costs. They are numbered in the order I
+made them. When a later phase changed an earlier decision, the change is noted on the
+original ADR rather than rewriting history, so you can see how the thinking moved.
 
-Format: **Context** → **Decision** → **Alternatives considered** → **Consequences**.
+Every NuGet package in the solution is listed with its reason in [Packages](#packages)
+at the end.
+
+Format: **Context**, **Decision**, **Alternatives**, **Consequences**.
 
 ---
 
-## ADR-0001 — Four-project clean-ish architecture, no mediator/CQRS framework
+## ADR-0001: Four projects, plain services, no mediator or CQRS framework
 **Date:** 2026-09-15 · **Status:** Accepted
 
-**Context.** The project must be explainable in an interview and testable
-without a browser. Blazor apps commonly rot by putting EF queries in
-components.
+**Context.** I have to be able to explain every part of this project, and the rules
+have to be testable without a browser. The most common way Blazor apps rot is EF
+queries and business rules written straight into components.
 
-**Decision.** `Domain` → `Application` → `Infrastructure`/`Web`, with plain
-application services (classes with async methods) called by components.
+**Decision.** Four projects, `Domain` → `Application` → `Infrastructure` and `Web`, with
+plain application services (classes with async methods) that components call.
 
-**Alternatives.** (a) Single web project — fastest, but domain rules end up
-in `.razor` files. (b) MediatR/CQRS with handlers per request — well known,
-but adds indirection and a package for no gain at this size; also MediatR
-moved to a commercial license in 2025.
+**Alternatives.** (a) One web project: fastest to start, but the budget rules end up in
+`.razor` files. (b) MediatR and a handler per request: well known, but it adds
+indirection and a package for no gain at this size, and MediatR moved to a commercial
+license in 2025.
 
-**Consequences.** Slightly more files; very clear "where does X go" answer;
-services are trivially unit-testable.
+**Consequences.** A few more files, and a clear answer to "where does this go?".
+Services are easy to test.
 
 ---
 
-## ADR-0002 — Blazor Web App with per-area render modes
+## ADR-0002: A Blazor Web App with a render mode per area
+**Date:** 2026-09-15 · **Status:** Accepted, amended 2026-09-19
+
+**Context.** Two audiences with opposite needs: a few signed-in editors and many
+anonymous readers.
+
+**Decision.** The admin app is Interactive Server. The public portal is static
+server-side rendering with no interactivity.
+
+**Alternatives.** (a) Everything Interactive Server: simplest, but every citizen would
+open a SignalR circuit and hold server memory, and nothing could be cached. (b)
+WebAssembly for the portal: a large download for read-only tables. (c) A separate MVC
+project for the portal: duplicated layout and hosting.
+
+**Consequences.** Portal pages cannot use `@onclick`; charts need a form that works
+without script, which accessibility wants anyway. Output caching becomes possible.
+
+**Amended 2026-09-19: how the modes are applied.** I first put `@rendermode
+InteractiveServer` on each admin page. That makes each page an interactive island
+while the *layout* renders statically, so the sidebar, top bar, and toast host never
+had a circuit: toasts never appeared and the menu could not react. The mode is now set
+once in `App.razor`, on `Routes` and `HeadOutlet`, from
+`HttpContext.AcceptsInteractiveRouting()`: nothing (plain static rendering, no circuit)
+for pages marked `[ExcludeFromInteractiveRouting]` (portal, account, error pages), and
+Interactive Server for everything else, layout included. No page carries its own
+`@rendermode`.
+
+---
+
+## ADR-0003: IDbContextFactory instead of a scoped DbContext in Blazor Server
 **Date:** 2026-09-15 · **Status:** Accepted
 
-**Context.** Two audiences with opposite needs: a few authenticated editors,
-many anonymous readers.
+**Context.** In Blazor Server the dependency-injection scope is the circuit, not the
+request. A scoped `DbContext` would live as long as the browser tab and be shared by
+overlapping event handlers, and `DbContext` is not thread-safe.
 
-**Decision.** Admin area uses `InteractiveServer`; public portal uses static
-server-side rendering with no interactivity (progressive enhancement only).
+**Decision.** Register `AddDbContextFactory<CivicBudgetDbContext>()`. Every unit of work
+creates and disposes its own context.
 
-**Alternatives.** (a) Everything Interactive Server — simplest, but every
-citizen opens a SignalR circuit and holds server memory; poor SEO/caching.
-(b) WebAssembly for the portal — large download, no benefit for read-only
-tables. (c) Separate MVC project for the portal — duplicates layout and
-hosting.
+**Alternatives.** (a) A scoped context with `OwningComponentBase`: it works, but it is
+still one context per component lifetime and easy to misuse. (b) Creating scopes by
+hand with `IServiceScopeFactory`: the same effect with more code.
 
-**Consequences.** Portal pages must be written without `@onclick` state;
-charts need a JS-free fallback (which WCAG wants anyway). Output caching
-becomes possible.
-
-**Amended 2026-09-19 (how the modes are applied).** The first implementation
-put `@rendermode InteractiveServer` on each admin page. That makes the page an
-interactive island while `RouteView` renders the *layout* statically, so the
-sidebar, top bar, and `ToastHost` in `AdminLayout` never had a circuit:
-toasts never showed and the menu could not react. The app now applies the
-mode once, in `App.razor`, to `Routes` and `HeadOutlet`, computed per request
-from `HttpContext.AcceptsInteractiveRouting()`: null (plain static SSR, no
-markers, no circuit) for pages marked `[ExcludeFromInteractiveRouting]`
-(portal, account, error), Interactive Server for everything else, layout
-included. Per-page `@rendermode` attributes are gone (a nested one is an
-error). Nothing about the portal's static rendering changed; the static
-pages' HTML carries no Blazor markers, which a test could assert.
+**Consequences.** Nothing is tracked across operations; each service method loads what
+it needs. Simpler to reason about, and no stale-entity bugs.
 
 ---
 
-## ADR-0003 — `IDbContextFactory` instead of scoped `DbContext` in Blazor Server
+## ADR-0004: Tenancy through ITenantContext and EF Core global query filters
 **Date:** 2026-09-15 · **Status:** Accepted
 
-**Context.** In Blazor Server the DI scope is the circuit, not the request.
-A scoped `DbContext` lives for the life of the browser tab and is shared by
-concurrent event handlers; `DbContext` is not thread-safe.
+**Context.** Several governments share one database. Showing one government's draft
+budget to another is the worst bug this app could have.
 
-**Decision.** Register `AddDbContextFactory<CivicBudgetDbContext>()`. Every
-unit of work creates and disposes its own context.
+**Decision.** One database and one schema, `GovernmentId` on every tenant-owned row,
+global query filters bound to `ITenantContext`, and a save interceptor that verifies
+`GovernmentId` on every write (ADR-0013).
 
-**Alternatives.** (a) Scoped context + `OwningComponentBase` — works but
-still one context per component lifetime and easy to misuse. (b) Manual
-`IServiceScopeFactory` — same effect with more code.
+**Alternatives.** (a) A database per government: the strongest isolation, but N
+migrations and connection routing are heavy for this project. (b) A schema per
+government: SQL Server supports it, but EF Core's tooling makes it awkward. (c) SQL
+Server row-level security: good as a second lock later, not a substitute for filtering
+in the app.
 
-**Consequences.** No change tracking across operations; each service method
-loads what it needs. Simpler reasoning, no stale-entity bugs.
+**Consequences.** Every query is filtered without anyone remembering to filter it.
+Application code never calls `IgnoreQueryFilters()`; tests use it to check what the
+filters hide. The portal finds the government by its URL slug.
 
 ---
 
-## ADR-0004 — Tenancy via `ITenantContext` + EF Core global query filters
+## ADR-0005: The public portal reads immutable published snapshots only
 **Date:** 2026-09-15 · **Status:** Accepted
 
-**Context.** Multiple governments in one database; leaking one tenant's
-draft budget to another is the worst possible bug.
+**Context.** Citizens must never see draft or proposed figures, and what was published on
+a given day must be reproducible later.
 
-**Decision.** Single database, shared schema, `GovernmentId` on every
-tenant-owned row, global query filters bound to `ITenantContext`, a save
-interceptor that stamps and verifies `GovernmentId`.
+**Decision.** Publishing writes a denormalized `PublishedBudgetSnapshot` with its lines,
+funds, and departments. The portal reads only those tables. Unpublishing marks a
+snapshot; nothing is deleted.
 
-**Alternatives.** (a) Database-per-tenant — strongest isolation, but
-operationally heavier (migrations × N, connection routing) and overkill for
-the demo. (b) Schema-per-tenant — SQL Server supports it, EF Core tooling
-is awkward. (c) Row-level security in SQL Server — good defense-in-depth,
-could be added later; not a substitute for app-level filtering.
+**Alternatives.** (a) The portal queries the adopted version with a status filter: one
+forgotten `.Where` exposes drafts, and renaming an account later rewrites history. (b)
+Generating a static site on publish: attractive, but search and downloads become extra
+work; it could still be added in front as a cache.
 
-**Consequences.** Every query is filtered automatically; `IgnoreQueryFilters`
-is treated as a code smell and tested for. Portal resolves tenant by slug.
+**Consequences.** Some intended duplication. Publishing is an explicit, audited event,
+and cache invalidation is simple.
 
 ---
 
-## ADR-0005 — Public portal reads immutable published snapshots only
+## ADR-0006: A separate, read-only PublicPortalDbContext
 **Date:** 2026-09-15 · **Status:** Accepted
 
-**Context.** Citizens must never see draft or proposed figures; what was
-published on a date must be reproducible.
+**Context.** ADR-0005 says the portal reads only snapshots. I wanted that enforced by
+structure, not by convention.
 
-**Decision.** Publishing writes a denormalized `PublishedBudgetSnapshot`
-(+ lines). The portal reads only those tables. Unpublish soft-marks; history
-is kept.
+**Decision.** A second `DbContext` that maps only the snapshot entities, does not track,
+refuses to save, and has no migrations of its own. The admin context owns the schema.
 
-**Alternatives.** (a) Portal queries the Adopted version with a status
-filter — one forgotten `.Where` exposes drafts; renaming an account later
-changes history. (b) Static site generation to S3 on publish — attractive,
-but search and downloads become extra work; can still be added as a cache.
+**Alternatives.** One context and discipline: cheaper, but discipline is not a security
+control.
 
-**Consequences.** Some data duplication (intended); publishing is an
-explicit, audited event; cache invalidation is trivial.
+**Consequences.** The portal cannot query the live tables at all. In production its
+database login could be `SELECT`-only on the snapshot tables. The two contexts must stay
+in step when the snapshot tables change, which they do through one shared
+`PublishedSnapshotModel.Configure`.
 
 ---
 
-## ADR-0006 — Separate read-only `PublicPortalDbContext`
+## ADR-0007: FluentValidation over DataAnnotations
 **Date:** 2026-09-15 · **Status:** Accepted
 
-**Context.** ADR-0005 says the portal reads only snapshots. Enforce it
-structurally rather than by convention.
+**Context.** Validation belongs in the Application layer and has to handle rules that
+involve several fields (a department is required only for expenditure accounts).
 
-**Decision.** A second `DbContext` that maps only snapshot entities,
-`NoTracking`, no migrations of its own. The main context owns the schema.
+**Decision.** FluentValidation validators, one per request, run by the application
+service.
 
-**Alternatives.** One context with discipline — cheaper, but "discipline"
-is not a security control.
+**Alternatives.** DataAnnotations: no package, and Blazor's `EditForm` understands them,
+but attributes handle cross-field rules poorly and put rule logic in metadata.
 
-**Consequences.** The portal physically cannot query live tables. In AWS
-the portal login can be `SELECT`-only on snapshot tables. Two contexts to
-keep in sync when snapshot tables change (rare).
+**Consequences.** One package. Rules are ordinary classes with unit tests. Pages show the
+errors a service returns rather than relying on `DataAnnotationsValidator`.
 
 ---
 
-## ADR-0007 — FluentValidation over DataAnnotations
+## ADR-0008: Deploy-ready AWS infrastructure without an AWS account
 **Date:** 2026-09-15 · **Status:** Accepted
 
-**Context.** Validation must live in the Application layer and cover
-cross-field rules (appropriation vs. resources, department required only
-for expenditure accounts).
+**Context.** I have no AWS account or budget for this project, but the employer I am
+interviewing with runs on AWS, so the deployment story matters.
 
-**Decision.** FluentValidation validators, one per command DTO, run by the
-application service.
+**Decision.** Build everything up to `cdk deploy`: a Dockerfile, a full-stack Docker
+Compose file, a CDK stack in C#, `cdk synth` in CI, CDK assertion tests for the
+security properties, and an OIDC-based `deploy.yml` that stays idle until a role is
+configured. Document cost, teardown, and a budget alarm as they would apply.
 
-**Alternatives.** DataAnnotations — zero packages and Blazor `EditForm`
-support, but attributes on DTOs handle cross-field/async rules poorly and
-put rule logic in attribute metadata.
+**Alternatives.** (a) A free PaaS (Fly.io, Railway): a live URL, but it says nothing
+about AWS. (b) LocalStack: RDS and ECS are not in its free tier, so the fidelity is weak.
+(c) A new AWS account on the credit-based free tier: possible later; nothing here blocks it.
 
-**Consequences.** One package (`FluentValidation`). Rules are ordinary,
-unit-testable classes. UI shows returned errors rather than relying on
-attribute-driven `DataAnnotationsValidator`.
+**Consequences.** Strong, verifiable infrastructure code without a live AWS URL. With an
+account, `cdk bootstrap` and `cdk deploy` are the only new steps. (The live demo later
+went to Azure's free tiers instead; see ADR-0030.)
 
 ---
 
-## ADR-0008 — Deploy-ready AWS infrastructure without an AWS account
+## ADR-0009: SQL Server 2022 in Docker (amd64 under Rosetta on Apple Silicon)
 **Date:** 2026-09-15 · **Status:** Accepted
 
-**Context.** No AWS account or budget is available, but the target employer
-runs on AWS and the deployment story matters in the interview.
+**Context.** The target stack is SQL Server. My development Mac is arm64, and Microsoft
+ships no arm64 SQL Server image.
 
-**Decision.** Build everything up to the point of `cdk deploy`: Dockerfile,
-full-stack `docker compose`, CDK stack in C#, `cdk synth` in CI, CDK
-assertion tests for security invariants, and an OIDC-based `deploy.yml`
-that is `workflow_dispatch`-gated. Document cost, teardown, and a Budgets
-alarm as they would apply.
+**Decision.** `mcr.microsoft.com/mssql/server:2022-latest` with `platform: linux/amd64`
+in Docker Compose and in Testcontainers, relying on Docker Desktop's Rosetta emulation.
 
-**Alternatives.** (a) Deploy to a free PaaS (Fly.io, Railway) — a live URL,
-but tells the interviewer nothing about AWS. (b) LocalStack — RDS and ECS
-are not in the free tier; weak fidelity. (c) Open an AWS account on the new
-credit-based free tier — viable later; nothing in this decision blocks it.
+**Alternatives.** PostgreSQL: native on arm64 and cheaper on RDS, but it changes the
+story this project is meant to tell. Azure SQL Edge: retired.
 
-**Consequences.** No live URL by default; strong, verifiable infra code.
-If an account appears, `cdk bootstrap && cdk deploy` is the only new step.
+**Consequences.** Slower container starts locally (15 to 40 seconds) and the occasional
+emulation crash, which Compose now restarts automatically. CI on Ubuntu runs natively.
+The EF provider is confined to Infrastructure, so a swap stays possible.
 
 ---
 
-## ADR-0009 — SQL Server 2022 via Docker (amd64 under Rosetta on Apple Silicon)
+## ADR-0010: The repository is public and unlicensed (all rights reserved)
 **Date:** 2026-09-15 · **Status:** Accepted
 
-**Context.** The employer's stack is SQL Server; the development Mac is
-arm64 and Microsoft ships no arm64 SQL Server image.
+**Context.** I want interviewers to be able to read the code without my granting anyone
+the right to reuse it.
 
-**Decision.** Use `mcr.microsoft.com/mssql/server:2022-latest` with
-`platform: linux/amd64` in `docker-compose.yml` and Testcontainers, relying
-on Docker Desktop's Rosetta emulation. Verify on first Phase 1 run.
+**Decision.** No `LICENSE` file; the README says "All rights reserved", portfolio review
+only. Changes reach `main` through pull requests.
 
-**Alternatives.** PostgreSQL — native arm64 and cheaper on RDS, but changes
-the story the project is meant to tell. Azure SQL Edge — retired.
+**Alternatives.** A private repository (invisible unless each reviewer is invited); a
+restrictive license such as CC BY-NC-ND (still grants some rights).
 
-**Consequences.** Slower container start locally (~20–40 s). CI on Ubuntu is
-native. The EF provider is isolated in `Infrastructure` so a swap remains
-possible.
+**Consequences.** Anyone can read it, and GitHub cannot stop a fork of a public
+repository, but no right to use it is granted.
 
 ---
 
-## ADR-0010 — Repository is public, unlicensed (all rights reserved)
+## ADR-0011: QuickGrid for admin grids, no commercial component suite
 **Date:** 2026-09-15 · **Status:** Accepted
 
-**Context.** Spencer wants the repo visible for the interview but not
-reusable by others.
+**Context.** Government ERP vendors often use DevExpress or Telerik. I had no license or
+trial, and a portfolio project should not depend on one.
 
-**Decision.** No `LICENSE` file; README states "All rights reserved —
-portfolio project, not licensed for use, modification, or distribution."
-Branch protection on `main` (PRs only, no force-push).
+**Decision.** `Microsoft.AspNetCore.Components.QuickGrid` for the grids, with inline
+editing built from standard components.
 
-**Alternatives.** Private repo (invisible to interviewers unless invited);
-a restrictive license such as CC BY-NC-ND (still grants some rights).
-
-**Consequences.** Anyone can read and technically fork (GitHub cannot
-prevent forks of a personal public repo), but no rights to use are granted.
+**Consequences.** Less built-in polish than a commercial grid, which the design pass
+(ADR-0020) made up for; no licensing risk; every behavior is code I can explain. I
+replaced QuickGrid's own `Paginator` with a small `ListPager` so the phone card view
+pages together with the grid.
 
 ---
 
-## ADR-0011 — QuickGrid for admin grids (no DevExpress)
-**Date:** 2026-09-15 · **Status:** Accepted
+## ADR-0012: Central Package Management and analyzers as errors
+**Date:** 2026-09-16 · **Status:** Accepted
 
-**Context.** No DevExpress license/trial available.
+**Context.** Eight projects at the time (ten now). Package versions drift and analyzer warnings get ignored.
 
-**Decision.** `Microsoft.AspNetCore.Components.QuickGrid` for the by-account
-grid, with inline editing built from standard components.
+**Decision.** `Directory.Packages.props` holds every package version once.
+`Directory.Build.props` sets `TreatWarningsAsErrors`, `AnalysisLevel=latest-recommended`,
+and `EnforceCodeStyleInBuild`; `.editorconfig` switches off the few rules that add ceremony
+without value here, with a comment on each. Generated EF migrations are exempt. CI runs
+`dotnet format --verify-no-changes`.
 
-**Consequences.** Less polish than a commercial grid; zero licensing risk;
-all behavior is code we can explain.
+**Consequences.** Adding a package takes two edits (the props file and the project),
+friction I want, because it pairs with the package table below.
 
 ---
 
-## ADR-0027 — Department requests live on the budget version; submitting locks the department, not the version
+## ADR-0013: The tenant interceptor verifies rather than stamps
+**Date:** 2026-09-16 · **Status:** Accepted
+
+**Context.** The write side of tenancy can either stamp `GovernmentId` on new rows from
+the current tenant, or require entities to carry it and check it on save.
+
+**Decision.** Check it. Every tenant-owned entity takes `governmentId` in its constructor,
+and the interceptor throws `TenantIsolationException` on a mismatch or when no tenant is
+set.
+
+**Alternatives.** Stamping is convenient, but it hides the tenant from the domain and lets
+`new Fund(...)` exist with no owner.
+
+**Consequences.** Constructors are slightly more explicit, and the domain can enforce
+cross-entity checks (`BudgetVersion.AddLine` refuses a fund from another government).
+
+---
+
+## ADR-0014: Application reaches the database through ICivicBudgetDbContext
+**Date:** 2026-09-16 · **Status:** Accepted
+
+**Context.** Application services need to query and save. The usual choices are a
+hand-written repository per entity or an interface over the DbContext.
+
+**Decision.** Application declares `ICivicBudgetDbContext` (the domain `DbSet`s and
+`SaveChangesAsync`) and `ICivicBudgetDbContextFactory`, and references EF Core's core
+package for LINQ. It does not reference the SQL Server provider, Identity, ASP.NET Core,
+or Infrastructure; Domain references nothing. `ArchitectureTests` enforces all of it.
+
+**Alternatives.** Repositories: mostly re-implementing `DbSet`, and awkward for
+projections. The specification pattern: heavier than this project needs.
+
+**Consequences.** Queries stay expressive. Application is coupled to EF Core's query
+shape, which is fine for a project whose persistence is EF Core.
+
+---
+
+## ADR-0015: Identity tables sit outside the tenant query filter
+**Date:** 2026-09-16 · **Status:** Accepted
+
+**Context.** Sign-in must find a user by email before anyone knows which government they
+belong to.
+
+**Decision.** `ApplicationUser` carries `GovernmentId` but is not `ITenantOwned`.
+`UserAdminService` scopes every query by the current government itself, checks department
+assignments against the filtered `Departments`, and has tests that try to cross governments.
+
+**Alternatives.** A separate Identity database or context (more moving parts); working out
+the government from the email domain before sign-in (fragile).
+
+**Consequences.** One documented exception to "everything is filtered". The Identity
+tables hold no budget data, so a mistake there exposes user details, not finances.
+
+---
+
+## ADR-0016: Bootstrap 5 vendored as static files
+**Date:** 2026-09-16 · **Status:** Accepted
+
+**Context.** The admin app needed a usable layout and form styling quickly.
+
+**Decision.** Bootstrap 5.3's CSS and JavaScript bundle, copied from the Blazor template
+into `wwwroot/lib`. No CDN, no npm, no NuGet package.
+
+**Alternatives.** A CDN (a runtime dependency on someone else's server, which some
+government networks block); hand-written CSS (slower to a decent result).
+
+**Consequences.** About 300 KB in the repository, updated by hand. The portal uses the
+same stylesheet: its own section of `app.css` (`.pt-*`) on the same design tokens.
+
+---
+
+## ADR-0017: An audit trail from a SaveChanges interceptor and an opt-in attribute
+**Date:** 2026-09-17 · **Status:** Accepted
+
+**Context.** SPEC §7.1: record who changed what and when, field by field, and show the
+history of each budget line.
+
+**Decision.** `AuditInterceptor` writes `AuditEntry` rows for entities marked `[Audited]`,
+in the same save as the change. The user and time come from `ICurrentUser` and
+`TimeProvider`. Audit entries are append-only and belong to a government. Services record
+named actions (workflow, publishing, imports) with `AuditEntry.Event`.
+
+**Alternatives.** SQL Server temporal tables (no "who", and whole-row versions); database
+triggers (outside the code, with no user context); writing audit rows in each service
+(easy to forget).
+
+**Consequences.** Each audited change costs one extra row per changed property. Audit
+values are text for people to read, not a replay log. The audit interceptor runs before the
+tenant interceptor, so the audit rows it adds are tenant-checked too. Later,
+`[NotAudited]` (ADR-0028) let a property whose change is already a named event stay off
+the timeline.
+
+---
+
+## ADR-0018: Client-generated keys are declared ValueGeneratedNever
+**Date:** 2026-09-17 · **Status:** Accepted
+
+**Context.** Entities assign their own Guid v7 ids in their constructors (time-ordered, so
+SQL Server's clustered indexes do not fragment). EF Core's default for a Guid key is
+"generated on add", so when a new line was added through the budget version's collection,
+EF saw a key already set, assumed the line existed, and issued an UPDATE that touched no
+rows and threw a concurrency exception.
+
+**Decision.** `CivicBudgetDbContext.UseClientGeneratedKeys` marks `Id` on every entity
+type as `ValueGeneratedNever()`. No schema change.
+
+**Consequences.** Aggregates add children through their own methods and `SaveChanges`
+inserts them. Every entity must set its own id, which the base class does.
+
+---
+
+## ADR-0019: Snapshot status lifecycle: Active, Superseded, Unpublished
+**Date:** 2026-09-17 · **Status:** Accepted
+
+**Context.** SPEC §6: unpublishing is allowed and audited, and republishing after an
+amendment replaces what citizens see while keeping the history.
+
+**Decision.** A snapshot is never deleted, and only its status ever changes. One snapshot
+per fiscal year is Active. Publishing a year that already has one marks the old one
+Superseded; the Administrator or Fiscal Officer can mark an Active one Unpublished. The
+portal context filters to Active.
+
+**Alternatives.** Deleting on unpublish (loses history); a boolean `IsActive` (cannot tell
+"replaced" from "withdrawn" in the history).
+
+**Consequences.** Storage grows with each publish, about a hundred rows for a village's
+budget. The history can explain every past state. Since Phase 17 a filtered unique index
+also enforces "one Active per year", so two publishes racing past the service's check
+cannot both win.
+
+---
+
+## ADR-0020: The theme is CSS variables over Bootstrap; Bootstrap Icons vendored
+**Date:** 2026-09-18 · **Status:** Accepted
+
+**Context.** Phase 4.5 gave the admin app a visual identity
+([design brief](design/DESIGN-BRIEF.md)). I could compile Bootstrap from SCSS with my own
+variables, adopt a component library, or override Bootstrap's CSS variables.
+
+**Decision.** Design tokens as CSS custom properties in `app.css`, mapped onto Bootstrap's
+`--bs-*` variables in the same `:root` block, plus rules for the shell, grids, pills,
+stepper, cards, dialogs, toasts, and empty and loading states. Bootstrap Icons 1.13 is
+vendored under `wwwroot/lib/bootstrap-icons`.
+
+**Alternatives.** An SCSS build (brings Node and Sass into a .NET solution for little
+gain); a commercial suite (ADR-0011); inline SVG icons (harder to keep consistent).
+
+**Consequences.** One file explains the look. Icon updates are manual. There is no dark
+theme yet; the tokens make it a later addition.
+
+---
+
+## ADR-0021: Portal output caching: a base policy, a header rewrite, eviction by tag
+**Date:** 2026-09-18 · **Status:** Accepted, amended 2026-09-23
+
+**Context.** The portal is anonymous and statically rendered, which makes it ideal for
+ASP.NET Core output caching: render each page once per government until the next publish.
+Two things stood in the way. Blazor's static rendering marks every response
+`Cache-Control: no-cache, no-store` and sets an antiforgery cookie, and the built-in
+default policy refuses to store either. And `[OutputCache]` attributes are not applied to
+Razor component endpoints, so I could not declare the policy per page.
+
+**Decision.** Three small pieces in `src/CivicBudget.Web/Caching/`:
+1. `PortalOutputCachePolicy`, registered as the *base* policy with
+   `excludeDefaultPolicy: true`. It caches only `GET /transparency/**`, tags each entry
+   `portal:{slug}` (the portal index gets its own tag), and refuses to store anything that
+   is not a 200 or that still sets a cookie. Admin pages, sign-in, and health checks are
+   never cached.
+2. `PortalResponseMiddleware`, placed *before* `UseOutputCache` so it runs on hits and
+   misses alike. In `OnStarting` it rewrites a portal 200 to `Cache-Control: public,
+   max-age=600`, drops `Pragma`, and removes the `Set-Cookie` header when the only cookie is
+   the antiforgery token (portal pages have no forms that post).
+3. `OutputCacheSnapshotInvalidator`, which implements the Application interface
+   `IPublishedSnapshotCacheInvalidator` by evicting the government's tag. Publishing,
+   unpublishing, a logo change, and a slug change call it.
+
+**Amended 2026-09-23: cache keys.** I first varied the cache by every query string
+(`QueryKeys = "*"`). That let anyone skip the cache by adding `?x=1`, `?x=2`, … and make
+every request rebuild a page from the database. The policy now varies only by the three
+keys the pages read: `q`, `show`, and `view`.
+
+**Alternatives.** The older response-caching middleware (honors `no-store`, and has no tag
+eviction); caching in `SnapshotQueryService` with `IMemoryCache` (still renders on every
+request, and eviction logic leaks into Infrastructure); a CDN in front (right for
+production, but the app should be correct on its own, and a CDN honors the same `public,
+max-age` header this emits).
+
+**Consequences.** A miss costs a query and a render; a hit costs nothing past the
+middleware. The in-memory store is per process, so a second instance would need the Redis
+store, a package swap with no code change. ClosedXML arrived in this phase for the XLSX
+download; CSV needs no package (`CsvWriter`).
+
+---
+
+## ADR-0022: Import as preview then commit, with a pure analyser; reports built from the workspace read
+**Date:** 2026-09-18 · **Status:** Accepted
+
+**Context.** Phase 6 added CSV and XLSX import of budget lines, and three reports. Import is
+the riskiest write in the app (one file can touch every line), and a report must never
+disagree with the entry screen.
+
+**Decision.**
+- **Import is two calls.** `PreviewAsync` parses the file and classifies every row as Add,
+  Update, Unchanged, or Error, with the reason. `CommitAsync` takes the raw rows back,
+  re-analyses them against the database *at that moment*, refuses if any row has an error,
+  and applies the rest through the `BudgetVersion` aggregate in one save with one audit
+  event (the interceptor still records each field). Nothing is written by a preview.
+- **The rules are a pure function.** `ImportAnalyzer.Analyze` mirrors
+  `BudgetVersion.AddLine`'s guards plus the file-level rules (money that parses, no
+  duplicate rows, blank optional columns mean "leave as is"). Every rule has a unit test
+  with no database. Analysed rows carry the ids their codes matched, so commit applies
+  exactly what the preview showed even when a code was typed as `01000`.
+- **The file layout is the export's.** Codes, not ids (Fund, Department, Account, Amount,
+  and optional comparatives and justification), exactly what the workspace's "Export
+  lines" writes, so export, edit in Excel, import is a round trip. Import never deletes.
+- **Reports are shaped from `BudgetWorkspaceDto`.** `ReportBuilder` is pure over the same DTO
+  the workspace renders, so the department user's visibility rule and the fund arithmetic
+  are applied in one place. `ReportTables` turns each report into an `ExportTable` for XLSX.
+- **Print is CSS.** `@media print` hides the shell and leads with the report; the Print
+  button calls `window.print`.
+
+**Alternatives.** Committing straight away with a summary (no chance to catch a mistake
+first); a staging table (more moving parts than a village needs; the preview lives in the
+circuit and is re-checked on commit); a reporting database (premature); a PDF library
+(browser print with a stylesheet is enough).
+
+**Consequences.** `ISpreadsheetReader` joins `ISpreadsheetExporter` in Infrastructure;
+`CsvReader` sits beside `CsvWriter` in Application. Files over 5 MB or 10,000 rows are
+refused up front. A county-sized government would push the report grouping into SQL behind
+the same `IReportService`.
+
+---
+
+## ADR-0023: Fargate behind a load balancer with the CDK L2 pattern; secrets by reference
+**Date:** 2026-09-18 · **Status:** Accepted, amended 2026-09-24
+
+**Context.** ADR-0008 committed to deploy-ready AWS infrastructure. I had left the compute
+choice open between ECS Express Mode and Elastic Beanstalk, to check against current
+documentation. Checked 2026-09-18: Express Mode (generally available November 2025) has only
+a low-level construct, runs one container in the default VPC's public subnets, and has no
+custom domains; Elastic Beanstalk hides the network and database wiring I want to show.
+
+**Decision.**
+- **Compute:** `ApplicationLoadBalancedFargateService` from the ECS patterns library: a
+  public load balancer, a Fargate task (0.5 vCPU, 1 GB) in private subnets, `/health`
+  checks, sticky sessions for Blazor circuits, and a deployment circuit breaker with rollback.
+- **Database:** RDS SQL Server Express (`db.t3.micro`, 20 GB, encrypted, seven-day backups)
+  in private subnets, reachable only from the service's security group. The same engine as
+  local development. Secrets Manager generates and holds the master password.
+- **Secrets by reference.** The task definition names Secrets Manager entries (the
+  RDS-managed password and a generated demo password), and ECS injects them at start. The
+  app composes its connection string from plain settings plus the password
+  (`DatabaseOptions`), so no derived connection-string secret can drift when RDS rotates the
+  password. A test proves the template contains no password.
+- **One app stack.** Network, database, service, logs, alarm, and outputs deploy together,
+  with `RemovalPolicy.DESTROY` so `cdk destroy` leaves nothing billing. A production account
+  would split the network and database from the service and protect the database from
+  deletion; the stack's comments say where.
+- **OIDC, not keys.** A one-time stack (`GitHubOidcStack`) creates GitHub's OIDC provider and
+  a deploy role that trusts only this repository, on `v*` tags or the `production`
+  environment. The role can push images and assume the CDK bootstrap roles, nothing more.
+  `deploy.yml` runs only when the `AWS_DEPLOY_ROLE_ARN` variable exists.
+- **Data Protection keys in SQL Server.** A container's default key store is its
+  filesystem, which vanishes on restart and signs everyone out.
+  `PersistKeysToDbContext<CivicBudgetDbContext>` keeps the key ring in a table that restarts
+  and a second task share.
+- **Migrate and seed on start, opt-in** (`Database:MigrateOnStartup`, `Database:SeedDemoData`),
+  for the demo only. A real pipeline would run migrations as a step and never seed.
+- **One task, deliberately.** Sticky sessions and shared keys are in place; the missing piece
+  for two tasks is a shared output cache store, because an eviction on task A is invisible to
+  task B's in-memory cache.
+
+**Amended 2026-09-24: where the image repository lives.** The ECR repository was in the app
+stack, but the deploy workflow pushes the image *before* it deploys that stack, so a first
+deploy into a fresh account would have failed at the push. The repository now belongs to the
+one-time OIDC stack, and the app stack looks it up by name.
+
+**Cost (us-east-2 list prices, September 2026, approximate).** RDS SQL Server Express about
+$17 a month plus $2.50 of storage; Fargate about $18; the load balancer about $16; the NAT
+gateway about $33 plus data; Secrets Manager $0.80; CloudWatch and ECR under $2. About **$90
+a month**, a third of it the NAT gateway. The budget alarm defaults to $60 at 80% so it fires
+early. Cheaper variants, by what they give up: put the task in a public subnet and drop the
+NAT gateway (saves $33, exposes the task's network interface behind its security group), or
+stop RDS outside demo hours.
+
+**Alternatives.** ECS Express Mode and Elastic Beanstalk (above); App Runner (no private
+database without a VPC connector, and no WebSockets when I checked); one EC2 instance with
+Docker Compose (cheapest, but nothing about it carries over to an ECS estate).
+
+**Consequences.** `dotnet test` needs Node.js for the CDK's JSII runtime, and the infra tests
+run one class at a time because JSII is one process per test host. CI gained a `cdk-synth`
+job and a Docker build. Nothing here has been deployed; it is synthesized and asserted on
+every commit.
+
+---
+
+## ADR-0024: Full account numbers are composed from the three stored codes under a per-government format
 **Date:** 2026-09-19 · **Status:** Accepted
 
-**Context.** v1.1's last step: a fire chief signs in, lands in the fire department, enters the
-request against its accounts, writes a narrative, and hands it to the fiscal officer, who
-assembles the whole budget and can send a department's request back. The existing workflow
-(Draft → Proposed → Adopted) is the *version's* state; the department round happens inside Draft.
+**Context.** Staff think in full account numbers (`1000-725-121`, `101-110-5100`), and each
+ERP's chart decides how they are written ([research](research/ohio-account-numbers.md)).
+The model already stored fund, department, and object codes separately, and every rule (a
+department on each expenditure line, revenue at fund level) depends on those separate ids.
+
+**Decision.** Keep the three codes as the source of truth and compose the full number.
+- `AccountNumberFormat` is a value object owned by `Government` (five columns on its row):
+  segment widths, separator, and the name of the middle segment. It is editable in
+  Government settings, and a chart sync sets it when the ERP source provides one.
+- `AccountNumber.Compose` and `TryParse` are pure functions in Domain. Composing pads numeric
+  codes to the width; parsing accepts any common separator or none and refuses text that is
+  not an account number, so a search box can try the number first and fall back to names.
+- Every line DTO carries its number, and published snapshot lines store the number as it was
+  written on the day they were published.
+- The import accepts an `Account Number` column instead of the three code columns, and the
+  export writes both.
+- The seed's department codes are UAN program numbers (110 Police, 620 Streets, 725
+  Finance), and Pine Hollow uses a dotted "Department" layout to show the setting.
+
+**Alternatives.** Storing the full number on each line (duplicates three codes and drifts
+when one is renamed); one account entity keyed by the full number (loses fund and department
+as things the rules and permissions depend on); a fixed 4-3-4 layout (would not fit a county's
+chart, which is the point of plugging in beside an ERP).
+
+**Consequences.** Numbers are computed, so a rename shows everywhere except in snapshots,
+which is intended. A fourth segment (cost center) is not modelled; the value object is where
+it would go.
+
+---
+
+## ADR-0025: The chart of accounts is received from the ERP through an adapter, never deleted, and owned by a switch
+**Date:** 2026-09-19 · **Status:** Accepted
+
+**Context.** After v1.0 I repositioned CivicBudget as an add-on beside the government's ERP
+(VIP or similar), which owns the chart of accounts. Funds, departments, and objects should
+come from there, but the app must still work for a government with no feed, and the ERP's
+real interface is unknown (an export today, perhaps an API later).
+
+**Decision.**
+- **One contract.** `ErpChart` is everything CivicBudget needs from an ERP: three code lists
+  with the fields the rules need, and optionally the account number format.
+  `IErpChartSource` is the adapter interface. The first adapter, `ErpChartFileSource`, reads a
+  one-row-per-code CSV or XLSX (`Kind, Code, Name, Type, Category, Description, Active`) and is
+  forgiving about spelling and column order. Its column names are the one place to change when
+  a real ERP's layout is known; nothing above it would move.
+- **Diff, then apply through the entities.** `ChartDiff.Compute` is pure: Add, Update,
+  Deactivate, Reactivate, or Unchanged per code, with before and after text for a person to
+  judge. `ChartSyncService.CommitAsync` reads the file again, diffs again, and applies each
+  change through the entities' own methods, so the domain rules run and the audit interceptor
+  records every field. One sync log row and one audit event per sync.
+- **Never delete.** A code the ERP no longer lists is retired: budget lines and snapshots still
+  point at it. The preview warns when a file would retire more than a quarter of the chart,
+  which almost always means a partial export.
+- **Never retype an account in use.** An account whose type the file would change, while budget
+  lines use it, is refused: its lines would silently move between revenues and appropriations
+  in every budget, adopted ones included.
+- **Ownership is explicit.** `Government.ChartSource` is `Local` until the first sync, then
+  `Erp`. Under `Erp` the setup services refuse writes (`ChartOwnership`), and the setup screens
+  show a banner with the last sync instead of New and Edit. An Administrator can switch back.
+
+**Alternatives.** Calling the ERP from the setup services (couples the app to an interface that
+does not exist yet); deleting codes the ERP dropped (breaks history); read-only setup screens
+for everyone (a government without an ERP could never start).
+
+**Consequences.** A sync is always the whole chart; there is no partial sync, on purpose. When
+an API adapter arrives it implements `IErpChartSource`, and the sync page gains a button beside
+the upload.
+
+---
+
+## ADR-0026: The Administrator is a superset; temporary passwords are enforced by a claim; a department assignment bounds every read
+**Date:** 2026-09-19 · **Status:** Accepted
+
+**Context.** The v1.1 user story: an administrator with complete access, users who land in
+their own department and see nothing else, and logons the administrator creates and resets.
+
+**Decision.**
+- **One helper answers "may this user act as the fiscal officer?"**
+  `ICurrentUser.IsFiscalAuthority()` (Administrator or Fiscal Officer) replaced every role test
+  in the services, and the fiscal policies include the Administrator. `IsDepartmentUser()` is
+  its counterpart. The stored role names did not change; the labels became the customer's words.
+- **Temporary passwords.** `ApplicationUser.MustChangePassword` is set when an administrator
+  creates an account or resets a password. The claims factory turns it into a claim;
+  `MustChangePasswordMiddleware` sends any signed-in request outside the account pages to the
+  change-password page; that page clears the flag and refreshes the sign-in so the cookie
+  loses the claim. A claim, rather than a database check on every request, keeps the middleware
+  free of I/O, and the security-stamp change on reset ends any open session.
+- **A department assignment bounds every read.** The workspace, reports, exports, search, and
+  the audit trail all limit a department user to their own departments.
+- **User administration is audited** as named events on the government's trail, because
+  Identity's entities are not `[Audited]`.
+
+**Alternatives.** A separate "super admin" role (nothing in the customer's world needs it);
+checking `MustChangePassword` in the database on every request (a query per request for a rare
+state); enforcing the change only on the sign-in page (a bookmark would bypass it).
+
+**Consequences.** One new column, no data migration of roles. Navigation inside a circuit does
+not pass through middleware, but a flagged user never reaches a circuit: their first request
+after sign-in is redirected.
+
+---
+
+## ADR-0027: Department requests live on the budget version; submitting locks the department, not the version
+**Date:** 2026-09-19 · **Status:** Accepted
+
+**Context.** The last step of v1.1: a police chief signs in, lands in the police department,
+enters the request against its accounts, writes a narrative, and hands it to the fiscal
+officer, who assembles the whole budget and can send a department's request back. The
+existing workflow (Draft, Proposed, Adopted) is the *version's* state; the department round
+happens inside Draft.
 
 **Decision.**
 - **A `DepartmentRequest` child of `BudgetVersion`**, one per department that has written a
-  narrative or submitted: `InProgress`, `Submitted` (who and when), `Returned` (the officer's
-  note and when). Departments with no row are simply in progress. The aggregate owns the rules:
+  narrative or submitted: In progress, Submitted (who and when), or Returned (the officer's
+  note and when). A department with no row is simply in progress. The aggregate owns the rules:
   submit only while Draft and only with lines; return only what was submitted, with a note;
   submitting again clears the note. Amendments copy narratives (they still describe the year)
   but start a new round.
-- **Submitting locks the department for department users, not the version.** The one rule in
-  `BudgetLinePermissions.CanEdit` gains a `departmentSubmitted` argument; the fiscal authority
-  is unaffected. `CanSubmitDepartment` / `CanReturnDepartment` sit beside it, so the
-  authorization handler, the services, and the DTO flags (`CanEditNarrative`, `CanSubmit`,
-  `CanReturn`) all come from one place.
-- **The workspace DTO carries the round.** `BudgetWorkspaceDto.DepartmentRequests` lists every
-  department the user can see with status, totals, and narrative, so the department page, the
-  board, the workspace strip, and the Department Detail report read one shape and the reports
-  builder stays pure.
-- **The narrative is published.** `PublishedBudgetSnapshotDepartment` freezes each department's
-  narrative with the snapshot, mapped by both contexts like the fund rows; the portal's
-  department page shows it as "From the department".
-- **A department user's home is their department.** Sign-in lands in the app; `/admin` forwards
-  department users to `/admin/my-department`, which resolves the open version and sends them to
-  their one department or to the board when they hold several.
+- **Submitting locks the department for department users, not the version.**
+  `BudgetLinePermissions.CanEdit` takes a `departmentSubmitted` flag; the fiscal officer is
+  unaffected. `CanSubmitDepartment` and `CanReturnDepartment` sit beside it, so the
+  authorization handler, the services, and the DTO flags all come from one place.
+- **The workspace DTO carries the round.** `BudgetWorkspaceDto.DepartmentRequests` gives every
+  department the user can see with its status, totals, narrative, and what the user may do, so
+  the department page, the board, the workspace strip, and the report read one shape.
+- **The narrative is published.** The snapshot freezes each department's narrative, and the
+  portal's department page shows it.
+- **A department user's home is their department.** `/admin` forwards department users to
+  `/admin/my-department`, which finds the open version and sends them to their department, or
+  to the board when they hold several.
 
-**Alternatives.** A per-department status column on `BudgetLine` (one status copied across a
-dozen lines, and nowhere to keep the narrative); a separate `DepartmentBudget` aggregate holding
-the department's lines (would split the appropriation check, which needs every line of the
-fund); blocking Propose until every department submits (the officer decides when the round is
-over; a department that never submits should not hold council up); publishing narratives per
-line (4,000 characters times every line).
+**Alternatives.** A status column on each budget line (one status copied across a dozen lines,
+and nowhere for the narrative); a separate department-budget aggregate holding its lines (would
+split the appropriation check, which needs every line of the fund); blocking Propose until every
+department submits (the officer decides when the round is over; one late department should not
+hold up council).
 
 **Consequences.** Two tables, one migration, no change to the version workflow or the
-appropriation check. `BudgetLineResource` (the authorization handler's input) gains a flag with
-a default, so callers that do not know about submissions keep working. Tests: domain rules
-(`DepartmentRequestTests`), the permission matrix (`BudgetLinePermissionsTests`), the services
-end to end with the seeded mid-round FY2027 (`DepartmentRequestServiceTests`), the published
-narrative (`SnapshotQueryServiceTests`), and the pages (`DepartmentPagesTests`).
+appropriation check.
 
-## ADR-0028 — Profile pictures are resized by the browser, stored in SQL Server, and served through a versioned URL
+---
+
+## ADR-0028: Profile pictures are resized by the browser, stored in SQL Server, and served through a versioned URL
 **Date:** 2026-09-20 · **Status:** Accepted
 
-**Context.** Users want a picture instead of initials in the account circle. The app has no blob
-storage (ADR-0008: deploy-ready, no account), and adding an image library to resize on the
-server means a native dependency and a licensing decision (ImageSharp's split license,
-SkiaSharp's size) for a feature that handles one small image per user.
+**Context.** Users wanted a picture instead of initials. The app has no blob storage, and
+resizing on the server would mean an image library with a native dependency and a licensing
+decision (ImageSharp's split license, SkiaSharp's size) for one small image per user.
 
 **Decision.**
-- **The browser resizes.** Blazor's `IBrowserFile.RequestImageFileAsync("image/png", 256, 256)`
-  draws the chosen file onto a canvas and hands back a PNG no larger than 256 px. The server
-  checks only content type and size (`UserAvatar.MaxBytes`, 512 KB); it never decodes an image.
-- **Bytes live in a `UserAvatars` table**, one row per user, separate from `AspNetUsers` so a
-  user list never reads image data. `ApplicationUser.AvatarUpdatedAtUtc` says whether a
-  picture exists and doubles as the version.
+- **The browser resizes.** `IBrowserFile.RequestImageFileAsync("image/png", 256, 256)` draws
+  the chosen file onto a canvas and returns a PNG no larger than 256 px. The server never
+  decodes an image; since Phase 17 it checks the size and that the first bytes match a PNG,
+  JPEG, or WebP (`UploadedImage`), because a hand-built request can send anything with any label.
+- **Bytes live in a `UserAvatars` table**, one row per user, apart from `AspNetUsers` so a user
+  list never reads image data. `ApplicationUser.AvatarUpdatedAtUtc` says whether a picture
+  exists and doubles as its version.
 - **A versioned URL with a long private cache.** `/Account/Avatar/{userId}?v={ticks}` returns
-  the bytes with `Cache-Control: private, max-age=31536000, immutable`; a new upload changes the
-  URL, so nothing is ever stale and nothing is re-fetched. The endpoint requires authentication
-  and the service joins to `Users` on the current government, the same scoping rule as every
-  Identity read (ADR-0015).
-- **One `Avatar` component** decides picture-or-initials. Lists pass the version from their
-  DTO; the top bar and timelines ask `IUserAvatarService.GetVersionAsync`, which caches per
-  scope (one circuit) and raises `Changed` after an upload so the top bar updates in place.
-- **Users upload their own; administrators only remove.** Removing is the moderation need; an
-  administrator uploading someone else's face is not.
+  the bytes with `Cache-Control: private, max-age=31536000, immutable` and `nosniff`; a new
+  upload changes the URL, so nothing is ever stale. The endpoint requires sign-in and the
+  service only returns pictures from the caller's own government.
+- **One `Avatar` component** decides picture or initials everywhere a person appears.
+- **Users upload their own; administrators only remove.** Removing is the moderation need.
 
-**Alternatives.** S3 or blob storage (the right answer at scale, and a one-class change behind
-`IUserAvatarService` when there is an account); server-side resizing (a package and a native
-dependency for one feature); a data URL in a claim (bloats every request's cookie); Gravatar
-(sends users' emails to a third party from a government system).
+**Alternatives.** Blob storage (the answer at scale, and a one-class change behind
+`IUserAvatarService`); server-side resizing (a package and a native dependency for one
+feature); an image in a claim (bloats every request's cookie); Gravatar (sends users' email
+addresses to a third party from a government system).
 
-**Consequences.** One migration, no package. A 256 px PNG is 30 to 200 KB; a thousand users
-is under 200 MB in the database, acceptable for a village or county and easy to move later.
-The same phase adds `[NotAudited]` for properties whose change is already a named audit event,
-because the department round (ADR-0027) had started writing ids and timestamps into the
-activity feed.
+**Consequences.** One migration, no package. A thousand users is under 200 MB. The same phase
+added `[NotAudited]` for properties whose change is already a named audit event, because the
+department round had started writing ids and timestamps into the activity feed.
 
-## ADR-0029 — The portal's read-only context also maps the government logo; the overview's panels slide with CSS alone
+---
+
+## ADR-0029: The portal's read-only context also maps the government logo; the overview's panels slide with CSS alone
 **Date:** 2026-09-20 · **Status:** Accepted
 
-**Context.** The portal header showed the government's initials in a circle. Spencer wants the
-CivicBudget mark by default and a logo the government's administrator uploads. ADR-0006 says
-the portal context maps only snapshot tables so nothing live can leak; a logo is live data.
-Separately, the overview's two breakdowns should be one sliding section, and the portal has no
-JavaScript (ADR-0021's cacheability and the accessibility statement both depend on that).
+**Context.** The portal header showed the government's initials in a circle. I wanted the
+CivicBudget mark by default and a logo the government's administrator can upload. ADR-0006
+says the portal context maps only snapshot tables so nothing live can leak, and a logo is
+live data. Separately, the overview's spending and revenue breakdowns should be one sliding
+section, and the portal has no JavaScript.
 
 **Decision.**
 - **`GovernmentLogos` is the one non-snapshot table the portal context maps.** It holds a
   government id, a content type, bytes, and a timestamp: a public image and nothing else, so
-  mapping it read-only cannot expose a draft, a user, or a setting. The portal looks it up
-  through an active snapshot's `GovernmentId`, so a government with nothing published has no
-  public face, and a renamed slug cannot orphan it. Uploads go through
-  `IGovernmentLogoService` (Administrator only, browser-resized to 512 px, type and size
-  checked) and evict the government's portal pages, whose header carries the logo.
-- **The header falls back to the mark**, not to initials: a product default that looks
-  designed, and no more guessing which words of "Village of Maple Ridge" to abbreviate.
-- **Panels slide with `:checked`.** `PortalPanels` renders two radio inputs styled as tabs and a
-  track two panels wide; the checked radio moves the track and hides the other panel
-  (`visibility`, so its links leave the tab order; `max-height: 0` after the slide, so the page
-  is only as tall as the panel on screen). Both panels are in the HTML, so search, reader mode,
-  and screen readers see everything, and the $/% toggle, which reloads the page, keeps the panel
-  through `?view=revenue`.
+  mapping it read-only cannot expose a draft, a user, or a setting. The portal finds it through
+  an active snapshot, so a government with nothing published has no public face, and a changed
+  slug cannot orphan it. Uploads are Administrator only, resized by the browser to 512 px, and
+  checked for type and size, and they evict the government's cached portal pages.
+- **The header falls back to the mark**, not to initials: a default that looks designed.
+- **The panels slide with `:checked`.** Two radio buttons styled as tabs and a track two panels
+  wide; the checked radio moves the track and hides the other panel so its links leave the tab
+  order. Both panels are in the HTML, so search engines, reader mode, and screen readers see
+  everything, and the `$ | %` toggle, which reloads the page, keeps the panel through
+  `?view=revenue`.
 
 **Alternatives.** Copying the logo into each snapshot (a logo change would need a republish);
 serving it through the admin context (breaks the one-door rule for no gain); a JavaScript
-carousel (the portal's no-script promise); `<details>` or `:target` for the tabs (no slide, and
-`:target` scrolls the page).
+carousel (breaks the portal's no-script promise); `<details>` or `:target` for the tabs (no
+slide, and `:target` scrolls the page).
 
-**Consequences.** One table, one migration, one line in the portal-context test. The trust
-line (resolution, published, version) closes the overview instead of opening it; the glossary
-and accessibility statement are a page (`/transparency/{slug}/{year}/glossary`) instead of a
-footer under every page.
+**Consequences.** One table, one migration, and one line in the test that lists what the portal
+context maps.
 
-## ADR-0030 — The live demo runs on Azure's free tiers; the database is rebuilt from the seed every night
+---
+
+## ADR-0030: The live demo runs on Azure's free tiers; the database is rebuilt from the seed every night
 **Date:** 2026-09-20 · **Status:** Accepted
 
-**Context.** Spencer wants the app hosted for free so hiring managers can sign in and use it.
-The app needs a persistent process (Blazor Server) and SQL Server; the SQL Server container
-wants 2 GB of memory, which no free VM tier offers, and the AWS free tier no longer covers RDS
-or the NAT gateway the CDK stack uses (ADR-0008, ADR-0023).
+**Context.** I wanted the app hosted for free so hiring managers can sign in and use it. It
+needs a persistent process (Blazor Server) and SQL Server. The SQL Server container wants 2 GB
+of memory, which no free VM tier offers, and the AWS free tier no longer covers RDS or the NAT
+gateway the CDK stack uses.
 
 **Decision.**
 - **Azure, two always-free offers.** Azure SQL Database's free offer (serverless General
   Purpose under `useFreeLimit`: 100,000 vCore-seconds and 32 GB a month, pausing rather than
-  billing when exhausted) is a real SQL Server, so the EF Core provider and every migration run
-  unchanged. Azure Container Apps on the consumption plan runs the existing Docker image, speaks
-  WebSockets, and scales to zero under a monthly free grant. `infra/azure/main.bicep` declares
-  both plus a Log Analytics workspace with a daily cap; `scripts/azure-setup.sh` creates them
-  once; `deploy-azure.yml` rolls the image on every push to `main` over OIDC, mirroring the AWS
-  workflow. The AWS stack stays as the production-shaped story.
-- **Nightly reset, not moderation.** Five shared logins are published in the README. Anything a
-  visitor does (change a password, adopt the draft, upload a picture) is undone at 08:00 UTC by
-  a Container Apps job that runs the same image with `--reseed`:
-  `DatabaseInitializer.ResetAsync` drops every foreign key and table, migrates from nothing, and
-  seeds. The database object is kept because on Azure it is the free-offer resource; dropping
-  and recreating it would create a billable one.
-- **Not switching to Postgres** to fit a free host: the data layer is SQL Server on purpose (the
-  employer's stack) and every migration and Testcontainers test would need redoing for a
-  hosting convenience.
+  billing when exhausted) is real SQL Server, so the EF provider and every migration run
+  unchanged. Azure Container Apps on the consumption plan runs the existing Docker image,
+  supports WebSockets, and scales to zero under a monthly free grant. `infra/azure/main.bicep`
+  declares both plus a log workspace with a daily cap; `scripts/azure-setup.sh` creates them
+  once; `deploy-azure.yml` deploys over OIDC, as the AWS workflow would.
+- **A nightly reset, not moderation.** Six shared logins are published in the README. Anything
+  a visitor does (change a password, adopt the draft, upload a picture) is undone at 08:00 UTC
+  by a Container Apps job that runs the same image with `--reseed`: drop every table, migrate
+  from nothing, seed. The database itself is kept, because on Azure it is the free-offer
+  resource; recreating it would create a billable one.
+- **Not switching to PostgreSQL** to fit a free host. The data layer is SQL Server on purpose,
+  and every migration and integration test would need redoing for a hosting convenience.
 
-**Alternatives.** A tunnel from Spencer's Mac (free, but only while the Mac is awake, and SQL
-Server under Rosetta has crashed three times this week); Render or Fly with Postgres (the
-rewrite above); AWS on the new credit-based free tier (six months, and the NAT gateway alone is
-about $32 a month); a "demo mode" that blocks destructive actions (more code, worse demo).
+**Alternatives.** A tunnel from my Mac (free, but only while the Mac is awake, and SQL Server
+under Rosetta crashes now and then); Render or Fly with PostgreSQL (the rewrite above); AWS on
+the new credit-based free tier (six months, and the NAT gateway alone is about $32 a month); a
+"demo mode" that blocks destructive actions (more code, and a worse demo).
 
-**Consequences.** The first request after an idle hour takes 30 to 60 seconds while the
-database resumes and the container starts; the startup probe allows a few minutes. One replica
-at most, which the in-process output cache already required (ADR-0021). Every session ends at
-the nightly reset. CI compiles and lints the Bicep so a template error cannot wait for a deploy.
-
-## Packages
-
-Every NuGet package and why. Add a row when adding a package.
-
-| Package | Project | Why | ADR |
-|---|---|---|---|
-| Microsoft.EntityFrameworkCore.SqlServer | Infrastructure | Provider for SQL Server | 0009 |
-| Microsoft.EntityFrameworkCore.Design | Infrastructure (PrivateAssets) | `dotnet ef` tooling; kept in Infrastructure so no startup project is needed | — |
-| Microsoft.EntityFrameworkCore (abstractions) | Application | LINQ surface for `ICivicBudgetDbContext`; no provider | 0014 |
-| FluentValidation | Application | Request validation as testable classes | 0007 |
-| Microsoft.AspNetCore.Identity.EntityFrameworkCore | Infrastructure | Identity stores in the same DbContext | 0015 |
-| Microsoft.AspNetCore.Components.QuickGrid | Web | Admin grids | 0011 |
-| xunit, xunit.runner.visualstudio, Microsoft.NET.Test.Sdk, coverlet.collector | tests | Test framework + coverage (template defaults) | spec |
-| bunit | Web.Tests | Blazor component tests | spec |
-| Testcontainers.MsSql | IntegrationTests | Real SQL Server 2022 in tests | spec |
-| ClosedXML | Infrastructure | XLSX downloads and (Phase 6) reports without Office or COM | 0021 |
-| Microsoft.AspNetCore.DataProtection.EntityFrameworkCore | Infrastructure | Data Protection key ring in SQL Server so cookies survive container restarts and scale-out | 0023 |
-| Amazon.CDK.Lib, Constructs | Infra, Infra.Tests | AWS CDK in C#; `Amazon.CDK.Assertions` ships inside Amazon.CDK.Lib | 0008, 0023 |
-| dotnet-ef (local tool, `.config/dotnet-tools.json`) | — | Migrations CLI pinned per repo | — |
-
-All planned packages are now in the table.
-
-Not packages: Bootstrap 5.3 CSS/JS is vendored under `src/CivicBudget.Web/wwwroot/lib/bootstrap` (ADR-0016); Bootstrap Icons 1.13 under `wwwroot/lib/bootstrap-icons` (ADR-0020).
+**Consequences.** One replica at most, which the in-process output cache already required
+(ADR-0021). Every session ends at the nightly reset. CI compiles and lints the Bicep so a
+template error cannot wait for a deploy. The first visit after a quiet spell is slow; ADR-0031
+is what I did about it.
 
 ---
 
-## ADR-0012 — Central Package Management and analyzers as errors
-**Date:** 2026-09-16 · **Status:** Accepted
+## ADR-0031: The host listens before the database is ready and shows a waiting screen
+**Date:** 2026-09-21 · **Status:** Accepted, amended 2026-09-23
 
-**Context.** Eight projects; versions drift and analyzer warnings get ignored.
-
-**Decision.** `Directory.Packages.props` holds every package version once.
-`Directory.Build.props` sets `TreatWarningsAsErrors`, `AnalysisLevel=latest-recommended`,
-and `EnforceCodeStyleInBuild`; `.editorconfig` turns off the handful of rules that add
-ceremony without value here (documented inline). EF migrations are marked generated code.
-CI runs `dotnet format --verify-no-changes`.
-
-**Consequences.** New packages must be added in two places (props + csproj) — intentional
-friction that pairs with the Packages table above. Generated migrations are exempt.
-
----
-
-## ADR-0013 — Tenant interceptor verifies rather than stamps
-**Date:** 2026-09-16 · **Status:** Accepted
-
-**Context.** Two options for the write side of tenancy: stamp `GovernmentId` on new rows from
-the ambient tenant, or require entities to carry it and verify on save.
-
-**Decision.** Verify. Every tenant-owned entity takes `governmentId` in its constructor; the
-interceptor throws `TenantIsolationException` on mismatch or missing tenant.
-
-**Alternatives.** Stamping is convenient but hides the tenant from the domain and lets
-`new Fund(...)` be valid with no owner.
-
-**Consequences.** Slightly more explicit constructors; the domain can enforce cross-entity
-tenant checks (e.g. `BudgetVersion.AddLine` rejects a fund from another government).
-
----
-
-## ADR-0014 — Application depends on EF Core abstractions through `ICivicBudgetDbContext`
-**Date:** 2026-09-16 · **Status:** Accepted
-
-**Context.** Application services need to query and save. Options: hand-written repositories
-per entity, or an interface over the DbContext.
-
-**Decision.** Application defines `ICivicBudgetDbContext` (domain `DbSet`s + `SaveChangesAsync`)
-and `ICivicBudgetDbContextFactory`, and references the `Microsoft.EntityFrameworkCore` package
-for the LINQ surface. It does not reference the SQL Server provider, Identity, ASP.NET Core, or
-Infrastructure. Domain still references nothing. `ArchitectureTests` enforces all of this.
-
-**Alternatives.** Repositories: more code that mostly re-implements `DbSet`, and awkward for
-projections. Specification pattern: heavier than the project needs.
-
-**Consequences.** Queries stay expressive; tests substitute the factory. Application is coupled
-to EF Core's query shape, which is acceptable for a project whose persistence story is EF Core.
-
----
-
-## ADR-0015 — Identity tables sit outside the tenant query filter
-**Date:** 2026-09-16 · **Status:** Accepted
-
-**Context.** Sign-in must locate a user by email before any tenant is known.
-
-**Decision.** `ApplicationUser` carries `GovernmentId` but is not `ITenantOwned`.
-`UserAdminService` scopes every query by the current government explicitly, validates
-department assignments against the filtered `Departments` set, and is covered by tests that
-try to cross tenants.
-
-**Alternatives.** A separate Identity database or context (more moving parts); resolving the
-tenant from the email domain before login (fragile).
-
-**Consequences.** One documented exception to "everything is filtered". The Identity tables
-also hold no budget data, so the blast radius of a mistake is user metadata, not finances.
-
----
-
-## ADR-0016 — Bootstrap 5 vendored as static files
-**Date:** 2026-09-16 · **Status:** Accepted
-
-**Context.** The admin app needs a usable layout and form styling quickly; no DevExpress.
-
-**Decision.** Copy Bootstrap 5.3 CSS and bundle JS from the Blazor template into `wwwroot/lib`.
-No CDN, no npm, no NuGet.
-
-**Alternatives.** CDN (external runtime dependency; some government networks block it);
-hand-written CSS (slower to a decent result; still an option for the public portal, which has
-different needs).
-
-**Consequences.** ~300 KB in the repo; versions are updated by hand. The public portal in
-Phase 5 may use its own minimal CSS to stay fast on phones.
-
----
-
-## ADR-0017 — Audit trail via SaveChanges interceptor and an opt-in attribute
-**Date:** 2026-09-17 · **Status:** Accepted
-
-**Context.** SPEC section 7.1 item 6: record who changed what and when, field by field, and show
-history per budget line.
-
-**Decision.** `AuditInterceptor : SaveChangesInterceptor` writes `AuditEntry` rows for entities
-marked `[Audited]`, in the same context and transaction as the change. User and time come from
-`ICurrentUser` and `TimeProvider`. `AuditEntry` is append-only and tenant-owned. `AuditKind.Event`
-lets services record named actions (workflow, publishing) explicitly.
-
-**Alternatives.** SQL Server temporal tables (no "who", whole-row versions); database triggers
-(outside the code, no user context); writing audit rows in each service (easy to forget).
-
-**Consequences.** Every audited change costs extra insert rows (one per changed property). Audit
-values are text for humans; they are not a replay log. The interceptor must be registered before
-the tenant interceptor.
-
----
-
-## ADR-0018 — Client-generated keys are declared `ValueGeneratedNever`
-**Date:** 2026-09-17 · **Status:** Accepted
-
-**Context.** Entities assign Guid v7 ids in their constructors. EF Core's default for Guid keys is
-"generated on add", which made EF classify a new child discovered through an aggregate's
-collection as Modified, producing a zero-row UPDATE and a concurrency exception.
-
-**Decision.** `CivicBudgetDbContext.UseClientGeneratedKeys` marks `Id` on every `Entity` subtype
-as `ValueGeneratedNever()`. No schema change.
-
-**Consequences.** Aggregates can add children through their own methods and `SaveChanges` does the
-right thing. Any entity must set its own id (the base class does).
-
----
-
-## ADR-0019 — Snapshot status lifecycle: Active, Superseded, Unpublished
-**Date:** 2026-09-17 · **Status:** Accepted
-
-**Context.** SPEC section 6: unpublish is allowed and audited; republishing an amendment
-replaces what citizens see and keeps history.
-
-**Decision.** A snapshot is never deleted or edited except for its status. Exactly one
-snapshot per fiscal year is Active. Publishing a year that already has an Active snapshot
-marks the old one Superseded; the Finance Director can mark an Active one Unpublished. The
-portal context filters to Active globally.
-
-**Alternatives.** Deleting on unpublish (loses history); a boolean `IsActive` (cannot tell
-"replaced" from "withdrawn" in the history view).
-
-**Consequences.** Storage grows with each publish (95 rows per village-sized budget, trivial).
-The history view can explain every past state.
-
----
-
-## ADR-0020 — Theme as CSS variables over Bootstrap; Bootstrap Icons vendored
-**Date:** 2026-09-18 · **Status:** Accepted
-
-**Context.** Phase 4.5 gives the admin app a visual identity (docs/design/DESIGN-BRIEF.md).
-Options: compile Bootstrap from SCSS with custom variables, adopt a component library, or
-override Bootstrap's CSS variables.
-
-**Decision.** Design tokens as CSS custom properties in `app.css`, mapped onto `--bs-*`
-variables in the same `:root` block, plus component rules for the shell, grids, pills,
-stepper, cards, dialogs, toasts, and states. Bootstrap Icons 1.13 (CSS + two font files) is
-vendored under `wwwroot/lib/bootstrap-icons`; no CDN, no NuGet package.
-
-**Alternatives.** SCSS build (adds Node/Sass to a .NET solution for little gain); a
-commercial suite (rejected in ADR-0011); inline SVG icons (harder to keep consistent).
-
-**Consequences.** One file to read to understand the look; updates to Bootstrap Icons are
-manual; no dark theme yet (tokens make it a later addition).
-
-## ADR-0021 — Portal output caching: base policy, header rewrite, evict by tag
-**Date:** 2026-09-18 · **Status:** Accepted
-
-**Context.** The portal is static SSR and anonymous, so its pages are ideal for ASP.NET
-Core output caching: one render per URL per government until the next publish. Two things
-stood in the way. Blazor's static SSR endpoint marks every response `Cache-Control:
-no-cache, no-store` and issues an antiforgery cookie, and the built-in default output cache
-policy honors both by refusing to store the response. `[OutputCache]` attributes are also
-not applied to Razor component endpoints, so the policy could not be declared per page.
-
-**Decision.** Three small pieces in `src/CivicBudget.Web/Caching/`:
-1. `PortalOutputCachePolicy`, registered as the *base* policy with
-   `excludeDefaultPolicy: true`. It enables caching only for `GET /transparency/**`, keys by
-   the full URL (`QueryKeys = "*"`, because `?show=pct` and `?q=` change the page), tags the
-   entry `portal:{slug}`, and refuses to store anything that is not a 200 or that still
-   sets a cookie. Everything else (admin, sign-in, health) is untouched.
-2. `PortalResponseMiddleware`, placed *before* `UseOutputCache` so it runs on hits and
-   misses. In `OnStarting` it rewrites a 200 portal response to `Cache-Control: public,
-   max-age=600`, drops `Pragma`, and removes the `Set-Cookie` header when the only cookie
-   is the antiforgery token (portal pages have no POST forms; search is a GET form).
-3. `OutputCacheSnapshotInvalidator` implements the Application hook
-   `IPublishedSnapshotCacheInvalidator` with `IOutputCacheStore.EvictByTagAsync("portal:{slug}")`,
-   so a publish or unpublish drops exactly that government's pages. Registered in Web after
-   `AddInfrastructure`, replacing the no-op.
-
-**Alternatives.** `ResponseCaching` middleware (honors `no-store`, no tag eviction);
-caching inside `SnapshotQueryService` with `IMemoryCache` (saves the query but still renders
-every request, and eviction logic would leak into Infrastructure); a reverse proxy or CDN
-(right for production, but the app should be correct on its own and the CDN respects the
-same `public, max-age` header this emits).
-
-**Consequences.** A cache miss costs one query and one render; a hit costs nothing past the
-middleware. The in-memory store is per instance; in AWS with more than one task the Redis
-`IOutputCacheStore` package drops in without code changes. The ClosedXML package
-(`ISpreadsheetExporter`) lands in this phase for the XLSX download and is reused by Phase 6
-reports; CSV needs no package (`CsvWriter`).
-
-## ADR-0022 — Import as preview-then-commit with a pure analyser; reports built from the workspace read
-**Date:** 2026-09-18 · **Status:** Accepted
-
-**Context.** Phase 6 adds CSV/XLSX import of budget lines and three reports. Import is the
-riskiest write in the app (one file can touch every line), and reports must never disagree with
-the entry screen.
+**Context.** On the free Azure tier a visitor's first request after an idle hour took about 65
+seconds to produce anything: about 15 seconds for the platform to start the container, then
+about 48 while serverless SQL resumed. `Program.cs` ran migrations and seeding before the web
+server started, so nothing was listening, the startup probe could not pass, and the browser sat
+on a blank page. A blank minute reads as "the site is down". Keeping the database awake or a
+replica warm would use up the free allowances within days.
 
 **Decision.**
-- **Import is two calls.** `PreviewAsync` parses the file and returns every row classified as
-  Add, Update, Unchanged, or Error with the reason; `CommitAsync` takes the raw rows back,
-  re-analyses them against the database *at that moment*, refuses if any row errs, and applies
-  the rest through the `BudgetVersion` aggregate in one `SaveChanges` with a single audit event
-  (the interceptor still records each field change). Nothing is written from a preview.
-- **The rules live in a pure function.** `ImportAnalyzer.Analyze(rows, funds, departments,
-  accounts, existingLines)` mirrors `BudgetVersion.AddLine`'s guards plus the file-level ones
-  (parseable money, no duplicate keys, blank optional columns mean "leave as is"). Every rule
-  has a unit test with no database; the service test proves the same rules over SQL Server.
-- **The file contract is the export.** Columns are codes (Fund, Department, Account, Amount,
-  Prior Year Actual, Current Year Budget, Justification), the exact layout the workspace's
-  "Export lines" writes, so export, edit in Excel, import is the round trip. Import never
-  deletes; a line absent from the file is left alone.
-- **Reports are shaped from `BudgetWorkspaceDto`.** `ReportBuilder` is pure over the same DTO
-  the workspace renders, so the Department Head visibility rule and the fund arithmetic are
-  applied once. `ReportTables` turns each report into an `ExportTable` for XLSX, and the
-  minimal API endpoints under `/admin/export` reuse `ISpreadsheetExporter` from Phase 5.
-- **Print is CSS.** `@media print` hides the shell and leads with the report block; the Print
-  button is the admin app's one JavaScript call (`window.print`).
+- **Migrate and seed in a hosted service** (`DatabaseStartupService`), not before the host
+  starts. The web server listens within seconds of the process starting. A failure stops the
+  host so the platform restarts the container.
+- **A waiting screen until the database is ready.** `StartupState` is a singleton the service
+  flips to ready. Until then `WakingUpMiddleware` answers every page request with a small,
+  self-contained page in the app's own look: `503 Service Unavailable` with `Retry-After` and
+  `no-store` (so crawlers and monitors do not cache it as the site), a counter that survives
+  reloads, and a poll of `/health/startup` every two seconds that reloads the page when the app
+  is ready. A `<noscript>` refresh covers browsers without script. Health checks and static
+  files pass through.
+- **Health endpoints never touch the database.** `/health` is liveness, and it is what the
+  platform's startup probe calls, now every two seconds. `/health/startup` answers from memory.
+  An earlier `/health/ready` did a real database round trip; I removed it in Phase 17 because
+  nothing used it and anyone could have polled it to keep the free database awake.
+- **Data Protection reads its key ring lazily** (`DeferKeyRingLoad`). The first version of this
+  ADR shipped and changed nothing: the site still showed a blank browser for about seventy
+  seconds. The Azure logs put "Now listening" seventeen milliseconds *after* the migration
+  check, fifty-two seconds in, which is the wrong order for a host that is supposed to listen
+  first. The cause was upstream of everything I had touched: `AddDataProtection` registers an
+  internal hosted service that reads the key ring during startup, the keys live in SQL Server,
+  and EF's retry strategy spent most of a minute on that read before the web server was allowed
+  to start. Removing that registration leaves the framework's own lazy load, which happens on the
+  first request that needs a cookie or an antiforgery token, by which time the database is up.
+  The waiting screen uses neither.
 
-**Alternatives.** Import committing directly with a summary (no chance to see a mistake before
-it lands); a staging table for imports (more moving parts than a village needs; the preview is
-held in the circuit and re-validated on commit); SQL views or a reporting database for reports
-(premature; the workspace read is already one query per version); a PDF library for print
-(browser print with a stylesheet is enough and needs no package).
+**Amended 2026-09-23: a database that pauses behind a live container.** `StartupState` remembers
+when it last let a page through. After 55 minutes without one (serverless SQL pauses at 60), the
+next page request starts a single shared check (`DatabaseWaker`) and waits up to a second: an
+awake database answers in milliseconds and the page is served; a sleeping one gets the waiting
+screen. Scale-to-zero usually retires the container long before the database pauses, but an open
+admin tab keeps a WebSocket alive and can hold the container up past the hour.
 
-**Consequences.** `ISpreadsheetReader` (ClosedXML) joins `ISpreadsheetExporter` in
-Infrastructure; `CsvReader` sits beside `CsvWriter` in Application. A file larger than 5 MB or
-10,000 rows is refused up front. Reports cost the workspace read plus one lookup; a county-scale
-tenant would cache or push grouping into SQL behind the same `IReportService`.
+**Amended 2026-09-23: the container is not kept warm.** After a few idle minutes the first visit
+still waits about 17 seconds before anything appears. Azure's logs split that into about 15
+seconds provisioning, 1 second pulling the image, and 0.3 seconds of the app's own startup, so
+nothing in the app can shorten it. `minReplicas: 1` would make every visit instant for about $4
+to $5 a month. I chose to keep the demo free; it is a one-line change to `main.bicep`.
 
-## ADR-0023 — Fargate behind an ALB via the CDK L2 pattern; one stack; secrets by reference
-**Date:** 2026-09-18 · **Status:** Accepted
+**Alternatives.** A minimum of one replica (costs money, and the database would still pause);
+disabling SQL auto-pause (burns the free vCore-seconds in about four days); a keep-alive ping
+(the same); a static loading page on a CDN in front (another moving part, and it could not know
+when to stop); serving the waiting screen as a 200 (monitors and crawlers would cache it as the site).
 
-**Context.** ADR-0008 committed to deploy-ready AWS infrastructure without an account. Phase 0
-left the compute choice open between ECS Express Mode and Elastic Beanstalk, to be checked
-against current docs. Checked 2026-09-18: Express Mode (GA November 2025) has only an L1
-construct (`CfnExpressGatewayService`), runs a single container in the default VPC's public
-subnets, and has no custom-domain support; Elastic Beanstalk is a platform abstraction that
-hides the network and database wiring an interviewer wants to see.
-
-**Decision.**
-- **Compute:** `ApplicationLoadBalancedFargateService` (the ECS Patterns L2) in
-  `infra/CivicBudget.Infra/CivicBudgetStack.cs`: a public ALB, a Fargate task (0.5 vCPU / 1 GB)
-  in private subnets, a target group with `/health` checks and sticky sessions (Blazor Server
-  circuits), a deployment circuit breaker with rollback. Express Mode is the right answer for a
-  public API with no database; not for this.
-- **Database:** RDS SQL Server Express (`db.t3.micro`, 20 GB gp3, encrypted, 7-day backups) in
-  private subnets, reachable only from the service's security group. Same engine as local
-  development. The master password is generated and held by Secrets Manager.
-- **Secrets by reference, not by value.** The task definition names Secrets Manager entries
-  (`Database__Password` from the RDS-managed secret, `Seed__DemoPassword` from a generated one);
-  ECS injects them at start. The app composes its connection string from `Database:*` settings
-  plus the password (`DatabaseOptions`), so no derived connection-string secret exists to drift
-  when RDS rotates the password. The template never contains a password; a test proves it.
-- **One stack for the demo.** VPC, ECR, RDS, ECS, ALB, logs, alarm, and outputs in one
-  `cdk deploy`, with `RemovalPolicy.DESTROY` everywhere so `cdk destroy` leaves nothing billing.
-  A production account would split network + database from the service and set deletion
-  protection and snapshot-on-delete on RDS; the comments say so where it applies.
-- **OIDC, not keys.** A second, one-time stack (`GitHubOidcStack`) creates the GitHub OIDC
-  provider and a deploy role trusting only `repo:SpencerSmithSite/civic-budget` on `v*` tags or
-  the `production` environment. The role can push to one ECR repository and assume the CDK
-  bootstrap roles; CloudFormation permissions live in those, so the GitHub role is narrow.
-  `deploy.yml` runs only when the repository variable `AWS_DEPLOY_ROLE_ARN` exists.
-- **Data Protection keys in SQL Server.** The container's default key store is its filesystem,
-  which is gone on every restart (every user signed out, every antiforgery token invalid).
-  `PersistKeysToDbContext<CivicBudgetDbContext>` keeps the key ring in a `DataProtectionKeys`
-  table: restarts and a second task share it. Migration `AddDataProtectionKeys`.
-- **Migrate and seed on startup, opt-in.** `Database:MigrateOnStartup` and
-  `Database:SeedDemoData` are true for the containerized demo and the AWS deploy (one task, EF's
-  migration lock). A real pipeline would run migrations as a step and never seed.
-- **Scaling is deliberately one task.** Sticky sessions and shared keys are in place; the one
-  missing piece for two tasks is a shared output cache store for the portal
-  (`Microsoft.AspNetCore.OutputCaching.StackExchangeRedis`), because an in-memory eviction on
-  task A is invisible to task B. Written in the stack where the autoscaling would go.
-
-**Cost (us-east-2, list prices, September 2026, approximate).** RDS SQL Server Express
-`db.t3.micro` ≈ $17/mo + 20 GB gp3 ≈ $2.50; Fargate 0.5 vCPU / 1 GB ≈ $18/mo; ALB ≈ $16/mo +
-LCU; NAT gateway ≈ $33/mo + data; Secrets Manager 2 × $0.40; CloudWatch and ECR under $2.
-About **$90/mo** running, of which the NAT gateway is a third; the budget alarm defaults to $60 at
-80% so it fires early. Teardown: `cdk destroy CivicBudget-App` (the OIDC stack costs nothing).
-Cheaper variants, in order of what they give up: drop the NAT gateway by putting the task in a
-public subnet with a public IP (saves $33, exposes the task's ENI behind its security group);
-stop the RDS instance outside demo hours (RDS restarts it after seven days).
-
-**Alternatives.** ECS Express Mode (above); Elastic Beanstalk (above); App Runner (no VPC-private
-database without a VPC connector, no WebSockets at the time of checking); a single EC2 instance
-with docker compose (cheapest, but nothing about it transfers to the employer's ECS estate).
-
-**Consequences.** `dotnet test` now needs Node.js for the JSII runtime (the Infra.Tests assembly
-runs sequentially because JSII is one process per test host); CI gained a `cdk-synth` job and a
-Docker build. The Dockerfile must copy `.editorconfig` for the migration analyzer exemptions.
-Nothing here has been deployed; it has been synthesized and asserted on every commit.
-
-## ADR-0024 — Full account numbers are composed from the three stored codes under a per-government format
-**Date:** 2026-09-19 · **Status:** Accepted
-
-**Context.** v1.1 reframes CivicBudget as a plug-in beside the government's ERP. Staff think in
-full account numbers (`1000-725-121`, `101-110-5100`), and the ERP's chart decides how those are
-written (see `docs/research/ohio-account-numbers.md`). The model already stores fund, department,
-and object codes separately, and every rule (a department per expenditure line, revenue at fund
-level) hangs off those separate ids.
-
-**Decision.** Keep the three codes as the source of truth and compose the full number:
-- `AccountNumberFormat` is a value object owned by `Government` (five columns on its row):
-  segment widths, separator, and the middle segment's name. Editable in Government settings;
-  Phase 9b will populate it from the ERP chart.
-- `AccountNumber.Compose` and `TryParse` are pure functions in Domain. Composition pads numeric
-  codes to the width; parsing accepts any common separator or none and refuses text that is not
-  a number (fund must be numeric), so a search box can try the number first and fall back to names.
-- Every line DTO carries `AccountNumber`; the workspace DTO carries the format so screens use the
-  government's word ("Program" or "Department"). Published snapshot lines store the composed
-  number at publish time, backfilled by the migration for existing snapshots.
-- The import accepts an `Account Number` column as an alternative to the three code columns and
-  the export writes both, so the round trip works either way.
-- Seed department codes became UAN program numbers (110 Police, 620 Streets, 725 Finance) so the
-  demo reads like a real chart; Pine Hollow uses a dotted "Department" format to show the setting.
-
-**Alternatives.** Storing the full number on `BudgetLine` (duplicates three codes and drifts when
-a code is renamed); a single `Account` entity keyed by the full number (loses the fund and
-department as first-class things the rules and permissions depend on); a fixed 4-3-4 layout
-(would not fit a county ERP's chart, which is the point of the plug-in).
-
-**Consequences.** Numbers are computed, so a chart rename is reflected everywhere except in
-snapshots, which is intended. A fourth (cost-center) segment is not modelled; the value object is
-the place to add it.
-
-## ADR-0025 — The chart of accounts is received from the ERP through an adapter, never deleted, and owned by a switch
-**Date:** 2026-09-19 · **Status:** Accepted
-
-**Context.** v1.1 positions CivicBudget beside the government's ERP (VIP or similar), which owns
-the chart of accounts. Funds, departments, and objects must come from there, but the app must
-still work for a government with no feed, and the ERP's real interface is unknown (an export
-today, perhaps an API later).
-
-**Decision.**
-- **One contract.** `ErpChart` (Application/Erp) is everything CivicBudget wants from an ERP:
-  three code lists with the fields the domain rules need, plus optionally the account number
-  format. `IErpChartSource` is the adapter interface; `IErpChartFileSource` is the file flavour
-  and `ErpChartFileSource` reads a one-row-per-code CSV/XLSX (`Kind, Code, Name, Type, Category,
-  Description, Active`), forgiving about spelling and order. Its column names are the seam to
-  change when the ERP's real layout is known; nothing above it would move.
-- **Diff, then apply through the entities.** `ChartDiff.Compute` is pure: Add, Update,
-  Deactivate, Reactivate, Unchanged per code, with before and after text for a person to judge.
-  `ChartSyncService.CommitAsync` re-reads the file, re-diffs, and applies each change through
-  `Fund.Update`, `Department.Deactivate`, and so on, so the domain rules run and the audit
-  interceptor records every field. One `ChartSync` log row and one audit event per sync.
-- **Never delete.** A code the ERP no longer lists is deactivated: budget lines and snapshots
-  still point at it and history keeps its name. The preview warns when a file would deactivate
-  more than a quarter of the chart, the signature of a partial export.
-- **Ownership is explicit.** `Government.ChartSource` is `Local` until the first sync, then
-  `Erp`. Under `Erp` the setup services refuse writes (`ChartOwnership.RefuseIfErpManagedAsync`)
-  and the setup screens show a banner with the last sync instead of New/Edit. An Administrator
-  can switch back to `Local` for a government that maintains its own chart.
-
-**Alternatives.** Calling the ERP directly from the setup services (couples the app to an
-interface that does not exist yet); deleting codes the ERP dropped (breaks history); making the
-setup screens read-only unconditionally (a government without an ERP could not start).
-
-**Consequences.** A sync is a whole-chart operation; there is no partial sync by design. The
-sync log stores the change list as JSON for the drill-down. When an API adapter arrives, it
-implements `IErpChartSource` and the sync page gains a "Sync from VIP" button beside the upload.
-
-## ADR-0026 — Administrator is a superset; temporary passwords are enforced by a claim; department assignment bounds every read
-**Date:** 2026-09-19 · **Status:** Accepted
-
-**Context.** v1.1's users story: an administrator with complete access, users who land in their
-own department and see nothing else, and logons the administrator can create and reset.
-
-**Decision.**
-- **One helper answers "may this user act as the fiscal officer".** `ICurrentUser.IsFiscalAuthority()`
-  (Administrator or Fiscal Officer) replaces every `IsInRole(FinanceDirector)` in the services, and
-  the four fiscal policies (`CanEditBeginningBalances`, `CanAdvanceWorkflow`, `CanPublish`,
-  `CanImport`) include Administrator. `IsDepartmentUser()` is its counterpart. Role *values* in the
-  database are unchanged; display names are the customer's words (Administrator, Fiscal Officer,
-  Department User, Viewer).
-- **Temporary passwords.** `ApplicationUser.MustChangePassword` is set when an administrator
-  creates an account or resets its password. The claims factory turns it into a claim;
-  `MustChangePasswordMiddleware` redirects any authenticated request outside the account pages
-  and static assets to the change-password page; the page clears the flag and refreshes the
-  sign-in so the cookie loses the claim. A claim rather than a database check per request keeps
-  the middleware free of I/O; the security-stamp change on reset ends any open session.
-- **Department assignment bounds every read.** The workspace, reports, exports, and search
-  already filtered by the user's departments; the audit trail now does too
-  (`AuditQueryService` limits a department user to their own lines' history and activity).
-- **User administration is audited** as named events on the government's trail, because Identity
-  entities are not `[Audited]`: created, updated (role and departments), password reset, locked,
-  unlocked, with the acting administrator's name.
-
-**Alternatives.** A separate "SuperAdmin" role (nothing in the customer's world needs it);
-checking `MustChangePassword` in the database on every request (a query per request for a
-rare state); enforcing the change in the Login page only (a bookmarked URL would bypass it).
-
-**Consequences.** Five migrations of user data are not needed: one new column. Interactive
-navigation inside a circuit does not pass through middleware, but a flagged user never reaches
-the circuit: their first request after sign-in is redirected. Tests: policy matrix (Web),
-middleware (Web), permissions and audit scoping (integration), user admin flag and audit
-(integration).
-
+**Consequences.** Something appears about 20 seconds into a cold start (platform time only), and
+the site continues on its own at about a minute. The warm path is unchanged. The key-ring fix
+matches an internal framework type by name, so `DataProtectionStartupTests` fails loudly if a
+future .NET renames it, instead of letting the delay creep back. Blazor circuits cannot start
+early (`/_blazor` is not exempt), so no page ever renders against a missing database.
 
 ---
 
-## ADR-0031 — The host listens before the database is ready and shows a waiting screen
-**Date:** 2026-09-21 · **Status:** Accepted
-
-**Context.** On the free Azure tier (ADR-0030) a visitor's first request after an idle hour
-took about 65 seconds to produce any bytes: 15 seconds for the platform to schedule and start
-the container, then 48 seconds while serverless SQL resumed from auto-pause. `Program.cs`
-awaited migrations and seeding before `RunAsync`, so Kestrel was not listening and the startup
-probe (on `/health`) could not pass; Container Apps held the request the whole time and the
-browser showed a blank page. A blank minute reads as "the site is down". Keeping the database
-awake or a replica warm would exhaust the free allowances within days.
-
-**Decision.**
-- **Migrate and seed in a hosted service** (`DatabaseStartupService`), not inline. The host
-  starts listening within seconds of the process; the same options decide what runs
-  (Development always, `Database:MigrateOnStartup` and `Database:SeedDemoData` elsewhere). A
-  failure logs critical and stops the host so the platform restarts the container, which is
-  what an inline throw did before.
-- **`StartupState`** is a singleton the service flips to ready. `WakingUpMiddleware`, placed
-  before the status-code pages, answers every page request with a self-contained waiting screen
-  until then: `503 Service Unavailable` with `Retry-After` and `Cache-Control: no-store`, the
-  public header and a card in the app's own tokens, the mark inline, a live counter that
-  continues from the process's clock across reloads, and a poll of `/health/startup` every two
-  seconds that reloads the original URL once it returns 200. A `noscript` meta refresh covers
-  browsers without script. Health endpoints and static assets pass through.
-- **Three health endpoints.** `/health` is liveness (the process is up) and is what the
-  platform's startup probe hits, now with a two-second delay and period instead of ten.
-  `/health/startup` is the in-memory startup check, cheap enough to poll. `/health/ready` was
-  startup plus a real database round trip; it was removed in Phase 17 (ADR-0032) because nothing
-  used it and anyone could poll it to keep the free database awake.
-- **Data Protection reads its key ring lazily** (`DataProtectionStartup.DeferKeyRingLoad`). The
-  first attempt at this ADR shipped and changed nothing: the site still showed a blank browser for
-  about seventy seconds. The Azure logs put "Now listening" seventeen milliseconds after the
-  migration check, fifty-two seconds in, which is the wrong order for a host that is supposed to
-  listen first. The cause was upstream of anything this ADR had touched: `AddDataProtection`
-  registers an internal hosted service that reads the key ring during startup, our keys live in
-  SQL Server, and EF's retry strategy spent the better part of a minute on that read before the
-  web host service ever got to start Kestrel. Removing that registration leaves the provider's own
-  lazy load, which happens on the first request that protects or unprotects data, by which time
-  the database is up; the waiting screen itself uses no cookies or antiforgery tokens.
-
-- **A quiet spell re-checks the database** (amended 2026-09-23). `StartupState` remembers when
-  it last let a page through. After 55 minutes without one (serverless SQL pauses at 60), the
-  next page request starts a single shared check (`DatabaseWaker`) and waits up to a second
-  for it: an awake database answers in milliseconds and the page is served; a sleeping one gets
-  the waiting screen, whose counter restarts, until it answers. Scale-to-zero usually retires
-  the container long before the database pauses, but an open admin tab holds a WebSocket that
-  can keep it up past the hour, and without the check the next visitor waited on a hung request.
-- **The container is not kept warm** (Spencer, 2026-09-23). After a few idle minutes the first
-  visit still waits about 17 seconds before anything shows. Azure's logs split that into about
-  15 seconds provisioning a sandbox, 1 second pulling the image, and 0.3 seconds of our own
-  startup, so nothing in the app or image can shorten it. `minReplicas: 1` would make every
-  visit instant for roughly $4 to $5 a month (an idle replica bills at a reduced rate after the
-  free grant); a weekday business-hours scale rule would fit inside the free grant. Both were
-  offered; the free, always-scale-to-zero demo was kept, and either is a one-line change to
-  `main.bicep` if that changes.
-
-**Alternatives.** A minimum of one replica (a few dollars a month, and the database would still
-pause); disabling SQL auto-pause (burns the free vCore-seconds in about four days); a keep-alive
-ping (same); a static "loading" page on a CDN in front (another moving part, and it could not
-know when to stop). Serving the waiting screen with 200 (monitors and crawlers would cache it as
-the site).
-
-**Consequences.** First paint after a cold start is about 20 seconds (platform time only), and
-the site appears on its own at about 65 seconds; nothing about the warm path changes. Against a
-database address that hangs, time to the first page went from 31 seconds to 1. The key-ring
-removal matches an internal framework type by name, so `DataProtectionStartupTests` asserts the
-removal happened and fails loudly if a future .NET renames it rather than letting the delay back
-in silently. Local
-development gets the same screen for the 15 to 30 seconds SQL Server takes under Rosetta.
-Blazor circuits cannot start early (`/_blazor` is not exempt), so no page renders against a
-database that is not there. Tests: `WakingUpMiddlewareTests` (Web).
-
----
-
-## ADR-0032 — Maintenance pass: services enforce their own roles, times are Eastern, static pages carry no script
+## ADR-0032: Maintenance pass: services enforce their own roles, times are Eastern, static pages carry no script
 **Date:** 2026-09-23 · **Status:** Accepted
 
-**Context.** Phase 17 reviewed the whole codebase in five parallel passes (domain and application,
-infrastructure, admin UI, shared UI and portal, tests and CI) and walked the running app as every
-demo user. Most findings were plain bugs with one right fix; a few fixes are choices worth
-recording.
+**Context.** In Phase 17 I reviewed the whole codebase layer by layer (domain and application,
+infrastructure, admin UI, shared UI and portal, tests and CI) and used the running app as every
+demo user. Most findings were plain bugs with one right fix; these fixes were choices.
 
 **Decision.**
 - **Every service that writes checks the caller itself.** Workflow, publishing, import, and chart
-  sync already did; the setup services (funds, accounts, departments, fiscal years, settings)
-  relied on the page's `[Authorize]` attribute. They now check `IsFiscalAuthority()` (settings:
-  Administrator), and `AdminPagePolicyTests` pins every admin route to its policy so a dropped
+  sync already did; the setup services relied on the page's `[Authorize]`. They now check the
+  role too, and `AdminPagePolicyTests` pins every admin page to its policy, so a dropped
   attribute fails the build.
 - **Times are shown in Eastern time with the zone named** (`Display.Timestamp`, `ShortDate`,
-  `LongDate`). Every tenant is an Ohio government and Ohio is entirely Eastern; the server runs in
-  UTC, so `ToLocalTime()` showed a 2 PM sync as 6 PM. A multi-state product would store a zone per
-  government. Amounts format as en-US (`Display.Amount`) whatever the server culture.
-- **Pages that are not interactive load no script.** `App.razor` renders Blazor's script,
-  Bootstrap's, and the reconnect dialog only when the page has a render mode. The portal's promise
-  of "no JavaScript" is now literally true, and sign-in and error pages are plain HTML forms.
-- **The portal remembers a loaded budget for one request** (`SnapshotQueryService`): the service is
-  scoped and only static pages use it, so a scope is a request. The funds page went from about 54
-  queries per cache miss to 6. The output cache varies on `q`, `show`, and `view` only.
+  `LongDate`). Every government here is in Ohio, which is entirely Eastern, and the server runs
+  in UTC, so `ToLocalTime()` showed a 2 PM sync as 6 PM. A multi-state product would store a
+  time zone per government. Amounts always format as en-US.
+- **Pages that are not interactive load no script.** `App.razor` includes Blazor's script,
+  Bootstrap's, and the reconnect dialog only on interactive pages, so the portal's "no
+  JavaScript" is literally true.
+- **The portal remembers a loaded budget for one request** (`SnapshotQueryService`). The funds
+  page went from about 54 queries per cache miss to 6.
 - **A government's public address moves its published budgets with it**
-  (`PublishedBudgetSnapshot.MoveToSlug`): the slug is where a snapshot is found, not part of what was
-  published.
-- **No anonymous endpoint queries the database per call.** `/health/ready` is removed.
-- **Deploys follow CI** (`workflow_run` on success), check the image before `:latest` moves, and
-  wait for the new revision to be the latest ready one.
+  (`PublishedBudgetSnapshot.MoveToSlug`): the slug is where a snapshot is found, not part of what
+  was published, and a stale one could be claimed by another government.
+- **No anonymous endpoint queries the database per call.** `/health/ready` was removed.
+- **Deploys follow CI** (`workflow_run` on success), check the image before it is tagged
+  `latest`, and wait until the new revision is the one serving.
 
-**Alternatives.** Row-version concurrency on `BudgetVersion` (the reviews found lost-update races
-between an edit and adoption); worth doing for a multi-user production system, larger than a
-maintenance pass, left as a known gap along with the others in walkthrough 19. Implemented in
-Phase 18 (ADR-0033).
+**Alternatives.** Optimistic concurrency on `BudgetVersion` (the review found lost-update races
+between an edit and an adoption) was larger than a maintenance pass, so I listed it as a known
+gap; Phase 18 implemented it (ADR-0033).
 
-**Consequences.** Tests that change settings sign in as the Administrator; the setup tests use a
-shared `CreateScopeAs(role, government)`. Portal tests that change data read the result through a
-fresh scope, as the next request would.
+**Consequences.** Tests that change settings sign in as the Administrator. Portal tests that
+change data read the result through a fresh scope, as the next request would.
 
 ---
 
-## ADR-0033 — Department totals, starting a year's budget, and optimistic concurrency
+## ADR-0033: Department totals, starting a year's budget, and optimistic concurrency
 **Date:** 2026-09-24 · **Status:** Accepted
 
-**Context.** Phase 17 left four budgeting questions for Spencer and a list of known gaps. He
-answered three (only the latest adopted version is publishable; amounts are never negative; a year's
-budget can start from last year's with a percentage change) and asked for the fourth, what a
-department's total includes, to be researched.
+**Context.** Phase 17 ended with four budgeting questions and a list of known gaps. Three
+questions I could answer from how Ohio governments work: only the latest adopted version is
+publishable; amounts are never negative; and a new year's budget should be able to start from
+last year's, optionally raised or cut by a percentage. The fourth, what a department's total
+includes, I researched rather than guessed, because three screens were already disagreeing about it.
 
 **Decision.**
-- **A department's total is its expenditure appropriations** (`AccountType.CountsTowardDepartmentTotal`).
-  Ohio appropriates by fund, then by office, department, and division, with personal services within
-  each (ORC 5705.38(C)); the Auditor of State's UAN village chart budgets transfers out under their own
-  program, "Other Financing Uses" (910 Transfers, 920 Advances), not inside an operating department;
-  Michigan's uniform chart does the same (activity 965, transfers out and other financing uses).
-  Revenue a department collects is the fund's estimated resource and never part of an appropriation.
-  Screens still show a department's revenue and transfer lines, labelled as outside its total.
-- **Starting a year's budget is its own action** (`BudgetVersion.CreateOriginalFrom`), not a copy of
-  an amendment: the new year's comparative is last year's adopted amount, the request is that amount
-  changed by a percentage, prior-year actuals start at zero (an adopted budget is not what was spent),
-  and each fund begins with last year's projected ending balance. Only the latest adopted,
-  unreplaced version can be the source, the same rule as publishing.
-- **Optimistic concurrency on the aggregate root.** `BudgetVersion.Revision` counts every change to the
-  version and everything inside it, and is an EF concurrency token, so the version's row is updated
-  (and checked) even when only a line changed. Services save through `TrySaveAsync`, which turns a
-  stale-revision or unique-index conflict into a readable failure.
+- **A department's total is its expenditure appropriations**
+  (`AccountType.CountsTowardDepartmentTotal`). Ohio appropriates by fund, then by office,
+  department, and division, with personal services within each (ORC 5705.38(C)). The Auditor of
+  State's UAN village chart budgets transfers out under their own program, "Other Financing
+  Uses" (910 Transfers, 920 Advances), not inside an operating department, and Michigan's uniform
+  chart does the same (activity 965). Revenue a department collects is an estimated resource of
+  the fund and never part of an appropriation. Screens still show a department's revenue and
+  transfer lines, labelled as outside its total.
+- **Amounts are never negative**, in the domain and in the import. Revenues and expenditures are
+  both entered as positive numbers; the account type says which way a line counts.
+- **Starting a year's budget is its own action** (`BudgetVersion.CreateOriginalFrom`), not a copy
+  like an amendment: the new year's comparison is last year's adopted amount, the request is that
+  amount changed by the chosen percentage, prior-year actuals start at zero (an adopted budget is
+  not what was spent), and each fund begins with last year's projected ending balance. Only the
+  latest adopted, unreplaced version can be the source, the same rule as publishing.
+- **Optimistic concurrency on the aggregate root.** `BudgetVersion.Revision` counts every change
+  to the version and everything inside it, and EF treats it as a concurrency token, so the
+  version's row is updated, and checked, even when only a line changed. Services save through
+  `TrySaveAsync`, which turns a stale revision or a unique-index collision into a readable message.
 
-**Alternatives.** A SQL `rowversion` column (changes only when the version's own row changes, so a line
-edit would not conflict with an adoption); pessimistic locks (a demo that people leave open would hold
-them); counting transfers out in the department total (contradicts the UAN chart and the fund-level
-"other financing uses" that Ohio's appropriation measure lists separately).
+**Alternatives.** A SQL `rowversion` column (changes only when the version's own row changes, so a
+line edit would not conflict with an adoption); pessimistic locks (a tab left open would hold
+them); counting transfers out in a department's total (contradicts the UAN chart and the way
+Ohio's appropriation measure lists other financing uses separately).
 
-**Consequences.** Every mutating method on `BudgetVersion` calls `Touch()`; a new one must too, or its
-changes will not conflict. A department's request can be lower than the sum of all lines coded to it.
+**Consequences.** Every mutating method on `BudgetVersion` must call `Touch()`, or its changes will
+not conflict. A department's request can be lower than the sum of every line coded to it, and the
+screens say why.
 
+---
+
+## Packages
+
+Every NuGet package and why it is here. A package is added to this table in the same change that
+adds it.
+
+| Package | Project | Why | ADR |
+|---|---|---|---|
+| Microsoft.EntityFrameworkCore.SqlServer | Infrastructure | The SQL Server provider | 0009 |
+| Microsoft.EntityFrameworkCore.Design | Infrastructure (private) | `dotnet ef` tooling, kept in Infrastructure so no separate startup project is needed | |
+| Microsoft.EntityFrameworkCore | Application | The LINQ surface behind `ICivicBudgetDbContext`, with no provider | 0014 |
+| FluentValidation | Application | Request validation as testable classes | 0007 |
+| Microsoft.AspNetCore.Identity.EntityFrameworkCore | Infrastructure | Identity's stores in the same DbContext | 0015 |
+| Microsoft.AspNetCore.DataProtection.EntityFrameworkCore | Infrastructure | The Data Protection key ring in SQL Server, so cookies survive restarts | 0023 |
+| Microsoft.AspNetCore.Components.QuickGrid | Web | Admin grids | 0011 |
+| ClosedXML | Infrastructure | Reading and writing XLSX without Office or COM | 0021, 0022 |
+| xunit, xunit.runner.visualstudio, Microsoft.NET.Test.Sdk, coverlet.collector | tests | Test framework and coverage (the template defaults) | |
+| bunit | Web.Tests | Blazor component tests | |
+| Testcontainers.MsSql | IntegrationTests | A real SQL Server 2022 in tests | 0009 |
+| Microsoft.Extensions.TimeProvider.Testing | Web.Tests | `FakeTimeProvider`, so startup and quiet-spell tests control the clock | 0031 |
+| Amazon.CDK.Lib, Constructs | Infra, Infra.Tests | AWS CDK in C#; the assertions library ships inside Amazon.CDK.Lib | 0008, 0023 |
+| dotnet-ef (local tool, `.config/dotnet-tools.json`) | | The migrations command, pinned per repository | |
+
+Not packages: Bootstrap 5.3 is vendored under `src/CivicBudget.Web/wwwroot/lib/bootstrap`
+(ADR-0016), and Bootstrap Icons 1.13 under `wwwroot/lib/bootstrap-icons` (ADR-0020).

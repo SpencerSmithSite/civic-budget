@@ -1,4 +1,4 @@
-# Walkthrough 10 — Ohio account numbers
+# Walkthrough 10: Ohio account numbers
 
 Phase 9a, the first step of v1.1. Read `docs/research/ohio-account-numbers.md`
 first for what the numbers mean; this is how the code carries them.

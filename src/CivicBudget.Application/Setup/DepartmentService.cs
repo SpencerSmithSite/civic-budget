@@ -109,6 +109,7 @@ public sealed class DepartmentService(
         {
             return managed;
         }
+
         Department? department = await db.Departments.FirstOrDefaultAsync(d => d.Id == id, ct);
         if (department is null)
         {

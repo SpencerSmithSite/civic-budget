@@ -1,133 +1,201 @@
 # CivicBudget
 
-A multi-tenant budgeting and public-transparency web application for local
-governments (cities, villages, townships, counties), built with .NET 10,
-Blazor, EF Core, and SQL Server, with a deploy-ready AWS CDK stack.
-
 [![ci](https://github.com/SpencerSmithSite/civic-budget/actions/workflows/ci.yml/badge.svg)](https://github.com/SpencerSmithSite/civic-budget/actions/workflows/ci.yml)
 
-> **Status:** v1.0 complete (Phase 8); v1.1 (Phases 9a–9d) reframes the app as a plug-in beside a government ERP: the chart of accounts comes from the ERP, account numbers read the Ohio way, administrators create logons, and department users land in their own department. Each phase is a reviewed PR with a walkthrough; see [ROADMAP.md](ROADMAP.md) and the [demo script](docs/DEMO-SCRIPT.md).
+CivicBudget is a web application for building a local government's annual budget and
+publishing it to the public. It is built around how Ohio villages, townships, cities, and
+counties actually budget: money is kept in funds, each fund's spending is capped by what it
+can expect to have, departments hand their requests to a fiscal officer, council adopts the
+budget by resolution, and changes during the year are made by amendment.
 
-**Two audiences, one solution**
-- **Admin app** — finance staff and department heads build the annual budget:
-  the chart of accounts synced from the ERP (or maintained locally), each
-  department entering and submitting its own request with a narrative, live
-  fund-balance checks with Ohio-style appropriation limits, Draft → Proposed
-  → Adopted workflow, amendments, audit trail, import/export, reports.
-- **Public transparency portal** — citizens browse the *published* budget:
-  fast, accessible (WCAG 2.1 AA target), no login, works on a phone and
-  without JavaScript.
+I built it as a portfolio project for .NET and Blazor work on government ERP software, and I
+built it the way I would build the real thing: the domain rules come from Ohio law and the
+Auditor of State's chart of accounts, the app is meant to sit beside a government's existing
+ERP rather than replace it, and every non-obvious decision is written down. All of the data is
+fictional (the Village of Maple Ridge and Pine Hollow Township do not exist).
 
-All data is fictional (Village of Maple Ridge, Ohio).
+It has two halves:
+
+- **The admin app**, for finance staff and department heads. The chart of accounts is kept
+  here or synced from the ERP; each department enters its own request with a written
+  narrative and submits it; the fiscal officer sees live fund balances against the Ohio
+  appropriation limit, moves the budget from draft to proposed to adopted, amends it
+  mid-year, imports and exports spreadsheets, prints reports, and publishes. Every change is
+  in an audit trail.
+- **The public transparency portal**, for citizens. No sign-in, fast, readable on a phone,
+  and no JavaScript at all. It shows only what was published: where the money comes from,
+  where it goes, each fund and department, year over year, search, and downloads.
 
 ## What it looks like
 
-| Budget workspace (Interactive Server) | Public portal (static SSR) |
+| Budget workspace | Public portal |
 |---|---|
-| ![Budget workspace: grouped account lines with live fund balances](docs/screenshots/admin-workspace.png) | ![Portal overview: KPIs and where the money goes](docs/screenshots/portal-overview.png) |
-| ![A department user's own page: accounts across funds, request column, narrative, submitted to the fiscal officer](docs/screenshots/admin-department.png) | ![Budget Summary by Fund report](docs/screenshots/admin-report-fund-summary.png) |
+| ![Budget workspace: account lines grouped by fund, with live fund balances beside them](docs/screenshots/admin-workspace.png) | ![Portal overview: headline figures and where the money goes](docs/screenshots/portal-overview.png) |
+| ![A department's own page: its accounts across funds, the request column, its narrative, and Submit](docs/screenshots/admin-department.png) | ![Budget Summary by Fund report](docs/screenshots/admin-report-fund-summary.png) |
 
 <details>
 <summary>More screens</summary>
 
 | Admin overview | Import preview | Portal fund page | Portal on a phone |
 |---|---|---|---|
-| ![Admin overview](docs/screenshots/admin-overview.png) | ![Import preview with per-row results](docs/screenshots/admin-import.png) | ![Portal fund drill-down](docs/screenshots/portal-fund.png) | ![Portal at phone width](docs/screenshots/portal-phone.png) |
+| ![Admin overview](docs/screenshots/admin-overview.png) | ![Import preview with a result for every row](docs/screenshots/admin-import.png) | ![Portal fund page](docs/screenshots/portal-fund.png) | ![Portal at phone width](docs/screenshots/portal-phone.png) |
 
 </details>
 
-## Live demo
+## Try the live demo
 
-A hosted copy runs on Azure's free tiers: **https://civicbudget-app.ashysmoke-cd0f52a4.centralus.azurecontainerapps.io**.
-The demo sleeps when idle: the first visit after a few quiet minutes takes about 15 to 20
-seconds to appear, and if nobody has used it for an hour a "waking up" screen follows and
-continues on its own within about a minute. The database is rebuilt from the seed every night
-at 08:00 UTC, so anything you change is gone by morning. Sign in with any of these; the password is the same for all of them.
+**https://civicbudget-app.ashysmoke-cd0f52a4.centralus.azurecontainerapps.io**
 
-| Login | Role | What you get |
+It runs on Azure's free tiers, so it sleeps when nobody is using it. The first visit after a
+quiet spell takes about 15 to 20 seconds to appear while Azure starts a container. If the
+database has been idle for an hour as well, a "Waking up the demo" screen explains the wait and
+moves on by itself within about a minute. After that, pages load normally. The database is
+rebuilt from the seed every night at 08:00 UTC, so feel free to change anything.
+
+All the demo logins share one password, published here on purpose: **`Demo-Bpe1GyRie5-1!`**
+
+| Login | Role | What to try |
 |---|---|---|
-| `admin@mapleridge.example` | Administrator | Everything: users, settings, chart sync, the budget |
-| `finance@mapleridge.example` | Fiscal Officer | The whole budget, workflow, publishing, reports |
-| `police@mapleridge.example` | Department User | The Police department's request (already submitted) |
-| `streets@mapleridge.example` | Department User | Streets and Parks (Parks was returned with a note) |
+| `finance@mapleridge.example` | Fiscal Officer | The whole budget: the FY2027 draft (the Street fund is over its limit on purpose), the department board, workflow, amendments, publishing, import, reports |
+| `police@mapleridge.example` | Department User | Lands on the Police department's request, which is already submitted and so locked |
+| `streets@mapleridge.example` | Department User | Streets & Service, still being entered; Parks & Recreation, returned with a note from the fiscal officer |
+| `admin@mapleridge.example` | Administrator | Everything the Fiscal Officer can do, plus users, government settings, and the logo |
 | `viewer@mapleridge.example` | Viewer | Read-only |
+| `admin@pinehollow.example` | Administrator of a second government | Pine Hollow Township only: proof that one government never sees another's data |
 
-**Demo password:** `Demo-Bpe1GyRie5-1!`
+The public portal needs no login: [Village of Maple Ridge](https://civicbudget-app.ashysmoke-cd0f52a4.centralus.azurecontainerapps.io/transparency/maple-ridge-oh).
+[docs/DEMO-SCRIPT.md](docs/DEMO-SCRIPT.md) is a ten-minute tour.
 
-The public portal needs no login: [/transparency/maple-ridge-oh](https://civicbudget-app.ashysmoke-cd0f52a4.centralus.azurecontainerapps.io/transparency/maple-ridge-oh).
-The first visit after a quiet spell can take a minute while the database resumes; after that it is quick.
+## How it is built
 
-## Run locally
+| | |
+|---|---|
+| Platform | .NET 10, C#, ASP.NET Core, Blazor Web App |
+| Admin app | Blazor Interactive Server, QuickGrid, Bootstrap 5 themed with CSS variables |
+| Portal | Blazor static server rendering, output caching, no JavaScript |
+| Data | EF Core on SQL Server 2022, ASP.NET Core Identity, FluentValidation, ClosedXML for Excel |
+| Tests | xUnit, bUnit, Testcontainers (a real SQL Server in Docker), CDK assertions; 638 tests |
+| Delivery | Docker, GitHub Actions with OIDC sign-in; live on Azure (Bicep), deploy-ready on AWS (CDK in C#) |
 
-Prerequisites: .NET SDK 10, Docker Desktop (on Apple Silicon, enable *Use Rosetta for x86_64/amd64 emulation*).
+The code is four projects with dependencies pointing inward: `Domain` (entities and budget
+rules, no framework), `Application` (use cases and the interfaces they need), `Infrastructure`
+(EF Core, Identity, Excel), and `Web` (Blazor and the composition root). A test fails the build
+if a dependency points the wrong way.
 
-```bash
-./scripts/dev-setup.sh                      # once: generates a SQL password into .env and user-secrets
-docker compose up -d                        # SQL Server 2022, healthy in ~15–30 s
-dotnet run --project src/CivicBudget.Web    # migrates + seeds, then serves on https://localhost:5001 (and http://localhost:5000)
-```
+## Problems worth reading about
 
-Then open `https://localhost:5001` and log in (accept the ASP.NET Core dev certificate, or use http://localhost:5000). `scripts/dev-setup.sh` prints the demo password once and
-keeps it in user-secrets (`dotnet user-secrets list --project src/CivicBudget.Web`).
+These are the parts I would walk an interviewer through, because each one had an easy answer
+that would have been wrong.
 
-| Login | Role | Sees |
-|---|---|---|
-| `admin@mapleridge.example` | Administrator | Users, government settings, setup |
-| `finance@mapleridge.example` | Finance Director | Setup; budget entry in both modes; beginning balances |
-| `police@mapleridge.example` | Department Head (Police) | Own department's lines, grouped view |
-| `streets@mapleridge.example` | Department Head (Streets, Parks) | Own departments' lines, grouped view |
-| `viewer@mapleridge.example` | Viewer | Read-only overview |
-| `admin@pinehollow.example` | Administrator (second tenant) | Pine Hollow only; proves isolation |
+- **Keeping draft numbers off the public site.** The portal does not filter the live budget by
+  status. Publishing copies the adopted budget into separate snapshot tables, and the portal's
+  database context cannot even see the live tables. ([ADR-0005](docs/DECISIONS.md#adr-0005-the-public-portal-reads-immutable-published-snapshots-only), [ADR-0006](docs/DECISIONS.md#adr-0006-a-separate-read-only-publicportaldbcontext))
+- **Many governments in one database.** Every query is filtered to the signed-in user's
+  government by EF Core query filters, and a save interceptor refuses writes to anyone else's
+  rows, so isolation does not depend on every developer remembering a `Where`. ([ADR-0004](docs/DECISIONS.md#adr-0004-tenancy-through-itenantcontext-and-ef-core-global-query-filters), [ADR-0013](docs/DECISIONS.md#adr-0013-the-tenant-interceptor-verifies-rather-than-stamps))
+- **A DbContext in Blazor Server.** A Blazor circuit lives as long as the browser tab, so a
+  "scoped" DbContext would live for hours and be shared by overlapping events. Every unit of
+  work gets its own context from a factory. ([ADR-0003](docs/DECISIONS.md#adr-0003-idbcontextfactory-instead-of-a-scoped-dbcontext-in-blazor-server))
+- **Two people editing one budget.** Each budget version carries a revision number that every
+  change bumps and every save checks, so the second of two simultaneous saves is refused
+  instead of silently overwriting the first. ([Walkthrough 20](docs/walkthroughs/20-budget-rules.md))
+- **What a department's total is.** I researched how Ohio appropriates (ORC 5705.38, the UAN
+  chart) before deciding: a department's total is its expenditures; revenue it collects and
+  transfers out are shown beside it, not added in. ([ADR-0033](docs/DECISIONS.md#adr-0033-department-totals-starting-a-years-budget-and-optimistic-concurrency))
+- **A site that sleeps.** On the free tier the database pauses after an hour. The app now starts
+  listening before the database is ready and shows a waiting screen, instead of a browser that
+  hangs for a minute; finding the hidden startup call that caused the hang is its own story.
+  ([ADR-0031](docs/DECISIONS.md#adr-0031-the-host-listens-before-the-database-is-ready-and-shows-a-waiting-screen), [Walkthrough 18](docs/walkthroughs/18-cold-start.md))
+- **Plugging into an ERP.** The chart of accounts arrives through a small adapter contract, is
+  previewed before it is applied, and codes are retired rather than deleted because old budgets
+  still point at them. ([ADR-0025](docs/DECISIONS.md#adr-0025-the-chart-of-accounts-is-received-from-the-erp-through-an-adapter-never-deleted-and-owned-by-a-switch))
 
-The public portal needs no login: open `http://localhost:5000/transparency/maple-ridge-oh`
-(Pine Hollow Township is at `/transparency/pine-hollow-twp-oh`). Publish an amendment in the
-admin app and the portal shows it on the next request.
+## Run it locally
 
-To start over with fresh seed data: `docker compose down -v && docker compose up -d`.
-
-### Everything in containers
-
-```bash
-docker compose -f docker-compose.full.yml up --build     # app image + SQL Server; open http://localhost:8080
-```
-
-### Azure (the live demo)
-
-`infra/azure/main.bicep` puts the app on Azure's always-free offers: a serverless Azure SQL
-database under the free limit and a Container App on the consumption plan that scales to zero,
-plus a scheduled job that runs the same image with `--reseed` every night. `scripts/azure-setup.sh`
-creates all of it once and wires `.github/workflows/deploy-azure.yml`, which builds the image to
-GitHub's registry and rolls the app on every push to `main`, signing in with OIDC. See
-[infra/azure/README.md](infra/azure/README.md), ADR-0030, and [walkthrough 16](docs/walkthroughs/16-azure-demo.md).
-
-### AWS (deploy-ready, not deployed)
-
-`infra/CivicBudget.Infra` is an AWS CDK app in C#: VPC, RDS SQL Server Express, Fargate behind an
-ALB, Secrets Manager, CloudWatch, a spending alarm, and a GitHub OIDC deploy role. CI synthesizes
-it and runs 17 assertion tests on the templates; `.github/workflows/deploy.yml` deploys on a `v*`
-tag once an account's role ARN is set. There is no account behind this repository (ADR-0008), so
-nothing is live; see [infra/README.md](infra/README.md) and [walkthrough 08](docs/walkthroughs/08-aws-deploy-ready.md).
+You need the .NET 10 SDK and Docker Desktop. On Apple Silicon, turn on *Use Rosetta for
+x86_64/amd64 emulation* in Docker Desktop, because SQL Server's image is amd64 only.
 
 ```bash
-dotnet test                                 # all 498 tests; integration tests start their own SQL Server container, infra tests need Node.js
+./scripts/dev-setup.sh                      # once: a SQL password in .env, the connection string and demo password in user-secrets
+docker compose up -d                        # SQL Server 2022
+dotnet run --project src/CivicBudget.Web    # migrates and seeds, then serves https://localhost:5001 and http://localhost:5000
 ```
+
+Sign in with the logins above. `dev-setup.sh` prints the local demo password once; it is kept in
+user-secrets (`dotnet user-secrets list --project src/CivicBudget.Web`). The portal is at
+`/transparency/maple-ridge-oh`, and Pine Hollow's at `/transparency/pine-hollow-twp-oh`.
+
+To start again from clean seed data: `docker compose down -v && docker compose up -d`.
+
+To run the app itself in a container too: `docker compose -f docker-compose.full.yml up --build`,
+then open http://localhost:8080.
+
+```bash
+dotnet test                                 # everything; integration tests start their own SQL Server container, infra tests need Node.js
+dotnet test tests/CivicBudget.Domain.Tests  # the budget rules alone, in well under a second
+```
+
+## Deployment
+
+**Azure (the live demo).** `infra/azure/main.bicep` describes a serverless Azure SQL database on
+the free offer, a Container App that scales to zero, and a nightly job that runs the same image
+with `--reseed`. `scripts/azure-setup.sh` creates it once; after that every push to `main` that
+passes CI is deployed by `.github/workflows/deploy-azure.yml`, which signs in to Azure with OIDC,
+so no credential is stored in GitHub. See [infra/azure/README.md](infra/azure/README.md) and
+[ADR-0030](docs/DECISIONS.md#adr-0030-the-live-demo-runs-on-azures-free-tiers-the-database-is-rebuilt-from-the-seed-every-night).
+
+**AWS (deploy-ready).** `infra/CivicBudget.Infra` is an AWS CDK app in C#: a VPC, SQL Server on
+RDS in private subnets, the app on Fargate behind a load balancer, Secrets Manager, CloudWatch,
+a spending alarm, and an OIDC deploy role. CI synthesizes it and runs assertion tests on the
+templates on every change. I have no AWS account behind this repository, so it has never been
+deployed; it shows the production-shaped design. See [infra/README.md](infra/README.md) and
+[walkthrough 08](docs/walkthroughs/08-aws-deploy-ready.md).
 
 ## How to read this repository
 
-1. [docs/SPEC.md](docs/SPEC.md) for what an Ohio budget is and what the app does (§12 maps the spec to what shipped).
-2. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the layers, render modes, tenancy, and the snapshot boundary.
-3. The walkthroughs in order, one per phase: [01 foundation](docs/walkthroughs/01-foundation.md) → [02 identity](docs/walkthroughs/02-identity-and-authorization.md) → [03 entry and audit](docs/walkthroughs/03-budget-entry-and-audit.md) → [04 workflow and publishing](docs/walkthroughs/04-workflow-and-publishing.md) → [05 design system](docs/walkthroughs/05-design-system.md) → [06 portal](docs/walkthroughs/06-public-portal.md) → [07 import and reports](docs/walkthroughs/07-import-export-reports.md) → [08 AWS](docs/walkthroughs/08-aws-deploy-ready.md) → [09 polish](docs/walkthroughs/09-polish.md).
-4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why (23 ADRs and the package table).
-5. Then the code, starting at `src/CivicBudget.Domain/Budgets/BudgetVersion.cs`.
+1. [docs/SPEC.md](docs/SPEC.md): what an Ohio budget is and what the app does with it.
+2. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): the layers, render modes, tenancy, and the
+   snapshot boundary, with diagrams.
+3. The walkthroughs, one per phase, in the order I built them. Each explains what was built,
+   why, and what to read in the code:
+   [01 Foundation](docs/walkthroughs/01-foundation.md) ·
+   [02 Identity and authorization](docs/walkthroughs/02-identity-and-authorization.md) ·
+   [03 Budget entry and audit](docs/walkthroughs/03-budget-entry-and-audit.md) ·
+   [04 Workflow and publishing](docs/walkthroughs/04-workflow-and-publishing.md) ·
+   [05 Design system](docs/walkthroughs/05-design-system.md) ·
+   [06 Public portal](docs/walkthroughs/06-public-portal.md) ·
+   [07 Import, export, reports](docs/walkthroughs/07-import-export-reports.md) ·
+   [08 AWS](docs/walkthroughs/08-aws-deploy-ready.md) ·
+   [09 Polish](docs/walkthroughs/09-polish.md) ·
+   [10 Account numbers](docs/walkthroughs/10-account-numbers.md) ·
+   [11 ERP chart sync](docs/walkthroughs/11-erp-chart-sync.md) ·
+   [12 Users and permissions](docs/walkthroughs/12-users-and-permissions.md) ·
+   [13 Department-first budgeting](docs/walkthroughs/13-department-first-budgeting.md) ·
+   [14 Branding and profile pictures](docs/walkthroughs/14-branding-and-profile-pictures.md) ·
+   [15 Portal polish](docs/walkthroughs/15-portal-polish.md) ·
+   [16 Azure](docs/walkthroughs/16-azure-demo.md) ·
+   [17 Phone layouts](docs/walkthroughs/17-phone-layouts.md) ·
+   [18 Cold start](docs/walkthroughs/18-cold-start.md) ·
+   [19 Maintenance](docs/walkthroughs/19-maintenance.md) ·
+   [20 Budget rules](docs/walkthroughs/20-budget-rules.md)
+4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 33 decision records, each
+   with the alternatives I turned down, and the table of every package and why it is there.
+5. Then the code, starting at `src/CivicBudget.Domain/Budgets/BudgetVersion.cs`, the heart of it.
 
-Also: [Design brief](docs/design/DESIGN-BRIEF.md) · [Demo script](docs/DEMO-SCRIPT.md) · [Interview prep](docs/INTERVIEW-PREP.md) · [Roadmap](ROADMAP.md)
+Also: [Demo script](docs/DEMO-SCRIPT.md) · [Interview prep](docs/INTERVIEW-PREP.md) ·
+[Design brief](docs/design/DESIGN-BRIEF.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md)
+
+```
+src/CivicBudget.Domain          entities and budget rules; references nothing but .NET
+src/CivicBudget.Application     use cases, DTOs, validators, the interfaces Infrastructure implements
+src/CivicBudget.Infrastructure  EF Core, migrations, interceptors, Identity, Excel, seed data
+src/CivicBudget.Web             Blazor admin app and portal, endpoints, startup, the composition root
+tests/                          one test project per layer, plus integration tests against SQL Server
+infra/                          AWS CDK (C#) and the Azure Bicep template
+docs/                           spec, architecture, decisions, walkthroughs, design
+```
 
 ## Rights
-Copyright © 2026 Spencer Smith. **All rights reserved.** This repository is
-published for portfolio review only. It is not licensed for use,
-modification, or distribution.
 
-## Branch protection (recommended settings for `main`)
-- Require a pull request before merging; require the `ci` status check.
-- Block force pushes and deletions.
-- (Optional) Require linear history.
+Copyright © 2026 Spencer Smith. **All rights reserved.** This repository is public for portfolio
+review only. It is not licensed for use, modification, or distribution.

@@ -13,7 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace CivicBudget.IntegrationTests;
 
 /// <summary>
-/// Phase 9c's two rules, proven through the services rather than the pages: an Administrator can
+/// Two permission rules, proven through the services rather than the pages: an Administrator can
 /// do everything the Fiscal Officer can, and a department user's assignment bounds everything they
 /// see, including the audit trail.
 /// </summary>

@@ -122,6 +122,22 @@ public class BudgetImportServiceTests(SqlServerFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Codes_written_with_leading_zeros_commit_as_well_as_preview()
+    {
+        // Another system's export (or a spreadsheet that padded the column) writes 1000 as 01000. The
+        // preview matches those, so commit must apply what the preview matched, not look the text up again.
+        await using AsyncServiceScope scope = As(Roles.FinanceDirector);
+        IBudgetImportService import = scope.ServiceProvider.GetRequiredService<IBudgetImportService>();
+        ImportPreviewDto preview = (await import.PreviewAsync(_draft2027, "padded.csv", Csv("Fund,Department,Account,Amount", "04901,0110,05420,750"))).Value;
+        Assert.Equal(ImportRowAction.Add, preview.Rows.Single().Action);
+
+        Result<ImportResultDto> committed = await import.CommitAsync(_draft2027, "padded.csv", preview.Inputs);
+
+        Assert.True(committed.IsSuccess, string.Join("; ", committed.Errors.Select(e => e.Message)));
+        Assert.Equal(750m, (await LineAsync(scope, "4901", "110", "5420")).Amount);
+    }
+
+    [Fact]
     public async Task Commit_refuses_when_a_row_has_an_error_and_writes_nothing()
     {
         await using AsyncServiceScope scope = As(Roles.FinanceDirector);

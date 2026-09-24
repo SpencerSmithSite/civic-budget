@@ -80,7 +80,7 @@ builder.Services.AddScoped<CircuitHandler, CurrentUserCircuitHandler>();
 builder.Services.AddScoped<AdminPageState>();
 builder.Services.AddScoped<ToastService>();
 
-// Output caching for the public portal (ADR-0005): pages are cached per URL and tagged by
+// Output caching for the public portal (ADR-0021): pages are cached per URL and tagged by
 // government slug; publishing evicts the tag. Registered after AddInfrastructure so the real
 // invalidator replaces the no-op.
 builder.Services.AddOutputCache(options => options.AddBasePolicy(policy => policy.AddPolicy<PortalOutputCachePolicy>(), excludeDefaultPolicy: true));

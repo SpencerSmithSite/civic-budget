@@ -1,6 +1,8 @@
-# Walkthrough 05 — Design tokens over Bootstrap
+# Walkthrough 05: Design tokens over Bootstrap
 
-What the Phase 4.5 design pass built and how to explain it.
+Phase 4.5 was a design pass. After Phase 3 the app worked but looked like a
+Bootstrap tutorial, and a government buying budgeting software judges it on sight,
+so I gave the admin app a deliberate visual identity before the portal reused it.
 
 ---
 
@@ -111,5 +113,7 @@ to a text label.
   `prefers-reduced-motion`.
 - Icons are `aria-hidden` and never the only label.
 
-Not done (Phase 8 will check with a screen reader): live-region wording for
-toasts beyond `aria-live="polite"`, and focus return after a dialog closes.
+Not done in this phase: live-region wording for toasts beyond
+`aria-live="polite"`, and focus return after a dialog closes. Phase 8 made
+dialogs take focus when they open; Phase 18 returned it to the opener on close
+and kept Tab inside the dialog.

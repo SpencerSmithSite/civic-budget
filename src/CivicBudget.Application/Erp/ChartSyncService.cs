@@ -60,6 +60,8 @@ public sealed class ChartSyncService(
             return Result.Failure<ChartSyncDto>(NotAllowed);
         }
 
+        // The file is read and compared again rather than trusting the preview: someone may have changed
+        // the chart between the preview and this click, and the diff must be against what is here now.
         Result<ErpChart> read = chartSource.Read(fileName, content);
         if (read.IsFailure)
         {

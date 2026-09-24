@@ -8,6 +8,7 @@ using CivicBudget.Domain.Governments;
 
 namespace CivicBudget.Domain.Publishing;
 
+/// <summary>Where a published snapshot stands. Snapshots are never deleted, so the portal's history stays intact.</summary>
 public enum SnapshotStatus
 {
     /// <summary>What citizens see for this fiscal year right now.</summary>

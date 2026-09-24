@@ -1,5 +1,11 @@
 namespace CivicBudget.Domain.Accounts;
 
+/// <summary>
+/// Which way an account's money moves. Every amount in the budget is a positive number; the account
+/// type, not a minus sign, says whether a line adds to the fund (revenue, transfer in) or draws on it
+/// (expenditure, transfer out). Finance staff think in positive numbers, and a stray negative would
+/// otherwise quietly flip a line's meaning.
+/// </summary>
 public enum AccountType
 {
     Revenue = 1,

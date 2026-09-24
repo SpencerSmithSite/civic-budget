@@ -1,9 +1,9 @@
 # CivicBudget design brief
 
-**Status:** direction approved by Spencer 2026-09-18 with one sharpening: it does not have to
+**Status:** direction settled 2026-09-18, with one sharpening I added: it does not have to
 look like VIP, but it must look and feel like it *fits in* next to VIP. Mockups next, then
 implementation (ROADMAP Phase 4.5 and Phase 5).
-**Inputs:** the VIP screenshot Spencer supplied, and the three research reports in this folder.
+**Inputs:** a VIP marketing screenshot, and the three research reports in this folder.
 
 ## 1. Direction in one sentence
 
@@ -142,7 +142,7 @@ chart palette above; larger type (16px base) because citizens read, staff scan.
 
 ## 5. Mockups
 
-Eight screens in [mockups.html](mockups.html) (also published as a Claude artifact for review):
+Eight screens in [mockups.html](mockups.html), reviewed before any UI code was written:
 login; admin overview; budget workspace with stepper and fund rail; adopt dialog in Warn mode;
 users; portal overview; portal fund drill-down; portal on a phone. The mockup CSS uses the tokens
 above verbatim, so approved styles move into `app.css` rather than being re-created.
@@ -161,4 +161,4 @@ above verbatim, so approved styles move into `app.css` rather than being re-crea
 6. Walkthrough 05: design tokens over Bootstrap; how the theme is shared with the portal.
 
 Done means: every admin screen uses the shell and tokens; no `window.confirm`; no unstyled
-Bootstrap defaults visible; screenshots in the README; Spencer says it looks like a product.
+Bootstrap defaults visible; screenshots in the README; it looks like a product, not a template.

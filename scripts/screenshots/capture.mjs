@@ -36,7 +36,7 @@ await p2.screenshot({ path: `${out}/portal-phone.png` });
 console.log('wrote portal-phone');
 await phone.close();
 
-// Admin (sign in as the Finance Director).
+// Admin (sign in as the Fiscal Officer).
 await page.goto(base + '/Account/Login', { waitUntil: 'networkidle' });
 await page.fill('input[name="Input.Email"]', 'finance@mapleridge.example');
 await page.fill('input[name="Input.Password"]', pw);
@@ -56,7 +56,7 @@ await shot('admin-import', `/admin/budgets/${version}/import`, {
   },
 });
 
-// Department user (Phase 9d): a fresh context (sign-out is a POST), and sign-in lands in their department.
+// Department user: a fresh context (sign-out is a POST), and sign-in lands in their department.
 const chief = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
 const p3 = await chief.newPage();
 await p3.goto(base + '/Account/Login', { waitUntil: 'networkidle' });

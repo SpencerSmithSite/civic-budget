@@ -6,10 +6,10 @@ namespace CivicBudget.Infrastructure.Persistence;
 
 /// <summary>
 /// The public portal's only door to the database (ADR-0006). It maps the four snapshot tables plus the
-/// government logo (a public image) and nothing else: no budget lines, no users, no governments. A global query filter hides every
-/// snapshot that is not <see cref="SnapshotStatus.Active"/>, and SaveChanges throws. So a bug in
-/// the portal cannot show a draft, a withdrawn budget, or another tenant's data, and cannot write.
-/// The admin context owns the migrations; this context just reads the same tables.
+/// government logo (a public image) and nothing else: no budget lines, no users, no governments. A
+/// global query filter hides every snapshot that is not <see cref="SnapshotStatus.Active"/>, and
+/// SaveChanges throws. So a bug in the portal cannot show a draft or a withdrawn budget, and cannot
+/// write. The admin context owns the migrations; this context just reads the same tables.
 /// </summary>
 public sealed class PublicPortalDbContext(DbContextOptions<PublicPortalDbContext> options) : DbContext(options)
 {

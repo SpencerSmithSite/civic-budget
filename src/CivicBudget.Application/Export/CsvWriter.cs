@@ -7,7 +7,7 @@ namespace CivicBudget.Application.Export;
 /// RFC 4180 CSV: comma separated, CRLF lines, quotes doubled, a UTF-8 BOM so Excel opens it correctly.
 /// Text that a spreadsheet would read as a formula (it starts with =, +, -, or @) gets a leading
 /// apostrophe: account names and justifications are typed by people, and the public portal's CSV
-/// is opened by anyone. Numbers are written as numbers, so a negative amount is left alone.
+/// is opened by anyone. Numbers are written as numbers, so a negative change ("-1500.00") is left alone.
 /// </summary>
 public static class CsvWriter
 {

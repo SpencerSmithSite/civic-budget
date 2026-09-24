@@ -1,6 +1,6 @@
-# Walkthrough 15 — Portal polish
+# Walkthrough 15: Portal polish
 
-Phase 12. Spencer's review of the transparency portal: a logo instead of
+Phase 12 came out of my review of the transparency portal: a logo instead of
 initials (the government's own if it uploads one), less text at the top of
 the overview, the two breakdowns as one sliding section, and the glossary
 on its own page.

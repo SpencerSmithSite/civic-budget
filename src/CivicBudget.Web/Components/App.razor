@@ -30,8 +30,8 @@
         <script src="@Assets["_framework/blazor.web.js"]"></script>
         <script src="@Assets["lib/bootstrap/js/bootstrap.bundle.min.js"]"></script>
         <script>
-            // The admin app's only bespoke JavaScript: remember a UI preference (the collapsed menu) in a
-            // cookie, so the server can prerender the page the way the user left it.
+            // The admin app's own JavaScript, all of it. setCookie remembers a UI preference (the collapsed
+            // menu) so the server can prerender the page the way the user left it.
             window.civicBudget = {
                 setCookie: (name, value) => { document.cookie = `${name}=${value};path=/;max-age=31536000;SameSite=Lax`; },
                 // Dialogs and drawers: while one is open, Tab and Shift+Tab cycle inside it (aria-modal says

@@ -43,6 +43,7 @@ public sealed class Department : Entity, ITenantOwned
     public void SetDescription(string? description) =>
         Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
 
+    /// <summary>Retired rather than deleted, for the same reason as <see cref="Funds.Fund.Deactivate"/>.</summary>
     public void Deactivate() => IsActive = false;
 
     public void Reactivate() => IsActive = true;

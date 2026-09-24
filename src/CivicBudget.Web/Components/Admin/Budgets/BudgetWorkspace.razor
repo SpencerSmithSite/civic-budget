@@ -25,7 +25,7 @@ else
         <TitleAddon><StatusPill Budget="workspace.Version.Status" /></TitleAddon>
         <Subtitle>@workspace.Version.AmendmentReason</Subtitle>
         <Actions>
-            @if (!isDepartmentHead)
+            @if (!isDepartmentUser)
             {
                 <div class="btn-group btn-group-sm" role="group" aria-label="Entry mode">
                     <button type="button" class="btn @(mode == Mode.ByDepartment ? "btn-primary" : "btn-outline-primary")" @onclick="() => mode = Mode.ByDepartment">By department</button>
@@ -116,7 +116,7 @@ else
     private SnapshotSummaryDto? activeSnapshot;
     private Mode mode = Mode.ByDepartment;
     private bool notFound;
-    private bool isDepartmentHead;
+    private bool isDepartmentUser;
     private BudgetLineDto? historyLine;
     private int historyVersion;
     private AddLineForm addLineForm = default!;
@@ -129,8 +129,8 @@ else
     {
         // Administrators and the Fiscal Officer (and viewers) default to the grid; department users only have the grouped view.
         AuthenticationState state = await AuthenticationState;
-        isDepartmentHead = state.User.IsInRole(Roles.DepartmentHead);
-        if (!isDepartmentHead)
+        isDepartmentUser = state.User.IsInRole(Roles.DepartmentHead);
+        if (!isDepartmentUser)
         {
             mode = Mode.ByAccount;
         }

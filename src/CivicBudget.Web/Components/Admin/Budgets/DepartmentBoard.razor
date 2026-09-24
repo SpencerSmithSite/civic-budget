@@ -4,7 +4,7 @@
 @inject IDepartmentRequestService Requests
 @inject ToastService Toasts
 
-@* Phase 9d: where every department stands on one version. For the fiscal officer it is the
+@* Where every department stands on one version. For the fiscal officer it is the
    "who is in" board with a Return action; for a department user with several departments it is
    the picker (the service already limits the rows to theirs). *@
 <PageTitle>@(workspace is null ? "Departments" : $"Departments, FY{workspace.Version.Year} {workspace.Version.Label}")</PageTitle>
