@@ -63,9 +63,9 @@ public sealed class BudgetLine : Entity, ITenantOwned
         DepartmentId = department?.Id;
         Account = account;
         AccountId = account.Id;
-        Amount = Money.Round(amount);
-        PriorYearActual = Money.Round(priorYearActual);
-        CurrentYearBudget = Money.Round(currentYearBudget);
+        Amount = ValidAmount(amount, nameof(amount));
+        PriorYearActual = ValidAmount(priorYearActual, nameof(priorYearActual));
+        CurrentYearBudget = ValidAmount(currentYearBudget, nameof(currentYearBudget));
         Justification = NormalizeJustification(justification);
     }
 
@@ -73,12 +73,26 @@ public sealed class BudgetLine : Entity, ITenantOwned
     {
     }
 
-    internal void SetAmount(decimal amount) => Amount = Money.Round(amount);
+    internal void SetAmount(decimal amount) => Amount = ValidAmount(amount, nameof(amount));
 
     internal void SetComparatives(decimal priorYearActual, decimal currentYearBudget)
     {
-        PriorYearActual = Money.Round(priorYearActual);
-        CurrentYearBudget = Money.Round(currentYearBudget);
+        decimal prior = ValidAmount(priorYearActual, nameof(priorYearActual));
+        decimal current = ValidAmount(currentYearBudget, nameof(currentYearBudget));
+        (PriorYearActual, CurrentYearBudget) = (prior, current);
+    }
+
+    /// <summary>
+    /// Every amount on a line is a positive number: revenues and expenditures alike are entered as
+    /// what was (or will be) received or spent, and the account type says which way it counts. A
+    /// refund or correction is a lower amount, not a negative one. Services and the import check
+    /// this first so the user sees a message; this is the rule itself.
+    /// </summary>
+    private static decimal ValidAmount(decimal amount, string name)
+    {
+        Guard.Against(amount < 0m, $"Budget amounts cannot be negative ({name}).");
+        Guard.Against(!Money.IsStorable(amount), $"{Money.TooLargeMessage} ({name})");
+        return Money.Round(amount);
     }
 
     internal void SetJustification(string? justification) => Justification = NormalizeJustification(justification);

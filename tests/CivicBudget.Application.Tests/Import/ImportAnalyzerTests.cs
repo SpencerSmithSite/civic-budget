@@ -22,12 +22,12 @@ public class ImportAnalyzerTests
     [Fact]
     public void A_new_clean_row_is_an_add_with_resolved_names_and_parsed_money()
     {
-        ImportRowDto row = Analyze([], Row(2, "1000", "110", "5100", "$1,250.50", "(10)", "1000", "Overtime")).Single();
+        ImportRowDto row = Analyze([], Row(2, "1000", "110", "5100", "$1,250.50", "10", "1000", "Overtime")).Single();
 
         Assert.Equal(ImportRowAction.Add, row.Action);
         Assert.Empty(row.Errors);
         Assert.Equal(("General Fund", "Police", "Salaries"), (row.FundName, row.DepartmentName, row.AccountName));
-        Assert.Equal((1_250.50m, -10m, 1000m), (row.Amount, row.PriorYearActual, row.CurrentYearBudget));
+        Assert.Equal((1_250.50m, 10m, 1000m), (row.Amount, row.PriorYearActual, row.CurrentYearBudget));
         Assert.Null(row.ExistingAmount);
     }
 
@@ -122,6 +122,17 @@ public class ImportAnalyzerTests
         Assert.Equal(ImportRowAction.Add, rows[1].Action);
     }
 
+    [Theory]
+    [InlineData("-10", null)]
+    [InlineData("(10)", null)]
+    [InlineData(null, "-250")]
+    public void Prior_year_actual_and_current_budget_cannot_be_negative_either(string? prior, string? current)
+    {
+        ImportRowDto row = Analyze([], Row(2, "1000", "110", "5100", "100", prior, current)).Single();
+
+        Assert.Contains(row.Errors, e => e.Contains("cannot be negative", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void Amounts_must_be_present_numeric_and_not_negative()
     {
@@ -133,7 +144,7 @@ public class ImportAnalyzerTests
 
         Assert.Equal("Amount is missing.", rows[0].Errors.Single());
         Assert.Equal("Amount \"ten\" is not a number.", rows[1].Errors.Single());
-        Assert.Equal("Amount cannot be negative.", rows[2].Errors.Single());
+        Assert.Equal("Amount cannot be negative. Enter revenues and expenditures as positive numbers.", rows[2].Errors.Single());
         Assert.Equal("Prior Year Actual \"abc\" is not a number.", rows[3].Errors.Single());
     }
 

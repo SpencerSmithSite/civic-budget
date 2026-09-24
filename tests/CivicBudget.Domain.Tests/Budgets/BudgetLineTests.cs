@@ -160,4 +160,27 @@ public class BudgetLineTests
         Assert.Equal(12_500.56m, version.GetBeginningBalance(fund.Id));
         Assert.Equal(0m, version.GetBeginningBalance(Guid.CreateVersion7()));
     }
+
+    [Theory]
+    [InlineData(-1, 0, 0)]
+    [InlineData(0, -1, 0)]
+    [InlineData(0, 0, -1)]
+    public void Every_amount_on_a_line_is_positive_for_revenues_and_expenditures_alike(double amount, double prior, double current)
+    {
+        BudgetVersion version = TestData.DraftVersion();
+
+        Assert.Throws<DomainException>(() => version.AddLine(TestData.GeneralFund(), department: null, TestData.PropertyTax(), (decimal)amount, (decimal)prior, (decimal)current));
+    }
+
+    [Fact]
+    public void Editing_to_a_negative_amount_or_comparative_is_refused_and_leaves_the_line_as_it_was()
+    {
+        BudgetVersion version = TestData.DraftVersion();
+        BudgetLine line = version.AddLine(TestData.GeneralFund(), department: null, TestData.PropertyTax(), 100m, 90m, 95m);
+
+        Assert.Throws<DomainException>(() => version.UpdateLineAmount(line.Id, -5m));
+        Assert.Throws<DomainException>(() => version.UpdateLineComparatives(line.Id, 80m, -1m));
+
+        Assert.Equal((100m, 90m, 95m), (line.Amount, line.PriorYearActual, line.CurrentYearBudget));
+    }
 }
