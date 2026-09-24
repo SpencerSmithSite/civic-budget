@@ -87,6 +87,9 @@ public sealed class PublishedBudgetSnapshot : Entity, ITenantOwned
         DateTimeOffset nowUtc)
     {
         Guard.Against(version.Status != BudgetStatus.Adopted, "Only an Adopted budget can be published.");
+        // The portal shows the budget in force. Once an amendment is adopted the earlier version is
+        // history, and publishing it would put the pre-amendment numbers back in front of citizens.
+        Guard.Against(version.SupersededByVersionId is not null, "Only the latest adopted version can be published. A later amendment replaced this one; publish that instead.");
         Guard.Against(version.GovernmentId != government.Id, "Version belongs to a different government.");
         Guard.Against(fiscalYear.Id != version.FiscalYearId, "Fiscal year does not match the version.");
 

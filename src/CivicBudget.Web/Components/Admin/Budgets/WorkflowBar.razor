@@ -30,9 +30,13 @@ else if (State.Status != BudgetStatus.Adopted && State.RequiresAcknowledgement)
 @if (State.Status == BudgetStatus.Adopted)
 {
     <AuthorizeView Policy="@Policies.CanPublish">
-        @if (ActiveSnapshot is null)
+        @if (ActiveSnapshot is null && State.CanPublish)
         {
             <button type="button" class="btn btn-primary" @onclick="() => Open(publishDialog)"><i class="bi bi-megaphone me-1" aria-hidden="true"></i>Publish to portal</button>
+        }
+        else if (ActiveSnapshot is null)
+        {
+            <span class="small text-secondary">Replaced by a later amendment; publish the latest adopted version instead.</span>
         }
         else
         {

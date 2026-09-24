@@ -38,7 +38,8 @@ public sealed class BudgetWorkflowService(
             CanAdopt: isFd && version.Status == BudgetStatus.Proposed,
             CanAmend: isFd && version.Status == BudgetStatus.Adopted && version.SupersededByVersionId is null && !hasOpenSibling && !yearClosed,
             hasOpenSibling,
-            LimitResults(version, government));
+            LimitResults(version, government),
+            IsSuperseded: version.SupersededByVersionId is not null);
     }
 
     public Task<Result> ProposeAsync(Guid versionId, bool acknowledgeWarnings, CancellationToken ct = default) =>

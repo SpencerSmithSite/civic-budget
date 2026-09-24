@@ -201,6 +201,10 @@ public class WorkflowAndPublishingTests(SqlServerFixture fixture) : IAsyncLifeti
         Result<Guid> republished = await publishing.PublishAsync(amendment.Value);
         Assert.True(republished.IsSuccess);
 
+        // The original is history now: it cannot go back on the portal over the amendment.
+        Assert.Contains("latest adopted version", (await publishing.PublishAsync(_draft2027)).Errors.Single().Message, StringComparison.Ordinal);
+        Assert.False((await workflow.GetStateAsync(_draft2027))!.CanPublish);
+
         await using CivicBudgetDbContext db = _database.CreateContext(_mapleRidge);
         BudgetVersion original = await db.BudgetVersions.SingleAsync(v => v.Id == _draft2027);
         Assert.Equal(amendment.Value, original.SupersededByVersionId);

@@ -159,4 +159,18 @@ public class PublishedSnapshotTests
         Assert.Contains("different budgets", ex.Message, StringComparison.Ordinal);
         Assert.Equal(SnapshotStatus.Active, mine.Status);
     }
+
+    [Fact]
+    public void Only_the_latest_adopted_version_can_be_published()
+    {
+        (Government government, FiscalYear year, BudgetVersion original, List<Fund> funds) = AdoptedBudget();
+        BudgetVersion amendment = original.CreateAmendment("Supplemental appropriation");
+        amendment.Propose();
+        amendment.Adopt("2027-05", "user-fd", Now);
+        original.MarkSupersededBy(amendment);
+
+        DomainException ex = Assert.Throws<DomainException>(() => PublishedBudgetSnapshot.Capture(government, year, original, funds, "user-fd", "Dana", Now));
+        Assert.Contains("latest adopted version", ex.Message, StringComparison.Ordinal);
+        Assert.Equal(SnapshotStatus.Active, PublishedBudgetSnapshot.Capture(government, year, amendment, funds, "user-fd", "Dana", Now).Status);
+    }
 }

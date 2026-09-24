@@ -11,8 +11,12 @@ public sealed record WorkflowStateDto(
     bool CanAdopt,
     bool CanAmend,
     bool HasOpenSibling,
-    IReadOnlyList<AppropriationLimitResult> LimitResults)
+    IReadOnlyList<AppropriationLimitResult> LimitResults,
+    bool IsSuperseded = false)
 {
+    /// <summary>Only the latest adopted version may go on the portal; a superseded one is history.</summary>
+    public bool CanPublish => Status == BudgetStatus.Adopted && !IsSuperseded;
+
     /// <summary>Block mode and at least one fund over its limit: Propose and Adopt are refused.</summary>
     public bool BlocksTransition => LimitResults.Any(r => r.BlocksWorkflow);
 
