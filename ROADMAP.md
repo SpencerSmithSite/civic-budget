@@ -256,4 +256,4 @@ Order: 9a → 9b → 9c → 9d, each its own pull request, reviewed before the n
 - [x] The capture script finds its pages by clicking through the app, and makes two ordinary edits so the activity feed has something to show
 - [x] Fixed on the way: portal pages on a phone had no space under the header; a fieldset legend rendered as a 1.5rem heading; audit values showed as raw text ("40510.00")
 - [x] The user form shows what the chosen role can and cannot do
-- [ ] Reviewed and approved
+- [x] Reviewed and approved (2026-09-24)
