@@ -249,4 +249,4 @@ Order: 9a → 9b → 9c → 9d, each its own pull request, reviewed before the n
 - [x] ARCHITECTURE, SPEC, DECISIONS (ADRs in order), walkthroughs, interview prep, demo script, and infra READMEs brought up to date and written in my voice
 - [x] Every code comment reread against the code: stale statements fixed, phase history removed, missing "why" added
 - [x] Fixed on the way: an import commit crashed on codes written with leading zeros
-- [ ] Reviewed and approved
+- [x] Reviewed and approved (2026-09-24)
