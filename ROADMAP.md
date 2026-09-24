@@ -250,3 +250,10 @@ Order: 9a → 9b → 9c → 9d, each its own pull request, reviewed before the n
 - [x] Every code comment reread against the code: stale statements fixed, phase history removed, missing "why" added
 - [x] Fixed on the way: an import commit crashed on codes written with leading zeros
 - [x] Reviewed and approved (2026-09-24)
+
+## Phase 20: README screenshots  `phase-20-screenshots`
+- [x] Fifteen screens from fresh seed data, desktop (1440) and phone (390), as the Fiscal Officer, a department user, the Administrator, and a citizen
+- [x] The capture script finds its pages by clicking through the app, and makes two ordinary edits so the activity feed has something to show
+- [x] Fixed on the way: portal pages on a phone had no space under the header; a fieldset legend rendered as a 1.5rem heading; audit values showed as raw text ("40510.00")
+- [x] The user form shows what the chosen role can and cannot do
+- [ ] Reviewed and approved

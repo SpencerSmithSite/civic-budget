@@ -80,6 +80,10 @@ captures seven screens at 1440 px (portal at 390 px too). `sips` downsizes
 them for the repository. When the UI changes, run it again instead of
 letting the README drift.
 
+(Phase 20 rebuilt it: it now finds every page by clicking through the seeded app, so no ids are
+passed in, and it captures fifteen screens as four people, desktop and phone, including two
+ordinary edits first so the overview's activity feed is not empty.)
+
 ---
 
 ## 5. Things to read

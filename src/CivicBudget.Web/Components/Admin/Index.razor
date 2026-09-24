@@ -159,7 +159,7 @@ else
 
     private static string Describe(AuditEntryDto entry) => entry.Kind switch
     {
-        Domain.Auditing.AuditKind.FieldChanged => $"changed {Display.PropertyName(entry.PropertyName)} on a {Display.EntityName(entry.EntityName)}: {entry.OldValue} → {entry.NewValue}",
+        Domain.Auditing.AuditKind.FieldChanged => $"changed {Display.PropertyName(entry.PropertyName)} on a {Display.EntityName(entry.EntityName)}: {Display.AuditValue(entry.OldValue)} → {Display.AuditValue(entry.NewValue)}",
         Domain.Auditing.AuditKind.Created => $"created a {Display.EntityName(entry.EntityName)}",
         Domain.Auditing.AuditKind.Deleted => $"removed a {Display.EntityName(entry.EntityName)}",
         _ => entry.Description ?? "",

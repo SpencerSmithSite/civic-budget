@@ -78,10 +78,14 @@ else
             </div></div>
         </div>
 
-        @if (!IsNew)
-        {
-            <div class="col-lg-5">
-                @if (avatarVersion is not null)
+        <div class="col-lg-5">
+            <div class="card mb-3">
+                <div class="card-header">What the @Roles.DisplayName(model.Role) role allows</div>
+                <div class="card-body">@AccessSummary(model.Role)</div>
+            </div>
+            @if (!IsNew)
+            {
+                if (avatarVersion is not null)
                 {
                     <div class="card mb-3">
                         <div class="card-header">Profile picture</div>
@@ -109,12 +113,54 @@ else
                         </EditForm>
                     </div>
                 </div>
-            </div>
-        }
+            }
+        </div>
     </div>
 }
 
 @code {
+    // The same matrix as SPEC section 7.1 and AuthorizationPolicies, in the words an administrator
+    // uses, so choosing a role shows what it grants before anyone saves it.
+    private static readonly IReadOnlyDictionary<string, (bool Allowed, string Text)[]> Access = new Dictionary<string, (bool, string)[]>
+    {
+        [Roles.Admin] =
+        [
+            (true, "Everything the Fiscal Officer can do"),
+            (true, "Users, their departments, and passwords"),
+            (true, "Government settings, the portal logo, and who maintains the chart"),
+        ],
+        [Roles.FinanceDirector] =
+        [
+            (true, "Every fund and department, in any budget not yet adopted"),
+            (true, "Beginning balances, the workflow, amendments, and starting a new year"),
+            (true, "Returning a department's request with a note"),
+            (true, "Publishing, import, chart sync, and the setup lists"),
+            (false, "Users and government settings"),
+        ],
+        [Roles.DepartmentHead] =
+        [
+            (true, "Only the departments ticked here: their lines, reports, exports, and history"),
+            (true, "Amounts and a narrative while the budget is a draft"),
+            (true, "Submitting the request to the fiscal officer, after which it is locked until returned"),
+            (false, "Other departments, fund-wide setup, and the workflow"),
+        ],
+        [Roles.Viewer] =
+        [
+            (true, "Every budget version, report, and export, read only"),
+            (false, "Changes of any kind, and the audit history"),
+        ],
+    };
+
+    private static RenderFragment AccessSummary(string role) => @<ul class="cb-access-list">
+        @foreach ((bool allowed, string text) in Access.TryGetValue(role, out (bool, string)[]? items) ? items : [])
+        {
+            <li class="@(allowed ? null : "cb-access-no")">
+                <i class="bi @(allowed ? "bi-check-circle-fill" : "bi-dash-circle")" aria-hidden="true"></i>
+                <span><span class="visually-hidden">@(allowed ? "Can: " : "Cannot: ")</span>@text</span>
+            </li>
+        }
+    </ul>;
+
     [Parameter]
     public string? Id { get; set; }
 
