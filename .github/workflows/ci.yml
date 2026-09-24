@@ -22,16 +22,16 @@ jobs:
     timeout-minutes: 25
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7, pinned 2026-09-23
 
       - name: Set up .NET (version from global.json)
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6, pinned 2026-09-23
         with:
           global-json-file: global.json
 
       # Packages change only when a project file or the central versions do.
       - name: Cache NuGet packages
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4, pinned 2026-09-23
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Packages.props', 'global.json') }}
@@ -55,7 +55,7 @@ jobs:
           --collect "XPlat Code Coverage"
 
       - name: Publish test results
-        uses: dorny/test-reporter@v3
+        uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3, pinned 2026-09-23
         if: ${{ !cancelled() }}
         with:
           name: test results
@@ -64,7 +64,7 @@ jobs:
           fail-on-error: true
 
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7, pinned 2026-09-23
         if: ${{ !cancelled() }}
         with:
           name: coverage
@@ -79,10 +79,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7, pinned 2026-09-23
       - name: bicep build
         run: |
-          curl -fsSL https://github.com/Azure/bicep/releases/latest/download/bicep-linux-x64 -o bicep
+          # A fixed release checked against its published digest, like the SHA-pinned actions: the
+          # same Bicep that built the template locally, not whatever "latest" is today.
+          curl -fsSL https://github.com/Azure/bicep/releases/download/v0.47.16/bicep-linux-x64 -o bicep
+          echo "64c345a58e0c3e48b1bc98a4e62d6b3adb1d238281297de3400aeafb2697aa5a  bicep" | sha256sum --check
           chmod +x bicep
           ./bicep build infra/azure/main.bicep --stdout > /dev/null
           ./bicep lint infra/azure/main.bicep
@@ -91,11 +94,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-dotnet@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7, pinned 2026-09-23
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6, pinned 2026-09-23
         with:
           global-json-file: global.json
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6, pinned 2026-09-23
         with:
           node-version: 22
       - name: Build the CDK app
