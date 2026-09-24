@@ -21,4 +21,15 @@ public class DisplayTests
         // 9:30 PM Eastern on June 30 is already July 1 in UTC.
         Assert.Equal("June 30, 2026", Display.LongDate(new DateTimeOffset(2026, 7, 1, 1, 30, 0, TimeSpan.Zero)));
     }
+
+    [Theory]
+    [InlineData("40510.00", "40,510.00")]
+    [InlineData("1250.5", "1,250.50")]
+    [InlineData("5120", "5120")]
+    [InlineData("Submitted", "Submitted")]
+    [InlineData(null, "")]
+    public void Audit_values_show_amounts_with_separators_and_everything_else_as_stored(string? stored, string shown)
+    {
+        Assert.Equal(shown, Display.AuditValue(stored));
+    }
 }

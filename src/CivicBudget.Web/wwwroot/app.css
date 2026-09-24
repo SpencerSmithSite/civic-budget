@@ -1912,6 +1912,41 @@ table.cb-grid > thead > tr > th .cb-tip {
     font-size: 1.125rem;
 }
 
+/* Bootstrap sizes every legend at 1.5rem; a fieldset's legend here reads as a field label. */
+legend.form-label {
+    float: none;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Edit user: what the chosen role can see and do. */
+.cb-access-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.625rem;
+}
+
+.cb-access-list li {
+    display: flex;
+    gap: 0.625rem;
+    align-items: flex-start;
+}
+
+.cb-access-list .bi {
+    color: var(--cb-success);
+    margin-top: 0.125rem;
+}
+
+.cb-access-list .cb-access-no {
+    color: var(--cb-muted);
+}
+
+.cb-access-list .cb-access-no .bi {
+    color: var(--cb-muted);
+}
+
 /* Government settings: the account number format fields in one row. */
 .cb-number-format legend {
     font-size: inherit;
@@ -2852,8 +2887,11 @@ table.pt-grid th[scope="row"] a {
 }
 
 @media (max-width: 767.98px) {
+    /* Sides only: a padding shorthand here would also zero .pt-main's top padding, which comes
+       earlier in the file, and put the first heading against the header on phones. */
     .pt-in {
-        padding: 0 16px;
+        padding-left: 16px;
+        padding-right: 16px;
     }
 
     .pt-h1 {

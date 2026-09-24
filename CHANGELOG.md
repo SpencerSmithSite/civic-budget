@@ -6,6 +6,16 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 
 ## [Unreleased]
 
+## Phase 20: 2026-09-24 (README screenshots)
+### Added
+- The user form shows what the selected role can and cannot see and do, and updates as the role changes.
+### Changed
+- README screenshots retaken from fresh seed data: budget entry, a department's request, the portal, user access, four phone screens, and seven more under "More screens". `capture.mjs` finds every page itself and needs only the demo password.
+- Audit values that are amounts show with thousands separators in the activity feed and line history.
+### Fixed
+- Portal pages on a phone started their first heading against the header: a phone padding shorthand also zeroed the main area's top padding.
+- A fieldset's legend (Departments this user may edit, Account number format) rendered at heading size.
+
 ## Phase 19: 2026-09-24 (documentation and comments)
 ### Changed
 - README rewritten for a first-time reader: what the app is, the live demo and its logins, how it is built, the problems worth reading about, and how to read the repository.

@@ -21,7 +21,7 @@ else
                     @switch (entry.Kind)
                     {
                         case Domain.Auditing.AuditKind.FieldChanged:
-                            <span> changed <b>@Display.PropertyName(entry.PropertyName)</b> <code>@entry.OldValue</code> → <code>@entry.NewValue</code></span>
+                            <span> changed <b>@Display.PropertyName(entry.PropertyName)</b> <code>@Display.AuditValue(entry.OldValue)</code> → <code>@Display.AuditValue(entry.NewValue)</code></span>
                             break;
                         case Domain.Auditing.AuditKind.Created:
                             <span> created this line</span>

@@ -101,6 +101,19 @@ public static class Display
     /// <summary>"1,234.50": a money column whose header says it is dollars. Always US formatting, whatever the server's culture.</summary>
     public static string Amount(decimal amount) => amount.ToString("N2", UsCulture);
 
+    /// <summary>
+    /// An audit trail value as people should read it. The trail stores amounts as invariant text
+    /// ("40510.00") so it can be read back without knowing the server's culture; on screen they get
+    /// the same thousands separators as every other amount. Anything else (codes, names, dates) is
+    /// shown as stored.
+    /// </summary>
+    public static string AuditValue(string? value) =>
+        value is not null
+        && value.Contains('.', StringComparison.Ordinal)
+        && decimal.TryParse(value, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out decimal amount)
+            ? Amount(amount)
+            : value ?? "";
+
     /// <summary>"1,235": a summary figure rounded to the dollar.</summary>
     public static string WholeAmount(decimal amount) => amount.ToString("N0", UsCulture);
 
