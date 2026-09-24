@@ -925,9 +925,46 @@ recording.
 
 **Alternatives.** Row-version concurrency on `BudgetVersion` (the reviews found lost-update races
 between an edit and adoption); worth doing for a multi-user production system, larger than a
-maintenance pass, left as a known gap along with the others in walkthrough 19.
+maintenance pass, left as a known gap along with the others in walkthrough 19. Implemented in
+Phase 18 (ADR-0033).
 
 **Consequences.** Tests that change settings sign in as the Administrator; the setup tests use a
 shared `CreateScopeAs(role, government)`. Portal tests that change data read the result through a
 fresh scope, as the next request would.
+
+---
+
+## ADR-0033 — Department totals, starting a year's budget, and optimistic concurrency
+**Date:** 2026-09-24 · **Status:** Accepted
+
+**Context.** Phase 17 left four budgeting questions for Spencer and a list of known gaps. He
+answered three (only the latest adopted version is publishable; amounts are never negative; a year's
+budget can start from last year's with a percentage change) and asked for the fourth, what a
+department's total includes, to be researched.
+
+**Decision.**
+- **A department's total is its expenditure appropriations** (`AccountType.CountsTowardDepartmentTotal`).
+  Ohio appropriates by fund, then by office, department, and division, with personal services within
+  each (ORC 5705.38(C)); the Auditor of State's UAN village chart budgets transfers out under their own
+  program, "Other Financing Uses" (910 Transfers, 920 Advances), not inside an operating department;
+  Michigan's uniform chart does the same (activity 965, transfers out and other financing uses).
+  Revenue a department collects is the fund's estimated resource and never part of an appropriation.
+  Screens still show a department's revenue and transfer lines, labelled as outside its total.
+- **Starting a year's budget is its own action** (`BudgetVersion.CreateOriginalFrom`), not a copy of
+  an amendment: the new year's comparative is last year's adopted amount, the request is that amount
+  changed by a percentage, prior-year actuals start at zero (an adopted budget is not what was spent),
+  and each fund begins with last year's projected ending balance. Only the latest adopted,
+  unreplaced version can be the source, the same rule as publishing.
+- **Optimistic concurrency on the aggregate root.** `BudgetVersion.Revision` counts every change to the
+  version and everything inside it, and is an EF concurrency token, so the version's row is updated
+  (and checked) even when only a line changed. Services save through `TrySaveAsync`, which turns a
+  stale-revision or unique-index conflict into a readable failure.
+
+**Alternatives.** A SQL `rowversion` column (changes only when the version's own row changes, so a line
+edit would not conflict with an adoption); pessimistic locks (a demo that people leave open would hold
+them); counting transfers out in the department total (contradicts the UAN chart and the fund-level
+"other financing uses" that Ohio's appropriation measure lists separately).
+
+**Consequences.** Every mutating method on `BudgetVersion` calls `Touch()`; a new one must too, or its
+changes will not conflict. A department's request can be lower than the sum of all lines coded to it.
 

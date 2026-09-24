@@ -100,7 +100,8 @@ one. `ListPager` does the same job and tells the page when the page changes.
 
 ## 6. Open questions (for Spencer)
 
-These are budgeting rules, not bugs, so they were left as they are:
+*Answered and implemented in Phase 18; see walkthrough 20.* These are budgeting
+rules, not bugs, so they were left as they were:
 
 1. **Publishing an older adopted version.** After Amendment 1 is adopted and
    published, the Original can still be published, which replaces the
@@ -119,6 +120,8 @@ These are budgeting rules, not bugs, so they were left as they are:
    adopted lines?
 
 ## 7. Known gaps, left on purpose
+
+*All five closed in Phase 18; see walkthrough 20.*
 
 - No optimistic concurrency: an amount edit can save after a concurrent
   adoption, and two adoptions can both succeed. A row version on

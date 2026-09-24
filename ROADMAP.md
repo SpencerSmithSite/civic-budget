@@ -229,3 +229,15 @@ Order: 9a → 9b → 9c → 9d. Each is a PR with the usual report; approve befo
 - [x] Tests: order-independent databases, vacuous asserts, missing rule and policy coverage; ADR-0032, walkthrough 19
 - [x] Spencer answers the four open questions (walkthrough 19, section 6; 2026-09-23)
 - [x] Spencer approves Phase 17 (2026-09-23)
+
+## Phase 18 — Budget rules and known gaps  `phase-18-budget-rules`
+- [x] Publish only the latest adopted version (Spencer)
+- [x] Department totals researched and applied: expenditures only; revenue and transfers beside, outside the total
+- [x] Amounts are never negative, typed or imported (Spencer)
+- [x] Start the budget: empty, or from last year's adopted with a percentage change (Spencer)
+- [x] Optimistic concurrency on budget versions
+- [x] Focus trapped in dialogs and drawers
+- [x] ECR repository in the one-time AWS stack
+- [x] Integration tests from a restored seeded template (1m40s to 40s)
+- [x] Actions and Bicep pinned; ADR-0033, walkthrough 20
+- [ ] Spencer approves Phase 18
