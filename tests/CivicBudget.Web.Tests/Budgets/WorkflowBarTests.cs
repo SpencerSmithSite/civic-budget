@@ -32,8 +32,8 @@ public class WorkflowBarTests : BunitContext
         Services.AddSingleton<IPublishingService>(new FakePublishing());
         Services.AddSingleton<ToastService>();
         // Dialogs hand focus back to the button that opened them when they close.
-        JSInterop.SetupVoid("civicBudget.rememberFocus");
-        JSInterop.SetupVoid("civicBudget.restoreFocus");
+        JSInterop.SetupVoid("civicBudget.openModal", _ => true);
+        JSInterop.SetupVoid("civicBudget.closeModal");
         var auth = AddAuthorization();
         auth.SetAuthorized("dana");
         if (asFinanceDirector)

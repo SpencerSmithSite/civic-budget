@@ -8,11 +8,11 @@ namespace CivicBudget.Web.Components.Common;
 /// </summary>
 internal static class FocusJs
 {
-    public static async Task TryAsync(IJSRuntime js, string function)
+    public static async Task TryAsync(IJSRuntime js, string function, params object?[] args)
     {
         try
         {
-            await js.InvokeVoidAsync(function);
+            await js.InvokeVoidAsync(function, args);
         }
         catch (Exception ex) when (ex is JSException or JSDisconnectedException or InvalidOperationException or TaskCanceledException)
         {
