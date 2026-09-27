@@ -302,15 +302,17 @@ journal, repeated on every line), and `Date` (the journal's posting date, repeat
 - [x] The app says "ERP", never a vendor's name ("Send to ERP", "ERP (simulated)"); the four VIP assumptions confirmed (2026-09-27)
 - [x] Seed: the FY2025 and FY2026 originals already sent, so the demo opens on the amendment's two changes
 - [x] Tests: transmission states (domain); journal builder, import file, simulated ERP (unit); send, refusal, file and confirm, lost answer and retry, the database guard, permissions (integration); page and workflow button (bUnit); ADR-0035, walkthrough 22
-- [ ] Reviewed and approved
+- [x] Reviewed and approved (2026-09-27)
 
 ## Phase 24: Report settings and the Amended Certificate  `phase-24-certificate`
-- [ ] Report settings page: named groups of revenue accounts per government ("Real estate taxes", "Local taxes", ...), with Ohio defaults; a report that needs an unmapped group says so
-- [ ] Certificate of Estimated Resources / Amended Certificate (ORC 5705.36), detailed: one row per fund with fund-type subtotals and a grand total; cash at 12/31, carryover encumbrances, nonspendable and reserve balances (ORC 5705.13, 5705.132), unpaid advances, carryover available, estimated revenue, total available
-- [ ] Condensed five-column certificate: fund, unencumbered balance 1/1, taxes, other sources, total; county templates vary, so column labels are settings
-- [ ] Document controls: entity, county, fiscal year, as-of date, amendment number and date, fiscal officer, budget commission certification, and support for any revenue change from the prior certificate
-- [ ] Reconciliations shown: taxes plus other sources equals the fund's estimated revenue; the certificate's unencumbered balance equals the detailed carryover; total appropriations per fund stay within the total
-- [ ] Print-ready PDF (library chosen by ADR; must be licensable by a commercial buyer)
+- [x] Report settings page: up to four named revenue columns per government (`ReportAccountGroup`), each account in one, with the Ohio default (one "Taxes" column of the accounts categorized as taxes); an empty column is flagged on the report
+- [x] Certificate of Estimated Resources / Amended Certificate No. N (ORC 5705.36), detailed: one row per fund with fund-type subtotals and a grand total; cash at 12/31, carryover encumbrances, nonspendable and reserve balances (ORC 5705.13, 5705.132), unpaid advances, carryover available, estimated revenue, total available, appropriations
+- [x] As issued: fund, balance, the revenue columns, other sources, total; the headings are settings
+- [x] Document controls: entity, county, fiscal year, as-of date, certificate number, adoption date and resolution, preparer, budget commission signature lines, and the revenue estimates that changed since the prior certificate with their justifications
+- [x] Reconciliations shown: appropriations within each fund's total (ORC 5705.39), beginning balances equal to the certified carryover, every column mapped, columns adding to the budget's revenue; both views come from one row per fund, so they cannot disagree
+- [x] PDF with PDFsharp-MigraDoc (MIT; QuestPDF's free license ends at $1M revenue), XLSX, and print; ADR-0036
+- [x] Tests: builder arithmetic, subtotals, checks, estimated balances, split columns, revenue changes, settings validation, and the PDF (unit); the seeded certificates, settings, reserves, permissions (integration); pages (bUnit); walkthrough 23
+- [ ] Reviewed and approved
 
 ## Phase 25: Reports VIP cannot produce alone  `phase-25-combined-reports`
 - [ ] Budget against actual, year to date: percent used, encumbered, remaining

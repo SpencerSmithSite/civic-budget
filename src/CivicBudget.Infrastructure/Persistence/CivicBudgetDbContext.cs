@@ -11,6 +11,7 @@ using CivicBudget.Domain.FiscalYears;
 using CivicBudget.Domain.Funds;
 using CivicBudget.Domain.Governments;
 using CivicBudget.Domain.Publishing;
+using CivicBudget.Domain.Reports;
 using CivicBudget.Infrastructure.Identity;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -55,6 +56,9 @@ public sealed class CivicBudgetDbContext(DbContextOptions<CivicBudgetDbContext> 
     public DbSet<ErpEncumbrance> ErpEncumbrances => Set<ErpEncumbrance>();
     public DbSet<ErpFundCash> ErpFundCash => Set<ErpFundCash>();
     public DbSet<BudgetTransmission> BudgetTransmissions => Set<BudgetTransmission>();
+    public DbSet<CertificateSettings> CertificateSettings => Set<CertificateSettings>();
+    public DbSet<ReportAccountGroup> ReportAccountGroups => Set<ReportAccountGroup>();
+    public DbSet<CertificateFundAdjustment> CertificateFundAdjustments => Set<CertificateFundAdjustment>();
     public DbSet<UserDepartment> UserDepartments => Set<UserDepartment>();
     public DbSet<UserAvatar> UserAvatars => Set<UserAvatar>();
     public DbSet<GovernmentLogo> GovernmentLogos => Set<GovernmentLogo>();

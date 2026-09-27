@@ -1,0 +1,290 @@
+@page "/admin/reports/{VersionId:guid}/certificate"
+@attribute [Authorize(Policy = Policies.CanViewBudget)]
+@using CivicBudget.Application.Reports
+@inject ICertificateService Certificates
+@inject ToastService Toasts
+
+@* The certificate of estimated resources (ORC 5705.36): the legal ceiling on each fund's
+   appropriations. "As issued" is the five-column form the budget commission signs; "Detailed
+   schedule" shows how each balance was reached. Both come from one row per fund, so they cannot
+   disagree. Reconciliations and, for an amendment, the revenue changes follow. *@
+<PageTitle>Certificate of Estimated Resources</PageTitle>
+
+@if (unavailable)
+{
+    <PageHeader Title="Certificate of Estimated Resources" Eyebrow="Reports" Crumbs="@([new Crumb("Budget"), new Crumb("Reports", "admin/reports"), new Crumb("Certificate")])" />
+    <AuthorizeView Roles="@Roles.DepartmentHead">
+        <Authorized>
+            <EmptyState Icon="bi-shield-lock" Title="Not available for a department" Text="The certificate covers every fund, so it is run by the Fiscal Officer, an Administrator, or a Viewer.">
+                <a class="btn btn-primary" href="admin/reports">Reports</a>
+            </EmptyState>
+        </Authorized>
+        <NotAuthorized>
+            <EmptyState Icon="bi-journal-x" Title="Budget version not found" Text="It may have been removed, or the link is wrong.">
+                <a class="btn btn-primary" href="admin/reports">Reports</a>
+            </EmptyState>
+        </NotAuthorized>
+    </AuthorizeView>
+}
+else if (report is null)
+{
+    <PageHeader Title="Certificate of Estimated Resources" Eyebrow="Reports" Crumbs="@([new Crumb("Budget"), new Crumb("Reports", "admin/reports"), new Crumb("Certificate")])" />
+    <SkeletonRows Rows="6" Columns="6" />
+}
+else
+{
+    <ReportShell Title="@report.Header.Title" Header="ShellHeader" ExportHref="@($"admin/export/reports/{VersionId}/certificate.xlsx")" PdfHref="@($"admin/export/reports/{VersionId}/certificate.pdf")"
+                 Description="Each fund's unencumbered balance plus its estimated revenue: the most it may appropriate this year (ORC 5705.36 and 5705.39)."
+                 FootNote="@($"Balances {(report.CarryoverFromErp ? $"at {Display.Date(report.CarryoverAsOf)} from the ERP's closed year" : "are the budget's estimated beginning balances")}; revenue is the FY{report.Header.FiscalYear} {report.Header.VersionLabel} budget.")">
+        <Filters>
+            <div class="btn-group btn-group-sm d-print-none" role="group" aria-label="Certificate view">
+                <button type="button" class="btn @(detailed ? "btn-outline-primary" : "btn-primary")" aria-pressed="@(!detailed)" @onclick="() => detailed = false">As issued</button>
+                <button type="button" class="btn @(detailed ? "btn-primary" : "btn-outline-primary")" aria-pressed="@detailed" @onclick="() => detailed = true">Detailed schedule</button>
+            </div>
+            <AuthorizeView Policy="@Policies.CanMaintainSetup" Context="setup">
+                <button type="button" class="btn btn-outline-primary btn-sm d-print-none" @onclick="OpenAdjustmentsAsync"><i class="bi bi-sliders me-1" aria-hidden="true"></i>Reserves and advances</button>
+            </AuthorizeView>
+        </Filters>
+        <ChildContent>
+            <div class="cb-cert-doc">
+                <b>@report.Header.GovernmentName</b>, @(report.Header.County is { } county ? $"{county} County" : "county not set"), Ohio · FY@(report.Header.FiscalYear)
+                @if (report.Header.AdoptedOnUtc is { } adopted)
+                {
+                    <span> · budget adopted @Display.LongDate(adopted)@(report.Header.ResolutionNumber is { } res ? $", resolution {res}" : "")</span>
+                }
+                @if (report.Header.County is null)
+                {
+                    <AuthorizeView Policy="@Policies.CanMaintainSetup" Context="setup">
+                        <span class="d-print-none"> · <a href="admin/report-settings">set the county in Report settings</a></span>
+                    </AuthorizeView>
+                }
+            </div>
+
+            @foreach (string note in report.Notes)
+            {
+                <div class="alert alert-info cb-report-note small"><i class="bi bi-info-circle me-2" aria-hidden="true"></i>@note</div>
+            }
+
+            @if (!detailed)
+            {
+                <div class="cb-grid-wrap">
+                    <table class="cb-grid table cb-report-table cb-cert-table" aria-label="Certificate as issued">
+                        <thead>
+                            <tr>
+                                <th scope="col">Fund</th>
+                                <th scope="col" class="cb-num">@report.BalanceLabel</th>
+                                @foreach (string label in report.RevenueColumnLabels)
+                                {
+                                    <th scope="col" class="cb-num">@label</th>
+                                }
+                                <th scope="col" class="cb-num">@report.OtherSourcesLabel</th>
+                                <th scope="col" class="cb-num cb-col-strong">Total</th>
+                            </tr>
+                        </thead>
+                        @foreach (CertificateSectionDto section in report.Sections)
+                        {
+                            <tbody>
+                                <tr class="cb-group"><td colspan="@(report.RevenueColumnLabels.Count + 4)">@section.Label</td></tr>
+                                @foreach (CertificateRowDto f in section.Funds)
+                                {
+                                    <tr>@IssuedCells(f, $"{f.FundCode} {f.FundName}", strong: false)</tr>
+                                }
+                                <tr class="cb-subtotal">@IssuedCells(section.Subtotal, section.Subtotal.FundName, strong: true)</tr>
+                            </tbody>
+                        }
+                        <tfoot><tr>@IssuedCells(report.Total, "Total, all funds", strong: true)</tr></tfoot>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="cb-grid-wrap">
+                    <table class="cb-grid table cb-report-table cb-cert-table" aria-label="Detailed schedule">
+                        <thead>
+                            <tr>
+                                <th scope="col">Fund</th>
+                                <th scope="col" class="cb-num">Cash 12/31</th>
+                                <th scope="col" class="cb-num">Encumbrances</th>
+                                <th scope="col" class="cb-num">Nonspendable</th>
+                                <th scope="col" class="cb-num">Reserves</th>
+                                <th scope="col" class="cb-num">Unpaid advances</th>
+                                <th scope="col" class="cb-num cb-col-strong">Carryover available</th>
+                                <th scope="col" class="cb-num">Estimated revenue</th>
+                                <th scope="col" class="cb-num cb-col-strong">Total available</th>
+                                <th scope="col" class="cb-num">Appropriations</th>
+                            </tr>
+                        </thead>
+                        @foreach (CertificateSectionDto section in report.Sections)
+                        {
+                            <tbody>
+                                <tr class="cb-group"><td colspan="10">@section.Label</td></tr>
+                                @foreach (CertificateRowDto f in section.Funds)
+                                {
+                                    <tr>@DetailedCells(f, $"{f.FundCode} {f.FundName}", strong: false)</tr>
+                                }
+                                <tr class="cb-subtotal">@DetailedCells(section.Subtotal, section.Subtotal.FundName, strong: true)</tr>
+                            </tbody>
+                        }
+                        <tfoot><tr>@DetailedCells(report.Total, "Total, all funds", strong: true)</tr></tfoot>
+                    </table>
+                </div>
+            }
+
+            <h3 class="h6 mt-4 mb-2 cb-report-section">Reconciliation</h3>
+            <ul class="cb-checks">
+                @foreach (CertificateCheckDto check in report.Checks)
+                {
+                    <li class="@(check.Passed ? "ok" : "bad")">
+                        <i class="bi @(check.Passed ? "bi-check-circle-fill" : "bi-exclamation-triangle-fill")" aria-hidden="true"></i>
+                        <div><b>@check.Label</b><span class="visually-hidden">@(check.Passed ? ": passed" : ": needs attention")</span><div class="small">@check.Detail</div></div>
+                    </li>
+                }
+            </ul>
+
+            @if (report.PriorLabel is not null)
+            {
+                <h3 class="h6 mt-4 mb-2 cb-report-section">Revenue changes since @report.PriorLabel</h3>
+                @if (report.Changes.Count == 0)
+                {
+                    <p class="small text-secondary cb-report-section">No revenue estimate changed.</p>
+                }
+                else
+                {
+                    <div class="cb-grid-wrap">
+                        <table class="cb-grid table cb-report-table" aria-label="Revenue changes">
+                            <thead><tr><th scope="col">Account</th><th scope="col" class="cb-num">Prior</th><th scope="col" class="cb-num">Now</th><th scope="col" class="cb-num">Change</th><th scope="col">Reason</th></tr></thead>
+                            <tbody>
+                                @foreach (RevenueChangeDto c in report.Changes)
+                                {
+                                    <tr>
+                                        <td class="cb-wrap"><span class="cb-code">@c.AccountNumber</span> @c.AccountName</td>
+                                        <td class="cb-num">@Display.Amount(c.Prior)</td>
+                                        <td class="cb-num">@Display.Amount(c.Now)</td>
+                                        <td class="cb-num @(c.Change < 0 ? "cb-neg" : "cb-pos")">@Display.SignedChange(c.Change)</td>
+                                        <td class="cb-wrap">@(c.Justification ?? "")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            }
+
+            <div class="cb-signatures">
+                <div><span></span>@(report.Header.FiscalOfficerName ?? "")<br /><small>@report.Header.FiscalOfficerTitle</small></div>
+                <div><span></span><br /><small>County Auditor, budget commission</small></div>
+                <div><span></span><br /><small>County Treasurer, budget commission</small></div>
+                <div><span></span><br /><small>Prosecuting Attorney, budget commission</small></div>
+            </div>
+        </ChildContent>
+    </ReportShell>
+
+    <ConfirmDialog @ref="adjustDialog" Title="@($"Reserves and advances, FY{report.Header.FiscalYear}")" ConfirmText="Save" OnConfirm="SaveAdjustmentsAsync">
+        <Body>
+            <p class="small text-secondary">Taken from each fund's cash with its encumbrances. An unpaid advance is positive for the fund that lent it and negative for the fund that received it.</p>
+            @if (adjustments is not null)
+            {
+                <div class="cb-grid-wrap">
+                    <table class="cb-grid table" aria-label="Reserves and advances by fund">
+                        <thead><tr><th scope="col">Fund</th><th scope="col" class="cb-num">Nonspendable</th><th scope="col" class="cb-num">Reserves</th><th scope="col" class="cb-num">Unpaid advances</th></tr></thead>
+                        <tbody>
+                            @foreach (AdjustmentForm a in adjustments)
+                            {
+                                <tr>
+                                    <td class="cb-wrap"><span class="cb-code">@a.FundCode</span> @a.FundName</td>
+                                    <td><input type="number" step="0.01" min="0" class="form-control form-control-sm text-end" aria-label="@($"Nonspendable, {a.FundCode}")" @bind="a.Nonspendable" /></td>
+                                    <td><input type="number" step="0.01" min="0" class="form-control form-control-sm text-end" aria-label="@($"Reserves, {a.FundCode}")" @bind="a.Reserves" /></td>
+                                    <td><input type="number" step="0.01" class="form-control form-control-sm text-end" aria-label="@($"Unpaid advances, {a.FundCode}")" @bind="a.UnpaidAdvances" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </Body>
+    </ConfirmDialog>
+}
+
+@code {
+    [Parameter]
+    public Guid VersionId { get; set; }
+
+    private CertificateReportDto? report;
+    private bool unavailable;
+    private bool detailed;
+    private List<AdjustmentForm>? adjustments;
+    private ConfirmDialog adjustDialog = null!;
+
+    private sealed class AdjustmentForm(FundAdjustmentDto dto)
+    {
+        public Guid FundId { get; } = dto.FundId;
+        public string FundCode { get; } = dto.FundCode;
+        public string FundName { get; } = dto.FundName;
+        public decimal Nonspendable { get; set; } = dto.Nonspendable;
+        public decimal Reserves { get; set; } = dto.Reserves;
+        public decimal UnpaidAdvances { get; set; } = dto.UnpaidAdvances;
+    }
+
+    /// <summary>The shared report chrome takes the ordinary report header.</summary>
+    private ReportHeaderDto ShellHeader => new(report!.Header.BudgetVersionId, report.Header.GovernmentName, report.Header.FiscalYear, report.Header.VersionLabel,
+        report.Header.Status, report.Header.ResolutionNumber, report.Header.GeneratedBy, report.Header.GeneratedAtUtc);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        report = await Certificates.GetAsync(VersionId);
+        unavailable = report is null;
+    }
+
+    private async Task OpenAdjustmentsAsync()
+    {
+        adjustments = (await Certificates.GetAdjustmentsAsync(VersionId))?.Select(a => new AdjustmentForm(a)).ToList();
+        adjustDialog.Show();
+    }
+
+    private async Task<bool> SaveAdjustmentsAsync()
+    {
+        if (adjustments is null)
+        {
+            return true;
+        }
+
+        Result result = await Certificates.SaveAdjustmentsAsync(new SaveFundAdjustmentsRequest(VersionId,
+            adjustments.Select(a => new FundAdjustmentDto(a.FundId, a.FundCode, a.FundName, a.Nonspendable, a.Reserves, a.UnpaidAdvances)).ToList()));
+        if (result.IsFailure)
+        {
+            Toasts.Danger(result.Errors[0].Message);
+            return false;
+        }
+
+        Toasts.Success("Reserves and advances saved.");
+        report = await Certificates.GetAsync(VersionId);
+        StateHasChanged(); // the confirm runs inside the dialog's event, so the page must ask for its own re-render
+        return true;
+    }
+
+    private RenderFragment IssuedCells(CertificateRowDto r, string label, bool strong) => __builder =>
+    {
+        <th scope="row" class="@(strong ? "cb-wrap" : "fw-normal cb-wrap")">@label</th>
+        <td class="cb-num">@Display.Amount(r.Carryover)</td>
+        @foreach (decimal amount in r.RevenueColumns)
+        {
+            <td class="cb-num">@Display.Amount(amount)</td>
+        }
+        <td class="cb-num">@Display.Amount(r.OtherSources)</td>
+        <td class="cb-num cb-col-strong">@Display.Amount(r.TotalAvailable)</td>
+    };
+
+    private RenderFragment DetailedCells(CertificateRowDto r, string label, bool strong) => __builder =>
+    {
+        <th scope="row" class="@(strong ? "cb-wrap" : "fw-normal cb-wrap")">@label</th>
+        <td class="cb-num">@(r.Cash is { } cash ? Display.Amount(cash) : "")</td>
+        <td class="cb-num">@(r.Encumbrances is { } enc ? Display.Amount(enc) : "")</td>
+        <td class="cb-num">@Display.Amount(r.Nonspendable)</td>
+        <td class="cb-num">@Display.Amount(r.Reserves)</td>
+        <td class="cb-num">@Display.Amount(r.UnpaidAdvances)</td>
+        <td class="cb-num cb-col-strong">@Display.Amount(r.Carryover)</td>
+        <td class="cb-num">@Display.Amount(r.EstimatedRevenue)</td>
+        <td class="cb-num cb-col-strong">@Display.Amount(r.TotalAvailable)</td>
+        <td class="cb-num @(r.IsWithinLimit ? "" : "cb-neg")">@Display.Amount(r.Appropriations)</td>
+    };
+}

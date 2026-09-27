@@ -9,6 +9,10 @@
     <TitleAddon><StatusPill Budget="Header.Status" /></TitleAddon>
     <Actions>
         @Filters
+        @if (PdfHref is not null)
+        {
+            <a class="btn btn-outline-primary btn-sm" href="@PdfHref" download><i class="bi bi-file-earmark-pdf me-1" aria-hidden="true"></i>Download PDF</a>
+        }
         <a class="btn btn-outline-primary btn-sm" href="@ExportHref"><i class="bi bi-file-earmark-spreadsheet me-1" aria-hidden="true"></i>Export XLSX</a>
         <button type="button" class="btn btn-primary btn-sm" @onclick="PrintAsync"><i class="bi bi-printer me-1" aria-hidden="true"></i>Print</button>
     </Actions>
@@ -29,7 +33,7 @@
         </div>
     </div>
     @ChildContent
-    <div class="cb-report-foot">Amounts are budgeted figures for FY@(Header.FiscalYear) @Header.VersionLabel; "current year" and "prior year" are the comparatives entered with each line.</div>
+    <div class="cb-report-foot">@(FootNote ?? $"Amounts are budgeted figures for FY{Header.FiscalYear} {Header.VersionLabel}; \"current year\" and \"prior year\" are the comparatives entered with each line.")</div>
 </div>
 
 @code {
@@ -44,6 +48,14 @@
 
     [Parameter, EditorRequired]
     public string ExportHref { get; set; } = "";
+
+    /// <summary>A server-drawn PDF, for reports that go to someone outside the building.</summary>
+    [Parameter]
+    public string? PdfHref { get; set; }
+
+    /// <summary>Replaces the default line at the foot of the report.</summary>
+    [Parameter]
+    public string? FootNote { get; set; }
 
     /// <summary>Report-specific controls (a department picker) rendered beside the buttons.</summary>
     [Parameter]

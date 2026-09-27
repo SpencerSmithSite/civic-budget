@@ -72,6 +72,8 @@ changed since the previous certificate.
 - Cash at 12/31 and carryover encumbrances: the ERP's closed-year actuals (`ErpFundCash`,
   `ErpEncumbrances`), synced since Phase 22.
 - Estimated revenue: the budget's revenue and transfer-in lines.
-- Taxes versus other sources: the report settings' account groups (Phase 24).
+- Taxes versus other sources: the report settings' revenue columns (Phase 24).
 - Nonspendable and reserve balances, unpaid advances: not in the ERP feed yet; entered per fund
   with the certificate until they are.
+
+Built in Phase 24: see walkthrough 23 and ADR-0036.

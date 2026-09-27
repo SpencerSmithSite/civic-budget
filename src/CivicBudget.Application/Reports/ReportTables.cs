@@ -49,6 +49,19 @@ public static class ReportTables
             .Append(Row("Net", report.Net))
             .ToList());
 
+    /// <summary>The detailed schedule and the issued columns side by side, one row per fund, subtotal, and total.</summary>
+    public static ExportTable Certificate(CertificateReportDto report) => new(
+        report.Header.Title,
+        new[] { "Fund type", "Fund", "Name", "Cash 12/31", "Encumbrances", "Nonspendable", "Reserves", "Unpaid advances", report.BalanceLabel }
+            .Concat(report.RevenueColumnLabels).Concat([report.OtherSourcesLabel, "Estimated revenue", "Total available", "Appropriations", "Within limit"]).ToList(),
+        report.Sections.SelectMany(s => s.Funds.Select(f => CertificateRow(s.Label, f)).Append(CertificateRow(s.Label, s.Subtotal)))
+            .Append(CertificateRow("", report.Total)).ToList());
+
+    private static object?[] CertificateRow(string section, CertificateRowDto r) =>
+        new object?[] { section, r.FundCode, r.FundName, r.Cash, r.Encumbrances, r.Nonspendable, r.Reserves, r.UnpaidAdvances, r.Carryover }
+            .Concat(r.RevenueColumns.Cast<object?>())
+            .Concat([r.OtherSources, r.EstimatedRevenue, r.TotalAvailable, r.Appropriations, r.IsWithinLimit ? "Yes" : "No"]).ToArray();
+
     private static object?[] Row(string section, CategoryRowDto r) =>
         [section, r.Label, r.PriorYearActual, r.CurrentYearBudget, r.Amount, r.DollarChange, r.PercentChange];
 }

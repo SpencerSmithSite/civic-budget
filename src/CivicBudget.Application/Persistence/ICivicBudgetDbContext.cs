@@ -7,6 +7,7 @@ using CivicBudget.Domain.FiscalYears;
 using CivicBudget.Domain.Funds;
 using CivicBudget.Domain.Governments;
 using CivicBudget.Domain.Publishing;
+using CivicBudget.Domain.Reports;
 using Microsoft.EntityFrameworkCore;
 
 namespace CivicBudget.Application.Persistence;
@@ -36,6 +37,9 @@ public interface ICivicBudgetDbContext : IAsyncDisposable, IDisposable
     DbSet<ErpEncumbrance> ErpEncumbrances { get; }
     DbSet<ErpFundCash> ErpFundCash { get; }
     DbSet<BudgetTransmission> BudgetTransmissions { get; }
+    DbSet<CertificateSettings> CertificateSettings { get; }
+    DbSet<ReportAccountGroup> ReportAccountGroups { get; }
+    DbSet<CertificateFundAdjustment> CertificateFundAdjustments { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

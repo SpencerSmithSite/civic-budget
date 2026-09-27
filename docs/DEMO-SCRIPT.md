@@ -91,6 +91,12 @@ fiscal officer is never locked out."
   then show the page now says the ERP already has the budget. "Pressing it again does nothing. A
   lost answer is retried under the same id, and a downloaded file only counts once someone
   confirms it was imported."
+- Reports, **Certificate of Estimated Resources** on FY2026 Amendment 1. "The legal ceiling on
+  each fund. The balance is the ERP's year-end cash less carried encumbrances, and it equals the
+  budget's beginning balance, so every reconciliation passes." Show the detailed schedule, then
+  **Download PDF**. Switch to FY2027: "Before the ERP closes 2026 it uses the budget's estimate,
+  and says so; and the Street fund is over its total." Setup, **Report settings**: "Which
+  accounts are taxes is the village's choice, and the headings follow the county's template."
 
 ## 6. The code, briefly (2 minutes)
 

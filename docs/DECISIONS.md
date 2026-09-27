@@ -1053,6 +1053,59 @@ simulated ERP's memory of journal ids lasts as long as the process, which is eno
 
 ---
 
+## ADR-0036: The certificate of estimated resources, report columns as settings, and MigraDoc for the PDF
+**Date:** 2026-09-27 · **Status:** Accepted
+
+**Context.** The certificate of estimated resources (ORC 5705.36) is the legal ceiling on each
+fund's appropriations, certified by the county budget commission and amended during the year. It
+was out of scope as a document; only its check was in. Three things made it harder than a report:
+which revenue accounts count as "taxes" differs from one government's chart to the next; the
+county auditor's template words the columns its own way; and the balances it starts from (cash and
+encumbrances at year end) live in the ERP, not the budget. It also leaves the building, so it needs
+a real PDF, and the library has to be one a buyer can ship.
+
+**Decision.**
+- **One row per fund, two views.** `CertificateBuilder` (pure) computes each fund's carryover
+  (cash − carried encumbrances − nonspendable − reserves ± unpaid advances), its revenue by column,
+  other sources, total available, and appropriations. "As issued" (balance, revenue columns, other
+  sources, total) and the "detailed schedule" are two renderings of the same rows, with fund-type
+  subtotals and a grand total, so they cannot disagree.
+- **Revenue columns are settings.** `ReportAccountGroup` holds a named set of revenue accounts per
+  report; the certificate shows up to four, in order, and everything else is "other sources", so no
+  receipt is left out. An account may sit in only one column. With nothing saved, the default is
+  one "Taxes" column of the accounts categorized as taxes. `CertificateSettings` holds the county,
+  who prepares it, and the two fixed headings.
+- **Balances from the ERP when it has closed the year**, from the budget's estimate before then (an
+  original certificate is prepared months before year end), and the report says which. Reserves,
+  nonspendable balances, and unpaid advances are entered per fund for the year
+  (`CertificateFundAdjustment`), because the ERP feed does not carry them.
+- **Reconciliations that can fail**: appropriations within total available per fund (ORC 5705.39),
+  the budget's beginning balances equal to the certified carryover, every column mapped, and the
+  columns adding to the budget's revenue. An amended certificate lists every revenue estimate that
+  moved since the version it amends, with the justification typed on the line.
+- **Numbered with the budget.** Version 1 prints "Certificate of Estimated Resources"; amendment N
+  prints "Amended Certificate of Estimated Resources No. N".
+- **Only people who see every fund** get it: the Administrator, the Fiscal Officer, and Viewers.
+  A department user's view of the budget is limited to their departments, so a certificate built
+  from it would be wrong.
+- **MigraDoc and PDFsharp for the PDF**, MIT licensed. Landscape Letter: the issued certificate with
+  the commission's signature lines (County Auditor, County Treasurer, Prosecuting Attorney), then
+  the detailed schedule, the reconciliations, the revenue changes, and the preparer's signature.
+  The typeface (Source Sans 3, SIL Open Font License) is embedded in the assembly, because a Linux
+  container has no fonts for PDFsharp to find.
+
+**Alternatives.** QuestPDF (the nicest API, but its free license ends at $1M in company revenue, and
+an ERP vendor is over that); a headless browser printing the page (a Chromium in the container for
+one report); the browser's own "Save as PDF" (kept as Print, but a commission wants the same file
+from everyone); hard-coding "taxes" as the Taxes reporting category (true for many charts, wrong for
+a levy recorded elsewhere, and the thing a fiscal officer most needs to be able to change).
+
+**Consequences.** The certificate is generated, not issued and stored: it always reflects the budget
+and the ERP's figures as they are now, so a certificate a commission signed should be kept as the
+PDF. Report columns are a general mechanism; the reports in Phase 25 can use them too.
+
+---
+
 ## Packages
 
 Every NuGet package and why it is here. A package is added to this table in the same change that
@@ -1068,6 +1121,7 @@ adds it.
 | Microsoft.AspNetCore.DataProtection.EntityFrameworkCore | Infrastructure | The Data Protection key ring in SQL Server, so cookies survive restarts | 0023 |
 | Microsoft.AspNetCore.Components.QuickGrid | Web | Admin grids | 0011 |
 | ClosedXML | Infrastructure | Reading and writing XLSX without Office or COM | 0021, 0022 |
+| PDFsharp-MigraDoc | Infrastructure | The certificate's PDF: MigraDoc lays out pages and tables, PDFsharp writes the file; MIT licensed, cross-platform | 0036 |
 | xunit, xunit.runner.visualstudio, Microsoft.NET.Test.Sdk, coverlet.collector | tests | Test framework and coverage (the template defaults) | |
 | bunit | Web.Tests | Blazor component tests | |
 | Testcontainers.MsSql | IntegrationTests | A real SQL Server 2022 in tests | 0009 |
@@ -1075,5 +1129,6 @@ adds it.
 | Amazon.CDK.Lib, Constructs | Infra, Infra.Tests | AWS CDK in C#; the assertions library ships inside Amazon.CDK.Lib | 0008, 0023 |
 | dotnet-ef (local tool, `.config/dotnet-tools.json`) | | The migrations command, pinned per repository | |
 
-Not packages: Bootstrap 5.3 is vendored under `src/CivicBudget.Web/wwwroot/lib/bootstrap`
+Not packages: the PDF typeface, Source Sans 3 (SIL Open Font License, license beside the files), is
+embedded from `src/CivicBudget.Infrastructure/Reports/Fonts` (ADR-0036). Bootstrap 5.3 is vendored under `src/CivicBudget.Web/wwwroot/lib/bootstrap`
 (ADR-0016), and Bootstrap Icons 1.13 under `wwwroot/lib/bootstrap-icons` (ADR-0020).

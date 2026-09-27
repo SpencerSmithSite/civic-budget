@@ -873,6 +873,7 @@ table.cb-grid .cb-num, table.cb-grid th.cb-num {
     }
 
     table.cb-grid > tbody > tr.cb-subtotal > td:first-child,
+    table.cb-grid > tbody > tr.cb-subtotal > th:first-child,
     table.cb-grid > tfoot > tr > td:first-child,
     table.cb-grid > tfoot > tr > th:first-child {
         background: var(--cb-subtotal);
@@ -2311,6 +2312,109 @@ table.cb-grid.cb-report-table > tfoot > tr > th {
 .cb-report-filter {
     width: auto;
     min-width: 200px;
+}
+
+/* Certificate of estimated resources. Row labels are <th scope="row"> for screen readers, so the
+   subtotal and total styling the grid gives <td> cells is repeated for them. */
+table.cb-grid > tbody > tr.cb-subtotal > th,
+table.cb-grid > tfoot > tr > th {
+    font-weight: 600;
+    background: #f8fafc;
+}
+
+.cb-cert-table th[scope="row"] { vertical-align: middle; }
+
+.cb-report-section { padding: 0 20px; }
+
+.cb-cert-doc {
+    padding: 0 20px 12px;
+    font-size: 0.875rem;
+    color: var(--cb-muted);
+}
+
+.cb-cert-doc b { color: var(--cb-text); }
+
+.cb-checks {
+    list-style: none;
+    margin: 0 20px 8px;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+}
+
+.cb-checks li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 12px;
+    border: 1px solid var(--cb-border);
+    border-radius: var(--cb-radius);
+}
+
+.cb-checks li.ok i { color: var(--cb-success); }
+.cb-checks li.bad { background: var(--cb-warning-bg); border-color: transparent; }
+.cb-checks li.bad i { color: var(--cb-warning); }
+
+/* Signature lines: on screen a reminder of who signs; on paper, the lines to sign on. */
+.cb-signatures {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+    gap: 24px;
+    padding: 32px 20px 16px;
+    font-size: 0.875rem;
+}
+
+.cb-signatures span {
+    display: block;
+    height: 28px;
+    border-bottom: 1px solid var(--cb-text);
+    margin-bottom: 4px;
+}
+
+.cb-signatures small { color: var(--cb-muted); }
+
+/* Report settings. */
+.cb-settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 16px;
+}
+
+.cb-cert-preview {
+    display: flex;
+    flex-wrap: wrap;
+    border: 1px solid var(--cb-border);
+    border-radius: var(--cb-radius);
+    overflow: hidden;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--cb-navy);
+}
+
+.cb-cert-preview > span {
+    flex: 1 1 110px;
+    padding: 10px 12px;
+    background: var(--cb-subtotal);
+    border-right: 1px solid var(--cb-surface);
+    text-align: right;
+}
+
+.cb-cert-preview > span:first-child { text-align: left; flex-grow: 2; }
+.cb-cert-preview > span.cb-cert-preview-col { background: var(--cb-info-bg); color: var(--cb-info); }
+
+.cb-column-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+    gap: 16px;
+}
+
+.cb-account-checks {
+    max-height: 280px;
+    overflow-y: auto;
+    display: grid;
+    gap: 4px;
 }
 
 .cb-report-foot {
