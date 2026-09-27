@@ -302,7 +302,7 @@ journal, repeated on every line), and `Date` (the journal's posting date, repeat
 - [x] The app says "ERP", never a vendor's name ("Send to ERP", "ERP (simulated)"); the four VIP assumptions confirmed (2026-09-27)
 - [x] Seed: the FY2025 and FY2026 originals already sent, so the demo opens on the amendment's two changes
 - [x] Tests: transmission states (domain); journal builder, import file, simulated ERP (unit); send, refusal, file and confirm, lost answer and retry, the database guard, permissions (integration); page and workflow button (bUnit); ADR-0035, walkthrough 22
-- [ ] Reviewed and approved
+- [x] Reviewed and approved (2026-09-27)
 
 ## Phase 24: Report settings and the Amended Certificate  `phase-24-certificate`
 - [ ] Report settings page: named groups of revenue accounts per government ("Real estate taxes", "Local taxes", ...), with Ohio defaults; a report that needs an unmapped group says so
