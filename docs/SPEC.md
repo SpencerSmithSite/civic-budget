@@ -241,6 +241,28 @@ demo governments' fictional books.
   amounts that no department-level line in the budget claims, so money the ERP
   records against a department is neither lost nor counted twice.
 
+### 3.13 Sending the budget to the ERP
+An adopted budget goes into the ERP as a **budget journal**, by API or by an
+import file, whichever the government uses. Every line carries `Account` (the full
+account number), `Amount`, and the journal's one `Description` and one `Date`
+(the posting date), as VIP expects.
+
+- **Only the latest adopted version is sent**, the same rule as publishing, and
+  only by an Administrator or the Fiscal Officer.
+- **A journal holds changes, not totals.** Each amount is the budget's figure less
+  what earlier journals for the year already posted. The first send of a year is
+  the whole budget; an amendment's is what it changed; a line removed from the
+  budget sends its amount back out as a decrease. When the ERP already matches,
+  there is nothing to send, so pressing Send twice does nothing.
+- **Whole or nothing.** If the ERP refuses any account, nothing posts, and the
+  refused accounts are listed with the ERP's reason.
+- **One unfinished send per year.** A send that got no answer stays open and is
+  retried under the same id, which the ERP recognizes, so it posts once. An import
+  file stays open until someone confirms it was loaded (only then does it count)
+  or discards it. Nothing new starts for the year until the open one is settled.
+- The posting date must fall in the fiscal year; it defaults to the year's first
+  day for an original budget and the adoption date for an amendment.
+
 ---
 
 ## 4. Workflow
@@ -494,6 +516,7 @@ prove tenant isolation in the tests and in the demo.
 | §3.7 Positive amounts, department totals | 18 | ADR-0033 |
 | §3.10 Department requests | 9d | ADR-0027 |
 | §3.12 Actuals from the ERP | 22 | ADR-0034; simulated VIP in the demo |
+| §3.13 Sending the budget to the ERP | 23 | ADR-0035 |
 | §4 Workflow, §5 Validation | 4 | Block or Warn at the transition |
 | §6 Publishing | 4, 5, 18 | Denormalized snapshots (ADR-0005, 0019); read-only portal context (ADR-0006); cache evicted by tag (ADR-0021) |
 | §7.1 Admin | 2–4, 6, 9c, 9d, 10 | Two entry modes, live fund panel, audit trail, import, reports, department round, profile pictures |

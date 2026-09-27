@@ -6,6 +6,14 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 
 ## [Unreleased]
 
+## Phase 23: 2026-09-27 (send the budget to VIP)
+### Added
+- **Send to VIP** on the latest adopted version: a page that shows exactly what the budget journal posts (only what changed since VIP last took the year), takes the journal's description and posting date once, and sends it by API or as an import file (`Account, Amount, Description, Date`).
+- Every send is kept: posted, refused (with each refused account and VIP's reason), no answer, waiting for import, imported, or discarded, and each is an audit event on the version.
+- A send with no answer is retried under the same id and VIP recognizes it; an import file counts once someone confirms it was loaded. One unfinished send per year, enforced in the service and by a filtered unique index.
+- The simulated VIP accepts journals on the accounts in its own chart and refuses the whole journal otherwise; the seed records the FY2025 and FY2026 originals as already sent, so the demo opens on the FY2026 amendment's two changes.
+- `CanSendToErp` policy (Administrator, Fiscal Officer).
+
 ## Phase 22: 2026-09-27 (actuals from VIP)
 ### Added
 - **Actuals sync** under Setup: fetch a fiscal year's books from VIP, or upload an export (`Fiscal Year, Type, Account, Period, Amount`), preview receipts, disbursements, open encumbrances, and cash by fund, and apply. A sync replaces the year; one unknown account code refuses the whole file.

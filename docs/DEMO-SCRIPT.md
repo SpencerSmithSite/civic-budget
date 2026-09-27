@@ -86,6 +86,11 @@ fiscal officer is never locked out."
   Every prior-year actual in the FY2027 draft already matches, so nothing changes; if one
   had been typed over, the preview would list it." Then open a department page: "This
   year's spending sits under each budget, with a bar that turns amber past it."
+- Budget versions, **FY2026 Amendment 1**, **Send to VIP**. "The originals went to VIP in
+  January, so the journal is only the supplemental appropriation: two lines, +$21,000." Send it,
+  then show the page now says VIP already has the budget. "Pressing it again does nothing. A
+  lost answer is retried under the same id, and a downloaded file only counts once someone
+  confirms it was imported."
 
 ## 6. The code, briefly (2 minutes)
 

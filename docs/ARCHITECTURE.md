@@ -191,7 +191,7 @@ refusal into "someone else changed this budget; reload" and leaves the first cha
 standing. A SQL `rowversion` column would not work here: it only changes when the
 version's own row changes, not when one of its lines does.
 
-### 4.5 What comes from the ERP (ADR-0025, ADR-0034)
+### 4.5 What comes from the ERP, and what goes back (ADR-0025, ADR-0034, ADR-0035)
 The government's ERP (VIP, in the demo a simulated one) owns the chart of accounts and
 the books. CivicBudget receives both through the same shape of code in
 `Application/Erp`: a plain contract (`ErpChart`, `ErpActuals`) that says everything
@@ -203,6 +203,12 @@ nothing above it. Actuals land in their own tables (`ErpActuals`, `ErpEncumbranc
 `ErpFundCash`), replaced a fiscal year at a time; budget lines never store them, except
 the prior-year actual, which a closed year writes through `BudgetVersion` so the change
 is audited and concurrency-checked like any other edit.
+
+Data also goes the other way (ADR-0035). An adopted budget is sent back as a budget journal
+of changes (`BudgetJournalBuilder`, pure), through `IErpBudgetApi` or as an import file.
+`BudgetTransmission` records each send, is saved before the ERP is called, and doubles as
+the idempotency key, so a send whose answer was lost is retried without posting twice. A
+filtered unique index allows one unfinished send per government and year.
 
 ---
 

@@ -294,10 +294,14 @@ comes last so its screenshots and demos show the finished product.
 VIP accepts a budget journal by API or import file, the customer's choice. Each line carries
 `Account` (the full account number), `Amount`, `Description` (one description for the whole
 journal, repeated on every line), and `Date` (the journal's posting date, repeated on every line).
-- [ ] "Send to VIP" on an adopted version or amendment, Fiscal Officer and Administrator only
-- [ ] Preview: exactly what changes in VIP compared with the last send (for an amendment, only the differences); journal description and posting date entered once
-- [ ] Send by API (simulated VIP) or download the import file; a receipt and a send history; safe to press twice; accounts VIP refuses are listed
-- [ ] Every send audited
+- [x] "Send to VIP" on the latest adopted version (original or amendment), Fiscal Officer and Administrator only (`CanSendToErp`)
+- [x] Preview: exactly what changes in VIP compared with what it already took for the year (`BudgetJournalBuilder`); journal description and posting date entered once, the date within the fiscal year
+- [x] Send by API (simulated VIP) or download the import file; a history with journal numbers; safe to press twice; a journal refused whole, with each refused account and VIP's reason
+- [x] A send with no answer stays open and is retried under the same id (VIP recognizes it); a file counts once confirmed imported; one unfinished send per year, also enforced by a filtered unique index
+- [x] Every send audited on the version
+- [x] Seed: the FY2025 and FY2026 originals already sent, so the demo opens on the amendment's two changes
+- [x] Tests: transmission states (domain); journal builder, import file, simulated VIP (unit); send, refusal, file and confirm, lost answer and retry, the database guard, permissions (integration); page and workflow button (bUnit); ADR-0035, walkthrough 22
+- [ ] Reviewed and approved
 
 ## Phase 24: Report settings and the Amended Certificate  `phase-24-certificate`
 - [ ] Report settings page: named groups of revenue accounts per government ("Real estate taxes", "Local taxes", ...), with Ohio defaults; a report that needs an unmapped group says so
