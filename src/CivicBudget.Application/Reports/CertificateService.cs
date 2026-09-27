@@ -21,7 +21,7 @@ public sealed class CertificateService(
     TimeProvider clock) : ICertificateService
 {
     /// <summary>Room on a landscape page for the balance, this many revenue columns, other sources, and the total.</summary>
-    public const int MaxColumns = 4;
+    public const int MaxColumns = ReportColumnRules.MaxColumns;
 
     private const string NotAllowed = "Only an Administrator or the Fiscal Officer can change the certificate's settings.";
     private const string DefaultColumnLabel = "Taxes";
@@ -158,8 +158,8 @@ public sealed class CertificateService(
         await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
         CertificateSettings settings = await db.CertificateSettings.FirstOrDefaultAsync(ct) ?? new CertificateSettings(Guid.Empty);
         (List<CertificateColumn> columns, bool isDefault) = await ColumnsAsync(db, ct);
-        List<RevenueAccountDto> accounts = await db.Accounts.Where(a => a.Type == AccountType.Revenue).OrderBy(a => a.Code)
-            .Select(a => new RevenueAccountDto(a.Id, a.Code, a.Name, a.Category, a.IsActive)).ToListAsync(ct);
+        List<ReportAccountDto> accounts = await db.Accounts.Where(a => a.Type == AccountType.Revenue).OrderBy(a => a.Code)
+            .Select(a => new ReportAccountDto(a.Id, a.Code, a.Name, a.Category, a.IsActive)).ToListAsync(ct);
 
         return new CertificateSettingsDto(
             settings.County, settings.FiscalOfficerName, settings.FiscalOfficerTitle, settings.BalanceLabel, settings.OtherSourcesLabel,
@@ -212,38 +212,9 @@ public sealed class CertificateService(
         return Result.Success();
     }
 
-    /// <summary>What makes a set of columns unusable: the certificate would count money twice, or not at all.</summary>
-    public static List<string> Problems(SaveCertificateSettingsRequest request, IReadOnlySet<Guid> revenueAccounts)
-    {
-        var problems = new List<string>();
-        if (request.Columns.Count > MaxColumns)
-        {
-            problems.Add($"A certificate has room for {MaxColumns} revenue columns before {request.OtherSourcesLabel}.");
-        }
-
-        var labels = request.Columns.Select(c => c.Label?.Trim() ?? "").Append(request.OtherSourcesLabel?.Trim() ?? "").ToList();
-        if (labels.Any(string.IsNullOrWhiteSpace))
-        {
-            problems.Add("Every column needs a heading.");
-        }
-        else if (labels.GroupBy(l => l, StringComparer.OrdinalIgnoreCase).FirstOrDefault(g => g.Count() > 1) is { } duplicate)
-        {
-            problems.Add($"Two columns are headed \"{duplicate.Key}\"; give each its own heading.");
-        }
-
-        foreach (ReportColumnDto column in request.Columns.Where(c => c.AccountIds.Any(id => !revenueAccounts.Contains(id))))
-        {
-            problems.Add($"{column.Label}: only revenue accounts can be in a revenue column.");
-        }
-
-        var twice = request.Columns.SelectMany(c => c.AccountIds.Distinct()).GroupBy(id => id).Where(g => g.Count() > 1).ToList();
-        if (twice.Count > 0)
-        {
-            problems.Add($"{twice.Count} account{(twice.Count == 1 ? " is" : "s are")} in more than one column, which would count the money twice.");
-        }
-
-        return problems;
-    }
+    /// <summary>What makes the certificate's columns unusable; the rules are shared with every report's columns.</summary>
+    public static List<string> Problems(SaveCertificateSettingsRequest request, IReadOnlySet<Guid> revenueAccounts) =>
+        ReportColumnRules.Problems(request.Columns, request.OtherSourcesLabel, revenueAccounts, "revenue");
 
     // ---- helpers ------------------------------------------------------------------------------
 

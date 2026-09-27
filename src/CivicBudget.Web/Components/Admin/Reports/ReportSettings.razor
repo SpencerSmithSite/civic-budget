@@ -3,12 +3,13 @@
 @using CivicBudget.Application.Reports
 @using CivicBudget.Domain.Reports
 @inject ICertificateService Certificates
+@inject IMeasureColumnService MeasureColumns
 @inject ToastService Toasts
 
 @* Which accounts a report counts where, per government. Charts differ: one village's "taxes" are
-   real estate and income tax, a township's are real estate and a road levy. The certificate of
-   estimated resources is the first report that needs this; its preview row shows the columns
-   exactly as the certificate will print them. *@
+   real estate and income tax, a township's are real estate and a road levy; one appropriates fringe
+   benefits with personal services, another does not. The certificate's preview row shows its
+   columns exactly as it will print them. *@
 <PageTitle>Report settings</PageTitle>
 
 <PageHeader Title="Report settings" Eyebrow="Setup" Crumbs="@([new Crumb("Setup"), new Crumb("Report settings")])"
@@ -55,7 +56,7 @@ else
             <div class="cb-cert-preview mt-4" aria-label="How the certificate's columns will read">
                 <span>Fund</span>
                 <span>@form.BalanceLabel</span>
-                @foreach (ColumnForm column in form.Columns)
+                @foreach (ReportColumnForm column in form.Columns)
                 {
                     <span class="cb-cert-preview-col">@(string.IsNullOrWhiteSpace(column.Label) ? "(no heading)" : column.Label)</span>
                 }
@@ -65,65 +66,20 @@ else
         </div>
     </div>
 
-    <div class="d-flex align-items-center gap-2 mb-2">
-        <h2 class="h6 mb-0 flex-grow-1">Revenue columns</h2>
-        @if (usingDefault)
-        {
-            <StatusPill Tone="info" Label="Ohio default: accounts categorized as taxes" />
-        }
-        <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddColumn" disabled="@(form.Columns.Count >= CertificateService.MaxColumns)">
-            <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add column
-        </button>
-    </div>
+    <ReportColumnEditor Title="Certificate revenue columns" Columns="form.Columns" Accounts="settings!.RevenueAccounts" OtherLabel="@form.OtherSourcesLabel"
+                        UsingDefault="usingDefault" DefaultNote="Ohio default: accounts categorized as taxes" FirstLabel="Taxes" IdPrefix="" OnChanged="StateHasChanged" />
 
-    @if (form.Columns.Count == 0)
-    {
-        <div class="card mb-4"><EmptyState Icon="bi-layout-three-columns" Title="No revenue columns" Text="@($"Every receipt is counted under {form.OtherSourcesLabel}. Add a column to show taxes separately.")" /></div>
-    }
-
-    <div class="cb-column-cards mb-4">
-        @for (int i = 0; i < form.Columns.Count; i++)
-        {
-            int index = i;
-            ColumnForm column = form.Columns[index];
-            <div class="card" @key="column">
-                <div class="card-body">
-                    <div class="d-flex gap-2 align-items-end mb-3">
-                        <div class="flex-grow-1">
-                            <label class="form-label fw-semibold" for="@($"column{index}")">Column heading</label>
-                            <input id="@($"column{index}")" class="form-control" maxlength="@ReportAccountGroup.LabelMaxLength" @bind="column.Label" @bind:event="oninput" />
-                        </div>
-                        <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => form.Columns.RemoveAt(index)" aria-label="@($"Remove the {column.Label} column")"><i class="bi bi-trash" aria-hidden="true"></i></button>
-                    </div>
-                    <fieldset>
-                        <legend class="form-label">Accounts in this column</legend>
-                        <div class="cb-account-checks">
-                            @foreach (RevenueAccountDto account in settings!.RevenueAccounts)
-                            {
-                                ColumnForm? elsewhere = form.Columns.FirstOrDefault(c => c != column && c.AccountIds.Contains(account.Id));
-                                string id = $"c{index}-{account.Id:N}";
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="@id" checked="@column.AccountIds.Contains(account.Id)" disabled="@(elsewhere is not null)"
-                                           @onchange="e => Toggle(column, account.Id, e.Value is true)" />
-                                    <label class="form-check-label" for="@id">
-                                        <span class="cb-code">@account.Code</span> @account.Name
-                                        @if (elsewhere is not null)
-                                        {
-                                            <span class="small text-secondary">(in @elsewhere.Label)</span>
-                                        }
-                                        else if (!account.IsActive)
-                                        {
-                                            <span class="small text-secondary">(inactive)</span>
-                                        }
-                                    </label>
-                                </div>
-                            }
-                        </div>
-                    </fieldset>
-                </div>
-            </div>
-        }
+    <div class="card mb-3">
+        <div class="card-body">
+            <h2 class="h6 mb-1">Appropriation measure</h2>
+            <p class="small text-secondary mb-0">
+                ORC 5705.38 appropriates by fund, then by office and department, with personal services shown separately within each.
+                Choose the expenditure accounts that are personal services here; everything else is "@MeasureColumnService.OtherLabel".
+            </p>
+        </div>
     </div>
+    <ReportColumnEditor Title="Appropriation measure columns" Columns="measureColumns" Accounts="measure!.ExpenditureAccounts" OtherLabel="@MeasureColumnService.OtherLabel"
+                        UsingDefault="measure.UsingDefaultColumns" DefaultNote="Default: personal services and fringe benefits" FirstLabel="@MeasureColumnService.DefaultLabel" IdPrefix="m-" />
 
     @if (errors.Count > 0)
     {
@@ -137,6 +93,8 @@ else
 
 @code {
     private CertificateSettingsDto? settings;
+    private MeasureColumnsDto? measure;
+    private List<ReportColumnForm> measureColumns = [];
     private SettingsForm? form;
     private bool usingDefault;
     private bool saving;
@@ -149,13 +107,7 @@ else
         public string FiscalOfficerTitle { get; set; } = "";
         public string BalanceLabel { get; set; } = "";
         public string OtherSourcesLabel { get; set; } = "";
-        public List<ColumnForm> Columns { get; } = [];
-    }
-
-    private sealed class ColumnForm
-    {
-        public string Label { get; set; } = "";
-        public HashSet<Guid> AccountIds { get; } = [];
+        public List<ReportColumnForm> Columns { get; } = [];
     }
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
@@ -172,38 +124,31 @@ else
             BalanceLabel = settings.BalanceLabel,
             OtherSourcesLabel = settings.OtherSourcesLabel,
         };
-        foreach (ReportColumnDto column in settings.Columns)
-        {
-            var c = new ColumnForm { Label = column.Label };
-            c.AccountIds.UnionWith(column.AccountIds);
-            form.Columns.Add(c);
-        }
+        form.Columns.AddRange(settings.Columns.Select(ToForm));
+        measure = await MeasureColumns.GetAsync();
+        measureColumns = measure.Columns.Select(ToForm).ToList();
     }
 
-    private void AddColumn() => form!.Columns.Add(new ColumnForm { Label = form.Columns.Count == 0 ? "Taxes" : "" });
-
-    private static void Toggle(ColumnForm column, Guid accountId, bool on)
+    private static ReportColumnForm ToForm(ReportColumnDto column)
     {
-        if (on)
-        {
-            column.AccountIds.Add(accountId);
-        }
-        else
-        {
-            column.AccountIds.Remove(accountId);
-        }
+        var form = new ReportColumnForm { Label = column.Label };
+        form.AccountIds.UnionWith(column.AccountIds);
+        return form;
     }
+
+    private static List<ReportColumnDto> ToDtos(List<ReportColumnForm> columns) => columns.Select(c => new ReportColumnDto(c.Label, c.AccountIds.ToList())).ToList();
 
     private async Task SaveAsync()
     {
         saving = true;
         try
         {
-            Result result = await Certificates.SaveSettingsAsync(new SaveCertificateSettingsRequest(
-                form!.County, form.FiscalOfficerName, form.FiscalOfficerTitle, form.BalanceLabel, form.OtherSourcesLabel,
-                form.Columns.Select(c => new ReportColumnDto(c.Label, c.AccountIds.ToList())).ToList()));
-            errors = result.IsFailure ? result.Errors.Select(e => e.Message).ToList() : [];
-            if (result.IsSuccess)
+            // Two saves, one per report; both run so every problem is shown at once.
+            Result certificate = await Certificates.SaveSettingsAsync(new SaveCertificateSettingsRequest(
+                form!.County, form.FiscalOfficerName, form.FiscalOfficerTitle, form.BalanceLabel, form.OtherSourcesLabel, ToDtos(form.Columns)));
+            Result measureSaved = await MeasureColumns.SaveAsync(ToDtos(measureColumns));
+            errors = certificate.Errors.Select(e => e.Message).Concat(measureSaved.Errors.Select(e => $"Appropriation measure: {e.Message}")).ToList();
+            if (certificate.IsSuccess && measureSaved.IsSuccess)
             {
                 Toasts.Success("Report settings saved.");
                 await LoadAsync();

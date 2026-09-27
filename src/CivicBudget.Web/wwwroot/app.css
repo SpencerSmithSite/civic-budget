@@ -2417,6 +2417,69 @@ table.cb-grid > tfoot > tr > th {
     gap: 4px;
 }
 
+/* Budget against actual: a small bar per row with a tick for the pace. */
+.cb-usedbar {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: flex-end;
+    width: 100%;
+}
+
+.cb-usedbar-track {
+    position: relative;
+    flex: 0 0 64px;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--cb-border);
+}
+
+.cb-usedbar-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    border-radius: 3px;
+    background: var(--cb-teal);
+}
+
+.cb-usedbar-pace {
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    width: 2px;
+    margin-left: -1px;
+    background: var(--cb-text);
+}
+
+.cb-usedbar-value {
+    min-width: 3.2em;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.cb-usedbar.over .cb-usedbar-fill,
+.cb-usedbar.behind .cb-usedbar-fill { background: var(--cb-warning); }
+.cb-usedbar.over .cb-usedbar-value,
+.cb-usedbar.behind .cb-usedbar-value { color: var(--cb-warning); font-weight: 600; }
+
+.cb-trend-list {
+    display: grid;
+    gap: 12px;
+    padding: 0 0 12px;
+}
+
+.cb-report-cards-group {
+    margin-bottom: 20px;
+}
+
+.cb-report-cards-group > h2 {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--cb-muted);
+    margin-bottom: 8px;
+}
+
 .cb-report-foot {
     padding: 10px 20px 14px;
     font-size: 12px;

@@ -1,0 +1,93 @@
+@page "/admin/reports/{VersionId:guid}/budget-vs-actual"
+@attribute [Authorize(Policy = Policies.CanViewBudget)]
+@using CivicBudget.Application.Reports
+@inject IActualsReportService Reports
+
+@* Every appropriation against what the ERP says was spent and committed so far. The bar's tick is
+   the share of the year gone, so a line running ahead of the year stands out, and "last year by
+   now" answers the next question: is this normal for this account? *@
+<PageTitle>Budget vs. Actual</PageTitle>
+
+@if (notFound)
+{
+    <EmptyState Icon="bi-journal-x" Title="Budget version not found" Text="It may have been removed, or the link is wrong."><a class="btn btn-primary" href="admin/reports">Reports</a></EmptyState>
+}
+else if (report is null)
+{
+    <PageHeader Title="Budget vs. Actual" Eyebrow="Reports" Crumbs="@([new Crumb("Budget"), new Crumb("Reports", "admin/reports"), new Crumb("Budget vs. Actual")])" />
+    <SkeletonRows Rows="6" Columns="7" />
+}
+else
+{
+    <ReportShell Title="Budget vs. Actual" Header="report.Header" ExportHref="@($"admin/export/reports/{VersionId}/budget-vs-actual.xlsx")"
+                 Description="Each appropriation against the ERP's spending and open encumbrances so far this year, with what is left."
+                 FootNote="@Foot">
+        @if (report.Period is not { } period)
+        {
+            <EmptyState Icon="bi-hourglass" Title="@($"No FY{report.Header.FiscalYear} actuals yet")"
+                        Text="@($"The ERP has not sent FY{report.Header.FiscalYear}. It appears here once the year has begun and its actuals are synced.")" />
+        }
+        else
+        {
+            <div class="cb-cert-doc">Through <b>@Display.Date(period.AsOf)</b>, @(period.IsClosed ? "the full year" : $"{period.ThroughPeriod} of 12 months ({Math.Round(period.Pace * 100m, 0)}% of the year)"). The tick on each bar is that pace.</div>
+            <div class="cb-grid-wrap">
+                <table class="cb-grid table cb-report-table" aria-label="Budget vs actual">
+                    <thead>
+                        <tr>
+                            <th scope="col">Account</th>
+                            <th scope="col" class="cb-num">Budget</th>
+                            <th scope="col" class="cb-num">Spent</th>
+                            <th scope="col" class="cb-num cb-col-wide">Encumbered</th>
+                            <th scope="col" class="cb-num cb-col-strong">Remaining</th>
+                            <th scope="col" class="cb-num">Used</th>
+                            <th scope="col" class="cb-num cb-col-wide">Last year by now</th>
+                        </tr>
+                    </thead>
+                    @foreach (BudgetActualFundDto fund in report.Funds)
+                    {
+                        <tbody>
+                            <tr class="cb-group"><td colspan="7"><span class="cb-code">@fund.FundCode</span> @fund.FundName</td></tr>
+                            @foreach (BudgetActualGroupDto department in fund.Departments)
+                            {
+                                @foreach (BudgetActualRowDto row in department.Lines)
+                                {
+                                    <tr>@Cells(row, $"{row.AccountNumber} {row.Label}", period, strong: false)</tr>
+                                }
+                                <tr class="cb-subtotal">@Cells(department.Subtotal, department.Subtotal.Label, period, strong: true)</tr>
+                            }
+                            <tr class="cb-subtotal">@Cells(fund.Subtotal, fund.Subtotal.Label, period, strong: true)</tr>
+                        </tbody>
+                    }
+                    <tfoot><tr>@Cells(report.Total, "All funds", period, strong: true)</tr></tfoot>
+                </table>
+            </div>
+        }
+    </ReportShell>
+}
+
+@code {
+    [Parameter]
+    public Guid VersionId { get; set; }
+
+    private BudgetActualReportDto? report;
+    private bool notFound;
+
+    private string Foot => $"Budget is FY{report!.Header.FiscalYear} {report.Header.VersionLabel}; spending and encumbrances are the ERP's. Remaining is budget less spent less encumbered.";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        report = await Reports.BudgetVsActualAsync(VersionId);
+        notFound = report is null;
+    }
+
+    private static RenderFragment Cells(BudgetActualRowDto r, string label, ActualsPeriodDto period, bool strong) => __builder =>
+    {
+        <th scope="row" class="@(strong ? "cb-wrap" : "fw-normal cb-wrap")">@label</th>
+        <td class="cb-num">@Display.Amount(r.Budget)</td>
+        <td class="cb-num">@Display.Amount(r.Actual)</td>
+        <td class="cb-num cb-col-wide">@Display.Amount(r.Encumbered)</td>
+        <td class="cb-num cb-col-strong @(r.Remaining < 0 ? "cb-neg" : "")">@Display.Amount(r.Remaining)</td>
+        <td class="cb-num"><UsedBar Share="r.Used" Pace="period.IsClosed ? null : period.Pace" Tone="@(r.IsOver ? "over" : null)" /></td>
+        <td class="cb-num cb-col-wide text-secondary">@(r.LastYearAtThisPoint is { } last ? Display.Amount(last) : "")</td>
+    };
+}

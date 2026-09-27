@@ -1,0 +1,100 @@
+@page "/admin/reports/{VersionId:guid}/appropriation-measure"
+@attribute [Authorize(Policy = Policies.CanViewBudget)]
+@using CivicBudget.Application.Reports
+@inject IActualsReportService Reports
+
+@* The appropriation measure the way ORC 5705.38(C) wants it: by fund, then by office and department,
+   with personal services set out separately within each and everything else as "Other". Transfers out
+   are appropriated at the fund level, beside the departments, as other financing uses. *@
+<PageTitle>Appropriation Measure</PageTitle>
+
+@if (notFound)
+{
+    <PageHeader Title="Appropriation Measure" Eyebrow="Reports" Crumbs="@([new Crumb("Budget"), new Crumb("Reports", "admin/reports"), new Crumb("Appropriation Measure")])" />
+    <EmptyState Icon="bi-shield-lock" Title="Not available" Text="The appropriation measure covers every fund, so it is run by the Fiscal Officer, an Administrator, or a Viewer; or the budget version was not found.">
+        <a class="btn btn-primary" href="admin/reports">Reports</a>
+    </EmptyState>
+}
+else if (report is null)
+{
+    <PageHeader Title="Appropriation Measure" Eyebrow="Reports" Crumbs="@([new Crumb("Budget"), new Crumb("Reports", "admin/reports"), new Crumb("Appropriation Measure")])" />
+    <SkeletonRows Rows="6" Columns="5" />
+}
+else
+{
+    <ReportShell Title="Appropriation Measure" Header="report.Header" ExportHref="@($"admin/export/reports/{VersionId}/appropriation-measure.xlsx")"
+                 Description="The amounts appropriated from each fund, by department, with personal services separately (ORC 5705.38)."
+                 FootNote="@($"FY{report.Header.FiscalYear} {report.Header.VersionLabel}{(report.Header.ResolutionNumber is { } r ? $", resolution {r}" : "")}. Other financing uses (transfers out) are appropriated at the fund level.")">
+        @if (report.UsingDefaultColumns)
+        {
+            <div class="alert alert-info cb-report-note small">
+                <i class="bi bi-info-circle me-2" aria-hidden="true"></i>@string.Join(" and ", report.ColumnLabels) are the accounts categorized as personal services and fringe benefits.
+                <AuthorizeView Policy="@Policies.CanMaintainSetup"><a href="admin/report-settings">Change them in Report settings.</a></AuthorizeView>
+            </div>
+        }
+        <div class="cb-grid-wrap">
+            <table class="cb-grid table cb-report-table" aria-label="Appropriation measure">
+                <thead>
+                    <tr>
+                        <th scope="col">Department</th>
+                        @foreach (string label in report.ColumnLabels)
+                        {
+                            <th scope="col" class="cb-num">@label</th>
+                        }
+                        <th scope="col" class="cb-num">Other</th>
+                        <th scope="col" class="cb-num cb-col-strong">Total</th>
+                    </tr>
+                </thead>
+                @foreach (MeasureFundDto fund in report.Funds)
+                {
+                    <tbody>
+                        <tr class="cb-group"><td colspan="@(report.ColumnLabels.Count + 3)"><span class="cb-code">@fund.FundCode</span> @fund.FundName</td></tr>
+                        @foreach (MeasureRowDto department in fund.Departments)
+                        {
+                            <tr>@Cells(department, department.Label, strong: false)</tr>
+                        }
+                        @if (fund.TransfersOut != 0m)
+                        {
+                            <tr>
+                                <th scope="row" class="fw-normal cb-wrap">Other financing uses: transfers out</th>
+                                @foreach (string _ in report.ColumnLabels)
+                                {
+                                    <td class="cb-num"></td>
+                                }
+                                <td class="cb-num">@Display.Amount(fund.TransfersOut)</td>
+                                <td class="cb-num cb-col-strong">@Display.Amount(fund.TransfersOut)</td>
+                            </tr>
+                        }
+                        <tr class="cb-subtotal">@Cells(fund.Subtotal with { Other = fund.Subtotal.Other + fund.TransfersOut }, $"Total, {fund.FundName}", strong: true)</tr>
+                    </tbody>
+                }
+                <tfoot><tr>@Cells(report.DepartmentsTotal with { Other = report.DepartmentsTotal.Other + report.TransfersOut }, "All funds", strong: true)</tr></tfoot>
+            </table>
+        </div>
+    </ReportShell>
+}
+
+@code {
+    [Parameter]
+    public Guid VersionId { get; set; }
+
+    private AppropriationMeasureDto? report;
+    private bool notFound;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        report = await Reports.AppropriationMeasureAsync(VersionId);
+        notFound = report is null;
+    }
+
+    private static RenderFragment Cells(MeasureRowDto r, string label, bool strong) => __builder =>
+    {
+        <th scope="row" class="@(strong ? "cb-wrap" : "fw-normal cb-wrap")">@label</th>
+        @foreach (decimal amount in r.Columns)
+        {
+            <td class="cb-num">@Display.Amount(amount)</td>
+        }
+        <td class="cb-num">@Display.Amount(r.Other)</td>
+        <td class="cb-num cb-col-strong">@Display.Amount(r.Total)</td>
+    };
+}

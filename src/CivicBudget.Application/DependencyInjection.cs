@@ -29,6 +29,8 @@ public static class DependencyInjection
         services.AddScoped<IBudgetImportService, BudgetImportService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<ICertificateService, CertificateService>();
+        services.AddScoped<IMeasureColumnService, MeasureColumnService>();
+        services.AddScoped<IActualsReportService, ActualsReportService>();
         services.AddScoped<IErpChartFileSource, ErpChartFileSource>();
         services.AddScoped<IChartSyncService, ChartSyncService>();
         services.AddScoped<IErpActualsFileSource, ErpActualsFileSource>();

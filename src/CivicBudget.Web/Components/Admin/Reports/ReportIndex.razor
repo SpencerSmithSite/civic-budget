@@ -29,28 +29,69 @@ else
         </div>
     </div>
 
-    <div class="cb-report-cards">
-        <a class="card cb-report-card" href="admin/reports/@selectedId/fund-summary">
-            <i class="bi bi-bank" aria-hidden="true"></i>
-            <h2 class="h6">Budget Summary by Fund</h2>
-            <p>Beginning balance, revenues, transfers, estimated resources, appropriations, and the projected ending balance for every fund, with the appropriation check.</p>
-        </a>
-        <a class="card cb-report-card" href="admin/reports/@selectedId/department-detail">
-            <i class="bi bi-diagram-3" aria-hidden="true"></i>
-            <h2 class="h6">Department Budget Detail</h2>
-            <p>Every account line by department with prior year actual, current year budget, the request, and the change. Filter to one department.</p>
-        </a>
-        <a class="card cb-report-card" href="admin/reports/@selectedId/certificate">
-            <i class="bi bi-patch-check" aria-hidden="true"></i>
-            <h2 class="h6">Certificate of Estimated Resources</h2>
-            <p>Each fund's unencumbered balance, taxes, and other sources: the ceiling on its appropriations (ORC 5705.36). As issued, the detailed schedule, and a signed-ready PDF.</p>
-        </a>
-        <a class="card cb-report-card" href="admin/reports/@selectedId/category">
-            <i class="bi bi-pie-chart" aria-hidden="true"></i>
-            <h2 class="h6">Revenue vs. Expenditure by Category</h2>
-            <p>Revenues by source and expenditures by category with the same three comparatives, and the net at the bottom.</p>
-        </a>
-    </div>
+    <section class="cb-report-cards-group" aria-labelledby="reportsBudget">
+        <h2 id="reportsBudget">The budget</h2>
+        <div class="cb-report-cards">
+            <a class="card cb-report-card" href="admin/reports/@selectedId/fund-summary">
+                <i class="bi bi-bank" aria-hidden="true"></i>
+                <h3 class="h6">Budget Summary by Fund</h3>
+                <p>Beginning balance, revenues, transfers, estimated resources, appropriations, and the projected ending balance for every fund, with the appropriation check.</p>
+            </a>
+            <a class="card cb-report-card" href="admin/reports/@selectedId/department-detail">
+                <i class="bi bi-diagram-3" aria-hidden="true"></i>
+                <h3 class="h6">Department Budget Detail</h3>
+                <p>Every account line by department with prior year actual, current year budget, the request, and the change. Filter to one department.</p>
+            </a>
+            <a class="card cb-report-card" href="admin/reports/@selectedId/category">
+                <i class="bi bi-pie-chart" aria-hidden="true"></i>
+                <h3 class="h6">Revenue vs. Expenditure by Category</h3>
+                <p>Revenues by source and expenditures by category with the same three comparatives, and the net at the bottom.</p>
+            </a>
+        </div>
+    </section>
+
+    <section class="cb-report-cards-group" aria-labelledby="reportsLegal">
+        <h2 id="reportsLegal">Legal documents</h2>
+        <div class="cb-report-cards">
+            <a class="card cb-report-card" href="admin/reports/@selectedId/certificate">
+                <i class="bi bi-patch-check" aria-hidden="true"></i>
+                <h3 class="h6">Certificate of Estimated Resources</h3>
+                <p>Each fund's unencumbered balance, taxes, and other sources: the ceiling on its appropriations (ORC 5705.36). As issued, the detailed schedule, and a PDF ready to sign.</p>
+            </a>
+            <a class="card cb-report-card" href="admin/reports/@selectedId/appropriation-measure">
+                <i class="bi bi-journal-check" aria-hidden="true"></i>
+                <h3 class="h6">Appropriation Measure</h3>
+                <p>What is appropriated from each fund, by department, with personal services set out separately (ORC 5705.38), and transfers out beside them.</p>
+            </a>
+        </div>
+    </section>
+
+    <section class="cb-report-cards-group" aria-labelledby="reportsErp">
+        <h2 id="reportsErp">Against the ERP's books</h2>
+        <p class="small text-secondary mb-2">These compare a year's budget with that year's actuals, so choose the year under way; a budget for next year has no actuals yet.</p>
+        <div class="cb-report-cards">
+            <a class="card cb-report-card" href="admin/reports/@selectedId/budget-vs-actual">
+                <i class="bi bi-speedometer2" aria-hidden="true"></i>
+                <h3 class="h6">Budget vs. Actual</h3>
+                <p>Each appropriation against what has been spent and committed so far, what is left, and where it stood last year at this point.</p>
+            </a>
+            <a class="card cb-report-card" href="admin/reports/@selectedId/revenue-vs-receipts">
+                <i class="bi bi-cash-coin" aria-hidden="true"></i>
+                <h3 class="h6">Revenue vs. Receipts</h3>
+                <p>Each revenue estimate against what has come in, measured against how much had arrived by the same month last year.</p>
+            </a>
+            <a class="card cb-report-card" href="admin/reports/@selectedId/fund-projection">
+                <i class="bi bi-graph-up-arrow" aria-hidden="true"></i>
+                <h3 class="h6">Projected Fund Balances</h3>
+                <p>Where each fund will end the year: as budgeted, and as this year's actuals project it, allowing for the months money usually arrives.</p>
+            </a>
+            <a class="card cb-report-card" href="admin/reports/@selectedId/trends">
+                <i class="bi bi-bar-chart-line" aria-hidden="true"></i>
+                <h3 class="h6">Multi-year Trends</h3>
+                <p>Each fund's budgets and actual receipts and spending, year by year, up to this budget.</p>
+            </a>
+        </div>
+    </section>
 }
 
 @code {

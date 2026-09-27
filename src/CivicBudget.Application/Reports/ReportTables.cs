@@ -57,6 +57,53 @@ public static class ReportTables
         report.Sections.SelectMany(s => s.Funds.Select(f => CertificateRow(s.Label, f)).Append(CertificateRow(s.Label, s.Subtotal)))
             .Append(CertificateRow("", report.Total)).ToList());
 
+    public static ExportTable BudgetVsActual(BudgetActualReportDto report) => new(
+        "Budget vs actual",
+        ["Fund", "Department", "Account number", "Account", "Budget", "Spent", "Encumbered", "Remaining", "Used %", "Last year by now"],
+        report.Funds.SelectMany(f => f.Departments.SelectMany(d => d.Lines.Select(r => ActualRow(f.FundCode, d.Label, r)).Append(ActualRow(f.FundCode, d.Label, d.Subtotal)))
+                .Append(ActualRow(f.FundCode, "", f.Subtotal)))
+            .Append(ActualRow("", "", report.Total)).ToList());
+
+    public static ExportTable RevenueVsReceipts(RevenueReceiptReportDto report) => new(
+        "Revenue vs receipts",
+        ["Fund", "Account number", "Account", "Estimate", "Received", "Still to collect", "Collected %", "Normally by now %"],
+        report.Funds.SelectMany(f => f.Lines.Select(r => ReceiptRow(f.FundCode, r)).Append(ReceiptRow(f.FundCode, f.Subtotal)))
+            .Append(ReceiptRow("", report.Total)).ToList());
+
+    public static ExportTable FundProjection(FundProjectionReportDto report) => new(
+        "Projected fund balances",
+        ["Fund", "Name", "Beginning balance", "Budgeted receipts", "Received to date", "Projected receipts", "Appropriations", "Spent to date", "Encumbered", "Projected spending", "Budgeted ending", "Projected ending", "Difference"],
+        report.Funds.Append(report.Total).Select(f => new object?[]
+        {
+            f.FundCode, f.FundName, f.BeginningBalance, f.BudgetedReceipts, f.ReceivedToDate, f.ProjectedReceipts, f.Appropriations, f.SpentToDate, f.Encumbered,
+            f.ProjectedSpending, f.BudgetedEnding, f.ProjectedEnding, f.Difference,
+        }).ToList());
+
+    public static ExportTable Trends(TrendReportDto report) => new(
+        "Multi-year trends",
+        ["Fund", "Name", "Fiscal year", "Budgeted receipts", "Actual receipts", "Appropriations", "Actual spending"],
+        report.Funds.SelectMany(f => f.Years.Select(c => new object?[] { f.FundCode, f.FundName, c.FiscalYear, c.BudgetedReceipts, c.ActualReceipts, c.Appropriations, c.ActualSpending }))
+            .Concat(report.Totals.Select(c => new object?[] { "", "All funds", c.FiscalYear, c.BudgetedReceipts, c.ActualReceipts, c.Appropriations, c.ActualSpending })).ToList());
+
+    private static readonly string[] MeasureLead = ["Fund", "Name", "Department"];
+
+    public static ExportTable AppropriationMeasure(AppropriationMeasureDto report) => new(
+        "Appropriation measure",
+        MeasureLead.Concat(report.ColumnLabels).Concat(["Other", "Total"]).ToList(),
+        report.Funds.SelectMany(f => f.Departments.Select(d => MeasureRow(f.FundCode, f.FundName, d))
+                .Append(MeasureRow(f.FundCode, f.FundName, f.Subtotal))
+                .Append(new object?[] { f.FundCode, f.FundName, "Transfers out" }.Concat(report.ColumnLabels.Select(_ => (object?)null)).Concat([f.TransfersOut, f.TransfersOut]).ToArray()))
+            .Append(MeasureRow("", "", report.DepartmentsTotal)).ToList());
+
+    private static object?[] ActualRow(string fund, string department, BudgetActualRowDto r) =>
+        [fund, department, r.AccountNumber, r.Label, r.Budget, r.Actual, r.Encumbered, r.Remaining, r.Used * 100m, r.LastYearAtThisPoint];
+
+    private static object?[] ReceiptRow(string fund, RevenueReceiptRowDto r) =>
+        [fund, r.AccountNumber, r.Label, r.Estimate, r.Received, r.StillToCollect, r.Collected * 100m, r.NormallyByNow * 100m];
+
+    private static object?[] MeasureRow(string fundCode, string fundName, MeasureRowDto r) =>
+        new object?[] { fundCode, fundName, r.Label }.Concat(r.Columns.Cast<object?>()).Concat([r.Other, r.Total]).ToArray();
+
     private static object?[] CertificateRow(string section, CertificateRowDto r) =>
         new object?[] { section, r.FundCode, r.FundName, r.Cash, r.Encumbrances, r.Nonspendable, r.Reserves, r.UnpaidAdvances, r.Carryover }
             .Concat(r.RevenueColumns.Cast<object?>())

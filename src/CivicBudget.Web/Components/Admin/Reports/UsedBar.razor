@@ -1,0 +1,38 @@
+@* How much of a budget is used, as a bar with a tick where the year's pace says it should be: a line
+   past the tick in August is running ahead, whatever the percentage alone suggests. *@
+@if (Share is { } share)
+{
+    decimal percent = Math.Round(share * 100m, 0);
+    <span class="cb-usedbar @(Tone)" title="@($"{percent}% {Verb}{(Pace is { } p ? $"; {Math.Round(p * 100m, 0)}% of the {PaceLabel}" : "")}")">
+        <span class="cb-usedbar-track" aria-hidden="true">
+            <span class="cb-usedbar-fill" style="width: @Css(Math.Clamp(percent, 0m, 100m))%"></span>
+            @if (Pace is { } pace)
+            {
+                <span class="cb-usedbar-pace" style="left: @Css(Math.Clamp(pace * 100m, 0m, 100m))%"></span>
+            }
+        </span>
+        <span class="cb-usedbar-value">@percent%</span>
+    </span>
+}
+
+@code {
+    /// <summary>Used (or collected) as a share of the budget; nothing is drawn when there is no budget.</summary>
+    [Parameter, EditorRequired]
+    public decimal? Share { get; set; }
+
+    /// <summary>Where an even line would be by now, or where the same account was last year.</summary>
+    [Parameter]
+    public decimal? Pace { get; set; }
+
+    [Parameter]
+    public string PaceLabel { get; set; } = "year gone";
+
+    [Parameter]
+    public string Verb { get; set; } = "used";
+
+    /// <summary>"over" (amber) or "behind" (amber) when the row needs attention.</summary>
+    [Parameter]
+    public string? Tone { get; set; }
+
+    private static string Css(decimal value) => value.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+}

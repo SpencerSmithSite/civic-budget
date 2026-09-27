@@ -1,0 +1,77 @@
+@page "/admin/reports/{VersionId:guid}/trends"
+@attribute [Authorize(Policy = Policies.CanViewBudget)]
+@using CivicBudget.Application.Reports
+@inject IActualsReportService Reports
+
+@* Each fund across the years: what was budgeted and what the ERP says happened, receipts and
+   spending, up to and including this budget. One small table per fund reads better than one wide
+   table of forty columns, on a phone and on paper. *@
+<PageTitle>Multi-year Trends</PageTitle>
+
+@if (notFound)
+{
+    <PageHeader Title="Multi-year Trends" Eyebrow="Reports" Crumbs="@([new Crumb("Budget"), new Crumb("Reports", "admin/reports"), new Crumb("Multi-year Trends")])" />
+    <EmptyState Icon="bi-shield-lock" Title="Not available" Text="Trends cover whole funds, so they are run by the Fiscal Officer, an Administrator, or a Viewer; or the budget version was not found.">
+        <a class="btn btn-primary" href="admin/reports">Reports</a>
+    </EmptyState>
+}
+else if (report is null)
+{
+    <PageHeader Title="Multi-year Trends" Eyebrow="Reports" Crumbs="@([new Crumb("Budget"), new Crumb("Reports", "admin/reports"), new Crumb("Multi-year Trends")])" />
+    <SkeletonRows Rows="6" Columns="5" />
+}
+else
+{
+    <ReportShell Title="Multi-year Trends" Header="report.Header" ExportHref="@($"admin/export/reports/{VersionId}/trends.xlsx")"
+                 Description="Each fund's budgets and the ERP's actuals, year by year, up to this budget."
+                 FootNote="Past years' budgets are each year's latest adopted version. Actuals are the ERP's; a year still under way shows its figures to date.">
+        <div class="cb-trend-list">
+            @foreach (TrendFundDto fund in report.Funds.Append(new TrendFundDto("", "All funds", report.Totals)))
+            {
+                <div class="cb-grid-wrap">
+                    <table class="cb-grid table cb-report-table" aria-label="@($"Trends, {fund.FundName}")">
+                        <caption class="caption-top px-3 pt-2 pb-1 fw-semibold small">@(fund.FundCode.Length > 0 ? $"{fund.FundCode} " : "")@fund.FundName</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">Fiscal year</th>
+                                <th scope="col" class="cb-num">Budgeted receipts</th>
+                                <th scope="col" class="cb-num">Actual receipts</th>
+                                <th scope="col" class="cb-num">Appropriations</th>
+                                <th scope="col" class="cb-num">Actual spending</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (TrendCellDto cell in fund.Years)
+                            {
+                                TrendYearDto year = report.Years.Single(y => y.FiscalYear == cell.FiscalYear);
+                                <tr>
+                                    <th scope="row" class="fw-normal cb-wrap">FY@(year.FiscalYear) <span class="small text-secondary">@year.BudgetLabel@(year.Actuals is { } a ? $" · actuals {a}" : "")</span></th>
+                                    <td class="cb-num">@Amount(cell.BudgetedReceipts)</td>
+                                    <td class="cb-num">@Amount(cell.ActualReceipts)</td>
+                                    <td class="cb-num">@Amount(cell.Appropriations)</td>
+                                    <td class="cb-num">@Amount(cell.ActualSpending)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </ReportShell>
+}
+
+@code {
+    [Parameter]
+    public Guid VersionId { get; set; }
+
+    private TrendReportDto? report;
+    private bool notFound;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        report = await Reports.TrendsAsync(VersionId);
+        notFound = report is null;
+    }
+
+    private static string Amount(decimal? value) => value is { } v ? Display.Amount(v) : "";
+}
