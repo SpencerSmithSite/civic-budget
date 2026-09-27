@@ -2,6 +2,7 @@ using CivicBudget.Application.Export;
 using CivicBudget.Application.Persistence;
 using CivicBudget.Application.Portal;
 using CivicBudget.Application.Publishing;
+using CivicBudget.Application.Reports;
 using CivicBudget.Application.Security;
 using CivicBudget.Application.Setup;
 using CivicBudget.Application.Tenancy;
@@ -11,6 +12,7 @@ using CivicBudget.Infrastructure.Identity;
 using CivicBudget.Infrastructure.Persistence;
 using CivicBudget.Infrastructure.Persistence.Interceptors;
 using CivicBudget.Infrastructure.Portal;
+using CivicBudget.Infrastructure.Reports;
 using CivicBudget.Infrastructure.Security;
 using CivicBudget.Infrastructure.Seed;
 using Microsoft.AspNetCore.Identity;
@@ -64,6 +66,7 @@ public static class DependencyInjection
         services.AddScoped<ISnapshotQueryService, SnapshotQueryService>();
         services.AddSingleton<ISpreadsheetExporter, ClosedXmlSpreadsheetExporter>();
         services.AddSingleton<ISpreadsheetReader, ClosedXmlSpreadsheetReader>();
+        services.AddSingleton<ICertificatePdfRenderer, CertificatePdfRenderer>();
 
         // Identity core: users, roles, password hashing, lockout, tokens, sign-in. Cookie
         // authentication itself is added by the Web project because it is an HTTP pipeline concern.

@@ -46,6 +46,17 @@ internal static class AdminExportEndpoints
             return report is null ? Results.NotFound() : File(exporter, ReportTables.RevenueVsExpenditure(report), $"revenue-vs-expenditure-{Slug(report.Header.Title)}");
         });
 
+        // The certificate goes to the county budget commission, so it has a PDF as well as the spreadsheet.
+        group.MapGet("/reports/{versionId:guid}/certificate.pdf", async (Guid versionId, [FromServices] ICertificateService certificates, [FromServices] ICertificatePdfRenderer pdf, CancellationToken ct) =>
+            await certificates.GetAsync(versionId, ct) is { } certificate
+                ? Results.File(pdf.Render(certificate), "application/pdf", $"certificate-{Slug(certificate.Header.GovernmentName)}-fy{certificate.Header.FiscalYear}-{Slug(certificate.Header.VersionLabel)}.pdf")
+                : Results.NotFound());
+
+        group.MapGet("/reports/{versionId:guid}/certificate.xlsx", async (Guid versionId, [FromServices] ICertificateService certificates, [FromServices] ISpreadsheetExporter exporter, CancellationToken ct) =>
+            await certificates.GetAsync(versionId, ct) is { } certificate
+                ? File(exporter, ReportTables.Certificate(certificate), $"certificate-fy{certificate.Header.FiscalYear}-{Slug(certificate.Header.VersionLabel)}")
+                : Results.NotFound());
+
         // The ERP's import file for a budget journal: CSV, because that is what an ERP import reads.
         group.MapGet("/erp-journals/{transmissionId:guid}.csv", async (Guid transmissionId, [FromServices] IBudgetTransmissionService sends, CancellationToken ct) =>
             await sends.FileAsync(transmissionId, ct) is { } file

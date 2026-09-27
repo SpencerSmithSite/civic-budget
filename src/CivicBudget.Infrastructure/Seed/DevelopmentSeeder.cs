@@ -9,6 +9,7 @@ using CivicBudget.Domain.FiscalYears;
 using CivicBudget.Domain.Funds;
 using CivicBudget.Domain.Governments;
 using CivicBudget.Domain.Publishing;
+using CivicBudget.Domain.Reports;
 using CivicBudget.Infrastructure.Erp;
 using CivicBudget.Infrastructure.Identity;
 using CivicBudget.Infrastructure.Persistence;
@@ -203,6 +204,14 @@ public sealed class DevelopmentSeeder(
         // yet, so the send page opens on exactly the supplemental appropriation's two changes.
         chart.AddSentJournal(db, fy2025, 2025, "FY2025 Original, resolution 2024-38", new DateOnly(2025, 1, 1), "BJ2025-00112", new DateTimeOffset(2025, 1, 2, 15, 10, 0, TimeSpan.Zero));
         chart.AddSentJournal(db, fy2026, 2026, "FY2026 Original, resolution 2025-41", new DateOnly(2026, 1, 1), "BJ2026-00007", new DateTimeOffset(2026, 1, 5, 14, 30, 0, TimeSpan.Zero));
+
+        // The certificate's settings, as the fiscal officer would set them once: the county whose
+        // budget commission certifies it (fictional, like the village), who prepares it, and a Taxes
+        // column of the village's real estate and municipal income taxes. Pine Hollow keeps the defaults.
+        var certificate = new CertificateSettings(government.Id);
+        certificate.Update("Harmon", "Dana Whitfield", CertificateSettings.DefaultFiscalOfficerTitle, CertificateSettings.DefaultBalanceLabel, CertificateSettings.DefaultOtherSourcesLabel);
+        db.CertificateSettings.Add(certificate);
+        db.ReportAccountGroups.Add(new ReportAccountGroup(government.Id, ReportKind.Certificate, "Taxes", 0, [chart.Account("4110").Id, chart.Account("4130").Id]));
 
         // The ERP has already sent last year's closed books and this year's so far, as it would have by
         // the time a draft is in progress. The actuals page can fetch them again at any time.

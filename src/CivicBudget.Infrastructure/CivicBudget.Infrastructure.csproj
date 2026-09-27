@@ -11,10 +11,15 @@
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" />
     <PackageReference Include="ClosedXML" />
+    <PackageReference Include="PDFsharp-MigraDoc" />
     <!-- Design-time only (PrivateAssets): lets `dotnet ef -p src/CivicBudget.Infrastructure` run without a startup project. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The PDF's typeface travels inside the assembly: a Linux container has no fonts for PDFsharp to find. -->
+    <EmbeddedResource Include="Reports/Fonts/*.ttf" />
   </ItemGroup>
 </Project>
