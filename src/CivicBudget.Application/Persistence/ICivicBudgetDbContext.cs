@@ -35,6 +35,7 @@ public interface ICivicBudgetDbContext : IAsyncDisposable, IDisposable
     DbSet<ErpActual> ErpActuals { get; }
     DbSet<ErpEncumbrance> ErpEncumbrances { get; }
     DbSet<ErpFundCash> ErpFundCash { get; }
+    DbSet<BudgetTransmission> BudgetTransmissions { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

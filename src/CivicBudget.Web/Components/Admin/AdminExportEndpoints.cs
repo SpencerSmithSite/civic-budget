@@ -1,4 +1,5 @@
 using CivicBudget.Application.Budgets;
+using CivicBudget.Application.Erp;
 using CivicBudget.Application.Export;
 using CivicBudget.Application.Reports;
 using CivicBudget.Application.Security;
@@ -44,6 +45,13 @@ internal static class AdminExportEndpoints
             CategoryReportDto? report = await reports.RevenueVsExpenditureAsync(versionId, ct);
             return report is null ? Results.NotFound() : File(exporter, ReportTables.RevenueVsExpenditure(report), $"revenue-vs-expenditure-{Slug(report.Header.Title)}");
         });
+
+        // The ERP's import file for a budget journal: CSV, because that is what an ERP import reads.
+        group.MapGet("/erp-journals/{transmissionId:guid}.csv", async (Guid transmissionId, [FromServices] IBudgetTransmissionService sends, CancellationToken ct) =>
+            await sends.FileAsync(transmissionId, ct) is { } file
+                ? Results.File(CsvWriter.ToCsv(file.Table), "text/csv", file.FileName)
+                : Results.NotFound())
+            .RequireAuthorization(Policies.CanSendToErp);
 
         RouteGroupBuilder setup = group.MapGroup("/setup").RequireAuthorization(Policies.CanMaintainSetup);
 

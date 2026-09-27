@@ -1,0 +1,424 @@
+@page "/admin/budgets/{VersionId:guid}/send"
+@attribute [Authorize(Policy = Policies.CanSendToErp)]
+@using CivicBudget.Application.Erp
+@using CivicBudget.Domain.Erp
+@inject IBudgetTransmissionService Sends
+@inject NavigationManager Navigation
+@inject ToastService Toasts
+
+@* The one button that puts the adopted budget into the ERP. The page shows exactly what the journal
+   will post (only what changed since the ERP last took this year's budget), asks for the journal's
+   description and date once, and sends it by API or as an import file. An unfinished send is shown
+   first and must be settled before another starts, so the ERP never receives the same change twice. *@
+<PageTitle>Send to @Sends.ErpName</PageTitle>
+
+@if (notFound)
+{
+    <EmptyState Icon="bi-journal-x" Title="Budget version not found" Text="It may have been removed, or the link is wrong."><a class="btn btn-primary" href="admin/budgets">Budget versions</a></EmptyState>
+}
+else if (view is null)
+{
+    <PageHeader Title="@($"Send to {Sends.ErpName}")" Eyebrow="Budget" Crumbs="@([new Crumb("Budget"), new Crumb("Budget versions", "admin/budgets"), new Crumb("Send")])" />
+    <SkeletonRows Rows="4" Columns="4" />
+}
+else
+{
+    <PageHeader Title="@($"Send to {view.ErpName}")" Eyebrow="@($"Budget · FY{view.FiscalYear} {view.VersionLabel}")"
+                Crumbs="@([new Crumb("Budget"), new Crumb("Budget versions", "admin/budgets"), new Crumb($"FY{view.FiscalYear} {view.VersionLabel}", $"admin/budgets/{VersionId}"), new Crumb("Send")])"
+                Tip="@($"The journal holds changes, not totals: the first send of a year posts every amount, and an amendment posts only what moved. Each line carries the full account number, the amount, and the journal's one description and posting date, as {view.ErpName} expects.")" />
+
+    @if (view.CannotSendReason is { } reason)
+    {
+        <div class="alert alert-info"><i class="bi bi-info-circle me-2" aria-hidden="true"></i>@reason</div>
+    }
+
+    @if (view.Open is { } open)
+    {
+        <div class="alert @(open.Status == TransmissionStatus.Failed ? "alert-warning" : "alert-info") cb-open-send" role="status">
+            @if (open.Status == TransmissionStatus.AwaitingImport)
+            {
+                <div class="fw-semibold">The import file from @Display.Timestamp(open.CreatedAtUtc) is waiting to be loaded into @view.ErpName.</div>
+                <div class="small">Import it, then confirm here so the next send starts from it. Discard it if it will not be imported.</div>
+                <div class="d-flex gap-2 flex-wrap mt-2">
+                    <a class="btn btn-outline-primary btn-sm" href="admin/export/erp-journals/@(open.Id).csv" download><i class="bi bi-download me-1" aria-hidden="true"></i>Download again</a>
+                    <button type="button" class="btn btn-primary btn-sm" @onclick="() => confirmImportDialog.Show()">Confirm imported</button>
+                    <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => discardDialog.Show()">Discard</button>
+                </div>
+            }
+            else
+            {
+                <div class="fw-semibold">The send on @Display.Timestamp(open.CreatedAtUtc) got no answer from @open.TargetName.</div>
+                <div class="small">It may or may not have posted. Trying again is safe: the same journal goes under the same id, and @view.ErpName recognizes one it already has.</div>
+                <div class="d-flex gap-2 flex-wrap mt-2">
+                    @if (view.ApiName is not null)
+                    {
+                        <button type="button" class="btn btn-primary btn-sm" @onclick="RetryAsync" disabled="@busy"><i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>Try again</button>
+                    }
+                    <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => discardDialog.Show()">Discard</button>
+                </div>
+            }
+        </div>
+    }
+
+    @if (view.CannotSendReason is null && view.Changes.Count == 0 && view.Open is null)
+    {
+        <div class="card mb-4">
+            <EmptyState Icon="bi-check2-circle" Title="@($"{view.ErpName} already has this budget")"
+                        Text="@(LastPosted is { } last ? $"Its last journal, {last.ErpReference ?? "confirmed by import"}, matches every line. Nothing needs sending." : "Nothing needs sending.")" />
+        </div>
+    }
+    else if (view.Changes.Count > 0)
+    {
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="cb-send-fields">
+                    <div>
+                        <label class="form-label fw-semibold" for="journalDescription">Journal description</label>
+                        <input id="journalDescription" class="form-control" maxlength="@BudgetTransmission.DescriptionMaxLength" @bind="description" @bind:event="oninput" disabled="@(!view.CanSend)" />
+                        <div class="form-text">Goes on every line in @view.ErpName.</div>
+                    </div>
+                    <div>
+                        <label class="form-label fw-semibold" for="postingDate">Posting date</label>
+                        <input id="postingDate" type="date" class="form-control" min="@view.FiscalYearStart.ToString("yyyy-MM-dd")" max="@view.FiscalYearEnd.ToString("yyyy-MM-dd")" @bind="postingDate" disabled="@(!view.CanSend)" />
+                        <div class="form-text">Within FY@(view.FiscalYear).</div>
+                    </div>
+                </div>
+                @if (fieldErrors.Count > 0)
+                {
+                    <div class="alert alert-danger small mt-3 mb-0">@string.Join(" ", fieldErrors)</div>
+                }
+                <div class="cb-kpis mt-3 mb-0">
+                    <KpiCard Label="Lines" Value="@view.Changes.Count.ToString()" Detail="@(LastPosted is null ? "The whole budget: first send of the year" : "Only what changed since the last journal")" />
+                    <KpiCard Label="Increases" Value="@Display.Money(Increases)" Tone="ok" />
+                    <KpiCard Label="Decreases" Value="@Display.Money(Decreases)" Tone="@(Decreases < 0 ? "warn" : "")" />
+                    <KpiCard Label="Net change" Value="@Display.SignedMoney(Increases + Decreases)" />
+                </div>
+            </div>
+            <div class="cb-toolbar">
+                <div class="grow fw-semibold">What the journal posts</div>
+                <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => fileDialog.Show()" disabled="@(!view.CanSend || busy)"><i class="bi bi-file-earmark-arrow-down me-1" aria-hidden="true"></i>Download import file</button>
+                @if (view.ApiName is not null)
+                {
+                    <button type="button" class="btn btn-primary btn-sm" @onclick="() => sendDialog.Show()" disabled="@(!view.CanSend || busy)"><i class="bi bi-send me-1" aria-hidden="true"></i>Send to @view.ErpName</button>
+                }
+            </div>
+            <div class="cb-grid-wrap">
+                <table class="cb-grid table" aria-label="What the journal posts">
+                    <thead><tr><th scope="col">Account</th><th scope="col" class="cb-num cb-col-wide">In @view.ErpName now</th><th scope="col" class="cb-num cb-col-wide">This budget</th><th scope="col" class="cb-num">Journal amount</th></tr></thead>
+                    <tbody>
+                        @foreach (JournalChange c in view.Changes)
+                        {
+                            <tr>
+                                <td class="cb-wrap"><span class="cb-code">@c.AccountNumber</span> @c.AccountName</td>
+                                <td class="cb-num cb-col-wide text-secondary">@Display.Amount(c.InErp)</td>
+                                <td class="cb-num cb-col-wide">@Display.Amount(c.InBudget)</td>
+                                <td class="cb-num @(c.Change < 0 ? "cb-neg" : "cb-pos")">@Display.SignedChange(c.Change)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    <h2 class="h6 mb-2">FY@(view.FiscalYear) sends</h2>
+    @if (view.History.Count == 0)
+    {
+        <div class="card"><EmptyState Icon="bi-send" Title="Nothing sent yet" Text="@($"FY{view.FiscalYear}'s budget has not gone to {view.ErpName}.")" /></div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="cb-cards d-md-none">
+                @foreach (TransmissionDto t in view.History)
+                {
+                    <ListCard Title="@($"{t.VersionLabel} · {Display.SignedMoney(t.Net)}")">
+                        <Summary>@Display.Timestamp(t.CreatedAtUtc) · @t.UserName</Summary>
+                        <ChildContent><div class="cb-list-card-meta"><StatusPill Tone="@Tone(t.Status)" Label="@Label(t.Status)" /> @(t.ErpReference ?? "") · @t.Lines.Count lines</div></ChildContent>
+                        <Menu><button type="button" class="btn btn-link btn-sm p-0" @onclick="() => ShowDetails(t)">Details</button></Menu>
+                    </ListCard>
+                }
+            </div>
+            <div class="cb-grid-wrap d-none d-md-block">
+                <table class="cb-grid table" aria-label="@($"FY{view.FiscalYear} sends")">
+                    <thead><tr><th scope="col">When</th><th scope="col">By</th><th scope="col">Version</th><th scope="col">How</th><th scope="col">Status</th><th scope="col">Journal</th><th scope="col" class="cb-num">Lines</th><th scope="col" class="cb-num">Net</th><th scope="col"></th></tr></thead>
+                    <tbody>
+                        @foreach (TransmissionDto t in view.History)
+                        {
+                            <tr>
+                                <td>@Display.Timestamp(t.CreatedAtUtc)</td>
+                                <td>@t.UserName</td>
+                                <td>@t.VersionLabel</td>
+                                <td>@(t.Method == TransmissionMethod.Api ? "API" : "Import file")</td>
+                                <td><StatusPill Tone="@Tone(t.Status)" Label="@Label(t.Status)" /></td>
+                                <td class="cb-code">@t.ErpReference</td>
+                                <td class="cb-num">@t.Lines.Count</td>
+                                <td class="cb-num">@Display.SignedChange(t.Net)</td>
+                                <td class="text-end"><button type="button" class="btn btn-link btn-sm p-0" @onclick="() => ShowDetails(t)">Details</button></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    <SideDrawer @bind-IsOpen="detailsOpen" Title="@(details is null ? "Send" : $"{details.VersionLabel}, {Display.LongDate(details.CreatedAtUtc)}")">
+        @if (details is not null)
+        {
+            <div class="px-3 pt-2 small">
+                <div><b>@Label(details.Status)</b>@(details.ErpReference is null ? "" : $" as {details.ErpReference}") · @details.TargetName</div>
+                <div class="text-secondary">"@details.Description", posting @Display.Date(details.PostingDate)</div>
+                @if (details.Message is not null)
+                {
+                    <div class="mt-1">@details.Message</div>
+                }
+            </div>
+            <table class="cb-grid table mt-2" aria-label="Lines in this send">
+                <thead><tr><th scope="col">Account</th><th scope="col" class="cb-num">Amount</th></tr></thead>
+                <tbody>
+                    @foreach (TransmissionLineDto l in details.Lines)
+                    {
+                        <tr class="@(l.RefusedReason is null ? "" : "cb-row-error")">
+                            <td class="cb-wrap"><span class="cb-code">@l.AccountNumber</span>@if (l.RefusedReason is not null) { <div class="small text-danger">@l.RefusedReason</div> }</td>
+                            <td class="cb-num">@Display.SignedChange(l.Amount)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </SideDrawer>
+
+    <ConfirmDialog @ref="sendDialog" Title="@($"Send to {view.ErpName}?")" ConfirmText="@($"Send {view.Changes.Count} line{(view.Changes.Count == 1 ? "" : "s")}")" OnConfirm="SendAsync">
+        <Body>
+            <p>@view.ApiName posts one journal, "@description", dated @Display.Date(postingDate), with @view.Changes.Count line@(view.Changes.Count == 1 ? "" : "s") and a net change of @Display.SignedMoney(Increases + Decreases).</p>
+            <p class="mb-0 small text-secondary">If any account is refused, nothing posts and the refused accounts are listed.</p>
+        </Body>
+    </ConfirmDialog>
+
+    <ConfirmDialog @ref="fileDialog" Title="Download the import file?" ConfirmText="Download" OnConfirm="CreateFileAsync">
+        <Body>
+            <p>The file has @view.ErpName's four columns: Account, Amount, Description, and Date. After loading it into @view.ErpName, come back and confirm the import, so the next send starts from it.</p>
+            <p class="mb-0 small text-secondary">Until then no other FY@(view.FiscalYear) send can start, so the same change cannot reach @view.ErpName twice.</p>
+        </Body>
+    </ConfirmDialog>
+
+    <ConfirmDialog @ref="confirmImportDialog" Title="@($"Confirm the file is in {view.ErpName}?")" ConfirmText="Confirm imported" OnConfirm="ConfirmImportedAsync">
+        <Body>
+            <label class="form-label" for="journalNumber">@view.ErpName's journal number (optional)</label>
+            <input id="journalNumber" class="form-control" maxlength="@BudgetTransmission.ReferenceMaxLength" @bind="journalNumber" />
+        </Body>
+    </ConfirmDialog>
+
+    <ConfirmDialog @ref="discardDialog" Title="Discard this send?" ConfirmText="Discard" ConfirmClass="btn-danger" OnConfirm="DiscardAsync">
+        <Body>
+            @if (view.Open?.Status == TransmissionStatus.Failed)
+            {
+                <p class="mb-0">Discard only if @view.ErpName shows the journal was never posted. If it was, discarding here would make the next send post the same changes again.</p>
+            }
+            else
+            {
+                <p class="mb-0">Discard only if the file will not be loaded into @view.ErpName. If it already was, confirm the import instead.</p>
+            }
+        </Body>
+    </ConfirmDialog>
+}
+
+@code {
+    [Parameter]
+    public Guid VersionId { get; set; }
+
+    private SendPageDto? view;
+    private Guid loadedId;
+    private bool notFound;
+    private bool busy;
+    private string description = "";
+    private DateOnly postingDate;
+    private string? journalNumber;
+    private List<string> fieldErrors = [];
+    private bool detailsOpen;
+    private TransmissionDto? details;
+    private ConfirmDialog sendDialog = null!;
+    private ConfirmDialog fileDialog = null!;
+    private ConfirmDialog confirmImportDialog = null!;
+    private ConfirmDialog discardDialog = null!;
+
+    private decimal Increases => view?.Changes.Where(c => c.Change > 0).Sum(c => c.Change) ?? 0m;
+    private decimal Decreases => view?.Changes.Where(c => c.Change < 0).Sum(c => c.Change) ?? 0m;
+    private TransmissionDto? LastPosted => view?.History.FirstOrDefault(h => h.Status is TransmissionStatus.Accepted or TransmissionStatus.Imported);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (VersionId != loadedId)
+        {
+            loadedId = VersionId;
+            view = null;
+            await LoadAsync(resetForm: true);
+        }
+    }
+
+    private async Task LoadAsync(bool resetForm)
+    {
+        view = await Sends.GetAsync(VersionId);
+        notFound = view is null;
+        if (view is not null && resetForm)
+        {
+            description = view.DefaultDescription;
+            postingDate = view.DefaultPostingDate;
+        }
+    }
+
+    private SendBudgetRequest Request => new(VersionId, description, postingDate);
+
+    private async Task<bool> SendAsync()
+    {
+        busy = true;
+        try
+        {
+            Result<TransmissionDto> result = await Sends.SendAsync(Request);
+            if (!Report(result))
+            {
+                return true;
+            }
+
+            TransmissionDto sent = result.Value;
+            ShowOutcome(sent);
+            await LoadAsync(resetForm: false);
+        }
+        finally
+        {
+            busy = false;
+        }
+
+        StateHasChanged(); // the confirm runs inside the dialog's event, so the page must ask for its own re-render
+        return true;
+    }
+
+    private async Task<bool> CreateFileAsync()
+    {
+        Result<TransmissionDto> result = await Sends.CreateFileAsync(Request);
+        if (!Report(result))
+        {
+            return true;
+        }
+
+        Toasts.Success("Import file created. Load it into " + view!.ErpName + ", then confirm the import here.");
+        await LoadAsync(resetForm: false);
+        StateHasChanged();
+        Navigation.NavigateTo($"admin/export/erp-journals/{result.Value.Id}.csv", forceLoad: true);
+        return true;
+    }
+
+    private async Task RetryAsync()
+    {
+        if (view?.Open is not { } open)
+        {
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            Result<TransmissionDto> result = await Sends.RetryAsync(open.Id);
+            if (Report(result))
+            {
+                ShowOutcome(result.Value);
+                await LoadAsync(resetForm: false);
+            }
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task<bool> ConfirmImportedAsync()
+    {
+        if (view?.Open is { } open)
+        {
+            await SettleAsync(Sends.ConfirmImportedAsync(open.Id, journalNumber), "Import confirmed. The next send starts from it.");
+        }
+
+        return true;
+    }
+
+    private async Task<bool> DiscardAsync()
+    {
+        if (view?.Open is { } open)
+        {
+            await SettleAsync(Sends.DiscardAsync(open.Id), "Discarded.");
+        }
+
+        return true;
+    }
+
+    private async Task SettleAsync(Task<Result> action, string success)
+    {
+        Result result = await action;
+        if (result.IsFailure)
+        {
+            Toasts.Danger(result.Errors[0].Message);
+            return;
+        }
+
+        Toasts.Success(success);
+        journalNumber = null;
+        await LoadAsync(resetForm: false);
+        StateHasChanged();
+    }
+
+    /// <summary>Field problems stay on the form; anything else is a toast. Returns whether it succeeded.</summary>
+    private bool Report(Result<TransmissionDto> result)
+    {
+        fieldErrors = result.IsFailure ? result.Errors.Where(e => e.PropertyName.Length > 0).Select(e => e.Message).ToList() : [];
+        if (result.IsFailure && fieldErrors.Count == 0)
+        {
+            Toasts.Danger(result.Errors[0].Message);
+        }
+
+        return result.IsSuccess;
+    }
+
+    private void ShowOutcome(TransmissionDto sent)
+    {
+        switch (sent.Status)
+        {
+            case TransmissionStatus.Accepted:
+                Toasts.Success($"{sent.TargetName} posted journal {sent.ErpReference}.");
+                break;
+            case TransmissionStatus.Rejected:
+                Toasts.Danger($"{sent.TargetName} refused the journal; nothing was posted. See the refused accounts in the history.");
+                ShowDetails(sent);
+                break;
+            default:
+                Toasts.Danger($"No answer from {sent.TargetName}. Try again from the banner; it is safe.");
+                break;
+        }
+    }
+
+    private void ShowDetails(TransmissionDto t)
+    {
+        details = t;
+        detailsOpen = true;
+    }
+
+    private static string Tone(TransmissionStatus status) => status switch
+    {
+        TransmissionStatus.Accepted or TransmissionStatus.Imported => "success",
+        TransmissionStatus.Rejected => "danger",
+        TransmissionStatus.Failed => "warning",
+        TransmissionStatus.Sending or TransmissionStatus.AwaitingImport => "info",
+        _ => "",
+    };
+
+    private static string Label(TransmissionStatus status) => status switch
+    {
+        TransmissionStatus.Accepted => "Posted",
+        TransmissionStatus.Imported => "Imported",
+        TransmissionStatus.Rejected => "Refused",
+        TransmissionStatus.Failed => "No answer",
+        TransmissionStatus.Sending => "Sending",
+        TransmissionStatus.AwaitingImport => "Waiting for import",
+        _ => "Discarded",
+    };
+}

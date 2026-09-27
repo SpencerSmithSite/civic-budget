@@ -18,6 +18,7 @@ public static class AuthorizationPolicies
             .AddPolicy(Policies.CanEditBeginningBalances, p => p.RequireRole(Roles.Admin, Roles.FinanceDirector))
             .AddPolicy(Policies.CanAdvanceWorkflow, p => p.RequireRole(Roles.Admin, Roles.FinanceDirector))
             .AddPolicy(Policies.CanPublish, p => p.RequireRole(Roles.Admin, Roles.FinanceDirector))
+            .AddPolicy(Policies.CanSendToErp, p => p.RequireRole(Roles.Admin, Roles.FinanceDirector))
             .AddPolicy(Policies.CanImport, p => p.RequireRole(Roles.Admin, Roles.FinanceDirector))
             .AddPolicy(Policies.CanViewAudit, p => p.RequireRole(Roles.Admin, Roles.FinanceDirector, Roles.DepartmentHead))
             // Resource-based: the handler needs the line and version, so the policy only names the requirement.
