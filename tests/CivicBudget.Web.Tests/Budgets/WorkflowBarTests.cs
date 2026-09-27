@@ -104,7 +104,7 @@ public class WorkflowBarTests : BunitContext
         Assert.Single(bar.FindAll("button:contains('Unpublish')"));
         Assert.Single(bar.FindAll("button:contains('Start an amendment')"));
         Assert.Empty(bar.FindAll("button:contains('Publish to portal')"));
-        Assert.Equal($"admin/budgets/{Version.Id}/send", bar.Find("a:contains('Send to VIP')").GetAttribute("href"));
+        Assert.Equal($"admin/budgets/{Version.Id}/send", bar.Find("a:contains('Send to ERP')").GetAttribute("href"));
     }
 
     [Fact]

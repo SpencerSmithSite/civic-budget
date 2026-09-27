@@ -14,7 +14,7 @@ src/
   CivicBudget.Domain          entities, value objects, budget rules, domain exceptions
   CivicBudget.Application     use cases (services), DTOs, validators, and the interfaces they need
   CivicBudget.Infrastructure  EF Core contexts, configurations, migrations, interceptors,
-                              Identity, Excel reading and writing, seed data, the simulated VIP
+                              Identity, Excel reading and writing, seed data, the simulated ERP
   CivicBudget.Web             Blazor Web App: admin (Interactive Server) and portal (static SSR),
                               account pages, file endpoints, startup, the composition root
 tests/

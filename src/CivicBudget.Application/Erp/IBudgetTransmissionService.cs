@@ -36,8 +36,6 @@ public sealed record SendPageDto(
     string VersionLabel,
     DateOnly FiscalYearStart,
     DateOnly FiscalYearEnd,
-    /// <summary>"VIP" for buttons; "the ERP" when no connection is set up.</summary>
-    string ErpName,
     /// <summary>The API connection's name, or null when only the import file is available.</summary>
     string? ApiName,
     /// <summary>Why this version cannot be sent, or null when it can.</summary>
@@ -64,9 +62,6 @@ public sealed record SendBudgetRequest(Guid VersionId, string Description, DateO
 /// </summary>
 public interface IBudgetTransmissionService
 {
-    /// <summary>What to call the ERP on buttons: "VIP" with a connection, "the ERP" without one.</summary>
-    string ErpName { get; }
-
     Task<SendPageDto?> GetAsync(Guid versionId, CancellationToken ct = default);
 
     /// <summary>Posts the journal to the ERP's API.</summary>

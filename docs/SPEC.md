@@ -225,7 +225,7 @@ The ERP sends a fiscal year of its books: receipts and spending by account and
 fiscal month, open encumbrances by account, and each fund's cash, as of the end
 of its last closed month. It arrives from the ERP's API when a connection is set
 up, or from an export file (`Fiscal Year, Type, Account, Period, Amount`, with the
-full account number). The live demo connects to a simulated VIP that keeps the
+full account number). The live demo connects to a simulated ERP that keeps the
 demo governments' fictional books.
 
 - **A sync replaces the year.** Every code must match the chart or nothing
@@ -515,7 +515,7 @@ prove tenant isolation in the tests and in the demo.
 | §3.6 Starting a year, concurrency | 18 | ADR-0033 |
 | §3.7 Positive amounts, department totals | 18 | ADR-0033 |
 | §3.10 Department requests | 9d | ADR-0027 |
-| §3.12 Actuals from the ERP | 22 | ADR-0034; simulated VIP in the demo |
+| §3.12 Actuals from the ERP | 22 | ADR-0034; simulated ERP in the demo |
 | §3.13 Sending the budget to the ERP | 23 | ADR-0035 |
 | §4 Workflow, §5 Validation | 4 | Block or Warn at the transition |
 | §6 Publishing | 4, 5, 18 | Denormalized snapshots (ADR-0005, 0019); read-only portal context (ADR-0006); cache evicted by tag (ADR-0021) |

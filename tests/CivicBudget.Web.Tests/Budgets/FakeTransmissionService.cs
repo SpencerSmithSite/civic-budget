@@ -12,8 +12,6 @@ internal sealed class FakeTransmissionService : IBudgetTransmissionService
     public Guid? Retried { get; private set; }
     public TransmissionDto? Answer { get; set; }
 
-    public string ErpName => "VIP";
-
     public Task<SendPageDto?> GetAsync(Guid versionId, CancellationToken ct = default) => Task.FromResult(Page);
 
     public Task<Result<TransmissionDto>> SendAsync(SendBudgetRequest request, CancellationToken ct = default)

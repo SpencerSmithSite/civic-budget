@@ -9,7 +9,7 @@ namespace CivicBudget.Web.Tests.Budgets;
 
 /// <summary>
 /// The send page shows what the journal posts before anything goes, holds the year while a send is
-/// unfinished, and says so plainly when VIP already has the budget.
+/// unfinished, and says so plainly when the ERP already has the budget.
 /// </summary>
 public class SendToErpPageTests : BunitContext
 {
@@ -29,12 +29,12 @@ public class SendToErpPageTests : BunitContext
         new(new LineKey(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()), number, "Account " + number, inErp, inBudget);
 
     private static TransmissionDto Sent(TransmissionStatus status, string? reference = null) => new(
-        Guid.CreateVersion7(), "Original", TransmissionMethod.Api, status, "VIP (simulated)", "FY2026 Original", new DateOnly(2026, 1, 1),
-        new DateTimeOffset(2026, 1, 5, 14, 30, 0, TimeSpan.Zero), "system", null, reference, status == TransmissionStatus.Failed ? "No answer from VIP (simulated): timed out" : null,
+        Guid.CreateVersion7(), "Original", TransmissionMethod.Api, status, "ERP (simulated)", "FY2026 Original", new DateOnly(2026, 1, 1),
+        new DateTimeOffset(2026, 1, 5, 14, 30, 0, TimeSpan.Zero), "system", null, reference, status == TransmissionStatus.Failed ? "No answer from ERP (simulated): timed out" : null,
         [new TransmissionLineDto("1000-110-5120", 38_000m, null)]);
 
     private static SendPageDto Page(IReadOnlyList<JournalChange> changes, TransmissionDto? open = null, IReadOnlyList<TransmissionDto>? history = null) => new(
-        VersionId, 2026, "Amendment 1", new DateOnly(2026, 1, 1), new DateOnly(2026, 12, 31), "VIP", "VIP (simulated)", null,
+        VersionId, 2026, "Amendment 1", new DateOnly(2026, 1, 1), new DateOnly(2026, 12, 31), "ERP (simulated)", null,
         "FY2026 Amendment 1, resolution 2026-11", new DateOnly(2026, 6, 15), changes, open, history ?? (open is null ? [] : [open]));
 
     [Fact]
@@ -52,7 +52,7 @@ public class SendToErpPageTests : BunitContext
         Assert.Contains("+$24,000.00", page.Find(".cb-kpis").TextContent);
 
         await page.Find("#journalDescription").InputAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = "Supplemental appropriation" });
-        await page.Find("button:contains('Send to VIP')").ClickAsync(new());
+        await page.Find("button:contains('Send to ERP')").ClickAsync(new());
         Assert.Null(_sends.Sent);                                                            // nothing goes until the dialog is confirmed
         await page.Find(".modal-footer .btn-primary").ClickAsync(new());
 
@@ -68,8 +68,8 @@ public class SendToErpPageTests : BunitContext
 
         IRenderedComponent<SendToErp> page = Render<SendToErp>(p => p.Add(x => x.VersionId, VersionId));
 
-        page.WaitForAssertion(() => Assert.Contains("got no answer from VIP (simulated)", page.Find(".cb-open-send").TextContent));
-        Assert.True(page.Find("button:contains('Send to VIP')").HasAttribute("disabled"));   // no new send while one is unsettled
+        page.WaitForAssertion(() => Assert.Contains("got no answer from ERP (simulated)", page.Find(".cb-open-send").TextContent));
+        Assert.True(page.Find("button:contains('Send to ERP')").HasAttribute("disabled"));   // no new send while one is unsettled
         Assert.True(page.Find("#journalDescription").HasAttribute("disabled"));
 
         await page.Find(".cb-open-send button:contains('Try again')").ClickAsync(new());
@@ -84,9 +84,9 @@ public class SendToErpPageTests : BunitContext
 
         IRenderedComponent<SendToErp> page = Render<SendToErp>(p => p.Add(x => x.VersionId, VersionId));
 
-        page.WaitForAssertion(() => Assert.Contains("VIP already has this budget", page.Markup));
+        page.WaitForAssertion(() => Assert.Contains("The ERP already has this budget", page.Markup));
         Assert.Contains("BJ2026-00007", page.Markup);
-        Assert.Empty(page.FindAll("button:contains('Send to VIP')"));
+        Assert.Empty(page.FindAll("button:contains('Send to ERP')"));
         Assert.Contains("Posted", page.Find("table[aria-label='FY2026 sends']").TextContent);
     }
 }

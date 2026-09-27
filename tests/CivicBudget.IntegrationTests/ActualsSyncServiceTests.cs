@@ -15,7 +15,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace CivicBudget.IntegrationTests;
 
 /// <summary>
-/// Actuals from the ERP: what the seed brings, a sync from the simulated VIP and from a file,
+/// Actuals from the ERP: what the seed brings, a sync from the simulated ERP and from a file,
 /// the prior-year actuals a closed year fills, the figures the budget screens show beside each
 /// line, and who may sync.
 /// </summary>
@@ -45,7 +45,7 @@ public class ActualsSyncServiceTests(SqlServerFixture fixture) : IAsyncLifetime
         await using AsyncServiceScope scope = As(Roles.FinanceDirector, _mapleRidge);
         ActualsStatusDto status = await scope.ServiceProvider.GetRequiredService<IActualsSyncService>().StatusAsync();
 
-        Assert.Equal("VIP (simulated)", status.ApiName);
+        Assert.Equal("ERP (simulated)", status.ApiName);
         ActualsYearDto fy2025 = status.Years.Single(y => y.FiscalYear == 2025);
         Assert.True(fy2025.IsClosed);
         Assert.Equal(new DateOnly(2025, 12, 31), fy2025.AsOf);
@@ -73,7 +73,7 @@ public class ActualsSyncServiceTests(SqlServerFixture fixture) : IAsyncLifetime
 
         Result<ActualsPreviewDto> preview = await sync.PreviewFromErpAsync(2025);
         Assert.True(preview.IsSuccess, string.Join("; ", preview.Errors.Select(e => e.Message)));
-        PriorActualChangeDto change = preview.Value.PriorActualChanges.Single(); // every other line already matches VIP
+        PriorActualChangeDto change = preview.Value.PriorActualChanges.Single(); // every other line already matches the ERP
         Assert.Equal(("FY2027 Original", 1.00m, fromErp), (change.Version, change.Before, change.After));
         Assert.True(preview.Value.Receipts > 0m && preview.Value.Disbursements > 0m && preview.Value.Cash > 0m);
 
@@ -85,7 +85,7 @@ public class ActualsSyncServiceTests(SqlServerFixture fixture) : IAsyncLifetime
         Assert.Equal(fromErp, (await check.BudgetLines.SingleAsync(l => l.Id == lineId)).PriorYearActual);
         Assert.Equal(2, await check.ActualsSyncs.CountAsync(s => s.FiscalYear == 2025));   // the seed's and this one
         Assert.Contains(await check.AuditEntries.Where(a => a.EntityName == "Government").Select(a => a.Description).ToListAsync(),
-            d => d != null && d.StartsWith("Synced FY2025 actuals from VIP (simulated) through the full year; updated 1 prior-year actual", StringComparison.Ordinal));
+            d => d != null && d.StartsWith("Synced FY2025 actuals from ERP (simulated) through the full year; updated 1 prior-year actual", StringComparison.Ordinal));
         Assert.Contains(await check.AuditEntries.Where(a => a.EntityId == lineId).Select(a => a.PropertyName).ToListAsync(), p => p == nameof(BudgetLine.PriorYearActual));
     }
 
@@ -177,7 +177,7 @@ public class ActualsSyncServiceTests(SqlServerFixture fixture) : IAsyncLifetime
 
         Assert.True(committed.IsSuccess, string.Join("; ", committed.Errors.Select(e => e.Message)));
         Assert.Equal(12, committed.Value.ThroughPeriod);                                   // July 2025 to June 2026, closed
-        Assert.All((await sync.HistoryAsync()), h => Assert.Equal("VIP (simulated)", h.SourceName));
+        Assert.All((await sync.HistoryAsync()), h => Assert.Equal("ERP (simulated)", h.SourceName));
         Assert.Equal(mapleRidgeRows, await all.ErpActuals.IgnoreQueryFilters().CountAsync(a => a.GovernmentId == _mapleRidge && a.FiscalYear == 2026));
         Assert.Equal(new DateOnly(2026, 6, 30), committed.Value.AsOf);
     }

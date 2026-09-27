@@ -6,19 +6,19 @@ using CivicBudget.Infrastructure.Seed;
 namespace CivicBudget.Infrastructure.Erp;
 
 /// <summary>
-/// Stands in for VIP's API in development and the live demo, so the "Fetch from VIP" button has
+/// Stands in for the ERP's API in development and the live demo, so the "Fetch" button has
 /// somewhere real to go. Its books are the demo governments' own fictional history (the same seed
 /// lines the budgets were built from), spread across the months the way municipal money actually
 /// moves: real estate taxes in two settlements, payroll every other Friday, capital work in summer,
 /// debt service twice a year. It is a stand-in and says so in its name; a real connection
 /// implements <see cref="IErpActualsApi"/> the same way and nothing else changes.
 /// </summary>
-public sealed class SimulatedVipActualsApi(TimeProvider clock) : IErpActualsApi
+public sealed class SimulatedErpActualsApi(TimeProvider clock) : IErpActualsApi
 {
     /// <summary>A month's books close about ten days after it ends, once bank reconciliation is done.</summary>
     public const int DaysToCloseAMonth = 10;
 
-    public string Name => "VIP (simulated)";
+    public string Name => "ERP (simulated)";
 
     public Task<Result<ErpActuals>> FetchAsync(ErpEntity entity, int fiscalYear, CancellationToken ct = default)
     {
@@ -30,19 +30,19 @@ public sealed class SimulatedVipActualsApi(TimeProvider clock) : IErpActualsApi
         };
         if (books is null)
         {
-            return Task.FromResult(Result.Failure<ErpActuals>($"VIP has no entity set up for {entity.Name}."));
+            return Task.FromResult(Result.Failure<ErpActuals>($"The ERP has no entity set up for {entity.Name}."));
         }
 
         if (books.Value.Lines.All(l => l.ActualFor(fiscalYear) is null))
         {
-            return Task.FromResult(Result.Failure<ErpActuals>($"VIP has no books for FY{fiscalYear}."));
+            return Task.FromResult(Result.Failure<ErpActuals>($"The ERP has no books for FY{fiscalYear}."));
         }
 
         FiscalPeriod year = FiscalPeriod.For(fiscalYear, entity.FiscalYearStartMonth);
         int through = ClosedMonths(year, DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime));
         if (through == 0)
         {
-            return Task.FromResult(Result.Failure<ErpActuals>($"VIP has not closed a month of FY{fiscalYear} yet."));
+            return Task.FromResult(Result.Failure<ErpActuals>($"The ERP has not closed a month of FY{fiscalYear} yet."));
         }
 
         return Task.FromResult(Result.Success(Build(books.Value.Lines, books.Value.Balances, fiscalYear, entity.FiscalYearStartMonth, through)));

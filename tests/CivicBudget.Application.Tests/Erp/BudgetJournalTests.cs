@@ -6,8 +6,8 @@ using CivicBudget.Infrastructure.Erp;
 namespace CivicBudget.Application.Tests.Erp;
 
 /// <summary>
-/// What a budget journal posts (the budget less what the ERP already took), the file VIP imports,
-/// and the simulated VIP that answers the send button in the demo.
+/// What a budget journal posts (the budget less what the ERP already took), the file the ERP imports,
+/// and the simulated ERP that answers the send button in the demo.
 /// </summary>
 public class BudgetJournalTests
 {
@@ -64,7 +64,7 @@ public class BudgetJournalTests
             text);
     }
 
-    // ---- the simulated VIP ----------------------------------------------------------------------
+    // ---- the simulated ERP ----------------------------------------------------------------------
 
     private static readonly ErpEntity MapleRidge = new(Guid.NewGuid(), "maple-ridge-oh", "Village of Maple Ridge", 1, AccountNumberFormat.UanVillage);
 
@@ -72,9 +72,9 @@ public class BudgetJournalTests
         new(Guid.NewGuid(), 2026, "Test", new DateOnly(2026, 6, 15), lines.Select(l => new ErpBudgetJournalLine(l.Account, l.Amount)).ToList());
 
     [Fact]
-    public async Task Vip_posts_a_journal_on_accounts_it_knows_and_answers_a_retry_with_the_same_journal()
+    public async Task Erp_posts_a_journal_on_accounts_it_knows_and_answers_a_retry_with_the_same_journal()
     {
-        var vip = new SimulatedVipBudgetApi();
+        var vip = new SimulatedErpBudgetApi();
         ErpBudgetJournal journal = Journal(("1000-110-5120", 15_000m), ("1000-4110", -500m));
 
         ErpJournalAnswer first = await vip.PostBudgetJournalAsync(MapleRidge, journal);
@@ -88,9 +88,9 @@ public class BudgetJournalTests
     }
 
     [Fact]
-    public async Task Vip_refuses_the_whole_journal_when_any_account_is_not_set_up()
+    public async Task Erp_refuses_the_whole_journal_when_any_account_is_not_set_up()
     {
-        ErpJournalAnswer answer = await new SimulatedVipBudgetApi().PostBudgetJournalAsync(MapleRidge,
+        ErpJournalAnswer answer = await new SimulatedErpBudgetApi().PostBudgetJournalAsync(MapleRidge,
             Journal(("1000-110-5120", 15_000m), ("1000-410-5420", 900m), ("1000-0410-5420", 1m)));
 
         Assert.False(answer.Posted);

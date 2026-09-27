@@ -14,8 +14,8 @@ using Microsoft.Extensions.DependencyInjection;
 namespace CivicBudget.IntegrationTests;
 
 /// <summary>
-/// Sending the adopted budget to VIP: only what changed since VIP last took the year, by API or by
-/// import file, refused whole when VIP lacks an account, retried safely after a lost answer, and
+/// Sending the adopted budget to the ERP: only what changed since the ERP last took the year, by API or by
+/// import file, refused whole when the ERP lacks an account, retried safely after a lost answer, and
 /// never two unfinished sends for one year.
 /// </summary>
 [Collection(SqlServerTests.Name)]
@@ -50,7 +50,7 @@ public class BudgetTransmissionServiceTests(SqlServerFixture fixture) : IAsyncLi
 
         SendPageDto page = (await sends.GetAsync(_amendment2026))!;
         Assert.Null(page.CannotSendReason);
-        Assert.Equal(("VIP", "VIP (simulated)", new DateOnly(2026, 6, 15)), (page.ErpName, page.ApiName, page.DefaultPostingDate)); // adopted June 15
+        Assert.Equal(("ERP (simulated)", new DateOnly(2026, 6, 15)), (page.ApiName, page.DefaultPostingDate)); // adopted June 15
         Assert.Equal("FY2026 Amendment 1, resolution 2026-11", page.DefaultDescription);
         Assert.Equal([("1000-110-5120", 53_000m), ("1000-110-5310", 71_000m)], page.Changes.Select(c => (c.AccountNumber, c.InBudget)));
         Assert.All(page.Changes, c => Assert.True(c.InErp > 0m));                // the original's amounts, sent in January
@@ -63,11 +63,11 @@ public class BudgetTransmissionServiceTests(SqlServerFixture fixture) : IAsyncLi
         Assert.Equal(page.Changes.Sum(c => c.Change), sent.Value.Net);
         Assert.Empty((await sends.GetAsync(_amendment2026))!.Changes);
         Result<TransmissionDto> again = await sends.SendAsync(new SendBudgetRequest(_amendment2026, "Again", page.DefaultPostingDate));
-        Assert.Equal("VIP already has this budget. There is nothing to send.", again.Errors.Single().Message);
+        Assert.Equal("The ERP already has this budget. There is nothing to send.", again.Errors.Single().Message);
 
         await using CivicBudgetDbContext db = _database.CreateContext(_mapleRidge);
         Assert.Contains(await db.AuditEntries.Where(a => a.EntityId == _amendment2026).Select(a => a.Description).ToListAsync(),
-            d => d != null && d.StartsWith($"Sent FY2026 Amendment 1 to VIP (simulated) as journal {sent.Value.ErpReference}: 2 lines, net +$", StringComparison.Ordinal));
+            d => d != null && d.StartsWith($"Sent FY2026 Amendment 1 to ERP (simulated) as journal {sent.Value.ErpReference}: 2 lines, net +$", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -95,7 +95,7 @@ public class BudgetTransmissionServiceTests(SqlServerFixture fixture) : IAsyncLi
 
         Result<TransmissionDto> file = await sends.CreateFileAsync(request);
 
-        Assert.Equal((TransmissionStatus.AwaitingImport, "VIP import file"), (file.Value.Status, file.Value.TargetName));
+        Assert.Equal((TransmissionStatus.AwaitingImport, "ERP import file"), (file.Value.Status, file.Value.TargetName));
         (string name, Application.Export.ExportTable table) = (await sends.FileAsync(file.Value.Id))!.Value;
         Assert.Equal("budget-journal-fy2026-amendment-1.csv", name);
         Assert.Equal(["Account", "Amount", "Description", "Date"], table.Headers);
@@ -114,14 +114,14 @@ public class BudgetTransmissionServiceTests(SqlServerFixture fixture) : IAsyncLi
     }
 
     [Fact]
-    public async Task Vip_refusing_an_account_posts_nothing_and_leaves_the_year_ready_to_send_again()
+    public async Task Erp_refusing_an_account_posts_nothing_and_leaves_the_year_ready_to_send_again()
     {
         await using AsyncServiceScope scope = As(Roles.FinanceDirector);
         IServiceProvider sp = scope.ServiceProvider;
         IBudgetWorkflowService workflow = sp.GetRequiredService<IBudgetWorkflowService>();
         IBudgetEntryService entry = sp.GetRequiredService<IBudgetEntryService>();
 
-        // Amendment 2 adds Building & Zoning fuel, an account VIP has never had.
+        // Amendment 2 adds Building & Zoning fuel, an account the ERP has never had.
         Guid amendment2 = (await workflow.CreateAmendmentAsync(_amendment2026, "Zoning vehicle")).Value;
         BudgetWorkspaceDto workspace = (await entry.GetWorkspaceAsync(amendment2))!;
         Guid general = workspace.Funds.Single(f => f.Code == "1000").Id, zoning = workspace.Departments.Single(d => d.Code == "410").Id, fuel = workspace.Accounts.Single(a => a.Code == "5420").Id;
@@ -136,7 +136,7 @@ public class BudgetTransmissionServiceTests(SqlServerFixture fixture) : IAsyncLi
         TransmissionDto refused = (await sends.SendAsync(new SendBudgetRequest(amendment2, page.DefaultDescription, page.DefaultPostingDate))).Value;
 
         Assert.Equal(TransmissionStatus.Rejected, refused.Status);
-        Assert.Equal("Account is not set up in VIP. Add it to VIP's chart, then send again.", refused.Lines.Single(l => l.AccountNumber == "1000-410-5420").RefusedReason);
+        Assert.Equal("Account is not set up in the ERP. Add it to the ERP's chart, then send again.", refused.Lines.Single(l => l.AccountNumber == "1000-410-5420").RefusedReason);
         SendPageDto after = (await sends.GetAsync(amendment2))!;
         Assert.Equal(page.Changes.Count, after.Changes.Count);                            // nothing counted as sent
         Assert.Null(after.Open);                                                         // and nothing is holding the year
@@ -147,19 +147,19 @@ public class BudgetTransmissionServiceTests(SqlServerFixture fixture) : IAsyncLi
     {
         await using AsyncServiceScope scope = As(Roles.FinanceDirector);
         IServiceProvider sp = scope.ServiceProvider;
-        var vip = new LosesFirstAnswer(new SimulatedVipBudgetApi());
+        var vip = new LosesFirstAnswer(new SimulatedErpBudgetApi());
         var sends = new BudgetTransmissionService(sp.GetRequiredService<ICivicBudgetDbContextFactory>(), sp.GetRequiredService<ICurrentUser>(), [vip], TimeProvider.System);
 
         TransmissionDto failed = (await sends.SendAsync(new SendBudgetRequest(_amendment2026, "FY2026 Amendment 1", new DateOnly(2026, 6, 15)))).Value;
 
         Assert.Equal(TransmissionStatus.Failed, failed.Status);
-        Assert.Contains("No answer from VIP (simulated)", failed.Message, StringComparison.Ordinal);
+        Assert.Contains("No answer from ERP (simulated)", failed.Message, StringComparison.Ordinal);
         Assert.Equal(failed.Id, (await sends.GetAsync(_amendment2026))!.Open!.Id);       // the year is held until it is settled
 
         TransmissionDto retried = (await sends.RetryAsync(failed.Id)).Value;
 
         Assert.Equal((failed.Id, TransmissionStatus.Accepted), (retried.Id, retried.Status));
-        Assert.Equal(vip.FirstJournalNumber, retried.ErpReference);                      // VIP recognized the id: one journal, not two
+        Assert.Equal(vip.FirstJournalNumber, retried.ErpReference);                      // the ERP recognized the id: one journal, not two
         Assert.Equal([failed.Id, failed.Id], vip.ExternalIds);
     }
 
@@ -167,7 +167,7 @@ public class BudgetTransmissionServiceTests(SqlServerFixture fixture) : IAsyncLi
     public async Task The_database_refuses_a_second_unfinished_send_for_a_year()
     {
         await using CivicBudgetDbContext db = _database.CreateContext(_mapleRidge);
-        BudgetTransmission Open() => new(_mapleRidge, _amendment2026, 2026, TransmissionMethod.File, "VIP import file", "x", new DateOnly(2026, 6, 15), "u", "n", DateTimeOffset.UtcNow);
+        BudgetTransmission Open() => new(_mapleRidge, _amendment2026, 2026, TransmissionMethod.File, "ERP import file", "x", new DateOnly(2026, 6, 15), "u", "n", DateTimeOffset.UtcNow);
 
         db.BudgetTransmissions.Add(Open());
         await db.SaveChangesAsync();
@@ -189,13 +189,12 @@ public class BudgetTransmissionServiceTests(SqlServerFixture fixture) : IAsyncLi
         Assert.True((await sends.CreateFileAsync(new SendBudgetRequest(_amendment2026, "x", new DateOnly(2026, 6, 15)))).IsFailure);
     }
 
-    /// <summary>VIP posts the journal, but the answer never arrives: the case a retry has to survive.</summary>
+    /// <summary>The ERP posts the journal, but the answer never arrives: the case a retry has to survive.</summary>
     private sealed class LosesFirstAnswer(IErpBudgetApi inner) : IErpBudgetApi
     {
         public List<Guid> ExternalIds { get; } = [];
         public string? FirstJournalNumber { get; private set; }
         public string Name => inner.Name;
-        public string SystemName => inner.SystemName;
 
         public async Task<ErpJournalAnswer> PostBudgetJournalAsync(ErpEntity entity, ErpBudgetJournal journal, CancellationToken ct = default)
         {

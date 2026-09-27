@@ -82,13 +82,13 @@ fiscal officer is never locked out."
 - Setup, **Fiscal years**: add FY2028 and choose **Start the budget**, from FY2027's
   adopted budget, +3% on appropriations only. "Last year's adopted amount becomes the
   comparison column, and each fund starts with last year's projected ending balance."
-- Setup, **Actuals sync**: fetch FY2025 from VIP (simulated). "The ERP's closed books.
+- Setup, **Actuals sync**: fetch FY2025 from ERP (simulated). "The ERP's closed books.
   Every prior-year actual in the FY2027 draft already matches, so nothing changes; if one
   had been typed over, the preview would list it." Then open a department page: "This
   year's spending sits under each budget, with a bar that turns amber past it."
-- Budget versions, **FY2026 Amendment 1**, **Send to VIP**. "The originals went to VIP in
+- Budget versions, **FY2026 Amendment 1**, **Send to ERP**. "The originals went to the ERP in
   January, so the journal is only the supplemental appropriation: two lines, +$21,000." Send it,
-  then show the page now says VIP already has the budget. "Pressing it again does nothing. A
+  then show the page now says the ERP already has the budget. "Pressing it again does nothing. A
   lost answer is retried under the same id, and a downloaded file only counts once someone
   confirms it was imported."
 

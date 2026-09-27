@@ -73,7 +73,7 @@ All the demo logins share one password, published here on purpose: **`Demo-Bpe1G
 
 | Login | Role | What to try |
 |---|---|---|
-| `finance@mapleridge.example` | Fiscal Officer | The whole budget: the FY2027 draft (the Street fund is over its limit on purpose), the department board, workflow, amendments, publishing, import, reports, Setup, Actuals sync to fetch a year from the simulated VIP, and the FY2026 amendment's Send to VIP |
+| `finance@mapleridge.example` | Fiscal Officer | The whole budget: the FY2027 draft (the Street fund is over its limit on purpose), the department board, workflow, amendments, publishing, import, reports, Setup, Actuals sync to fetch a year from the simulated ERP, and the FY2026 amendment's Send to ERP |
 | `police@mapleridge.example` | Department User | Lands on the Police department's request, which is already submitted and so locked |
 | `streets@mapleridge.example` | Department User | Streets & Service, still being entered; Parks & Recreation, returned with a note from the fiscal officer |
 | `admin@mapleridge.example` | Administrator | Everything the Fiscal Officer can do, plus users, government settings, and the logo |

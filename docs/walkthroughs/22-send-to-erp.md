@@ -35,16 +35,15 @@ exactly that, as a pure function:
 | First send of the year | Every line's amount |
 | An amendment | Only the accounts it changed, by the difference |
 | A line removed from the budget | Its amount, as a decrease |
-| The ERP already matches | Nothing, so the page says "VIP already has this budget" |
+| The ERP already matches | Nothing, so the page says "The ERP already has this budget" |
 
 The last row is what makes pressing Send twice harmless: the second press has nothing to send.
 In the demo, the FY2025 and FY2026 originals were sent in January, so the FY2026 amendment's page
 opens on exactly the supplemental appropriation: police overtime and the dispatch contract,
 +$21,000.00.
 
-I assumed VIP adds a journal's amounts to an account's budget, which is how a journal works in
-every fund-accounting system I have used. That is worth confirming against VIP itself; if it
-replaces instead, the builder is the one function to change.
+VIP adds a journal's amounts to an account's budget, which is how a journal works in every
+fund-accounting system I have used, so a decrease goes as a negative amount.
 
 ## 4. Every send is a record, saved first
 
@@ -72,7 +71,7 @@ The page says exactly that and offers **Try again**, which sends the same journa
 id. VIP answers a journal id it has seen with the answer it gave the first time, so the retry
 comes back Accepted with the original journal number and nothing posts twice.
 
-The simulated VIP keeps a dictionary of ids it has answered to behave this way. The integration
+The simulated ERP keeps a dictionary of ids it has answered to behave this way. The integration
 test `A_lost_answer_is_retried_under_the_same_id_and_vip_posts_it_once` wraps it in an API that
 posts the journal and then throws, which is precisely the case that breaks a naive retry.
 
@@ -102,17 +101,17 @@ same moment". The same pattern keeps fund-level budget lines unique (`BudgetLine
 
 When VIP refuses any account, it posts nothing and says which accounts and why. The send becomes
 Rejected, the refused lines are marked in its details, nothing counts as sent, and the year is free
-to send again once the account exists in VIP. The simulated VIP refuses any account that is not in
+to send again once the account exists in VIP. The simulated ERP refuses any account that is not in
 its own chart, so the demo can show it: start an amendment, add fuel for Building & Zoning (an
-account VIP has never had), adopt, send.
+account the ERP has never had), adopt, send.
 
 ## 9. The page
 
-Budget versions, the latest adopted version, **Send to VIP**. The page leads with anything
+Budget versions, the latest adopted version, **Send to ERP**. The page leads with anything
 unfinished (a failed send with Try again, or a file waiting to be confirmed), then the journal's
 description and posting date (defaults: "FY2026 Amendment 1, resolution 2026-11", and the adoption
 date for an amendment or the year's first day for an original), four totals, the lines with what
-VIP has now, what the budget says, and the difference, and the year's history with each journal
+the ERP has now, what the budget says, and the difference, and the year's history with each journal
 number. Nothing is sent until the confirm dialog, which repeats the description, date, line count,
 and net change.
 
@@ -121,7 +120,7 @@ and net change.
 - **Domain** (`BudgetTransmissionTests`): which states count and which hold the year; a failed
   send can still be accepted on retry; a file must be confirmed; zero and duplicate lines refused.
 - **Unit** (`BudgetJournalTests`): first send, amendment, removed line, already matching; the
-  import file's exact bytes; the simulated VIP's retry and whole-journal refusal.
+  import file's exact bytes; the simulated ERP's retry and whole-journal refusal.
 - **Integration** (`BudgetTransmissionServiceTests`): the seeded amendment sends its two changes and
   then has nothing to send; only the latest adopted version, and only in its year; a file holds the
   year until confirmed; a refused account posts nothing; a lost answer retried once; the database
@@ -129,12 +128,22 @@ and net change.
 - **bUnit**: the page sends only after confirming, with the typed description and date; a failed
   send disables new sends and retries; the workflow bar offers Send only on the latest adopted version.
 
-## 11. Assumptions to confirm with VIP
+## 11. What I confirmed about VIP
 
-- A journal's amounts add to an account's budget (so a decrease is a negative amount).
-- The import file's layout: CSV, a header row, `yyyy-MM-dd` dates, amounts without separators.
-- The description's length limit (100 characters here).
+I built this before seeing VIP's interface, so I wrote down four assumptions and confirmed each
+(2026-09-27):
+
+- A journal's amounts add to an account's budget, so a decrease is a negative amount.
+- The import file is CSV with a header row, `yyyy-MM-dd` dates, and amounts without separators.
+- The description holds up to 100 characters.
 - The API answers a repeated journal id with its first answer.
 
-Each is one place in the code: `BudgetJournalBuilder`, `BudgetJournalFile`,
+Each lives in one place in the code: `BudgetJournalBuilder`, `BudgetJournalFile`,
 `BudgetTransmission.DescriptionMaxLength`, and the real `IErpBudgetApi` adapter.
+
+## 12. The app says "ERP"
+
+VIP is the ERP I know, but CivicBudget is meant to be taken on by any ERP vendor. So nothing the
+app shows names a product: the button is "Send to ERP", the connection in the demo is "ERP
+(simulated)", and messages say "the ERP". The docs keep VIP as the example, because that is the
+system these rules were checked against.

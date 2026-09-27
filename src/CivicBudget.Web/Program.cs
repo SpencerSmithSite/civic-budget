@@ -53,12 +53,12 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(connectionString);
 builder.Services.Configure<SeedOptions>(builder.Configuration.GetSection(SeedOptions.SectionName));
 
-// The simulated VIP keeps only the demo governments' books and chart, so it is connected exactly where
+// The simulated ERP keeps only the demo governments' books and chart, so it is connected exactly where
 // the demo data is seeded. Elsewhere no ERP API is registered, and the actuals and send pages offer files alone.
 if (builder.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>($"{DatabaseOptions.SectionName}:{nameof(DatabaseOptions.SeedDemoData)}"))
 {
-    builder.Services.AddSingleton<IErpActualsApi, SimulatedVipActualsApi>();
-    builder.Services.AddSingleton<IErpBudgetApi, SimulatedVipBudgetApi>();
+    builder.Services.AddSingleton<IErpActualsApi, SimulatedErpActualsApi>();
+    builder.Services.AddSingleton<IErpBudgetApi, SimulatedErpBudgetApi>();
 }
 
 // --- Authentication: Identity's cookie. ---------------------------------------------------------

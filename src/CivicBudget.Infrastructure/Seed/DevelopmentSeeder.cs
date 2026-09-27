@@ -199,14 +199,14 @@ public sealed class DevelopmentSeeder(
         db.PublishedBudgetSnapshots.Add(PublishedBudgetSnapshot.Capture(
             government, chart.FiscalYear(2026), fy2026Amendment, funds, SeedUserId, "system", new DateTimeOffset(2026, 6, 16, 14, 0, 0, TimeSpan.Zero)));
 
-        // Both originals went to VIP when they were adopted; the FY2026 amendment has not been sent
+        // Both originals went to the ERP when they were adopted; the FY2026 amendment has not been sent
         // yet, so the send page opens on exactly the supplemental appropriation's two changes.
         chart.AddSentJournal(db, fy2025, 2025, "FY2025 Original, resolution 2024-38", new DateOnly(2025, 1, 1), "BJ2025-00112", new DateTimeOffset(2025, 1, 2, 15, 10, 0, TimeSpan.Zero));
         chart.AddSentJournal(db, fy2026, 2026, "FY2026 Original, resolution 2025-41", new DateOnly(2026, 1, 1), "BJ2026-00007", new DateTimeOffset(2026, 1, 5, 14, 30, 0, TimeSpan.Zero));
 
-        // VIP has already sent last year's closed books and this year's so far, as it would have by
+        // The ERP has already sent last year's closed books and this year's so far, as it would have by
         // the time a draft is in progress. The actuals page can fetch them again at any time.
-        await chart.AddActualsAsync(db, new SimulatedVipActualsApi(clock), [2025, 2026], clock.GetUtcNow(), ct);
+        await chart.AddActualsAsync(db, new SimulatedErpActualsApi(clock), [2025, 2026], clock.GetUtcNow(), ct);
         await db.SaveChangesAsync(ct);
         return government;
     }
@@ -235,7 +235,7 @@ public sealed class DevelopmentSeeder(
         db.PublishedBudgetSnapshots.Add(PublishedBudgetSnapshot.Capture(
             government, chart.FiscalYear(2026), fy2026, chart.AllFunds.ToList(), SeedUserId, "system", new DateTimeOffset(2025, 7, 1, 13, 0, 0, TimeSpan.Zero)));
         chart.AddSentJournal(db, fy2026, 2026, "FY2026 Original, resolution 2025-07", new DateOnly(2025, 7, 1), "BJ2026-00031", new DateTimeOffset(2025, 7, 2, 13, 45, 0, TimeSpan.Zero));
-        await chart.AddActualsAsync(db, new SimulatedVipActualsApi(clock), [2025, 2026], clock.GetUtcNow(), ct);
+        await chart.AddActualsAsync(db, new SimulatedErpActualsApi(clock), [2025, 2026], clock.GetUtcNow(), ct);
         await db.SaveChangesAsync(ct);
         return government;
     }
@@ -314,12 +314,12 @@ public sealed class DevelopmentSeeder(
         /// Stages the simulated ERP's actuals for these years, matched against this chart. A year the
         /// ERP cannot give yet (no month closed, depending on today's date) is simply skipped.
         /// </summary>
-        public async Task AddActualsAsync(CivicBudgetDbContext db, SimulatedVipActualsApi vip, int[] years, DateTimeOffset nowUtc, CancellationToken ct)
+        public async Task AddActualsAsync(CivicBudgetDbContext db, SimulatedErpActualsApi erp, int[] years, DateTimeOffset nowUtc, CancellationToken ct)
         {
             var entity = new ErpEntity(government.Id, government.PublicSlug, government.Name, government.FiscalYearStartMonth, government.AccountNumberFormat);
             foreach (int year in years)
             {
-                Result<ErpActuals> fetched = await vip.FetchAsync(entity, year, ct);
+                Result<ErpActuals> fetched = await erp.FetchAsync(entity, year, ct);
                 if (fetched.IsFailure)
                 {
                     continue;
@@ -331,14 +331,14 @@ public sealed class DevelopmentSeeder(
                     departments.Values.Select(d => new ChartCode(d.Id, d.Code, d.Name)).ToList(),
                     accounts.Values.Select(a => new ChartCode(a.Id, a.Code, a.Name, a.Type)).ToList()).Value;
                 DateOnly asOf = FiscalPeriod.For(year, government.FiscalYearStartMonth).Start.AddMonths(matched.ThroughPeriod).AddDays(-1);
-                ActualsWriter.Add(db, government.Id, matched, asOf, vip.Name, null, SeedUserId, "system", nowUtc, priorActualsUpdated: 0);
+                ActualsWriter.Add(db, government.Id, matched, asOf, erp.Name, null, SeedUserId, "system", nowUtc, priorActualsUpdated: 0);
             }
         }
 
-        /// <summary>A budget journal VIP accepted in the past: the whole version, as the first send of a year is.</summary>
+        /// <summary>A budget journal the ERP accepted in the past: the whole version, as the first send of a year is.</summary>
         public void AddSentJournal(CivicBudgetDbContext db, BudgetVersion version, int year, string description, DateOnly postingDate, string journalNumber, DateTimeOffset sentAtUtc)
         {
-            var sent = new BudgetTransmission(government.Id, version.Id, year, TransmissionMethod.Api, "VIP (simulated)", description, postingDate, SeedUserId, "system", sentAtUtc);
+            var sent = new BudgetTransmission(government.Id, version.Id, year, TransmissionMethod.Api, "ERP (simulated)", description, postingDate, SeedUserId, "system", sentAtUtc);
             foreach (BudgetLine line in version.Lines.Where(l => l.Amount != 0m))
             {
                 sent.AddLine(line.FundId, line.DepartmentId, line.AccountId,

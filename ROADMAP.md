@@ -280,27 +280,28 @@ comes last so its screenshots and demos show the finished product.
 
 ## Phase 22: Actuals from VIP  `phase-22-erp-actuals`
 - [x] `ErpActuals` contract (activity by account and fiscal month, open encumbrances, fund cash) with two adapters: an export file (`Fiscal Year, Type, Account, Period, Amount`) and `IErpActualsApi`
-- [x] Simulated VIP for the demo (`SimulatedVipActualsApi`): the seed's fictional books by month (tax settlements, biweekly payroll, summer capital, debt service), months close ten days after they end, year-end cash agrees with next year's beginning balance
+- [x] Simulated ERP for the demo (`SimulatedErpActualsApi`): the seed's fictional books by month (tax settlements, biweekly payroll, summer capital, debt service), months close ten days after they end, year-end cash agrees with next year's beginning balance
 - [x] Actuals sync page under Setup: fetch a year from VIP or upload an export, preview totals by fund and the prior-year actuals it changes, apply, history
 - [x] A sync replaces the year and refuses unknown codes; `ErpActuals`, `ErpEncumbrances`, `ErpFundCash`, `ActualsSync` tables
 - [x] A closed year fills prior-year actuals in open budgets two years on (audited through the version), and starting a budget or adding a line takes them from there
 - [x] Department pages show this year's spending under each line's current budget with a bar; the line drawer adds open encumbrances
-- [x] Seed: Maple Ridge and Pine Hollow start with FY2025 and FY2026 from the simulated VIP
+- [x] Seed: Maple Ridge and Pine Hollow start with FY2025 and FY2026 from the simulated ERP
 - [x] Fixed on the way: a long fund name in a department grid's total row forced the table past the screen
-- [x] Tests: file source, matcher, per-line totals, simulated VIP (unit); sync from VIP and file, prior-year fill, add line, permissions, tenancy (integration); page and department grid (bUnit); ADR-0034, walkthrough 21
+- [x] Tests: file source, matcher, per-line totals, simulated ERP (unit); sync from VIP and file, prior-year fill, add line, permissions, tenancy (integration); page and department grid (bUnit); ADR-0034, walkthrough 21
 - [x] Reviewed and approved (2026-09-27)
 
 ## Phase 23: Send the budget to VIP  `phase-23-send-to-erp`
 VIP accepts a budget journal by API or import file, the customer's choice. Each line carries
 `Account` (the full account number), `Amount`, `Description` (one description for the whole
 journal, repeated on every line), and `Date` (the journal's posting date, repeated on every line).
-- [x] "Send to VIP" on the latest adopted version (original or amendment), Fiscal Officer and Administrator only (`CanSendToErp`)
+- [x] "Send to ERP" on the latest adopted version (original or amendment), Fiscal Officer and Administrator only (`CanSendToErp`)
 - [x] Preview: exactly what changes in VIP compared with what it already took for the year (`BudgetJournalBuilder`); journal description and posting date entered once, the date within the fiscal year
-- [x] Send by API (simulated VIP) or download the import file; a history with journal numbers; safe to press twice; a journal refused whole, with each refused account and VIP's reason
+- [x] Send by API (simulated ERP) or download the import file; a history with journal numbers; safe to press twice; a journal refused whole, with each refused account and VIP's reason
 - [x] A send with no answer stays open and is retried under the same id (VIP recognizes it); a file counts once confirmed imported; one unfinished send per year, also enforced by a filtered unique index
 - [x] Every send audited on the version
+- [x] The app says "ERP", never a vendor's name ("Send to ERP", "ERP (simulated)"); the four VIP assumptions confirmed (2026-09-27)
 - [x] Seed: the FY2025 and FY2026 originals already sent, so the demo opens on the amendment's two changes
-- [x] Tests: transmission states (domain); journal builder, import file, simulated VIP (unit); send, refusal, file and confirm, lost answer and retry, the database guard, permissions (integration); page and workflow button (bUnit); ADR-0035, walkthrough 22
+- [x] Tests: transmission states (domain); journal builder, import file, simulated ERP (unit); send, refusal, file and confirm, lost answer and retry, the database guard, permissions (integration); page and workflow button (bUnit); ADR-0035, walkthrough 22
 - [ ] Reviewed and approved
 
 ## Phase 24: Report settings and the Amended Certificate  `phase-24-certificate`

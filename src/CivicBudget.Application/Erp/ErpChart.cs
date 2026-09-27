@@ -32,7 +32,7 @@ public sealed record ErpObject(string Code, string Name, AccountType Type, Repor
 /// </summary>
 public interface IErpChartSource
 {
-    /// <summary>A short name for the audit trail and the sync log ("VIP export file").</summary>
+    /// <summary>A short name for the audit trail and the sync log ("ERP export file").</summary>
     string Name { get; }
 }
 

@@ -13,7 +13,7 @@ public class BudgetTransmissionTests
 
     private static BudgetTransmission Send(TransmissionMethod method = TransmissionMethod.Api)
     {
-        var t = new BudgetTransmission(Guid.NewGuid(), Guid.NewGuid(), 2026, method, "VIP (simulated)", "  FY2026 Amendment 1  ", new DateOnly(2026, 6, 15), "u1", "Dana", Now);
+        var t = new BudgetTransmission(Guid.NewGuid(), Guid.NewGuid(), 2026, method, "ERP (simulated)", "  FY2026 Amendment 1  ", new DateOnly(2026, 6, 15), "u1", "Dana", Now);
         t.AddLine(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "1000-110-5120", 15_000m);
         t.AddLine(Guid.NewGuid(), null, Guid.NewGuid(), "1000-4110", -2_500m);
         return t;
@@ -39,7 +39,7 @@ public class BudgetTransmissionTests
     {
         BudgetTransmission t = Send();
 
-        t.MarkFailed("No answer from VIP (simulated): timed out");
+        t.MarkFailed("No answer from ERP (simulated): timed out");
         Assert.Equal((TransmissionStatus.Failed, true, false), (t.Status, t.IsOpen, t.CountsAsSent));
 
         t.MarkAccepted("BJ2026-00301", Now);
@@ -52,10 +52,10 @@ public class BudgetTransmissionTests
     {
         BudgetTransmission t = Send();
 
-        t.MarkRejected(new Dictionary<string, string> { ["1000-4110"] = "Account is not set up in VIP." }, "VIP posted nothing.", Now);
+        t.MarkRejected(new Dictionary<string, string> { ["1000-4110"] = "Account is not set up in the ERP." }, "The ERP posted nothing.", Now);
 
         Assert.Equal((TransmissionStatus.Rejected, false, false), (t.Status, t.IsOpen, t.CountsAsSent));
-        Assert.Equal([null, "Account is not set up in VIP."], t.Lines.Select(l => l.RefusedReason));
+        Assert.Equal([null, "Account is not set up in the ERP."], t.Lines.Select(l => l.RefusedReason));
     }
 
     [Fact]
@@ -92,6 +92,6 @@ public class BudgetTransmissionTests
         Assert.Throws<DomainException>(() => t.AddLine(fund, null, account, "1000-4130", 0m));
         t.AddLine(fund, null, account, "1000-4130", 10m);
         Assert.Throws<DomainException>(() => t.AddLine(fund, null, account, "1000-4130", 5m));
-        Assert.Throws<DomainException>(() => new BudgetTransmission(Guid.NewGuid(), Guid.NewGuid(), 2026, TransmissionMethod.Api, "VIP", new string('x', 101), new DateOnly(2026, 1, 1), "u", "n", Now));
+        Assert.Throws<DomainException>(() => new BudgetTransmission(Guid.NewGuid(), Guid.NewGuid(), 2026, TransmissionMethod.Api, "ERP", new string('x', 101), new DateOnly(2026, 1, 1), "u", "n", Now));
     }
 }

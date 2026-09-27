@@ -22,8 +22,6 @@ public sealed class BudgetTransmissionService(
     /// <summary>At most one connection is registered; with none, only the import file is offered.</summary>
     private readonly IErpBudgetApi? api = apis.FirstOrDefault();
 
-    public string ErpName => api?.SystemName ?? "the ERP";
-
     public async Task<SendPageDto?> GetAsync(Guid versionId, CancellationToken ct = default)
     {
         // The page lists every account in the budget, so it is for the people who may send it.
@@ -43,7 +41,7 @@ public sealed class BudgetTransmissionService(
         List<TransmissionDto> history = await HistoryAsync(db, year.Year, ct);
 
         return new SendPageDto(
-            version.Id, year.Year, version.Label, year.StartDate, year.EndDate, ErpName, api?.Name,
+            version.Id, year.Year, version.Label, year.StartDate, year.EndDate, api?.Name,
             CannotSend(version),
             DefaultDescription(version, year),
             DefaultPostingDate(version, year),
@@ -169,10 +167,10 @@ public sealed class BudgetTransmissionService(
         IReadOnlyList<JournalChange> changes = await ChangesAsync(db, version, year, government, ct);
         if (changes.Count == 0)
         {
-            return Result.Failure<TransmissionDto>($"{ErpName} already has this budget. There is nothing to send.");
+            return Result.Failure<TransmissionDto>("The ERP already has this budget. There is nothing to send.");
         }
 
-        string target = method == TransmissionMethod.Api ? api!.Name : ErpName == "the ERP" ? "ERP import file" : $"{ErpName} import file";
+        string target = method == TransmissionMethod.Api ? api!.Name : "ERP import file";
         var transmission = new BudgetTransmission(government.Id, version.Id, year.Year, method, target, description, request.PostingDate,
             currentUser.UserId!, currentUser.DisplayName ?? currentUser.UserId!, clock.GetUtcNow());
         foreach (JournalChange c in changes)
@@ -183,7 +181,7 @@ public sealed class BudgetTransmissionService(
         db.BudgetTransmissions.Add(transmission);
         if (method == TransmissionMethod.File)
         {
-            Audit(db, transmission, $"Created the {year.Label} {version.Label} budget journal file for {ErpName}: {Summary(transmission)}");
+            Audit(db, transmission, $"Created the {year.Label} {version.Label} budget journal file for the ERP: {Summary(transmission)}");
         }
 
         // Saved before the ERP is called: if the process dies mid-call, the send is on record as
@@ -322,7 +320,7 @@ public sealed class BudgetTransmissionService(
     private string? CannotSend(BudgetVersion version) => version switch
     {
         _ when !currentUser.IsFiscalAuthority() => NotAllowed,
-        { Status: not BudgetStatus.Adopted } => $"Only an adopted budget can be sent to {ErpName}. Adopt it first.",
+        { Status: not BudgetStatus.Adopted } => "Only an adopted budget can be sent to the ERP. Adopt it first.",
         { SupersededByVersionId: not null } => "A later amendment replaced this version. Send the latest adopted version instead.",
         _ => null,
     };

@@ -62,7 +62,7 @@ public sealed class BudgetTransmission : Entity, ITenantOwned
     public TransmissionMethod Method { get; private set; }
     public TransmissionStatus Status { get; private set; }
 
-    /// <summary>The ERP's name as the connection or file reports it ("VIP (simulated)").</summary>
+    /// <summary>The ERP's name as the connection or file reports it ("ERP (simulated)").</summary>
     public string TargetName { get; private set; }
 
     public string Description { get; private set; }
