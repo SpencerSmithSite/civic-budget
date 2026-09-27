@@ -312,7 +312,7 @@ journal, repeated on every line), and `Date` (the journal's posting date, repeat
 - [x] Reconciliations shown: appropriations within each fund's total (ORC 5705.39), beginning balances equal to the certified carryover, every column mapped, columns adding to the budget's revenue; both views come from one row per fund, so they cannot disagree
 - [x] PDF with PDFsharp-MigraDoc (MIT; QuestPDF's free license ends at $1M revenue), XLSX, and print; ADR-0036
 - [x] Tests: builder arithmetic, subtotals, checks, estimated balances, split columns, revenue changes, settings validation, and the PDF (unit); the seeded certificates, settings, reserves, permissions (integration); pages (bUnit); walkthrough 23
-- [ ] Reviewed and approved
+- [x] Reviewed and approved (2026-09-27)
 
 ## Phase 25: Reports VIP cannot produce alone  `phase-25-combined-reports`
 - [ ] Budget against actual, year to date: percent used, encumbered, remaining
