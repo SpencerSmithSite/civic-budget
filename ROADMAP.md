@@ -257,3 +257,10 @@ Order: 9a → 9b → 9c → 9d, each its own pull request, reviewed before the n
 - [x] Fixed on the way: portal pages on a phone had no space under the header; a fieldset legend rendered as a 1.5rem heading; audit values showed as raw text ("40510.00")
 - [x] The user form shows what the chosen role can and cannot do
 - [x] Reviewed and approved (2026-09-24)
+
+## Phase 21: Show password  `phase-21-show-password`
+- [x] `PasswordInput` (an `InputText` with a show/hide button) on sign-in, change password, and the user form
+- [x] `js/password-toggle.js`, loaded on interactive and `/Account` pages only; the portal stays script-free (ADR-0032 amendment)
+- [x] Test: the field stays a bindable password input and the button names it
+- [ ] Reviewed and approved
+

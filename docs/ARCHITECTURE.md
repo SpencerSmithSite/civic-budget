@@ -133,7 +133,9 @@ government's cached pages by tag.
 A SignalR circuit costs server memory for every connected user. That is fine for
 twenty finance staff and wrong for twenty thousand citizens on budget-adoption night.
 Static pages also carry no script tags at all: `App.razor` only includes Blazor's
-script when the page is interactive.
+script when the page is interactive. The one exception is a
+small show/hide script for password fields on the static sign-in and account pages; the portal
+loads none.
 
 Setting the render mode once, on `Routes`, rather than per page matters: with
 per-page render modes the layout stays static, so the sidebar and the toast host

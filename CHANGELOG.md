@@ -6,6 +6,10 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 
 ## [Unreleased]
 
+## Phase 21: 2026-09-27 (show password)
+### Added
+- A show/hide button inside every password field: sign-in, change password, and the temporary password fields on the user form (`PasswordInput`). It is labelled for screen readers, reports its state with `aria-pressed`, and stays hidden without script.
+
 ## Phase 20: 2026-09-24 (README screenshots)
 ### Added
 - The user form shows what the selected role can and cannot see and do, and updates as the role changes.

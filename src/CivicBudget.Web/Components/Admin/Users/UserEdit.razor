@@ -41,7 +41,7 @@ else
                 {
                     <div class="mb-3">
                         <label class="form-label" for="password">Temporary password</label>
-                        <InputText id="password" type="password" class="form-control" @bind-Value="model.Password" autocomplete="new-password" />
+                        <PasswordInput id="password" class="form-control" @bind-Value="model.Password" autocomplete="new-password" />
                         <ValidationMessage For="() => model.Password" class="text-danger" />
                         <div class="form-text">At least 10 characters with upper, lower, digit, and symbol. Share it out of band; the user is asked to choose their own at first sign-in.</div>
                     </div>
@@ -106,7 +106,7 @@ else
                         <EditForm EditContext="resetContext" OnSubmit="ResetPasswordAsync">
                             <div class="mb-3">
                                 <label class="form-label" for="newPassword">Temporary password</label>
-                                <InputText id="newPassword" type="password" class="form-control" @bind-Value="resetModel.NewPassword" autocomplete="new-password" />
+                                <PasswordInput id="newPassword" class="form-control" @bind-Value="resetModel.NewPassword" autocomplete="new-password" />
                                 <ValidationMessage For="() => resetModel.NewPassword" class="text-danger" />
                             </div>
                             <button type="submit" class="btn btn-outline-danger" disabled="@resetting">Reset password</button>

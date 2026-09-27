@@ -886,6 +886,13 @@ gap; Phase 18 implemented it (ADR-0033).
 **Consequences.** Tests that change settings sign in as the Administrator. Portal tests that
 change data read the result through a fresh scope, as the next request would.
 
+**Amended 2026-09-27: one script on the account pages.** Password fields now have a show/hide
+button, which needs a few lines of script: a static page has no circuit to handle the click, and CSS
+cannot change an input's type. `js/password-toggle.js` loads on interactive pages and on the static
+`/Account` pages (sign-in, change password), and nowhere else, so the portal is still script-free.
+The button stays hidden until the script runs, so a browser without script sees an ordinary
+password field rather than a button that does nothing.
+
 ---
 
 ## ADR-0033: Department totals, starting a year's budget, and optimistic concurrency

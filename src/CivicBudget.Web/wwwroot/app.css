@@ -1912,6 +1912,44 @@ table.cb-grid > thead > tr > th .cb-tip {
     font-size: 1.125rem;
 }
 
+/* Password fields: the show/hide button sits inside the field's right edge. Hidden until
+   password-toggle.js has run (it adds .cb-js), so a page without script shows no dead button. */
+.cb-password {
+    position: relative;
+}
+
+.cb-password .form-control {
+    padding-right: 2.75rem;
+}
+
+.cb-password-toggle {
+    display: none;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    background: none;
+    color: var(--cb-muted);
+    border-radius: 0 var(--cb-radius) var(--cb-radius) 0;
+}
+
+.cb-js .cb-password-toggle {
+    display: flex;
+}
+
+.cb-password-toggle:hover {
+    color: var(--cb-text);
+}
+
+.cb-password-toggle:focus-visible {
+    outline: 2px solid var(--cb-action);
+    outline-offset: -2px;
+}
+
 /* Bootstrap sizes every legend at 1.5rem; a fieldset's legend here reads as a field label. */
 legend.form-label {
     float: none;
