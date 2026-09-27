@@ -57,6 +57,18 @@ internal static class AdminExportEndpoints
                 ? File(exporter, ReportTables.Certificate(certificate), $"certificate-fy{certificate.Header.FiscalYear}-{Slug(certificate.Header.VersionLabel)}")
                 : Results.NotFound());
 
+        // The reports built on the ERP's books, and the appropriation measure. The service decides who gets which.
+        group.MapGet("/reports/{versionId:guid}/budget-vs-actual.xlsx", async (Guid versionId, [FromServices] IActualsReportService reports, [FromServices] ISpreadsheetExporter exporter, CancellationToken ct) =>
+            await reports.BudgetVsActualAsync(versionId, ct) is { } r ? File(exporter, ReportTables.BudgetVsActual(r), $"budget-vs-actual-{Slug(r.Header.Title)}") : Results.NotFound());
+        group.MapGet("/reports/{versionId:guid}/revenue-vs-receipts.xlsx", async (Guid versionId, [FromServices] IActualsReportService reports, [FromServices] ISpreadsheetExporter exporter, CancellationToken ct) =>
+            await reports.RevenueVsReceiptsAsync(versionId, ct) is { } r ? File(exporter, ReportTables.RevenueVsReceipts(r), $"revenue-vs-receipts-{Slug(r.Header.Title)}") : Results.NotFound());
+        group.MapGet("/reports/{versionId:guid}/fund-projection.xlsx", async (Guid versionId, [FromServices] IActualsReportService reports, [FromServices] ISpreadsheetExporter exporter, CancellationToken ct) =>
+            await reports.FundProjectionAsync(versionId, ct) is { } r ? File(exporter, ReportTables.FundProjection(r), $"fund-projection-{Slug(r.Header.Title)}") : Results.NotFound());
+        group.MapGet("/reports/{versionId:guid}/trends.xlsx", async (Guid versionId, [FromServices] IActualsReportService reports, [FromServices] ISpreadsheetExporter exporter, CancellationToken ct) =>
+            await reports.TrendsAsync(versionId, ct) is { } r ? File(exporter, ReportTables.Trends(r), $"trends-{Slug(r.Header.Title)}") : Results.NotFound());
+        group.MapGet("/reports/{versionId:guid}/appropriation-measure.xlsx", async (Guid versionId, [FromServices] IActualsReportService reports, [FromServices] ISpreadsheetExporter exporter, CancellationToken ct) =>
+            await reports.AppropriationMeasureAsync(versionId, ct) is { } r ? File(exporter, ReportTables.AppropriationMeasure(r), $"appropriation-measure-{Slug(r.Header.Title)}") : Results.NotFound());
+
         // The ERP's import file for a budget journal: CSV, because that is what an ERP import reads.
         group.MapGet("/erp-journals/{transmissionId:guid}.csv", async (Guid transmissionId, [FromServices] IBudgetTransmissionService sends, CancellationToken ct) =>
             await sends.FileAsync(transmissionId, ct) is { } file

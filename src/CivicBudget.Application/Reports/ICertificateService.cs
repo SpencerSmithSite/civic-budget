@@ -4,7 +4,7 @@ using CivicBudget.Domain.Accounts;
 namespace CivicBudget.Application.Reports;
 
 /// <summary>A revenue account the settings page can put in a column.</summary>
-public sealed record RevenueAccountDto(Guid Id, string Code, string Name, ReportingCategory Category, bool IsActive);
+public sealed record ReportAccountDto(Guid Id, string Code, string Name, ReportingCategory Category, bool IsActive);
 
 /// <summary>A revenue column on the certificate: its heading and the accounts that feed it.</summary>
 public sealed record ReportColumnDto(string Label, IReadOnlyList<Guid> AccountIds);
@@ -18,7 +18,7 @@ public sealed record CertificateSettingsDto(
     IReadOnlyList<ReportColumnDto> Columns,
     /// <summary>Nothing saved yet: the columns shown are the Ohio default, one "Taxes" column of the accounts categorized as taxes.</summary>
     bool UsingDefaultColumns,
-    IReadOnlyList<RevenueAccountDto> RevenueAccounts);
+    IReadOnlyList<ReportAccountDto> RevenueAccounts);
 
 public sealed record SaveCertificateSettingsRequest(
     string? County,

@@ -25,6 +25,7 @@ public class CertificatePagesTests : BunitContext
     public CertificatePagesTests()
     {
         Services.AddSingleton<ICertificateService>(_certificates);
+        Services.AddSingleton<IMeasureColumnService>(new FakeMeasureColumns());
         Services.AddSingleton<ToastService>();
         Services.AddSingleton<AdminPageState>();
         _auth = AddAuthorization();
@@ -96,7 +97,7 @@ public class CertificatePagesTests : BunitContext
     {
         _certificates.Settings = new CertificateSettingsDto("Harmon", "Dana Whitfield", "Fiscal Officer", "Unencumbered Balance 1/1", "Other Sources",
             [new ReportColumnDto("Taxes", [RealEstate])], false,
-            [new RevenueAccountDto(RealEstate, "4110", "Real Estate Taxes", ReportingCategory.Taxes, true), new RevenueAccountDto(IncomeTax, "4130", "Municipal Income Tax", ReportingCategory.Taxes, true)]);
+            [new ReportAccountDto(RealEstate, "4110", "Real Estate Taxes", ReportingCategory.Taxes, true), new ReportAccountDto(IncomeTax, "4130", "Municipal Income Tax", ReportingCategory.Taxes, true)]);
 
         IRenderedComponent<ReportSettings> page = Render<ReportSettings>();
         page.WaitForAssertion(() => Assert.Contains("Taxes", page.Find(".cb-cert-preview").TextContent));
@@ -113,6 +114,14 @@ public class CertificatePagesTests : BunitContext
 
         Assert.Equal([("Taxes", new[] { RealEstate }), ("Local taxes", new[] { IncomeTax })],
             _certificates.Saved!.Columns.Select(c => (c.Label, c.AccountIds.ToArray())));
+    }
+
+    private sealed class FakeMeasureColumns : IMeasureColumnService
+    {
+        public Task<MeasureColumnsDto> GetAsync(CancellationToken ct = default) =>
+            Task.FromResult(new MeasureColumnsDto([new ReportColumnDto("Personal services", [])], true, []));
+
+        public Task<Result> SaveAsync(IReadOnlyList<ReportColumnDto> columns, CancellationToken ct = default) => Task.FromResult(Result.Success());
     }
 
     private sealed class FakeCertificates : ICertificateService

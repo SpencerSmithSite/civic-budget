@@ -1106,6 +1106,53 @@ PDF. Report columns are a general mechanism; the reports in Phase 25 can use the
 
 ---
 
+## ADR-0037: Reports on the ERP's books are paced by last year, and the appropriation measure's columns are settings
+**Date:** 2026-09-27 · **Status:** Accepted
+
+**Context.** The reports worth selling beside an ERP put its books next to the budget: how much of
+each appropriation is spent, how revenue is coming in, where each fund will end the year, and how
+the years compare. Each one needs a sense of "on track", and the obvious measure (eight months gone,
+so two-thirds should be spent or collected) is wrong for most municipal money: real estate taxes
+arrive in two settlements, capital work happens in summer, debt service is paid twice a year. The
+appropriation measure (ORC 5705.38) also needed a decision: which expenditure accounts are
+"personal services".
+
+**Decision.**
+- **Pace by last year, not the calendar, wherever money is seasonal.** Revenue against receipts
+  compares each account's collected share with the share of last year's total that had arrived by
+  the same month; an account is "behind" only when it trails that by more than ten points. The fund
+  projection scales each line's year to date by last year's full year over last year at the same
+  month (`ActualsReportBuilder.Project`). A closed year is its actual; a line with no history is
+  carried at its budget, never below what has already happened, and the report counts those lines.
+  Committed money (encumbrances) is always projected as spent.
+- **Budget against actual shows both paces.** The bar's tick is the calendar share of the year, the
+  honest yardstick for evenly spent lines like payroll, and a column beside it gives last year's
+  figure at the same point for the lines that are not.
+- **Visibility follows the data.** Budget against actual and revenue against receipts use the
+  workspace read, so a department user sees their departments. The projection, the trends, and the
+  appropriation measure are whole-fund documents, so department users do not get them.
+- **Trends use each past year's latest adopted version**, the same budget the portal publishes, and
+  the ERP's actuals for each year it has sent (to date for a year under way).
+- **The appropriation measure's columns are report settings**, reusing the certificate's mechanism
+  (`ReportAccountGroup`, `ReportKind.AppropriationMeasure`). The default is one "Personal services"
+  column of the accounts categorized as personal services or fringe benefits; a government that
+  appropriates benefits separately makes two columns. Transfers out are appropriated at fund level
+  as other financing uses, beside the departments, the same rule as department totals (ADR-0033).
+  The column rules (at most four, each account once, the right kind of account) are shared
+  (`ReportColumnRules`).
+
+**Alternatives.** A straight-line projection (wrong for property taxes, which by August are almost
+all in); last year's monthly shares applied to this year's budget (ignores what has actually happened
+this year); hard-coding personal services as the Personal Services category alone (benefits follow
+pay in most Ohio appropriation measures, but not all).
+
+**Consequences.** The projections are only as good as last year's pattern; a one-time receipt last
+year skews this year's projection for that account, which is why the report shows its method and
+the lines without history. Every report here reads the same ERP tables and the same per-line totals
+as the budget screens (`ActualsByLine`), so a figure cannot differ between a screen and a report.
+
+---
+
 ## Packages
 
 Every NuGet package and why it is here. A package is added to this table in the same change that

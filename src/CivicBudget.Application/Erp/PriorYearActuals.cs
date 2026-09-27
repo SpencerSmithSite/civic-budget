@@ -83,6 +83,16 @@ public static class ErpActualsReader
         return ActualsByLine.Sum(lines, rows.Select(r => (new LineKey(r.FundId, r.DepartmentId, r.AccountId), r.Amount)));
     }
 
+    /// <summary>Receipts or spending per line through a fiscal month: last year "at this point", for pacing this year.</summary>
+    public static async Task<Dictionary<LineKey, decimal>> ActivityThroughPeriodAsync(ICivicBudgetDbContext db, int fiscalYear, int throughPeriod, IEnumerable<LineKey> lines, CancellationToken ct)
+    {
+        var rows = await db.ErpActuals.Where(a => a.FiscalYear == fiscalYear && a.Period <= throughPeriod)
+            .GroupBy(a => new { a.FundId, a.DepartmentId, a.AccountId })
+            .Select(g => new { g.Key.FundId, g.Key.DepartmentId, g.Key.AccountId, Amount = g.Sum(a => a.Amount) })
+            .ToListAsync(ct);
+        return ActualsByLine.Sum(lines, rows.Select(r => (new LineKey(r.FundId, r.DepartmentId, r.AccountId), r.Amount)));
+    }
+
     /// <summary>Open encumbrances per line as of the year's last sync.</summary>
     public static async Task<Dictionary<LineKey, decimal>> EncumbranceTotalsAsync(ICivicBudgetDbContext db, int fiscalYear, IEnumerable<LineKey> lines, CancellationToken ct)
     {

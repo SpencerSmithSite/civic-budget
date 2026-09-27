@@ -91,7 +91,7 @@ The public portal needs no login: [Village of Maple Ridge](https://civicbudget-a
 | Admin app | Blazor Interactive Server, QuickGrid, Bootstrap 5 themed with CSS variables |
 | Portal | Blazor static server rendering, output caching, no JavaScript |
 | Data | EF Core on SQL Server 2022, ASP.NET Core Identity, FluentValidation, ClosedXML for Excel |
-| Tests | xUnit, bUnit, Testcontainers (a real SQL Server in Docker), CDK assertions; 719 tests |
+| Tests | xUnit, bUnit, Testcontainers (a real SQL Server in Docker), CDK assertions; 737 tests |
 | Delivery | Docker, GitHub Actions with OIDC sign-in; live on Azure (Bicep), deploy-ready on AWS (CDK in C#) |
 
 The code is four projects with dependencies pointing inward: `Domain` (entities and budget
@@ -138,6 +138,9 @@ that would have been wrong.
   fund's appropriations. Its balances come from the ERP's closed year, its "taxes" columns are the
   government's own choice of accounts, it reconciles itself against the budget, and it prints as a
   PDF ready for the budget commission to sign. ([ADR-0036](docs/DECISIONS.md#adr-0036-the-certificate-of-estimated-resources-report-columns-as-settings-and-migradoc-for-the-pdf), [Walkthrough 23](docs/walkthroughs/23-certificate.md))
+- **"On track" that knows the seasons.** Budget against actual, revenue against receipts, and fund
+  projections pace each account by where it stood last year at the same month, because by August
+  a village has collected nearly all its property tax and two-thirds of nothing else. ([ADR-0037](docs/DECISIONS.md#adr-0037-reports-on-the-erps-books-are-paced-by-last-year-and-the-appropriation-measures-columns-are-settings), [Walkthrough 24](docs/walkthroughs/24-actuals-reports.md))
 
 ## Run it locally
 
@@ -209,8 +212,9 @@ deployed; it shows the production-shaped design. See [infra/README.md](infra/REA
    [20 Budget rules](docs/walkthroughs/20-budget-rules.md) ·
    [21 Actuals from VIP](docs/walkthroughs/21-erp-actuals.md) ·
    [22 Send the budget to VIP](docs/walkthroughs/22-send-to-erp.md) ·
-   [23 The certificate of estimated resources](docs/walkthroughs/23-certificate.md)
-4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 36 decision records, each
+   [23 The certificate of estimated resources](docs/walkthroughs/23-certificate.md) ·
+   [24 Reports on the ERP's books](docs/walkthroughs/24-actuals-reports.md)
+4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 37 decision records, each
    with the alternatives I turned down, and the table of every package and why it is there.
 5. Then the code, starting at `src/CivicBudget.Domain/Budgets/BudgetVersion.cs`, the heart of it.
 

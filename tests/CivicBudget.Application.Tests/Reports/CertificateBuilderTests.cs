@@ -154,9 +154,9 @@ public class CertificateBuilderTests
             new ReportColumnDto(" ", []), new ReportColumnDto("D", []), new ReportColumnDto("E", []),
         ]), revenue);
 
-        Assert.Contains(problems, p => p.StartsWith("A certificate has room for 4", StringComparison.Ordinal));
+        Assert.Contains(problems, p => p.StartsWith("A report has room for 4 columns", StringComparison.Ordinal));
         Assert.Contains("Every column needs a heading.", problems);
-        Assert.Contains("Local: only revenue accounts can be in a revenue column.", problems);
+        Assert.Contains("Local: only revenue accounts can be in this column.", problems);
         Assert.Contains("1 account is in more than one column, which would count the money twice.", problems);
         Assert.Contains(CertificateService.Problems(new SaveCertificateSettingsRequest(null, null, "FO", "Balance", "taxes", [new ReportColumnDto("Taxes", [RealEstate])]), revenue),
             p => p.Contains("Two columns are headed", StringComparison.Ordinal));

@@ -66,11 +66,15 @@ public enum ReportKind
 {
     /// <summary>The certificate of estimated resources: its revenue columns before "other sources".</summary>
     Certificate = 1,
+
+    /// <summary>The appropriation measure: its expenditure columns ("Personal services") before "Other".</summary>
+    AppropriationMeasure = 2,
 }
 
 /// <summary>
-/// A named set of revenue accounts that one report shows as its own column ("Taxes": real estate
-/// taxes and the municipal income tax). Charts differ from one government to the next, so which
+/// A named set of accounts that one report shows as its own column: revenue accounts for the
+/// certificate ("Taxes": real estate taxes and the municipal income tax), expenditure accounts for
+/// the appropriation measure ("Personal services"). Charts differ from one government to the next, so which
 /// accounts are "taxes" is the government's to say. An account belongs to at most one group per
 /// report, or its money would be counted twice.
 /// </summary>

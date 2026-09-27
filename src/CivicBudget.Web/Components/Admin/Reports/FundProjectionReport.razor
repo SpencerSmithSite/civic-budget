@@ -1,0 +1,95 @@
+@page "/admin/reports/{VersionId:guid}/fund-projection"
+@attribute [Authorize(Policy = Policies.CanViewBudget)]
+@using CivicBudget.Application.Reports
+@inject IActualsReportService Reports
+
+@* Where each fund will end the year: the budget's own answer beside the one the ERP's books point
+   to. Each line is projected from how much of last year's total had arrived by the same month, so
+   seasonal money (tax settlements, summer capital work) does not skew it; committed money is always
+   counted as spent. *@
+<PageTitle>Projected Fund Balances</PageTitle>
+
+@if (notFound)
+{
+    <PageHeader Title="Projected Fund Balances" Eyebrow="Reports" Crumbs="@([new Crumb("Budget"), new Crumb("Reports", "admin/reports"), new Crumb("Projected Fund Balances")])" />
+    <EmptyState Icon="bi-shield-lock" Title="Not available" Text="The projection covers whole funds, so it is run by the Fiscal Officer, an Administrator, or a Viewer; or the budget version was not found.">
+        <a class="btn btn-primary" href="admin/reports">Reports</a>
+    </EmptyState>
+}
+else if (report is null)
+{
+    <PageHeader Title="Projected Fund Balances" Eyebrow="Reports" Crumbs="@([new Crumb("Budget"), new Crumb("Reports", "admin/reports"), new Crumb("Projected Fund Balances")])" />
+    <SkeletonRows Rows="6" Columns="8" />
+}
+else
+{
+    <ReportShell Title="Projected Fund Balances" Header="report.Header" ExportHref="@($"admin/export/reports/{VersionId}/fund-projection.xlsx")"
+                 Description="Each fund's year-end balance as budgeted and as the ERP's actuals so far project it."
+                 FootNote="Projected: this year to date scaled by last year's full year over last year at the same month; lines without that history are carried at their budget. Encumbered money counts as spent.">
+        @if (report.Period is not { } period)
+        {
+            <EmptyState Icon="bi-hourglass" Title="@($"No FY{report.Header.FiscalYear} actuals yet")" Text="@($"The ERP has not sent FY{report.Header.FiscalYear}, so there is nothing to project from. The budgeted balances are on Budget Summary by Fund.")" />
+        }
+        else
+        {
+            <div class="cb-cert-doc">
+                Through <b>@Display.Date(period.AsOf)</b>.
+                @if (report.LinesProjectedFromBudget > 0)
+                {
+                    <span>@report.LinesProjectedFromBudget line@(report.LinesProjectedFromBudget == 1 ? " has" : "s have") no history from last year and @(report.LinesProjectedFromBudget == 1 ? "is" : "are") carried at budget.</span>
+                }
+            </div>
+            <div class="cb-grid-wrap">
+                <table class="cb-grid table cb-report-table" aria-label="Projected fund balances">
+                    <thead>
+                        <tr>
+                            <th scope="col">Fund</th>
+                            <th scope="col" class="cb-num cb-col-wide">Beginning</th>
+                            <th scope="col" class="cb-num cb-col-wide">Budgeted receipts</th>
+                            <th scope="col" class="cb-num">Projected receipts</th>
+                            <th scope="col" class="cb-num cb-col-wide">Appropriations</th>
+                            <th scope="col" class="cb-num">Projected spending</th>
+                            <th scope="col" class="cb-num cb-col-wide">Budgeted ending</th>
+                            <th scope="col" class="cb-num cb-col-strong">Projected ending</th>
+                            <th scope="col" class="cb-num">Difference</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (FundProjectionRowDto f in report.Funds)
+                        {
+                            <tr>@Cells(f, $"{f.FundCode} {f.FundName}", strong: false)</tr>
+                        }
+                    </tbody>
+                    <tfoot><tr>@Cells(report.Total, "All funds", strong: true)</tr></tfoot>
+                </table>
+            </div>
+        }
+    </ReportShell>
+}
+
+@code {
+    [Parameter]
+    public Guid VersionId { get; set; }
+
+    private FundProjectionReportDto? report;
+    private bool notFound;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        report = await Reports.FundProjectionAsync(VersionId);
+        notFound = report is null;
+    }
+
+    private static RenderFragment Cells(FundProjectionRowDto f, string label, bool strong) => __builder =>
+    {
+        <th scope="row" class="@(strong ? "cb-wrap" : "fw-normal cb-wrap")">@label</th>
+        <td class="cb-num cb-col-wide">@Display.Amount(f.BeginningBalance)</td>
+        <td class="cb-num cb-col-wide">@Display.Amount(f.BudgetedReceipts)</td>
+        <td class="cb-num">@Display.Amount(f.ProjectedReceipts)</td>
+        <td class="cb-num cb-col-wide">@Display.Amount(f.Appropriations)</td>
+        <td class="cb-num">@Display.Amount(f.ProjectedSpending)</td>
+        <td class="cb-num cb-col-wide">@Display.Amount(f.BudgetedEnding)</td>
+        <td class="cb-num cb-col-strong @(f.ProjectedEnding < 0 ? "cb-neg" : "")">@Display.Amount(f.ProjectedEnding)</td>
+        <td class="cb-num @(f.Difference < 0 ? "cb-neg" : f.Difference > 0 ? "cb-pos" : "")">@Display.SignedChange(f.Difference)</td>
+    };
+}

@@ -1,0 +1,85 @@
+@page "/admin/reports/{VersionId:guid}/revenue-vs-receipts"
+@attribute [Authorize(Policy = Policies.CanViewBudget)]
+@using CivicBudget.Application.Reports
+@inject IActualsReportService Reports
+
+@* Each revenue estimate against what has come in. Revenue is seasonal (real estate taxes arrive in
+   two settlements), so the bar's tick is where the same account stood last year at this point, not
+   the calendar, and "behind" means behind last year, by more than ten points. *@
+<PageTitle>Revenue vs. Receipts</PageTitle>
+
+@if (notFound)
+{
+    <EmptyState Icon="bi-journal-x" Title="Budget version not found" Text="It may have been removed, or the link is wrong."><a class="btn btn-primary" href="admin/reports">Reports</a></EmptyState>
+}
+else if (report is null)
+{
+    <PageHeader Title="Revenue vs. Receipts" Eyebrow="Reports" Crumbs="@([new Crumb("Budget"), new Crumb("Reports", "admin/reports"), new Crumb("Revenue vs. Receipts")])" />
+    <SkeletonRows Rows="6" Columns="6" />
+}
+else
+{
+    <ReportShell Title="Revenue vs. Receipts" Header="report.Header" ExportHref="@($"admin/export/reports/{VersionId}/revenue-vs-receipts.xlsx")"
+                 Description="Each revenue estimate against what the ERP has received, and how that compares with the same point last year."
+                 FootNote="@($"Estimates are FY{report.Header.FiscalYear} {report.Header.VersionLabel}; receipts are the ERP's. The tick is how much of last year's total had arrived by the same month.")">
+        @if (report.Period is not { } period)
+        {
+            <EmptyState Icon="bi-hourglass" Title="@($"No FY{report.Header.FiscalYear} receipts yet")" Text="@($"The ERP has not sent FY{report.Header.FiscalYear}.")" />
+        }
+        else
+        {
+            int behind = report.Funds.Sum(f => f.Lines.Count(l => l.IsBehind));
+            <div class="cb-cert-doc">Through <b>@Display.Date(period.AsOf)</b>.@(behind > 0 ? $" {behind} account{(behind == 1 ? " is" : "s are")} more than ten points behind last year." : "")</div>
+            <div class="cb-grid-wrap">
+                <table class="cb-grid table cb-report-table" aria-label="Revenue vs receipts">
+                    <thead>
+                        <tr>
+                            <th scope="col">Account</th>
+                            <th scope="col" class="cb-num">Estimate</th>
+                            <th scope="col" class="cb-num">Received</th>
+                            <th scope="col" class="cb-num cb-col-strong">Still to collect</th>
+                            <th scope="col" class="cb-num">Collected</th>
+                            <th scope="col" class="cb-num cb-col-wide">Normally by now</th>
+                        </tr>
+                    </thead>
+                    @foreach (RevenueReceiptFundDto fund in report.Funds)
+                    {
+                        <tbody>
+                            <tr class="cb-group"><td colspan="6"><span class="cb-code">@fund.FundCode</span> @fund.FundName</td></tr>
+                            @foreach (RevenueReceiptRowDto row in fund.Lines)
+                            {
+                                <tr>@Cells(row, $"{row.AccountNumber} {row.Label}", strong: false)</tr>
+                            }
+                            <tr class="cb-subtotal">@Cells(fund.Subtotal, fund.Subtotal.Label, strong: true)</tr>
+                        </tbody>
+                    }
+                    <tfoot><tr>@Cells(report.Total, "All funds", strong: true)</tr></tfoot>
+                </table>
+            </div>
+        }
+    </ReportShell>
+}
+
+@code {
+    [Parameter]
+    public Guid VersionId { get; set; }
+
+    private RevenueReceiptReportDto? report;
+    private bool notFound;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        report = await Reports.RevenueVsReceiptsAsync(VersionId);
+        notFound = report is null;
+    }
+
+    private static RenderFragment Cells(RevenueReceiptRowDto r, string label, bool strong) => __builder =>
+    {
+        <th scope="row" class="@(strong ? "cb-wrap" : "fw-normal cb-wrap")">@label</th>
+        <td class="cb-num">@Display.Amount(r.Estimate)</td>
+        <td class="cb-num">@Display.Amount(r.Received)</td>
+        <td class="cb-num cb-col-strong">@Display.Amount(r.StillToCollect)</td>
+        <td class="cb-num"><UsedBar Share="r.Collected" Pace="r.NormallyByNow" Verb="collected" PaceLabel="total in by now last year" Tone="@(r.IsBehind ? "behind" : null)" /></td>
+        <td class="cb-num cb-col-wide text-secondary">@(r.NormallyByNow is { } n ? $"{Math.Round(n * 100m, 0)}%" : "")</td>
+    };
+}

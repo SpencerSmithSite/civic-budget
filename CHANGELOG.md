@@ -6,6 +6,17 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 
 ## [Unreleased]
 
+## Phase 25: 2026-09-27 (reports the ERP cannot produce alone)
+### Added
+- **Budget vs. Actual**: each appropriation against the ERP's spending and encumbrances, what is left, a bar with a tick for the year's pace, and last year at the same point.
+- **Revenue vs. Receipts**: each estimate against what has come in, measured against how much of last year's total had arrived by the same month.
+- **Projected Fund Balances**: budgeted against projected year-end balances, each line projected from last year's monthly pattern, committed money counted as spent.
+- **Multi-year Trends**: each fund's budgets and actuals year by year up to the budget.
+- **Appropriation Measure** (ORC 5705.38): by fund and department, with personal services set out separately and transfers out beside the departments; its columns are report settings (default: personal services and fringe benefits).
+- The reports index grouped into the budget, legal documents, and reports against the ERP's books. Every new report exports to XLSX.
+### Changed
+- Report settings has a second editor for the appropriation measure's columns; the column rules are shared (`ReportColumnRules`).
+
 ## Phase 24: 2026-09-27 (report settings and the certificate of estimated resources)
 ### Added
 - **Certificate of Estimated Resources** (ORC 5705.36) for any budget version, numbered with it ("Amended Certificate No. 1"): as issued and as a detailed schedule, one row per fund with fund-type subtotals and a grand total.
