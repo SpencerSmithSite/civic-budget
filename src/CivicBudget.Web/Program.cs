@@ -1,6 +1,8 @@
 using CivicBudget.Application;
+using CivicBudget.Application.Erp;
 using CivicBudget.Application.Publishing;
 using CivicBudget.Infrastructure;
+using CivicBudget.Infrastructure.Erp;
 using CivicBudget.Infrastructure.Persistence;
 using CivicBudget.Infrastructure.Seed;
 using CivicBudget.Web;
@@ -50,6 +52,13 @@ builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection(Dat
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(connectionString);
 builder.Services.Configure<SeedOptions>(builder.Configuration.GetSection(SeedOptions.SectionName));
+
+// The simulated VIP keeps only the demo governments' books, so it is connected exactly where the
+// demo data is seeded. Elsewhere no IErpActualsApi is registered and the actuals page offers the file upload alone.
+if (builder.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>($"{DatabaseOptions.SectionName}:{nameof(DatabaseOptions.SeedDemoData)}"))
+{
+    builder.Services.AddSingleton<IErpActualsApi, SimulatedVipActualsApi>();
+}
 
 // --- Authentication: Identity's cookie. ---------------------------------------------------------
 builder.Services.AddAuthentication(options =>

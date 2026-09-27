@@ -6,6 +6,15 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 
 ## [Unreleased]
 
+## Phase 22: 2026-09-27 (actuals from VIP)
+### Added
+- **Actuals sync** under Setup: fetch a fiscal year's books from VIP, or upload an export (`Fiscal Year, Type, Account, Period, Amount`), preview receipts, disbursements, open encumbrances, and cash by fund, and apply. A sync replaces the year; one unknown account code refuses the whole file.
+- A closed year fills the prior-year actuals of the open budget two years on (audited, listed in the preview); starting a budget and adding a line take them from the ERP too.
+- Department pages show this year's spending under each line's current budget, with a bar that turns amber past the budget; the line drawer adds open encumbrances.
+- A simulated VIP for development and the live demo, keeping the demo governments' fictional books by month; the seed starts with FY2025 and FY2026 already synced.
+### Fixed
+- A long fund name in a department grid's total row forced the table wider than the screen.
+
 ## Phase 21: 2026-09-27 (show password)
 ### Added
 - A show/hide button inside every password field: sign-in, change password, and the temporary password fields on the user form (`PasswordInput`). It is labelled for screen readers, reports its state with `aria-pressed`, and stays hidden without script.

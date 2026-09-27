@@ -4,6 +4,17 @@
 <dl class="cb-line-detail">
     <div><dt>FY@(FiscalYear - 2) actual</dt><dd>@Display.Money(Line.PriorYearActual)</dd></div>
     <div><dt>FY@(FiscalYear - 1) budget</dt><dd>@Display.Money(Line.CurrentYearBudget)</dd></div>
+    @if (CurrentYearActuals is { } ytd)
+    {
+        <div>
+            <dt>FY@(ytd.FiscalYear) @(ytd.IsClosed ? "actual" : $"to {Display.Date(ytd.AsOf)}")</dt>
+            <dd><YearToDateCell Amount="Line.YearToDate ?? 0m" Budget="Line.CurrentYearBudget" IsReceipt="Line.AccountType.IsResource()" /></dd>
+        </div>
+        @if (Line.Encumbered is > 0m)
+        {
+            <div><dt>Encumbered</dt><dd>@Display.Money(Line.Encumbered.Value) <span class="small text-secondary">committed, not yet spent</span></dd></div>
+        }
+    }
     <div>
         <dt>FY@(FiscalYear) @(Line.AccountType == Domain.Accounts.AccountType.Expenditure ? "proposed" : "estimate")</dt>
         <dd><AmountCell Value="Line.Amount" CanEdit="Line.CanEdit" Label="@($"FY{FiscalYear} amount for {Line.AccountNumber} {Line.AccountName}")" ValueChanged="amount => OnAmountChanged.InvokeAsync((Line.Id, amount))" /></dd>
@@ -40,6 +51,10 @@
 
     [Parameter, EditorRequired]
     public int FiscalYear { get; set; }
+
+    /// <summary>How far the ERP's figures for the year before <see cref="FiscalYear"/> run; null hides those rows.</summary>
+    [Parameter]
+    public Application.Erp.ActualsYearDto? CurrentYearActuals { get; set; }
 
     [Parameter]
     public EventCallback<(Guid LineId, decimal Amount)> OnAmountChanged { get; set; }

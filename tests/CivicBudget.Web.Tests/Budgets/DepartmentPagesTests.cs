@@ -124,6 +124,40 @@ public class DepartmentPagesTests : BunitContext
     }
 
     [Fact]
+    public void Entry_page_shows_this_years_spending_from_the_erp_under_each_budget()
+    {
+        BudgetLineDto salaries = Line(Streets, "620", "5110", AccountType.Expenditure, 110m, canEdit: true) with { YearToDate = 30m };
+        BudgetLineDto overtime = Line(Streets, "620", "5120", AccountType.Expenditure, 20m, canEdit: true) with { YearToDate = 65m };
+        _entry.Workspace = Workspace([Request(Streets, "620", "Streets", DepartmentRequestStatus.InProgress, true, true, false)], [salaries, overtime]) with
+        {
+            CurrentYearActuals = new Application.Erp.ActualsYearDto(2026, 8, new DateOnly(2026, 8, 31), DateTimeOffset.UtcNow, "system", "VIP (simulated)"),
+        };
+
+        IRenderedComponent<DepartmentEntry> page = Render<DepartmentEntry>(p => p.Add(x => x.VersionId, VersionId).Add(x => x.DepartmentId, Streets));
+
+        page.WaitForAssertion(() => Assert.Equal(3, page.FindAll(".cb-ytd").Count));                     // two lines and the fund total
+        IReadOnlyList<AngleSharp.Dom.IElement> cells = page.FindAll("table.cb-dept-grid tbody .cb-ytd");
+        Assert.Equal(["60% of this year's budget, through Aug 31, 2026", "130% of this year's budget, through Aug 31, 2026"], cells.Select(c => c.GetAttribute("title")));  // budget is 50 on each line
+        Assert.Contains("30.00 spent", cells[0].TextContent);
+        Assert.Contains("cb-ytd-over", cells[1].ClassList);                                                    // spending ahead of the budget stands out
+        Assert.Contains("95.00 spent", page.Find("table.cb-dept-grid tfoot").TextContent);
+        Assert.Contains("$95.00 spent through Aug 31, 2026", page.Find(".cb-kpis").TextContent);
+    }
+
+    [Fact]
+    public void Entry_page_leaves_the_spending_out_until_the_erp_has_sent_the_year()
+    {
+        _entry.Workspace = Workspace([Request(Streets, "620", "Streets", DepartmentRequestStatus.InProgress, true, true, false)],
+            [Line(Streets, "620", "5110", AccountType.Expenditure, 110m, canEdit: true)]);
+
+        IRenderedComponent<DepartmentEntry> page = Render<DepartmentEntry>(p => p.Add(x => x.VersionId, VersionId).Add(x => x.DepartmentId, Streets));
+
+        page.WaitForAssertion(() => Assert.Contains("FY2026 budget", page.Markup));
+        Assert.Empty(page.FindAll(".cb-ytd"));
+        Assert.DoesNotContain("spent", page.Find(".cb-kpis").TextContent);
+    }
+
+    [Fact]
     public void Entry_page_reports_a_department_the_user_cannot_see()
     {
         _entry.Workspace = Workspace([], []);

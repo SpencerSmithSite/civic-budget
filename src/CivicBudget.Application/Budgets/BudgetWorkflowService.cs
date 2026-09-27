@@ -1,4 +1,5 @@
 using CivicBudget.Application.Common;
+using CivicBudget.Application.Erp;
 using CivicBudget.Application.Persistence;
 using CivicBudget.Application.Security;
 using CivicBudget.Domain.Auditing;
@@ -149,6 +150,9 @@ public sealed class BudgetWorkflowService(
                 Dictionary<Guid, Domain.Funds.Fund> funds = await db.Funds.ToDictionaryAsync(f => f.Id, ct);
                 var options = new BudgetSeedOptions(request.AdjustmentPercent, request.Scope, request.RoundToWholeDollars);
                 (version, skipped) = BudgetVersion.CreateOriginalFrom(prior, year.Id, funds, options);
+
+                // Last year's lines carry no prior-year actuals of their own; the ERP supplies them when it holds that year.
+                await PriorYearActuals.FillAsync(db, version, year.Year, ct);
                 description = $"Started the {year.Label} budget from FY{year.Year - 1} {prior.Label}{SeedNote(options)}";
             }
         }

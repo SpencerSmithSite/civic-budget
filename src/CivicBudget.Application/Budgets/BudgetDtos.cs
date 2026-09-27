@@ -38,7 +38,11 @@ public sealed record BudgetLineDto(
     decimal PriorYearActual,
     decimal CurrentYearBudget,
     string? Justification,
-    bool CanEdit)
+    bool CanEdit,
+    /// <summary>The current year's receipts or spending so far, from the ERP; null until the ERP has sent that year.</summary>
+    decimal? YearToDate = null,
+    /// <summary>Committed on this line in the current year and not yet spent, from the ERP.</summary>
+    decimal? Encumbered = null)
 {
     public decimal DollarChange => Amount - CurrentYearBudget;
     public decimal? PercentChange => Domain.Common.Money.PercentChange(CurrentYearBudget, Amount);
@@ -95,7 +99,9 @@ public sealed record BudgetWorkspaceDto(
     IReadOnlyList<LookupDto> Departments,
     IReadOnlyList<AccountLookupDto> Accounts,
     /// <summary>Every department with lines in the version (the user's own, for a department user) and where its request stands.</summary>
-    IReadOnlyList<DepartmentRequestDto> DepartmentRequests)
+    IReadOnlyList<DepartmentRequestDto> DepartmentRequests,
+    /// <summary>How far the ERP's figures for the current year (the budget year less one) run; null when it has sent none.</summary>
+    Erp.ActualsYearDto? CurrentYearActuals = null)
 {
     public bool AnyFundBlocksWorkflow => FundBalances.Any(f => f.Limit.BlocksWorkflow);
     public bool AnyFundOverLimit => FundBalances.Any(f => !f.Summary.IsWithinAppropriationLimit);

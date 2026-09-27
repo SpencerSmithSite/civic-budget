@@ -50,6 +50,10 @@ public sealed class CivicBudgetDbContext(DbContextOptions<CivicBudgetDbContext> 
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
     public DbSet<PublishedBudgetSnapshot> PublishedBudgetSnapshots => Set<PublishedBudgetSnapshot>();
     public DbSet<ChartSync> ChartSyncs => Set<ChartSync>();
+    public DbSet<ActualsSync> ActualsSyncs => Set<ActualsSync>();
+    public DbSet<ErpActual> ErpActuals => Set<ErpActual>();
+    public DbSet<ErpEncumbrance> ErpEncumbrances => Set<ErpEncumbrance>();
+    public DbSet<ErpFundCash> ErpFundCash => Set<ErpFundCash>();
     public DbSet<UserDepartment> UserDepartments => Set<UserDepartment>();
     public DbSet<UserAvatar> UserAvatars => Set<UserAvatar>();
     public DbSet<GovernmentLogo> GovernmentLogos => Set<GovernmentLogo>();

@@ -28,8 +28,9 @@ public sealed class BudgetLine : Entity, ITenantOwned
     public decimal Amount { get; private set; }
 
     /// <summary>
-    /// What was actually received or spent last year, for comparison. The ERP's general ledger is the
-    /// source of truth for actuals; this app keeps no ledger, so the figure is typed in or imported.
+    /// What was actually received or spent in the last closed year (two before the budget year), for
+    /// comparison. The ERP's ledger is the source of truth: once the ERP has sent that year closed, the
+    /// actuals sync writes it here; until then it is typed in or imported.
     /// </summary>
     public decimal PriorYearActual { get; private set; }
 

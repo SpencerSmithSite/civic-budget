@@ -49,6 +49,9 @@ from last year's latest adopted version:
 | Prior-year actual | 0, until actuals are imported (an adopted budget is not what was spent) |
 | Fund beginning balance | last year's projected ending balance |
 
+Since Phase 22 the prior-year actual comes from the ERP when it holds that year
+closed (walkthrough 21).
+
 The percentage applies to every line, appropriations only, or revenue
 estimates only, and the result can be rounded to whole dollars. $100,000
 adopted at +3% starts at $103,000. Lines whose fund, department, or account

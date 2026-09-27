@@ -1,0 +1,32 @@
+@* This year's receipts or spending so far, from the ERP: a thin bar for how much of this year's
+   budget that is, and the amount. It sits under the current budget in the same cell rather than
+   in a column of its own, because the bar only means something against that budget, and a
+   seventh column pushed the department grid past the screen. *@
+<span class="cb-ytd @(Amount > Budget ? "cb-ytd-over" : "")" title="@Title">
+    @if (Budget > 0m)
+    {
+        <span class="cb-used" aria-hidden="true"><span style="width: @(Math.Clamp(Used, 0m, 100m).ToString(System.Globalization.CultureInfo.InvariantCulture))%"></span></span>
+    }
+    <span class="cb-ytd-amount">@Display.Amount(Amount) @(IsReceipt ? "received" : "spent")</span>
+</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public decimal Amount { get; set; }
+
+    /// <summary>This year's budget for the same line; the bar is left out when there is none.</summary>
+    [Parameter, EditorRequired]
+    public decimal Budget { get; set; }
+
+    /// <summary>Revenue and transfers in are received, not spent.</summary>
+    [Parameter]
+    public bool IsReceipt { get; set; }
+
+    /// <summary>How far the figures run, for the tooltip ("through Aug 31, 2026").</summary>
+    [Parameter]
+    public string? Through { get; set; }
+
+    private decimal Used => Budget > 0m ? Math.Round(Amount / Budget * 100m, 0) : 0m;
+
+    private string Title => (Budget > 0m ? $"{Used}% of this year's budget" : "No budget this year") + (Through is null ? "" : $", {Through}");
+}

@@ -31,6 +31,10 @@ public interface ICivicBudgetDbContext : IAsyncDisposable, IDisposable
     DbSet<AuditEntry> AuditEntries { get; }
     DbSet<PublishedBudgetSnapshot> PublishedBudgetSnapshots { get; }
     DbSet<ChartSync> ChartSyncs { get; }
+    DbSet<ActualsSync> ActualsSyncs { get; }
+    DbSet<ErpActual> ErpActuals { get; }
+    DbSet<ErpEncumbrance> ErpEncumbrances { get; }
+    DbSet<ErpFundCash> ErpFundCash { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -1,4 +1,5 @@
 using System.Globalization;
+using CivicBudget.Application.Common;
 using CivicBudget.Domain.Accounts;
 using CivicBudget.Domain.Budgets;
 using CivicBudget.Domain.Common;
@@ -17,7 +18,7 @@ public sealed record ExistingLine(Guid LineId, Guid FundId, Guid? DepartmentId, 
 /// Rules mirror <see cref="BudgetVersion.AddLine"/> (active codes, a department on expenditure
 /// lines, no duplicate key) plus the file-level ones (parseable numbers, no duplicate rows).
 /// </summary>
-public static partial class ImportAnalyzer
+public static class ImportAnalyzer
 {
     public static IReadOnlyList<ImportRowDto> Analyze(
         IReadOnlyList<ImportRowInput> rows,
@@ -45,10 +46,10 @@ public static partial class ImportAnalyzer
                 errors.Add("Expenditure lines need a department.");
             }
 
-            decimal? amount = ParseMoney(row.Amount, "Amount", required: true, errors);
+            decimal? amount = MoneyText.Parse(row.Amount, "Amount", required: true, errors);
 
-            decimal? prior = ParseMoney(row.PriorYearActual, ImportFileParser.PriorYearActualHeader, required: false, errors);
-            decimal? current = ParseMoney(row.CurrentYearBudget, ImportFileParser.CurrentYearBudgetHeader, required: false, errors);
+            decimal? prior = MoneyText.Parse(row.PriorYearActual, ImportFileParser.PriorYearActualHeader, required: false, errors);
+            decimal? current = MoneyText.Parse(row.CurrentYearBudget, ImportFileParser.CurrentYearBudgetHeader, required: false, errors);
             // Revenues and expenditures are both entered as positive numbers (the account type says
             // which way they count), so a negative in any money column is a mistake in the file.
             foreach ((decimal? value, string column) in new[] { (amount, "Amount"), (prior, ImportFileParser.PriorYearActualHeader), (current, ImportFileParser.CurrentYearBudgetHeader) })
@@ -136,44 +137,4 @@ public static partial class ImportAnalyzer
 
         return match;
     }
-
-    /// <summary>Accepts "1,234.50", "$1,234.50", and plain numbers. "(500)" is read as -500 so the negative-amount rule can name it, rather than calling it "not a number".</summary>
-    private static decimal? ParseMoney(string? text, string column, bool required, List<string> errors)
-    {
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            if (required)
-            {
-                errors.Add($"{column} is missing.");
-            }
-
-            return null;
-        }
-
-        string cleaned = text.Trim().Replace("$", "", StringComparison.Ordinal);
-        bool negative = cleaned.StartsWith('(') && cleaned.EndsWith(')');
-        if (negative)
-        {
-            cleaned = "-" + cleaned[1..^1];
-        }
-
-        // NumberStyles.Number accepts a comma anywhere, so "1234,56" (a decimal comma) would import as
-        // 123,456.00. Commas are only accepted as thousands separators in groups of three.
-        if (cleaned.Contains(',', StringComparison.Ordinal) && !ThousandsSeparated().IsMatch(cleaned))
-        {
-            errors.Add($"{column} \"{text}\" has a comma in the wrong place. Use a period for cents, as in 1,234.50.");
-            return null;
-        }
-
-        if (decimal.TryParse(cleaned, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal value))
-        {
-            return Domain.Common.Money.Round(value);
-        }
-
-        errors.Add($"{column} \"{text}\" is not a number.");
-        return null;
-    }
-
-    [System.Text.RegularExpressions.GeneratedRegex(@"^-?\d{1,3}(,\d{3})+(\.\d+)?$")]
-    private static partial System.Text.RegularExpressions.Regex ThousandsSeparated();
 }

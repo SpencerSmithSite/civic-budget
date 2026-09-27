@@ -30,6 +30,8 @@ public static class DependencyInjection
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IErpChartFileSource, ErpChartFileSource>();
         services.AddScoped<IChartSyncService, ChartSyncService>();
+        services.AddScoped<IErpActualsFileSource, ErpActualsFileSource>();
+        services.AddScoped<IActualsSyncService, ActualsSyncService>();
 
         // Validators are found by convention (any class implementing IValidator<T>) so adding one
         // is a single file, not a file plus a registration line.

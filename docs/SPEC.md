@@ -147,7 +147,7 @@ Rules:
   |---|---|
   | Current year budget (the comparison) | last year's adopted amount |
   | Amount (the starting request) | that amount changed by an optional percentage, applied to every line, appropriations only, or revenue estimates only, and optionally rounded to whole dollars |
-  | Prior-year actual | 0 until actuals are imported (an adopted budget is not what was spent) |
+  | Prior-year actual | the ERP's figure when it holds that year closed (§3.12); otherwise 0 until typed or imported (an adopted budget is not what was spent) |
   | Fund beginning balance | last year's projected ending balance |
 
   $100,000 adopted at +3% starts at $103,000. Lines on retired funds,
@@ -162,7 +162,7 @@ Rules:
 | BudgetVersionId, FundId, AccountId | Required |
 | DepartmentId | **Required for expenditure accounts; optional for revenue and transfer accounts.** Revenue is usually budgeted by fund alone, but a government may attribute it to a department (water sales to the Water Utility). |
 | Amount | The budgeted (for appropriations, appropriated) amount in this version |
-| PriorYearActual | What was actually received or spent last year. The ERP's ledger is the source; it is entered or imported here. |
+| PriorYearActual | What was actually received or spent in the last closed year (FY2025 for an FY2027 budget). The ERP's ledger is the source: once the ERP has sent that year closed, it fills this column (§3.12); before then it is typed or imported. |
 | CurrentYearBudget | This year's budget, for comparison |
 | Justification | Free text |
 
@@ -213,11 +213,33 @@ does not, because an amendment is a new round.
 - The Tax Budget, Certificate of Estimated Resources, and Amended Certificate as
   documents (the *check* they enable is in scope, §5.1).
 - Temporary (first-quarter) appropriations.
-- Encumbrances, purchase orders, and the general ledger. Actuals are entered or
-  imported numbers; the ERP owns the books.
+- Encumbrances, purchase orders, and the general ledger. The ERP owns the books;
+  CivicBudget keeps a read-only copy of each year's actuals, open encumbrances, and
+  fund cash (§3.12) and never posts to them.
 - Advances (temporary loans between funds). Only permanent transfers are modeled.
 - Appropriation limits below the fund. The Ohio check is at the fund level, and
   that is where the app enforces it.
+
+### 3.12 Actuals from the ERP
+The ERP sends a fiscal year of its books: receipts and spending by account and
+fiscal month, open encumbrances by account, and each fund's cash, as of the end
+of its last closed month. It arrives from the ERP's API when a connection is set
+up, or from an export file (`Fiscal Year, Type, Account, Period, Amount`, with the
+full account number). The live demo connects to a simulated VIP that keeps the
+demo governments' fictional books.
+
+- **A sync replaces the year.** Every code must match the chart or nothing
+  changes; a year with a missing account would understate every total built on it.
+- **A closed year fills prior-year actuals** in every open version of the budget
+  two years on. Starting a budget and adding a line take them from there too. A
+  year still in progress fills nothing: eight months of spending is not a year's
+  actual. A negative total is left alone and reported.
+- **An open year shows beside the budget.** Budget screens show the current
+  year's receipts or spending so far under each line's current budget, with a bar
+  for how much of that budget it is, and the drawer adds open encumbrances.
+- A fund-level line (revenue with no department) collects the fund-and-account
+  amounts that no department-level line in the budget claims, so money the ERP
+  records against a department is neither lost nor counted twice.
 
 ---
 
@@ -471,6 +493,7 @@ prove tenant isolation in the tests and in the demo.
 | §3.6 Starting a year, concurrency | 18 | ADR-0033 |
 | §3.7 Positive amounts, department totals | 18 | ADR-0033 |
 | §3.10 Department requests | 9d | ADR-0027 |
+| §3.12 Actuals from the ERP | 22 | ADR-0034; simulated VIP in the demo |
 | §4 Workflow, §5 Validation | 4 | Block or Warn at the transition |
 | §6 Publishing | 4, 5, 18 | Denormalized snapshots (ADR-0005, 0019); read-only portal context (ADR-0006); cache evicted by tag (ADR-0021) |
 | §7.1 Admin | 2–4, 6, 9c, 9d, 10 | Two entry modes, live fund panel, audit trail, import, reports, department round, profile pictures |

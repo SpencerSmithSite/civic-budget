@@ -18,11 +18,33 @@ internal sealed record SeedLine(string FundCode, string? DepartmentCode, string 
     public decimal Budget2026 => Whole(Budget2025 * AnnualGrowth);
     public decimal Budget2027 => Proposed2027 ?? Whole(Budget2026 * 1.035m);
 
+    /// <summary>Where FY2026 and FY2027 end up; the simulated ERP reports them a month at a time.</summary>
+    public decimal Actual2026 => Whole(Budget2026 * Factor(4));
+    public decimal Actual2027 => Whole(Budget2027 * Factor(5));
+
+    /// <summary>The whole year's actual, or null for a year the fictional books do not reach.</summary>
+    public decimal? ActualFor(int year) => year switch
+    {
+        2023 => Actual2023,
+        2024 => Actual2024,
+        2025 => Actual2025,
+        2026 => Actual2026,
+        2027 => Actual2027,
+        _ => null,
+    };
+
     /// <summary>
     /// Actuals land between 94% and 101% of budget, chosen by a stable hash of the line's identity.
     /// <c>string.GetHashCode</c> is randomized per process, so a hand-rolled hash keeps seeds reproducible.
     /// </summary>
     private decimal Factor(int salt)
+    {
+        int bucket = Math.Abs(Hash(salt)) % 8; // 0..7
+        return 0.94m + (bucket * 0.01m);
+    }
+
+    /// <summary>A stable hash of the line's identity and a salt.</summary>
+    public int Hash(int salt)
     {
         int hash = salt;
         foreach (char c in $"{FundCode}|{DepartmentCode}|{AccountCode}")
@@ -30,8 +52,7 @@ internal sealed record SeedLine(string FundCode, string? DepartmentCode, string 
             hash = unchecked(hash * 31 + c);
         }
 
-        int bucket = Math.Abs(hash) % 8; // 0..7
-        return 0.94m + (bucket * 0.01m);
+        return hash;
     }
 
     private static decimal Whole(decimal amount) => Money.Round(Math.Round(amount, 0, MidpointRounding.AwayFromZero));

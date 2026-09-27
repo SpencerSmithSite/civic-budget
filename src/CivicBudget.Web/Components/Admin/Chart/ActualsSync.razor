@@ -1,0 +1,316 @@
+@page "/admin/actuals-sync"
+@attribute [Authorize(Policy = Policies.CanMaintainSetup)]
+@using CivicBudget.Application.Erp
+@inject IActualsSyncService Sync
+@inject ToastService Toasts
+
+@* Bring a fiscal year of actuals in from the parent ERP, straight from its API when one is
+   connected or from an export file, then preview and apply: the same two steps as the chart sync.
+   What is here already is listed first, because "how current are the numbers?" is the question
+   people come to this page with. *@
+<PageTitle>Actuals sync</PageTitle>
+
+<PageHeader Title="Sync actuals from the ERP" Eyebrow="Setup" Crumbs="@([new Crumb("Setup"), new Crumb("Actuals sync")])"
+            Tip="The ERP keeps the books; CivicBudget keeps a copy of each year's receipts, spending, open encumbrances, and fund cash so budgets and reports can compare against them. A sync replaces that year's figures. A closed year also fills the prior-year actual column of the budget two years on." />
+
+@if (status is null)
+{
+    <SkeletonRows Rows="3" Columns="4" />
+}
+else
+{
+    <div class="cb-kpis">
+        @if (status.Years.Count == 0)
+        {
+            <KpiCard Label="Actuals here" Value="None yet" Detail="Fetch or upload a year below" />
+        }
+        @foreach (ActualsYearDto y in status.Years.Take(4))
+        {
+            <KpiCard Label="@($"FY{y.FiscalYear}")" Value="@(y.IsClosed ? "Full year" : $"To {Display.Date(y.AsOf)}")"
+                     Detail="@($"{y.SourceName} · {Display.Relative(y.SyncedAtUtc)}")" Tone="@(y.IsClosed ? "ok" : "")" />
+        }
+    </div>
+
+    <div class="cb-sync-sources mb-4">
+        @if (status.ApiName is not null)
+        {
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="h6 mb-1"><i class="bi bi-plug me-2" aria-hidden="true"></i>Fetch from @status.ApiName</h2>
+                    <p class="small text-secondary mb-3">Asks the ERP for the year's books as of its last closed month.</p>
+                    <div class="d-flex gap-2 align-items-end flex-wrap">
+                        <div>
+                            <label class="form-label small mb-1" for="fetchYear">Fiscal year</label>
+                            <select id="fetchYear" class="form-select form-select-sm" @bind="fetchYear" disabled="@busy">
+                                @foreach (int year in status.FetchableYears)
+                                {
+                                    <option value="@year">FY@(year)</option>
+                                }
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm" @onclick="FetchAsync" disabled="@(busy || status.FetchableYears.Count == 0)">
+                            <i class="bi bi-cloud-download me-1" aria-hidden="true"></i>Fetch
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+        <div class="card">
+            <div class="card-body">
+                <h2 class="h6 mb-1"><i class="bi bi-file-earmark-spreadsheet me-2" aria-hidden="true"></i>Upload an export</h2>
+                <label class="small text-secondary mb-2 d-block" for="actualsFile">One fiscal year per file, CSV or XLSX.</label>
+                <InputFile id="actualsFile" class="form-control form-control-sm" accept=".csv,.xlsx" OnChange="OnFileChosenAsync" disabled="@busy" />
+                <div class="form-text">
+                    Columns: <code>Fiscal Year</code>, <code>Type</code> (Actual, Encumbrance, or Cash), <code>Account</code> (the full account number; the fund number for Cash), <code>Period</code> (fiscal month 1 to 12, on Actual rows), <code>Amount</code>.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (busy)
+    {
+        <div class="text-secondary small mb-3" role="status"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Reading the ERP's figures…</div>
+    }
+}
+
+@if (errors is not null)
+{
+    <div class="alert alert-danger" role="alert">
+        <div class="fw-semibold mb-1">These figures could not be brought in.</div>
+        <ul class="mb-0">@foreach (string e in errors) { <li>@e</li> }</ul>
+    </div>
+}
+
+@if (preview is not null)
+{
+    <div class="card mb-4">
+        <div class="cb-toolbar">
+            <div class="grow">
+                <span class="fw-semibold">FY@(preview.FiscalYear) from @(preview.FileName ?? preview.SourceName)</span>
+                <StatusPill Tone="@(preview.IsYearClosed ? "success" : "info")" Label="@(preview.IsYearClosed ? "Full year" : $"Through {Display.Date(preview.AsOf)}")" />
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" @onclick="() => confirmDialog.Show()" disabled="@busy">
+                <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>Apply
+            </button>
+        </div>
+        <div class="card-body pb-0">
+            <div class="cb-kpis">
+                <KpiCard Label="Receipts" Value="@Display.Money(preview.Receipts)" Detail="Revenue and transfers in" />
+                <KpiCard Label="Disbursements" Value="@Display.Money(preview.Disbursements)" Detail="Spending and transfers out" />
+                <KpiCard Label="Encumbered" Value="@Display.Money(preview.Encumbered)" Detail="@(preview.IsYearClosed ? "Carried into next year" : "Committed, not yet spent")" />
+                <KpiCard Label="Fund cash" Value="@Display.Money(preview.Cash)" Detail="@($"{preview.ActivityRows:N0} account-months")" />
+            </div>
+            @foreach (string note in preview.Notes)
+            {
+                <div class="alert alert-warning small"><i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i>@note</div>
+            }
+        </div>
+        <div class="cb-grid-wrap">
+            <table class="cb-grid table" aria-label="Figures by fund">
+                <thead><tr><th scope="col">Fund</th><th scope="col" class="cb-num">Receipts</th><th scope="col" class="cb-num">Disbursements</th><th scope="col" class="cb-num cb-col-wide">Encumbered</th><th scope="col" class="cb-num">Cash</th></tr></thead>
+                <tbody>
+                    @foreach (ActualsFundDto f in preview.Funds)
+                    {
+                        <tr>
+                            <td class="cb-wrap"><span class="cb-code">@f.FundCode</span> @f.FundName</td>
+                            <td class="cb-num">@Display.Amount(f.Receipts)</td>
+                            <td class="cb-num">@Display.Amount(f.Disbursements)</td>
+                            <td class="cb-num cb-col-wide">@Display.Amount(f.Encumbered)</td>
+                            <td class="cb-num">@(f.Cash is { } cash ? Display.Amount(cash) : "")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (preview.PriorActualChanges.Count > 0)
+        {
+            <div class="px-3 pt-3 pb-1 fw-semibold small">Prior-year actuals this sync updates (@preview.PriorActualChanges.Count)</div>
+            <div class="cb-grid-wrap">
+                <table class="cb-grid table" aria-label="Prior-year actuals this sync updates">
+                    <thead><tr><th scope="col">Account</th><th scope="col" class="cb-col-wide">Budget</th><th scope="col" class="cb-num">Now</th><th scope="col" class="cb-num">From the ERP</th></tr></thead>
+                    <tbody>
+                        @foreach (PriorActualChangeDto c in preview.PriorActualChanges)
+                        {
+                            <tr>
+                                <td class="cb-wrap"><span class="cb-code">@c.AccountNumber</span> @c.AccountName</td>
+                                <td class="cb-col-wide">@c.Version</td>
+                                <td class="cb-num text-secondary">@Display.Amount(c.Before)</td>
+                                <td class="cb-num">@Display.Amount(c.After)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else if (preview.IsYearClosed)
+        {
+            <div class="p-3 small text-secondary">Prior-year actuals in FY@(preview.FiscalYear + 2) budgets already match the ERP.</div>
+        }
+    </div>
+}
+
+<h2 class="h6 mb-2">Sync history</h2>
+@if (history is null)
+{
+    <SkeletonRows Rows="3" Columns="5" />
+}
+else if (history.Count == 0)
+{
+    <div class="card"><EmptyState Icon="bi-cash-stack" Title="No syncs yet" Text="Fetch a year from the ERP or upload its export above." /></div>
+}
+else
+{
+    <div class="card">
+        <div class="cb-cards d-md-none">
+            @foreach (ActualsSyncDto s in history)
+            {
+                <ListCard Title="@($"FY{s.FiscalYear}, {(s.ThroughPeriod == 12 ? "full year" : $"to {Display.Date(s.AsOf)}")}")">
+                    <Summary>@Display.Timestamp(s.SyncedAtUtc) · @s.UserName</Summary>
+                    <ChildContent><div class="cb-list-card-meta">@(s.FileName ?? s.SourceName) · @Display.Money(s.Disbursements) spent</div></ChildContent>
+                </ListCard>
+            }
+        </div>
+        <div class="cb-grid-wrap d-none d-md-block">
+            <table class="cb-grid table" aria-label="Sync history">
+                <thead><tr><th scope="col">When</th><th scope="col">By</th><th scope="col">Year</th><th scope="col">Through</th><th scope="col">From</th><th scope="col" class="cb-num">Receipts</th><th scope="col" class="cb-num">Disbursements</th><th scope="col" class="cb-num">Prior-year updates</th></tr></thead>
+                <tbody>
+                    @foreach (ActualsSyncDto s in history)
+                    {
+                        <tr>
+                            <td>@Display.Timestamp(s.SyncedAtUtc)</td>
+                            <td>@s.UserName</td>
+                            <td>FY@(s.FiscalYear)</td>
+                            <td>@(s.ThroughPeriod == 12 ? "Full year" : Display.Date(s.AsOf))</td>
+                            <td class="cb-wrap">@(s.FileName ?? s.SourceName)</td>
+                            <td class="cb-num">@Display.Amount(s.Receipts)</td>
+                            <td class="cb-num">@Display.Amount(s.Disbursements)</td>
+                            <td class="cb-num">@s.PriorActualsUpdated</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<ConfirmDialog @ref="confirmDialog" Title="Apply these actuals?" ConfirmText="Apply" OnConfirm="CommitAsync">
+    <Body>
+        @if (preview is not null)
+        {
+            <p>
+                FY@(preview.FiscalYear)'s figures @(preview.Replaces is { } old ? $"(now {(old.IsClosed ? "the full year" : $"through {Display.Date(old.AsOf)}")}, from {old.SourceName})" : "")
+                are replaced with these, @(preview.IsYearClosed ? "the full year" : $"through {Display.Date(preview.AsOf)}").
+            </p>
+            @if (preview.PriorActualChanges.Count > 0)
+            {
+                <p>@preview.PriorActualChanges.Count prior-year actual@(preview.PriorActualChanges.Count == 1 ? "" : "s") in the FY@(preview.FiscalYear + 2) budget change to the ERP's figures. Each change is recorded in the line's history.</p>
+            }
+            <p class="mb-0 text-secondary small">Budget amounts themselves are never touched by a sync.</p>
+        }
+    </Body>
+</ConfirmDialog>
+
+@code {
+    private const int MaxFileMb = 20;
+
+    private ActualsStatusDto? status;
+    private IReadOnlyList<ActualsSyncDto>? history;
+    private ActualsPreviewDto? preview;
+    private IReadOnlyList<string>? errors;
+    private int fetchYear;
+    private byte[]? fileBytes;
+    private string? fileName;
+    private bool busy;
+    private ConfirmDialog confirmDialog = null!;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        status = await Sync.StatusAsync();
+        history = await Sync.HistoryAsync();
+        if (!status.FetchableYears.Contains(fetchYear))
+        {
+            fetchYear = status.FetchableYears.FirstOrDefault();
+        }
+    }
+
+    private async Task FetchAsync()
+    {
+        await RunPreviewAsync(() => Sync.PreviewFromErpAsync(fetchYear));
+        fileBytes = null;
+        fileName = null;
+    }
+
+    private async Task OnFileChosenAsync(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            await using Stream stream = e.File.OpenReadStream(MaxFileMb * 1024 * 1024);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            fileBytes = buffer.ToArray();
+            fileName = e.File.Name;
+        }
+        catch (IOException)
+        {
+            errors = [$"The file is larger than {MaxFileMb} MB."];
+            preview = null;
+            return;
+        }
+
+        byte[] bytes = fileBytes;
+        string name = fileName;
+        await RunPreviewAsync(() => Sync.PreviewFileAsync(name, new MemoryStream(bytes)));
+    }
+
+    private async Task RunPreviewAsync(Func<Task<Result<ActualsPreviewDto>>> read)
+    {
+        errors = null;
+        preview = null;
+        busy = true;
+        try
+        {
+            Result<ActualsPreviewDto> result = await read();
+            if (result.IsSuccess)
+            {
+                preview = result.Value;
+            }
+            else
+            {
+                errors = result.Errors.Select(x => x.Message).ToList();
+            }
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task<bool> CommitAsync()
+    {
+        if (preview is null)
+        {
+            return true;
+        }
+
+        // The same source the preview read: the file's bytes, or the ERP again for the same year.
+        Result<ActualsSyncDto> result = fileBytes is not null && fileName is not null
+            ? await Sync.CommitFileAsync(fileName, new MemoryStream(fileBytes))
+            : await Sync.CommitFromErpAsync(preview.FiscalYear);
+        if (result.IsFailure)
+        {
+            Toasts.Danger(string.Join(" ", result.Errors.Select(x => x.Message)));
+            return true;
+        }
+
+        ActualsSyncDto s = result.Value;
+        Toasts.Success($"FY{s.FiscalYear} actuals synced{(s.PriorActualsUpdated > 0 ? $"; {s.PriorActualsUpdated} prior-year actuals updated" : "")}.");
+        preview = null;
+        fileBytes = null;
+        fileName = null;
+        await LoadAsync();
+        StateHasChanged(); // the confirm runs inside the dialog's event, so the page must ask for its own re-render
+        return true;
+    }
+}

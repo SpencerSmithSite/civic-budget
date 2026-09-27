@@ -18,7 +18,7 @@ It has two halves:
 
 - **The admin app**, for finance staff and department heads. The chart of accounts is kept
   here or synced from the ERP; each department enters its own request with a written
-  narrative and submits it; the fiscal officer sees live fund balances against the Ohio
+  narrative and submits it, seeing this year's spending from the ERP beside each line; the fiscal officer sees live fund balances against the Ohio
   appropriation limit, moves the budget from draft to proposed to adopted, amends it
   mid-year, imports and exports spreadsheets, prints reports, and publishes. Every change is
   in an audit trail.
@@ -73,7 +73,7 @@ All the demo logins share one password, published here on purpose: **`Demo-Bpe1G
 
 | Login | Role | What to try |
 |---|---|---|
-| `finance@mapleridge.example` | Fiscal Officer | The whole budget: the FY2027 draft (the Street fund is over its limit on purpose), the department board, workflow, amendments, publishing, import, reports |
+| `finance@mapleridge.example` | Fiscal Officer | The whole budget: the FY2027 draft (the Street fund is over its limit on purpose), the department board, workflow, amendments, publishing, import, reports, and Setup, Actuals sync to fetch a year from the simulated VIP |
 | `police@mapleridge.example` | Department User | Lands on the Police department's request, which is already submitted and so locked |
 | `streets@mapleridge.example` | Department User | Streets & Service, still being entered; Parks & Recreation, returned with a note from the fiscal officer |
 | `admin@mapleridge.example` | Administrator | Everything the Fiscal Officer can do, plus users, government settings, and the logo |
@@ -91,7 +91,7 @@ The public portal needs no login: [Village of Maple Ridge](https://civicbudget-a
 | Admin app | Blazor Interactive Server, QuickGrid, Bootstrap 5 themed with CSS variables |
 | Portal | Blazor static server rendering, output caching, no JavaScript |
 | Data | EF Core on SQL Server 2022, ASP.NET Core Identity, FluentValidation, ClosedXML for Excel |
-| Tests | xUnit, bUnit, Testcontainers (a real SQL Server in Docker), CDK assertions; 638 tests |
+| Tests | xUnit, bUnit, Testcontainers (a real SQL Server in Docker), CDK assertions; 668 tests |
 | Delivery | Docker, GitHub Actions with OIDC sign-in; live on Azure (Bicep), deploy-ready on AWS (CDK in C#) |
 
 The code is four projects with dependencies pointing inward: `Domain` (entities and budget
@@ -126,6 +126,10 @@ that would have been wrong.
 - **Plugging into an ERP.** The chart of accounts arrives through a small adapter contract, is
   previewed before it is applied, and codes are retired rather than deleted because old budgets
   still point at them. ([ADR-0025](docs/DECISIONS.md#adr-0025-the-chart-of-accounts-is-received-from-the-erp-through-an-adapter-never-deleted-and-owned-by-a-switch))
+- **The ERP's books beside the budget.** Actuals arrive a fiscal year at a time, from VIP's API
+  (simulated in the demo) or an export file. One unknown account code refuses the whole year,
+  because a missing account would quietly understate every total. A closed year fills the
+  prior-year column; a year in progress never does. ([ADR-0034](docs/DECISIONS.md#adr-0034-actuals-come-from-the-erp-a-fiscal-year-at-a-time-a-closed-year-fills-prior-year-actuals), [Walkthrough 21](docs/walkthroughs/21-erp-actuals.md))
 
 ## Run it locally
 
@@ -194,8 +198,9 @@ deployed; it shows the production-shaped design. See [infra/README.md](infra/REA
    [17 Phone layouts](docs/walkthroughs/17-phone-layouts.md) ·
    [18 Cold start](docs/walkthroughs/18-cold-start.md) ·
    [19 Maintenance](docs/walkthroughs/19-maintenance.md) ·
-   [20 Budget rules](docs/walkthroughs/20-budget-rules.md)
-4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 33 decision records, each
+   [20 Budget rules](docs/walkthroughs/20-budget-rules.md) ·
+   [21 Actuals from VIP](docs/walkthroughs/21-erp-actuals.md)
+4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 34 decision records, each
    with the alternatives I turned down, and the table of every package and why it is there.
 5. Then the code, starting at `src/CivicBudget.Domain/Budgets/BudgetVersion.cs`, the heart of it.
 
