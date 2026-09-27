@@ -95,7 +95,7 @@ else
         @if (historyLine is not null)
         {
             <div class="px-3 pt-2 small text-secondary">@historyLine.FundCode @historyLine.FundName@(historyLine.DepartmentCode is null ? "" : $" · {historyLine.DepartmentCode} {historyLine.DepartmentName}")</div>
-            <LineDetail Line="historyLine" FiscalYear="workspace.Version.Year" OnAmountChanged="UpdateAmountAsync" OnJustificationChanged="UpdateJustificationAsync" OnRemove="AskRemoveLine" />
+            <LineDetail Line="historyLine" FiscalYear="workspace.Version.Year" CurrentYearActuals="workspace.CurrentYearActuals" OnAmountChanged="UpdateAmountAsync" OnJustificationChanged="UpdateJustificationAsync" OnRemove="AskRemoveLine" />
             <h3 class="h6 fw-semibold px-3 pt-3 mb-0">History</h3>
             <LineHistory Line="historyLine" Version="historyVersion" />
         }

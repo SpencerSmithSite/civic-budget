@@ -1,3 +1,5 @@
+using CivicBudget.Application.Common;
+using CivicBudget.Application.Erp;
 using CivicBudget.Application.Security;
 using CivicBudget.Domain.Accounts;
 using CivicBudget.Domain.Budgets;
@@ -6,6 +8,7 @@ using CivicBudget.Domain.FiscalYears;
 using CivicBudget.Domain.Funds;
 using CivicBudget.Domain.Governments;
 using CivicBudget.Domain.Publishing;
+using CivicBudget.Infrastructure.Erp;
 using CivicBudget.Infrastructure.Identity;
 using CivicBudget.Infrastructure.Persistence;
 using CivicBudget.Infrastructure.Security;
@@ -29,6 +32,7 @@ public sealed class DevelopmentSeeder(
     RoleManager<IdentityRole> roleManager,
     UserManager<ApplicationUser> userManager,
     IOptions<SeedOptions> seedOptions,
+    TimeProvider clock,
     ILogger<DevelopmentSeeder> logger)
 {
     private const string SeedUserId = "seed";
@@ -193,6 +197,10 @@ public sealed class DevelopmentSeeder(
             government, chart.FiscalYear(2025), fy2025, funds, SeedUserId, "system", new DateTimeOffset(2025, 1, 6, 15, 0, 0, TimeSpan.Zero)));
         db.PublishedBudgetSnapshots.Add(PublishedBudgetSnapshot.Capture(
             government, chart.FiscalYear(2026), fy2026Amendment, funds, SeedUserId, "system", new DateTimeOffset(2026, 6, 16, 14, 0, 0, TimeSpan.Zero)));
+
+        // VIP has already sent last year's closed books and this year's so far, as it would have by
+        // the time a draft is in progress. The actuals page can fetch them again at any time.
+        await chart.AddActualsAsync(db, new SimulatedVipActualsApi(clock), [2025, 2026], clock.GetUtcNow(), ct);
         await db.SaveChangesAsync(ct);
         return government;
     }
@@ -220,6 +228,7 @@ public sealed class DevelopmentSeeder(
         db.BudgetVersions.AddRange(fy2026, fy2027);
         db.PublishedBudgetSnapshots.Add(PublishedBudgetSnapshot.Capture(
             government, chart.FiscalYear(2026), fy2026, chart.AllFunds.ToList(), SeedUserId, "system", new DateTimeOffset(2025, 7, 1, 13, 0, 0, TimeSpan.Zero)));
+        await chart.AddActualsAsync(db, new SimulatedVipActualsApi(clock), [2025, 2026], clock.GetUtcNow(), ct);
         await db.SaveChangesAsync(ct);
         return government;
     }
@@ -292,6 +301,31 @@ public sealed class DevelopmentSeeder(
             }
 
             return version;
+        }
+
+        /// <summary>
+        /// Stages the simulated ERP's actuals for these years, matched against this chart. A year the
+        /// ERP cannot give yet (no month closed, depending on today's date) is simply skipped.
+        /// </summary>
+        public async Task AddActualsAsync(CivicBudgetDbContext db, SimulatedVipActualsApi vip, int[] years, DateTimeOffset nowUtc, CancellationToken ct)
+        {
+            var entity = new ErpEntity(government.Id, government.PublicSlug, government.Name, government.FiscalYearStartMonth, government.AccountNumberFormat);
+            foreach (int year in years)
+            {
+                Result<ErpActuals> fetched = await vip.FetchAsync(entity, year, ct);
+                if (fetched.IsFailure)
+                {
+                    continue;
+                }
+
+                MatchedActuals matched = ActualsMatcher.Match(
+                    fetched.Value,
+                    funds.Values.Select(f => new ChartCode(f.Id, f.Code, f.Name)).ToList(),
+                    departments.Values.Select(d => new ChartCode(d.Id, d.Code, d.Name)).ToList(),
+                    accounts.Values.Select(a => new ChartCode(a.Id, a.Code, a.Name, a.Type)).ToList()).Value;
+                DateOnly asOf = FiscalPeriod.For(year, government.FiscalYearStartMonth).Start.AddMonths(matched.ThroughPeriod).AddDays(-1);
+                ActualsWriter.Add(db, government.Id, matched, asOf, vip.Name, null, SeedUserId, "system", nowUtc, priorActualsUpdated: 0);
+            }
         }
 
         public IEnumerable<FiscalYear> FiscalYears => fiscalYears.Values;

@@ -75,7 +75,7 @@ else
 
     <div class="cb-kpis">
         <KpiCard Label="@($"FY{workspace.Version.Year} request")" Value="@Display.Money(request.Amount)" Detail="@($"{lineGroups.Sum(g => g.Lines.Count)} appropriation lines across {lineGroups.Count} fund{(lineGroups.Count == 1 ? "" : "s")}")" />
-        <KpiCard Label="@($"FY{workspace.Version.Year - 1} budget")" Value="@Display.Money(request.CurrentYearBudget)" Detail="@($"FY{workspace.Version.Year - 2} actual {Display.Money(request.PriorYearActual)}")" />
+        <KpiCard Label="@($"FY{workspace.Version.Year - 1} budget")" Value="@Display.Money(request.CurrentYearBudget)" Detail="@($"FY{workspace.Version.Year - 2} actual {Display.Money(request.PriorYearActual)}{(YtdThrough is null ? "" : $" · {Display.Money(lineGroups.Sum(g => g.YearToDate))} spent {YtdThrough}")}")" />
         <KpiCard Label="Change" Value="@Display.SignedChange(request.DollarChange)" Detail="@Display.Percent(request.PercentChange)"
                  Tone="@(request.DollarChange > 0 ? "warn" : "ok")" DetailTone="@(request.DollarChange < 0 ? "down" : request.DollarChange > 0 ? "up" : "")"
                  Tip="Appropriation lines only; revenue credited to the department is listed separately below." />
@@ -128,7 +128,13 @@ else
                                                 }
                                             </td>
                                             <td class="cb-num cb-col-wide">@Display.Amount(line.PriorYearActual)</td>
-                                            <td class="cb-num">@Display.Amount(line.CurrentYearBudget)</td>
+                                            <td class="cb-num">
+                                                @Display.Amount(line.CurrentYearBudget)
+                                                @if (YtdThrough is not null)
+                                                {
+                                                    <YearToDateCell Amount="line.YearToDate ?? 0m" Budget="line.CurrentYearBudget" IsReceipt="line.AccountType.IsResource()" Through="@YtdThrough" />
+                                                }
+                                            </td>
                                             <td class="cb-num">
                                                 <AmountCell Value="line.Amount" CanEdit="line.CanEdit" Label="@($"FY{workspace.Version.Year} request for {line.AccountNumber} {line.AccountName}")"
                                                             ValueChanged="amount => UpdateAmountAsync(line.Id, amount)" />
@@ -155,9 +161,15 @@ else
                                 </tbody>
                                 <tfoot>
                                     <tr>
-                                        <td>Total, @fund.Name</td>
+                                        <td class="cb-wrap">Total, @fund.Name</td>
                                         <td class="cb-num cb-col-wide">@Display.Amount(fund.PriorYearActual)</td>
-                                        <td class="cb-num">@Display.Amount(fund.CurrentYearBudget)</td>
+                                        <td class="cb-num">
+                                            @Display.Amount(fund.CurrentYearBudget)
+                                            @if (YtdThrough is not null)
+                                            {
+                                                <YearToDateCell Amount="fund.YearToDate" Budget="fund.CurrentYearBudget" Through="@YtdThrough" />
+                                            }
+                                        </td>
                                         <td class="cb-num">@Display.Amount(fund.Amount)</td>
                                         <td class="cb-num cb-col-wide">@Display.SignedChange(fund.Amount - fund.CurrentYearBudget)</td>
                                         <td class="cb-num cb-col-wide">@Display.Percent(Domain.Common.Money.PercentChange(fund.CurrentYearBudget, fund.Amount))</td>
@@ -187,7 +199,13 @@ else
                                     {
                                         <tr>
                                             <td class="cb-wrap"><span class="cb-code">@line.AccountNumber</span> @line.AccountName <small class="text-secondary">· @line.FundCode · @Display.Enum(line.AccountType).ToLowerInvariant()</small></td>
-                                            <td class="cb-num">@Display.Amount(line.CurrentYearBudget)</td>
+                                            <td class="cb-num">
+                                                @Display.Amount(line.CurrentYearBudget)
+                                                @if (YtdThrough is not null)
+                                                {
+                                                    <YearToDateCell Amount="line.YearToDate ?? 0m" Budget="line.CurrentYearBudget" IsReceipt="line.AccountType.IsResource()" Through="@YtdThrough" />
+                                                }
+                                            </td>
                                             <td class="cb-num"><AmountCell Value="line.Amount" CanEdit="line.CanEdit" Label="@($"FY{workspace.Version.Year} estimate for {line.AccountNumber} {line.AccountName}")" ValueChanged="amount => UpdateAmountAsync(line.Id, amount)" /></td>
                                             <td class="text-end"><RowMenu Label="@($"Actions for {line.AccountNumber}")"><li><button type="button" class="dropdown-item" @onclick="() => ShowHistory(line)"><i class="bi bi-clock-history me-2" aria-hidden="true"></i>History</button></li></RowMenu></td>
                                         </tr>
@@ -264,7 +282,7 @@ else
         @if (historyLine is not null)
         {
             <div class="px-3 pt-2 small text-secondary">@historyLine.AccountName · @historyLine.FundCode @historyLine.FundName</div>
-            <LineDetail Line="historyLine" FiscalYear="workspace.Version.Year" OnAmountChanged="c => UpdateAmountAsync(c.LineId, c.Amount)" OnJustificationChanged="c => SaveNoteAsync(c.LineId, c.Justification)" OnRemove="AskRemove" />
+            <LineDetail Line="historyLine" FiscalYear="workspace.Version.Year" CurrentYearActuals="workspace.CurrentYearActuals" OnAmountChanged="c => UpdateAmountAsync(c.LineId, c.Amount)" OnJustificationChanged="c => SaveNoteAsync(c.LineId, c.Justification)" OnRemove="AskRemove" />
             <h3 class="h6 fw-semibold px-3 pt-3 mb-0">History</h3>
             <LineHistory Line="historyLine" Version="historyVersion" />
         }
@@ -273,10 +291,14 @@ else
 
 @code {
     /// <summary>The department's appropriation lines in one fund, with the fund subtotal.</summary>
+    /// <summary>How far the ERP's figures for the current year run, or null when it has sent none.</summary>
+    private string? YtdThrough => workspace?.CurrentYearActuals is { } y ? (y.IsClosed ? "in the full year" : $"through {Display.Date(y.AsOf)}") : null;
+
     private sealed record FundGroup(string Code, string Name, IReadOnlyList<BudgetLineDto> Lines)
     {
         public decimal PriorYearActual => Lines.Sum(l => l.PriorYearActual);
         public decimal CurrentYearBudget => Lines.Sum(l => l.CurrentYearBudget);
+        public decimal YearToDate => Lines.Sum(l => l.YearToDate ?? 0m);
         public decimal Amount => Lines.Sum(l => l.Amount);
     }
 

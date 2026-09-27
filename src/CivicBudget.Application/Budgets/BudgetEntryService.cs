@@ -1,10 +1,12 @@
 using CivicBudget.Application.Common;
+using CivicBudget.Application.Erp;
 using CivicBudget.Application.Persistence;
 using CivicBudget.Application.Security;
 using CivicBudget.Domain.Accounts;
 using CivicBudget.Domain.Budgets;
 using CivicBudget.Domain.Common;
 using CivicBudget.Domain.Departments;
+using CivicBudget.Domain.Erp;
 using CivicBudget.Domain.FiscalYears;
 using CivicBudget.Domain.Funds;
 using CivicBudget.Domain.Governments;
@@ -54,9 +56,25 @@ public sealed class BudgetEntryService(
             ? version.Lines.Where(l => l.DepartmentId is { } d && currentUser.DepartmentIds.Contains(d))
             : version.Lines;
 
+        // The year before the budget year is the one under way while the budget is prepared: show
+        // what the ERP says has been spent and committed so far beside each line.
+        int currentYear = fiscalYear.Year - 1;
+        ActualsSync? currentYearSync = await ErpActualsReader.LatestSyncAsync(db, currentYear, ct);
+        Dictionary<LineKey, decimal>? toDate = null, encumbered = null;
+        if (currentYearSync is not null)
+        {
+            List<LineKey> keys = version.Lines.Select(Key).ToList();
+            toDate = await ErpActualsReader.ActivityTotalsAsync(db, currentYear, keys, ct);
+            encumbered = await ErpActualsReader.EncumbranceTotalsAsync(db, currentYear, keys, ct);
+        }
+
         List<BudgetLineDto> lines = visible
             .OrderBy(l => l.Fund.Code).ThenBy(l => l.Department?.Code).ThenBy(l => l.Account.Code)
-            .Select(l => ToDto(l, government.AccountNumberFormat, CanEdit(version, l)))
+            .Select(l => ToDto(l, government.AccountNumberFormat, CanEdit(version, l)) with
+            {
+                YearToDate = toDate?.GetValueOrDefault(Key(l)),
+                Encumbered = encumbered?.GetValueOrDefault(Key(l)),
+            })
             .ToList();
 
         // Fund balances always use every line in the version, not just the visible ones: a department
@@ -117,7 +135,9 @@ public sealed class BudgetEntryService(
         return new BudgetWorkspaceDto(
             ToSummary(version, fiscalYear.Year, version.Lines.Count),
             government.AccountNumberFormat,
-            version.IsEditable, canAddLines, lines, balances, funds, departments, accounts, requests);
+            version.IsEditable, canAddLines, lines, balances, funds, departments, accounts, requests,
+            currentYearSync is null ? null : new ActualsYearDto(currentYearSync.FiscalYear, currentYearSync.ThroughPeriod, currentYearSync.AsOf,
+                currentYearSync.SyncedAtUtc, currentYearSync.UserName, currentYearSync.SourceName));
     }
 
     public async Task<Result> UpdateLineAmountAsync(Guid versionId, Guid lineId, decimal amount, CancellationToken ct = default)
@@ -214,6 +234,10 @@ public sealed class BudgetEntryService(
             // The domain's rules (duplicate line, expenditure without department, inactive account) become field errors.
             return Result.Failure<Guid>(ex.Message);
         }
+
+        // Once the ERP holds the comparison year closed, it supplies this line's prior-year actual too.
+        int budgetYear = await db.FiscalYears.Where(fy => fy.Id == version.FiscalYearId).Select(fy => fy.Year).SingleAsync(ct);
+        await PriorYearActuals.FillAsync(db, version, budgetYear, ct);
 
         if (await db.TrySaveAsync(ct) is { } conflict)
         {
@@ -338,6 +362,8 @@ public sealed class BudgetEntryService(
 
     private static BudgetVersionSummaryDto ToSummary(BudgetVersion v, int year, int lineCount) =>
         new(v.Id, year, v.VersionNumber, v.Label, v.Status, v.AmendmentReason, v.ResolutionNumber, lineCount);
+
+    private static LineKey Key(BudgetLine l) => new(l.FundId, l.DepartmentId, l.AccountId);
 
     private static BudgetLineDto ToDto(BudgetLine l, AccountNumberFormat format, bool canEdit) => new(
         l.Id,

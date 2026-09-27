@@ -47,6 +47,7 @@
                 <NavLink class="nav-link" href="admin/accounts" @onclick="CloseMenu"><i class="bi bi-list-columns" aria-hidden="true"></i>Chart of accounts</NavLink>
                 <NavLink class="nav-link" href="admin/fiscal-years" @onclick="CloseMenu"><i class="bi bi-calendar3" aria-hidden="true"></i>Fiscal years</NavLink>
                 <NavLink class="nav-link" href="admin/chart-sync" @onclick="CloseMenu"><i class="bi bi-cloud-download" aria-hidden="true"></i>Chart sync</NavLink>
+                <NavLink class="nav-link" href="admin/actuals-sync" @onclick="CloseMenu"><i class="bi bi-cash-stack" aria-hidden="true"></i>Actuals sync</NavLink>
             </nav>
         </AuthorizeView>
         <AuthorizeView Policy="@Policies.CanManageUsers">

@@ -2016,6 +2016,48 @@ legend.form-label {
     max-width: 640px;
 }
 
+/* Actuals sync: the ERP connection and the file upload side by side, stacked on a phone. */
+.cb-sync-sources {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+    gap: 16px;
+}
+
+/* This year's spending from the ERP under the current budget: a thin bar and the amount, small and
+   muted so the budget stays the figure the eye lands on. A line spending ahead of its budget turns amber. */
+.cb-ytd {
+    display: block;
+    margin-top: 3px;
+    font-size: 0.75rem;
+    color: var(--cb-muted);
+    white-space: nowrap;
+}
+
+.cb-used {
+    display: block;
+    width: 100%;
+    max-width: 96px;
+    height: 3px;
+    margin: 0 0 2px auto;
+    background: var(--cb-border);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.cb-used > span {
+    display: block;
+    height: 100%;
+    background: var(--cb-teal);
+}
+
+.cb-ytd-over {
+    color: var(--cb-warning);
+}
+
+.cb-ytd-over .cb-used > span {
+    background: var(--cb-warning);
+}
+
 .cb-import-kpis {
     margin-bottom: 16px;
 }

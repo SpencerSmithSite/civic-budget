@@ -39,6 +39,7 @@ public class AdminPagePolicyTests
         ["/admin/accounts/{Id:guid}"] = Policies.CanMaintainSetup,
         ["/admin/fiscal-years"] = Policies.CanMaintainSetup,
         ["/admin/chart-sync"] = Policies.CanMaintainSetup,
+        ["/admin/actuals-sync"] = Policies.CanMaintainSetup,
         ["/admin/users"] = Policies.CanManageUsers,
         ["/admin/users/new"] = Policies.CanManageUsers,
         ["/admin/users/{Id}"] = Policies.CanManageUsers,

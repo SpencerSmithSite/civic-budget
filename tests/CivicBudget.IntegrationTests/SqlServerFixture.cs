@@ -1,7 +1,9 @@
 using System.Security.Claims;
 using CivicBudget.Application;
+using CivicBudget.Application.Erp;
 using CivicBudget.Application.Security;
 using CivicBudget.Infrastructure;
+using CivicBudget.Infrastructure.Erp;
 using CivicBudget.Infrastructure.Persistence;
 using CivicBudget.Infrastructure.Persistence.Interceptors;
 using CivicBudget.Infrastructure.Security;
@@ -142,6 +144,7 @@ public sealed class TestDatabase
         services.AddApplication();
         services.AddInfrastructure(connectionString);
         services.Configure<SeedOptions>(o => o.DemoPassword = DemoPassword);
+        services.AddSingleton<IErpActualsApi, SimulatedVipActualsApi>(); // as Program.cs does wherever the demo data is seeded
         _provider = services.BuildServiceProvider();
     }
 
