@@ -262,5 +262,5 @@ Order: 9a → 9b → 9c → 9d, each its own pull request, reviewed before the n
 - [x] `PasswordInput` (an `InputText` with a show/hide button) on sign-in, change password, and the user form
 - [x] `js/password-toggle.js`, loaded on interactive and `/Account` pages only; the portal stays script-free (ADR-0032 amendment)
 - [x] Test: the field stays a bindable password input and the button names it
-- [ ] Reviewed and approved
+- [x] Reviewed and approved (2026-09-27)
 
