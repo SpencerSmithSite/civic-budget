@@ -82,6 +82,10 @@ fiscal officer is never locked out."
 - Setup, **Fiscal years**: add FY2028 and choose **Start the budget**, from FY2027's
   adopted budget, +3% on appropriations only. "Last year's adopted amount becomes the
   comparison column, and each fund starts with last year's projected ending balance."
+- Setup, **Actuals sync**: fetch FY2025 from VIP (simulated). "The ERP's closed books.
+  Every prior-year actual in the FY2027 draft already matches, so nothing changes; if one
+  had been typed over, the preview would list it." Then open a department page: "This
+  year's spending sits under each budget, with a bar that turns amber past it."
 
 ## 6. The code, briefly (2 minutes)
 

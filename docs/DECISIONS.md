@@ -576,7 +576,7 @@ it would go.
 ---
 
 ## ADR-0025: The chart of accounts is received from the ERP through an adapter, never deleted, and owned by a switch
-**Date:** 2026-09-19 · **Status:** Accepted
+**Date:** 2026-09-19 · **Status:** Accepted, amended 2026-09-27
 
 **Context.** After v1.0 I repositioned CivicBudget as an add-on beside the government's ERP
 (VIP or similar), which owns the chart of accounts. Funds, departments, and objects should
@@ -612,6 +612,12 @@ for everyone (a government without an ERP could never start).
 **Consequences.** A sync is always the whole chart; there is no partial sync, on purpose. When
 an API adapter arrives it implements `IErpChartSource`, and the sync page gains a button beside
 the upload.
+
+**Amended 2026-09-27: one contract per kind of data.** Actuals followed the same pattern
+(ADR-0034) with their own contract and adapters (`ErpActuals`, `IErpActualsFileSource`,
+`IErpActualsApi`) rather than growing `IErpChartSource` into one large connector interface. An
+ERP that can send a chart but not actuals, or the other way round, implements only what it has.
+The actuals page is the first to have the API button this ADR anticipated.
 
 ---
 
@@ -918,7 +924,8 @@ includes, I researched rather than guessed, because three screens were already d
 - **Starting a year's budget is its own action** (`BudgetVersion.CreateOriginalFrom`), not a copy
   like an amendment: the new year's comparison is last year's adopted amount, the request is that
   amount changed by the chosen percentage, prior-year actuals start at zero (an adopted budget is
-  not what was spent), and each fund begins with last year's projected ending balance. Only the
+  not what was spent; since 2026-09-27 the ERP fills them when it holds that year, ADR-0034), and
+  each fund begins with last year's projected ending balance. Only the
   latest adopted, unreplaced version can be the source, the same rule as publishing.
 - **Optimistic concurrency on the aggregate root.** `BudgetVersion.Revision` counts every change
   to the version and everything inside it, and EF treats it as a concurrency token, so the
@@ -933,6 +940,65 @@ Ohio's appropriation measure lists other financing uses separately).
 **Consequences.** Every mutating method on `BudgetVersion` must call `Touch()`, or its changes will
 not conflict. A department's request can be lower than the sum of every line coded to it, and the
 screens say why.
+
+---
+
+## ADR-0034: Actuals come from the ERP a fiscal year at a time; a closed year fills prior-year actuals
+**Date:** 2026-09-27 · **Status:** Accepted
+
+**Context.** The reports a government cannot get from its ERP alone are the ones that put its
+real spending beside its budget: budget against actual, what is left, where a fund will end the
+year. Until now CivicBudget had no actuals except a prior-year column people typed or imported.
+VIP can deliver data through an API or through export files, whichever the customer uses, and I
+have neither its API nor its export layout, so the design has to work before either is known
+and change in one place when they are.
+
+**Decision.**
+- **A contract, adapters, and a pure matcher, like the chart (ADR-0025).** `ErpActuals` is one
+  fiscal year: activity by account and fiscal month, open encumbrances by account, and cash by
+  fund, as of the ERP's last closed month. `IErpActualsFileSource` reads an export
+  (`Fiscal Year, Type, Account, Period, Amount`, full account numbers split with the government's
+  own format); `IErpActualsApi` asks the ERP directly and is registered only where a connection
+  exists. `ActualsMatcher` resolves codes (ignoring padding) and adds repeated rows together.
+- **A sync replaces the year and refuses unknown codes.** The ERP's books are the truth, so a
+  posting it reversed must disappear here too; and a year missing one account would understate
+  every total built on it without anyone noticing. The whole file is refused and every unknown
+  code listed, as the import does.
+- **Separate tables, not columns on budget lines.** `ErpActuals`, `ErpEncumbrances`,
+  `ErpFundCash`, and an `ActualsSync` log. Actuals belong to a fiscal year and an account, not to
+  a budget version, and a year's figures are shared by every version that compares against it.
+  They are not audited row by row: they are a copy of the ERP's audited books, and the sync log
+  plus one audit event say who brought them in.
+- **A closed year fills the prior-year actual; an open year never does.** A budget for FY Y
+  compares with FY Y-2's actuals. When the ERP sends Y-2 with all twelve months, the sync writes
+  the totals into every open version of Y through `BudgetVersion.UpdateLineComparatives`, so each
+  change is audited, concurrency-checked, and listed in the preview. Starting a budget and adding
+  a line take the figure from the same place. A partial year would pass eight months of spending
+  off as a year's actual. A negative total is left alone and reported rather than forced to zero.
+- **The current year shows beside the budget, not as another column.** Department pages show
+  this year's receipts or spending under each line's current budget, with a bar for how much of
+  it that is. A seventh column pushed the grid past the screen, and the bar only means something
+  next to that budget.
+- **A fund-level line collects unclaimed department amounts.** When revenue is budgeted by fund
+  but the ERP records it by department, the fund-level line takes every amount on that fund and
+  account that no department-level line claims (`ActualsByLine`): counted once, never dropped.
+- **The demo connects to a simulated VIP** (`SimulatedVipActualsApi`), registered exactly where
+  the demo data is seeded. Its books are the seed's own fictional history spread over the months
+  the way municipal money moves (tax settlements, biweekly payroll, summer capital work, debt
+  service twice a year), and a month closes ten days after it ends. Year-end cash less carried
+  encumbrances equals the next budget's beginning balance, so the numbers agree everywhere.
+
+**Alternatives.** Storing actuals on budget lines (every version would carry its own copy, and a
+new version would need re-syncing); merging a sync into what is there (a reversed posting would
+live forever); accepting a file with unknown codes and skipping them (silently wrong totals);
+filling prior-year actuals from a partial year (misleading); one `IErpConnector` interface with
+every capability (forces an adapter to stub what its ERP cannot do).
+
+**Consequences.** Reports can now compare budgets with real figures, which is what Phase 25
+builds on, and the certificate of resources (Phase 24) has cash and carried encumbrances to start
+from. Removing and re-adding tracked rows is fine for a village's or a township's few thousand
+rows a year; a large county's would want a set-based delete inside a transaction. The simulated
+VIP is a stand-in, and says so in its name wherever it appears.
 
 ---
 

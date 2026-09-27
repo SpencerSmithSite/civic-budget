@@ -1098,7 +1098,8 @@ is now the only answer, and the other lines are shown beside the department, lab
 **A:** From the fiscal year: empty, or from last year's latest adopted version. Last year's adopted
 amount becomes the comparative, the request is that amount changed by a percentage (all lines,
 appropriations only, or revenue only, optionally rounded to dollars), prior-year actuals start at zero
-because an adopted budget is not what was spent, and each fund begins with last year's projected ending
+because an adopted budget is not what was spent (since Phase 22, VIP fills them when it holds that year
+closed), and each fund begins with last year's projected ending
 balance. Retired codes are listed, never silently dropped.
 **Look at:** `BudgetVersion.CreateOriginalFrom`, `BudgetSeedOptions`, `BudgetStartTests`.
 
@@ -1139,3 +1140,48 @@ the integration test that reproduces it failed before the fix. Writing an explan
 review, because you have to follow each step instead of skimming it.
 **Look at:** `ImportRowDto`, `BudgetImportService.CommitAsync`,
 `BudgetImportServiceTests.Codes_written_with_leading_zeros_commit_as_well_as_preview`.
+
+
+## Phase 22: Actuals from VIP
+
+### Q: How does CivicBudget get real spending from the ERP when you do not have VIP's API?
+**A:** The same way the chart arrives: a contract that says everything CivicBudget needs
+(`ErpActuals`: monthly activity by account, open encumbrances, fund cash, and how many months are
+closed), adapters that fill it, and a service that previews before it applies. One adapter reads an
+export file with full account numbers; the other is an API interface that is registered only where a
+connection exists. The demo registers a simulated VIP that keeps the demo governments' fictional books.
+When Software Solutions hands over the real API or export layout, one adapter changes and nothing above
+it moves.
+**Look at:** `Application/Erp/ErpActuals.cs`, `ErpActualsFileSource`, `Infrastructure/Erp/SimulatedVipActualsApi.cs`.
+
+### Q: Why refuse the whole file for one unknown account code?
+**A:** Because the alternative is a wrong number nobody notices. If one account in a year of actuals is
+skipped, every total built on it (the fund's spending, budget against actual, the certificate) is
+understated, and the report looks fine. Refusing lists every unknown code once, so the fix is obvious:
+sync the chart, or correct the export. The budget import works the same way.
+**Look at:** `ActualsMatcher.Match`, `ActualsSyncServiceTests.A_file_with_a_code_the_chart_lacks_changes_nothing`.
+
+### Q: When does a sync change a budget, and how do you keep that safe?
+**A:** Only one column, and only from a closed year. A budget for FY2027 compares against FY2025's
+actuals; when VIP sends FY2025 with all twelve months, those totals go into every open FY2027 version.
+They are written through `BudgetVersion` like any edit, so each change is in the line's history and
+checked for concurrency, and the preview lists them before anyone clicks Apply. A year in progress fills
+nothing, because eight months of spending in a column called "actual" would mislead every comparison.
+Budget amounts themselves are never touched.
+**Look at:** `PriorYearActuals`, `ActualsSyncService.PlanAsync`.
+
+### Q: What was the subtle case?
+**A:** Revenue budgeted by fund while the ERP records it by department: "1000-4320" in the budget,
+"1000-310-4320" (pool fees) in VIP. Exact matching left the budget line at zero. `ActualsByLine` gives a
+fund-level line every amount on its fund and account that no department-level line claims, so the money
+is counted once and never lost. It is a pure function with its own test.
+**Look at:** `ActualsByLine.Sum`, `ErpActualsTests.A_fund_level_line_collects_department_receipts_that_no_department_line_claims`.
+
+### Q: How did you make simulated data believable?
+**A:** It is not random. The simulated VIP's books are the seed's own fictional history, spread over the
+months the way a village's money moves: real estate taxes in two settlements, biweekly payroll (so two
+months have three paydays), capital work in summer, debt service twice a year. A month closes ten days
+after it ends. And year-end cash less carried encumbrances equals the next budget's beginning balance,
+which is how Ohio defines the unencumbered balance, so the numbers agree on every screen and the
+certificate in the next phase will reconcile.
+**Look at:** `SimulatedVipActualsApi.Weight`, `ErpActualsTests.A_closed_year_is_twelve_months_that_add_up_and_cash_agrees_with_next_years_balance`.

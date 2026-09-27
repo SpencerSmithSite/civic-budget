@@ -14,12 +14,12 @@ src/
   CivicBudget.Domain          entities, value objects, budget rules, domain exceptions
   CivicBudget.Application     use cases (services), DTOs, validators, and the interfaces they need
   CivicBudget.Infrastructure  EF Core contexts, configurations, migrations, interceptors,
-                              Identity, Excel reading and writing, seed data
+                              Identity, Excel reading and writing, seed data, the simulated VIP
   CivicBudget.Web             Blazor Web App: admin (Interactive Server) and portal (static SSR),
                               account pages, file endpoints, startup, the composition root
 tests/
   CivicBudget.Domain.Tests        the budget rules, no database
-  CivicBudget.Application.Tests   pure rules (import, reports, permissions, chart diff), validators, architecture
+  CivicBudget.Application.Tests   pure rules (import, reports, permissions, chart diff, ERP actuals), validators, architecture
   CivicBudget.Web.Tests           components (bUnit), authorization policies, middleware, caching
   CivicBudget.IntegrationTests    services against a real SQL Server (Testcontainers)
   CivicBudget.Infra.Tests         assertions on the synthesized AWS CloudFormation
@@ -190,6 +190,19 @@ save and always checked. The services save through `TrySaveAsync`, which turns t
 refusal into "someone else changed this budget; reload" and leaves the first change
 standing. A SQL `rowversion` column would not work here: it only changes when the
 version's own row changes, not when one of its lines does.
+
+### 4.5 What comes from the ERP (ADR-0025, ADR-0034)
+The government's ERP (VIP, in the demo a simulated one) owns the chart of accounts and
+the books. CivicBudget receives both through the same shape of code in
+`Application/Erp`: a plain contract (`ErpChart`, `ErpActuals`) that says everything
+CivicBudget needs, adapters that fill it (an export file today, an API where one is
+connected), a pure step that matches or diffs it against what is here (`ChartDiff`,
+`ActualsMatcher`), and a service that previews, then applies. The adapters are the
+only code that knows the ERP's layout, so a real VIP connection replaces an adapter and
+nothing above it. Actuals land in their own tables (`ErpActuals`, `ErpEncumbrances`,
+`ErpFundCash`), replaced a fiscal year at a time; budget lines never store them, except
+the prior-year actual, which a closed year writes through `BudgetVersion` so the change
+is audited and concurrency-checked like any other edit.
 
 ---
 
@@ -365,7 +378,7 @@ resume. The app therefore starts listening **before** the database is ready:
 | Level | Project | Tool | Covers |
 |---|---|---|---|
 | Domain | Domain.Tests | xUnit | Every budget rule, rounding, workflow transitions, amendments, starting a year |
-| Application | Application.Tests | xUnit | Import analysis, report building, chart diff, permissions, validators, the dependency rule |
+| Application | Application.Tests | xUnit | Import analysis, report building, chart diff, ERP actuals matching, permissions, validators, the dependency rule |
 | Components | Web.Tests | bUnit | Pages and components against fake services; policies; middleware; cache policy |
 | Integration | IntegrationTests | Testcontainers, SQL Server 2022 | Services end to end, migrations, tenant isolation, audit, publishing, concurrency, seed and reset |
 | Infrastructure | Infra.Tests | CDK assertions | Security and cost properties of the AWS templates |

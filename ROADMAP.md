@@ -264,3 +264,74 @@ Order: 9a → 9b → 9c → 9d, each its own pull request, reviewed before the n
 - [x] Test: the field stays a bindable password input and the button names it
 - [x] Reviewed and approved (2026-09-27)
 
+
+---
+
+# v1.2: Ready to sell beside an ERP (2026-09-27)
+
+The goal is a product an ERP vendor such as Software Solutions (VIP) could take on: complete
+budget entry, reporting that combines the ERP's books with budget data in ways the ERP cannot do
+alone, a one-button send of the adopted budget back to the ERP, personnel budgeting, and a public
+site that sells it. One phase at a time, each reviewed before the next.
+
+Order: 22 → 23 → 24 → 25 → 26 → 27 → 28 → 29. The VIP connection comes first because the
+combined reports, personnel seeding, and the send button all depend on it; the marketing site
+comes last so its screenshots and demos show the finished product.
+
+## Phase 22: Actuals from VIP  `phase-22-erp-actuals`
+- [x] `ErpActuals` contract (activity by account and fiscal month, open encumbrances, fund cash) with two adapters: an export file (`Fiscal Year, Type, Account, Period, Amount`) and `IErpActualsApi`
+- [x] Simulated VIP for the demo (`SimulatedVipActualsApi`): the seed's fictional books by month (tax settlements, biweekly payroll, summer capital, debt service), months close ten days after they end, year-end cash agrees with next year's beginning balance
+- [x] Actuals sync page under Setup: fetch a year from VIP or upload an export, preview totals by fund and the prior-year actuals it changes, apply, history
+- [x] A sync replaces the year and refuses unknown codes; `ErpActuals`, `ErpEncumbrances`, `ErpFundCash`, `ActualsSync` tables
+- [x] A closed year fills prior-year actuals in open budgets two years on (audited through the version), and starting a budget or adding a line takes them from there
+- [x] Department pages show this year's spending under each line's current budget with a bar; the line drawer adds open encumbrances
+- [x] Seed: Maple Ridge and Pine Hollow start with FY2025 and FY2026 from the simulated VIP
+- [x] Fixed on the way: a long fund name in a department grid's total row forced the table past the screen
+- [x] Tests: file source, matcher, per-line totals, simulated VIP (unit); sync from VIP and file, prior-year fill, add line, permissions, tenancy (integration); page and department grid (bUnit); ADR-0034, walkthrough 21
+- [ ] Reviewed and approved
+
+## Phase 23: Send the budget to VIP  `phase-23-send-to-erp`
+VIP accepts a budget journal by API or import file, the customer's choice. Each line carries
+`Account` (the full account number), `Amount`, `Description` (one description for the whole
+journal, repeated on every line), and `Date` (the journal's posting date, repeated on every line).
+- [ ] "Send to VIP" on an adopted version or amendment, Fiscal Officer and Administrator only
+- [ ] Preview: exactly what changes in VIP compared with the last send (for an amendment, only the differences); journal description and posting date entered once
+- [ ] Send by API (simulated VIP) or download the import file; a receipt and a send history; safe to press twice; accounts VIP refuses are listed
+- [ ] Every send audited
+
+## Phase 24: Report settings and the Amended Certificate  `phase-24-certificate`
+- [ ] Report settings page: named groups of revenue accounts per government ("Real estate taxes", "Local taxes", ...), with Ohio defaults; a report that needs an unmapped group says so
+- [ ] Certificate of Estimated Resources / Amended Certificate (ORC 5705.36), detailed: one row per fund with fund-type subtotals and a grand total; cash at 12/31, carryover encumbrances, nonspendable and reserve balances (ORC 5705.13, 5705.132), unpaid advances, carryover available, estimated revenue, total available
+- [ ] Condensed five-column certificate: fund, unencumbered balance 1/1, taxes, other sources, total; county templates vary, so column labels are settings
+- [ ] Document controls: entity, county, fiscal year, as-of date, amendment number and date, fiscal officer, budget commission certification, and support for any revenue change from the prior certificate
+- [ ] Reconciliations shown: taxes plus other sources equals the fund's estimated revenue; the certificate's unencumbered balance equals the detailed carryover; total appropriations per fund stay within the total
+- [ ] Print-ready PDF (library chosen by ADR; must be licensable by a commercial buyer)
+
+## Phase 25: Reports VIP cannot produce alone  `phase-25-combined-reports`
+- [ ] Budget against actual, year to date: percent used, encumbered, remaining
+- [ ] Revenue estimates against receipts
+- [ ] Projected fund balances
+- [ ] Multi-year trends
+- [ ] The appropriation measure as ORC 5705.38 requires it: personal services and other, by department, by fund
+- [ ] Report index grouped by category
+
+## Phase 26: Personnel budgeting  `phase-26-personnel`
+- [ ] Any line can be calculated from personnel; typing an amount keeps working everywhere
+- [ ] One screen per department: each position with name, title, pay (salary, or rate times hours), raise, longevity, benefits, and its split across funds; vacancies allowed
+- [ ] Benefit rates set once in settings: OPERS and OP&F employer shares, Medicare, workers' compensation, health, dental, vision, and life by tier, and anything else the research turns up; each cost lands on its own object code
+- [ ] Save, and the line shows the total with "from 12 positions"
+
+## Phase 27: Personnel from VIP and personnel reports  `phase-27-personnel-seed`
+- [ ] Once a year, start personnel from VIP's employee list and pay
+- [ ] Position roster, cost by fund, benefits summary
+
+## Phase 28: What a buyer will ask about  `phase-28-market-readiness`
+- [ ] Set up a new government without the seed
+- [ ] Email: department submitted or returned, and a forgot-password flow
+- [ ] Microsoft sign-in (Entra ID) and MFA
+- [ ] WCAG 2.1 AA audit of the transparency portal (the DOJ's Title II web rule; confirm the compliance dates for smaller governments)
+
+## Phase 29: Marketing website  `phase-29-marketing-site`
+- [ ] Static site in the repo, at `spencersmith.site/CivicBudget` (or a subdomain, decided in the phase), mockups approved first
+- [ ] Hero, features with screenshots, GIF and video demos recorded with Playwright, FAQ, and a clear "Try the live demo" with the demo sign-in
+- [ ] Contact form through the third-party form service spencersmith.site already uses, to CivicBudget@spencersmith.site
