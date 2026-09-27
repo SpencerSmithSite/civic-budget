@@ -1232,3 +1232,41 @@ checked the rules against, so it appears in these docs as the example, but a buy
 see their own ERP, not a competitor's name. The button says "Send to ERP", the demo's connection is
 "ERP (simulated)", and each connection's name comes from its adapter, so a real one names itself.
 **Look at:** `IErpBudgetApi.Name`, `SimulatedErpBudgetApi`.
+
+
+## Phase 24: The certificate of estimated resources
+
+### Q: What is the certificate, and why build it as its own thing rather than another report?
+**A:** It is an Ohio legal document: the county budget commission certifies, fund by fund, the balance
+carried in plus the revenue expected, and appropriations may not exceed that total (ORC 5705.36 and
+5705.39). It needs things no other report did: balances from the ERP's closed year, a government's own
+idea of which accounts are "taxes", headings worded like the county's template, reconciliations, an
+amendment number, and a PDF for signatures. The arithmetic lives in one pure builder, and both the issued
+five-column form and the detailed schedule render the same row per fund, so they cannot disagree.
+**Look at:** `CertificateBuilder`, `CertificateBuilderTests`.
+
+### Q: How does it know which revenue lines are taxes?
+**A:** It asks the government. Report settings hold up to four named columns, each a set of revenue
+accounts, and everything else is "other sources", so no receipt is left out; an account can only be in
+one column, or its money would be counted twice. With nothing saved it defaults to the accounts
+categorized as taxes, and says so on the report. A column with no accounts is flagged rather than
+printing zeros that look real.
+**Look at:** `ReportAccountGroup`, `CertificateService.Problems`, `ReportSettings.razor`.
+
+### Q: Where does the beginning balance come from?
+**A:** From the ERP when it has closed the prior year: cash at December 31 less the encumbrances carried
+forward, less nonspendable and reserve balances, plus or minus advances not yet repaid. An original
+certificate is prepared before the year closes, so until then it uses the budget's estimated beginning
+balance and says so. When the ERP figures arrive, a reconciliation compares them with the budget's
+beginning balances and names any fund that differs, because the appropriation check should use the
+certified number.
+**Look at:** `CertificateService.GetAsync`, `Fy2026s_balances_come_from_the_erps_closed_year_and_reconcile_with_the_budget`.
+
+### Q: Why MigraDoc rather than QuestPDF?
+**A:** Licensing. QuestPDF has the nicest API, but its free community license ends at $1M in company
+revenue, and the whole point of this version is that an ERP vendor could take the product on. PDFsharp
+and MigraDoc are MIT. Two things bit me: MigraDoc freezes the document's default page setup, so each
+section needs its own copy with the landscape size set outright (the orientation flag alone came out
+portrait with the right-hand columns cut off); and a Linux container has no fonts, so the typeface
+ships embedded in the assembly. A test checks the page count, the landscape page size, and the font.
+**Look at:** `CertificatePdfRenderer`, `EmbeddedFontResolver`, ADR-0036.

@@ -210,8 +210,8 @@ events in the audit trail. Narratives travel into amendments; submission status
 does not, because an amendment is a new round.
 
 ### 3.11 Deliberately out of scope
-- The Tax Budget, Certificate of Estimated Resources, and Amended Certificate as
-  documents (the *check* they enable is in scope, §5.1).
+- The Tax Budget as a document. (The certificate of estimated resources and its
+  amendments are in, §3.14.)
 - Temporary (first-quarter) appropriations.
 - Encumbrances, purchase orders, and the general ledger. The ERP owns the books;
   CivicBudget keeps a read-only copy of each year's actuals, open encumbrances, and
@@ -263,6 +263,41 @@ account number), `Amount`, and the journal's one `Description` and one `Date`
 - The posting date must fall in the fiscal year; it defaults to the year's first
   day for an original budget and the adoption date for an amendment.
 
+
+### 3.14 The certificate of estimated resources
+The county budget commission certifies, per fund, the resources available for
+the year (ORC 5705.36); appropriations from a fund may not exceed its total
+(5705.39). CivicBudget produces it for any budget version, numbered with it:
+version 1 is the certificate, amendment N is "Amended Certificate No. N".
+
+```
+carryover       = cash at 12/31 − carried encumbrances − nonspendable − reserves ± unpaid advances
+total available = carryover + revenue columns + other sources
+```
+
+- **Two views of one row per fund**, grouped by fund type with subtotals: as
+  issued (balance, revenue columns, other sources, total) and the detailed
+  schedule (every term above, plus appropriations).
+- **Balances** come from the ERP's closed prior year (§3.12). Before it closes,
+  the budget's estimated beginning balance is used and the report says so.
+  Nonspendable and reserve balances (ORC 5705.13, 5705.132) and unpaid advances
+  (positive for the lender, negative for the borrower) are entered per fund for
+  the year.
+- **Revenue columns are report settings**: up to four named sets of revenue
+  accounts ("Taxes"; or "Real estate" and "Local taxes"), each account in at
+  most one; every other receipt, transfers in included, is "other sources". With
+  nothing saved, one "Taxes" column holds the accounts categorized as taxes. The
+  county, the preparer, and the balance and other-sources headings are settings
+  too, because county templates word them differently.
+- **Reconciliations** shown on the certificate: appropriations within each
+  fund's total; the budget's beginning balances equal to the certified
+  carryover; every column mapped; the columns adding to the budget's revenue.
+  An amended certificate lists every revenue estimate that moved, with its
+  justification.
+- A PDF (issued certificate with the commission's signature lines, then the
+  detailed schedule and reconciliations), an XLSX, and print. Administrators,
+  the Fiscal Officer, and Viewers; not department users, whose view of the
+  budget is partial.
 ---
 
 ## 4. Workflow
@@ -517,6 +552,7 @@ prove tenant isolation in the tests and in the demo.
 | §3.10 Department requests | 9d | ADR-0027 |
 | §3.12 Actuals from the ERP | 22 | ADR-0034; simulated ERP in the demo |
 | §3.13 Sending the budget to the ERP | 23 | ADR-0035 |
+| §3.14 Certificate of estimated resources | 24 | ADR-0036 |
 | §4 Workflow, §5 Validation | 4 | Block or Warn at the transition |
 | §6 Publishing | 4, 5, 18 | Denormalized snapshots (ADR-0005, 0019); read-only portal context (ADR-0006); cache evicted by tag (ADR-0021) |
 | §7.1 Admin | 2–4, 6, 9c, 9d, 10 | Two entry modes, live fund panel, audit trail, import, reports, department round, profile pictures |

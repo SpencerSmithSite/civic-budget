@@ -6,6 +6,18 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 
 ## [Unreleased]
 
+## Phase 24: 2026-09-27 (report settings and the certificate of estimated resources)
+### Added
+- **Certificate of Estimated Resources** (ORC 5705.36) for any budget version, numbered with it ("Amended Certificate No. 1"): as issued and as a detailed schedule, one row per fund with fund-type subtotals and a grand total.
+- Balances from the ERP's closed prior year (cash less carried encumbrances, reserves, and nonspendable balances, plus or minus unpaid advances), or the budget's estimate before that year closes.
+- Reconciliations on the certificate: appropriations within each fund's total, beginning balances equal to the certified carryover, every column mapped, columns adding to the budget's revenue; an amended certificate lists the revenue estimates that moved and why.
+- PDF (landscape Letter, signature lines for the budget commission and the preparer), XLSX, and print.
+- **Report settings** under Setup: the certificate's revenue columns as named sets of accounts (up to four, each account in one), the county, the preparer, and the column headings; defaults to one "Taxes" column of the accounts categorized as taxes.
+- Reserves and advances per fund and year, entered from the certificate.
+- PDFsharp-MigraDoc (MIT) and the Source Sans 3 typeface (OFL), embedded.
+### Fixed
+- A subtotal label pinned on a phone lost its shading.
+
 ## Phase 23: 2026-09-27 (send the budget to VIP)
 ### Added
 - **Send to ERP** on the latest adopted version: a page that shows exactly what the budget journal posts (only what changed since VIP last took the year), takes the journal's description and posting date once, and sends it by API or as an import file (`Account, Amount, Description, Date`).
