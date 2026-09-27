@@ -32,7 +32,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="Input.Password" class="form-label fw-semibold">Password</label>
-                        <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" />
+                        <PasswordInput @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" />
                         <ValidationMessage For="() => Input.Password" class="text-danger" />
                     </div>
                     <div class="form-check mb-3">

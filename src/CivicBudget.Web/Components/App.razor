@@ -24,6 +24,12 @@
     @* Scripts only where something is interactive. The portal, the sign-in pages, and the error pages
        are plain HTML and forms; without this every one of them downloaded Blazor, Bootstrap, and the
        reconnect dialog for nothing, and the portal promised to work with no JavaScript at all. *@
+    @* The one script a static page may carry: show/hide on password fields, on the sign-in and
+       account pages only. The portal stays script-free. *@
+    @if (PageRenderMode is not null || HttpContext.Request.Path.StartsWithSegments("/Account", StringComparison.OrdinalIgnoreCase))
+    {
+        <script src="@Assets["js/password-toggle.js"]"></script>
+    }
     @if (PageRenderMode is not null)
     {
         <ReconnectModal />
