@@ -30,6 +30,7 @@ public class WorkflowBarTests : BunitContext
         workflow = new FakeWorkflow();
         Services.AddSingleton<IBudgetWorkflowService>(workflow);
         Services.AddSingleton<IPublishingService>(new FakePublishing());
+        Services.AddSingleton<CivicBudget.Application.Erp.IBudgetTransmissionService>(new FakeTransmissionService());
         Services.AddSingleton<ToastService>();
         // Dialogs hand focus back to the button that opened them when they close.
         JSInterop.SetupVoid("civicBudget.openModal", _ => true);
@@ -89,10 +90,11 @@ public class WorkflowBarTests : BunitContext
         workflow = new FakeWorkflow();
         Services.AddSingleton<IBudgetWorkflowService>(workflow);
         Services.AddSingleton<IPublishingService>(new FakePublishing());
+        Services.AddSingleton<CivicBudget.Application.Erp.IBudgetTransmissionService>(new FakeTransmissionService());
         Services.AddSingleton<ToastService>();
         var auth = AddAuthorization();
         auth.SetAuthorized("dana");
-        auth.SetPolicies(Policies.CanPublish);
+        auth.SetPolicies(Policies.CanPublish, Policies.CanSendToErp);
 
         IRenderedComponent<WorkflowBar> bar = Render<WorkflowBar>(p => p
             .Add(x => x.Version, Version with { Status = BudgetStatus.Adopted })
@@ -102,7 +104,16 @@ public class WorkflowBarTests : BunitContext
         Assert.Single(bar.FindAll("button:contains('Unpublish')"));
         Assert.Single(bar.FindAll("button:contains('Start an amendment')"));
         Assert.Empty(bar.FindAll("button:contains('Publish to portal')"));
+        Assert.Equal($"admin/budgets/{Version.Id}/send", bar.Find("a:contains('Send to ERP')").GetAttribute("href"));
     }
+
+    [Fact]
+    public void A_version_replaced_by_an_amendment_offers_no_send() =>
+        Assert.Empty(RenderBar(State(BudgetStatus.Adopted, fd: true) with { IsSuperseded = true }).FindAll("a:contains('Send to')"));
+
+    [Fact]
+    public void A_draft_offers_no_send() =>
+        Assert.Empty(RenderBar(State(BudgetStatus.Draft, fd: true)).FindAll("a:contains('Send to')"));
 
     private sealed class FakeWorkflow : IBudgetWorkflowService
     {

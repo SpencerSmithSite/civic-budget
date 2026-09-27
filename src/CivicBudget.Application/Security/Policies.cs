@@ -26,6 +26,9 @@ public static class Policies
     /// <summary>Publish and unpublish snapshots to the public portal. Administrator or Fiscal Officer.</summary>
     public const string CanPublish = nameof(CanPublish);
 
+    /// <summary>Send an adopted budget to the ERP and download its journal file. Administrator or Fiscal Officer.</summary>
+    public const string CanSendToErp = nameof(CanSendToErp);
+
     /// <summary>Import budget lines from files. Administrator or Fiscal Officer.</summary>
     public const string CanImport = nameof(CanImport);
 

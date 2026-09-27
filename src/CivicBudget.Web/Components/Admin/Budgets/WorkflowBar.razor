@@ -43,6 +43,12 @@ else if (State.Status != BudgetStatus.Adopted && State.RequiresAcknowledgement)
             <button type="button" class="btn btn-outline-danger" @onclick="() => Open(unpublishDialog)">Unpublish</button>
         }
     </AuthorizeView>
+    @if (State.CanPublish)
+    {
+        <AuthorizeView Policy="@Policies.CanSendToErp">
+            <a class="btn btn-outline-primary" href="admin/budgets/@Version.Id/send"><i class="bi bi-send-check me-1" aria-hidden="true"></i>Send to ERP</a>
+        </AuthorizeView>
+    }
     @if (State.CanAmend)
     {
         <button type="button" class="btn btn-outline-primary" @onclick="() => Open(amendDialog)"><i class="bi bi-pencil-square me-1" aria-hidden="true"></i>Start an amendment</button>

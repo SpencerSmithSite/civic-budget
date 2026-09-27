@@ -40,7 +40,7 @@ public class ActualsSyncPageTests : BunitContext
     public async Task Fetching_previews_the_year_and_the_prior_year_actuals_it_would_change()
     {
         IRenderedComponent<ActualsSync> page = Render<ActualsSync>();
-        page.WaitForAssertion(() => Assert.Contains("Fetch from VIP (simulated)", page.Markup));
+        page.WaitForAssertion(() => Assert.Contains("Fetch from ERP (simulated)", page.Markup));
         Assert.Contains("To Aug 31, 2026", page.Find(".cb-kpis").TextContent);           // what is here already, before anything else
 
         page.Find("#fetchYear").Change("2025");                                              // the newest year is picked by default
@@ -55,19 +55,19 @@ public class ActualsSyncPageTests : BunitContext
 
     private sealed class FakeActualsSync : IActualsSyncService
     {
-        public string? ApiName { get; set; } = "VIP (simulated)";
+        public string? ApiName { get; set; } = "ERP (simulated)";
         public int? FetchedYear { get; private set; }
         public int? CommittedYear { get; private set; }
 
         public Task<ActualsStatusDto> StatusAsync(CancellationToken ct = default) => Task.FromResult(new ActualsStatusDto(
             ApiName, ApiName is null ? [] : [2026, 2025],
-            ApiName is null ? [] : [new ActualsYearDto(2026, 8, new DateOnly(2026, 8, 31), DateTimeOffset.UtcNow, "system", "VIP (simulated)")]));
+            ApiName is null ? [] : [new ActualsYearDto(2026, 8, new DateOnly(2026, 8, 31), DateTimeOffset.UtcNow, "system", "ERP (simulated)")]));
 
         public Task<Result<ActualsPreviewDto>> PreviewFromErpAsync(int fiscalYear, CancellationToken ct = default)
         {
             FetchedYear = fiscalYear;
             return Task.FromResult(Result.Success(new ActualsPreviewDto(
-                "VIP (simulated)", null, fiscalYear, 12, new DateOnly(fiscalYear, 12, 31), 1_200, 5_000_000m, 4_700_000m, 81_000m, 1_900_000m,
+                "ERP (simulated)", null, fiscalYear, 12, new DateOnly(fiscalYear, 12, 31), 1_200, 5_000_000m, 4_700_000m, 81_000m, 1_900_000m,
                 [new ActualsFundDto("1000", "General Fund", 2_000_000m, 1_900_000m, 40_000m, 700_000m)],
                 [new PriorActualChangeDto("FY2027 Original", "1000-110-5420", "Fuel", 1m, 27_310m)],
                 [], null)));

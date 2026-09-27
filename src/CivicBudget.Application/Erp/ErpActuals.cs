@@ -27,13 +27,13 @@ public sealed record ErpOpenEncumbrance(string FundCode, string? DepartmentCode,
 /// <summary>A fund's cash balance.</summary>
 public sealed record ErpCash(string FundCode, decimal Amount);
 
-/// <summary>Which of the ERP's entities a request is for. VIP hosts many governments; the slug stands in for its entity id.</summary>
+/// <summary>Which of the ERP's entities a request is for. An ERP hosts many governments; the slug stands in for its entity id.</summary>
 public sealed record ErpEntity(Guid GovernmentId, string Slug, string Name, int FiscalYearStartMonth, AccountNumberFormat NumberFormat);
 
 /// <summary>Reads an actuals export the Fiscal Officer downloaded from the ERP and uploads here.</summary>
 public interface IErpActualsFileSource
 {
-    /// <summary>A short name for the sync log ("VIP actuals export").</summary>
+    /// <summary>A short name for the sync log ("ERP actuals export").</summary>
     string Name { get; }
 
     /// <summary>Reads CSV or XLSX; full account numbers are split with the government's own format.</summary>
@@ -42,11 +42,11 @@ public interface IErpActualsFileSource
 
 /// <summary>
 /// Asks the ERP for a year's actuals directly. Registered only where a connection is configured;
-/// the demo registers a simulated VIP. When none is registered the page offers the file upload alone.
+/// the demo registers a simulated ERP. When none is registered the page offers the file upload alone.
 /// </summary>
 public interface IErpActualsApi
 {
-    /// <summary>What the page and the sync log call it ("VIP (simulated)").</summary>
+    /// <summary>What the page and the sync log call it ("ERP (simulated)").</summary>
     string Name { get; }
 
     Task<Result<ErpActuals>> FetchAsync(ErpEntity entity, int fiscalYear, CancellationToken ct = default);

@@ -1149,10 +1149,10 @@ review, because you have to follow each step instead of skimming it.
 (`ErpActuals`: monthly activity by account, open encumbrances, fund cash, and how many months are
 closed), adapters that fill it, and a service that previews before it applies. One adapter reads an
 export file with full account numbers; the other is an API interface that is registered only where a
-connection exists. The demo registers a simulated VIP that keeps the demo governments' fictional books.
+connection exists. The demo registers a simulated ERP that keeps the demo governments' fictional books.
 When Software Solutions hands over the real API or export layout, one adapter changes and nothing above
 it moves.
-**Look at:** `Application/Erp/ErpActuals.cs`, `ErpActualsFileSource`, `Infrastructure/Erp/SimulatedVipActualsApi.cs`.
+**Look at:** `Application/Erp/ErpActuals.cs`, `ErpActualsFileSource`, `Infrastructure/Erp/SimulatedErpActualsApi.cs`.
 
 ### Q: Why refuse the whole file for one unknown account code?
 **A:** Because the alternative is a wrong number nobody notices. If one account in a year of actuals is
@@ -1178,10 +1178,57 @@ is counted once and never lost. It is a pure function with its own test.
 **Look at:** `ActualsByLine.Sum`, `ErpActualsTests.A_fund_level_line_collects_department_receipts_that_no_department_line_claims`.
 
 ### Q: How did you make simulated data believable?
-**A:** It is not random. The simulated VIP's books are the seed's own fictional history, spread over the
+**A:** It is not random. The simulated ERP's books are the seed's own fictional history, spread over the
 months the way a village's money moves: real estate taxes in two settlements, biweekly payroll (so two
 months have three paydays), capital work in summer, debt service twice a year. A month closes ten days
 after it ends. And year-end cash less carried encumbrances equals the next budget's beginning balance,
 which is how Ohio defines the unencumbered balance, so the numbers agree on every screen and the
 certificate in the next phase will reconcile.
-**Look at:** `SimulatedVipActualsApi.Weight`, `ErpActualsTests.A_closed_year_is_twelve_months_that_add_up_and_cash_agrees_with_next_years_balance`.
+**Look at:** `SimulatedErpActualsApi.Weight`, `ErpActualsTests.A_closed_year_is_twelve_months_that_add_up_and_cash_agrees_with_next_years_balance`.
+
+
+## Phase 23: Send the budget to VIP
+
+### Q: Why does the journal hold changes instead of the budget's totals?
+**A:** Because a budget journal adds to what the ERP already has. Sending full amounts would be right
+the first time and double the budget on the first amendment. So each amount is the budget's figure less
+what earlier journals for that year posted: the first send is the whole budget, an amendment sends only
+what it moved, a removed line sends a decrease, and a budget the ERP already matches sends nothing, which
+is also why pressing the button twice does nothing. It is a pure function with its own tests. I wrote down that
+assumption (VIP adds rather than replaces) before I could check it, and confirmed it.
+**Look at:** `BudgetJournalBuilder`, `BudgetJournalTests`.
+
+### Q: The call to VIP times out. Did it post or not?
+**A:** Nobody knows, and the design says so. The send was saved before VIP was called, so it is on record;
+a thrown call marks it Failed rather than Rejected; and Try again sends the same journal under the same
+id, which VIP recognizes and answers with the journal it already has. A new id on retry is the classic way
+to double-post. The integration test uses an API that posts the journal and then throws, which is exactly
+the case a naive retry gets wrong.
+**Look at:** `BudgetTransmissionService.PostAsync`, `SimulatedErpBudgetApi`, `A_lost_answer_is_retried_under_the_same_id_and_vip_posts_it_once`.
+
+### Q: How do you stop two people sending at the same time?
+**A:** Two layers. The service refuses a new send while one for the year is unfinished, and says why. That
+check can race, so a filtered unique index on government and fiscal year, covering only the unfinished
+statuses, makes the database refuse the second insert, and the save helper turns that into a readable
+message. The same technique keeps fund-level budget lines unique.
+**Look at:** `BudgetTransmissionConfiguration`, `The_database_refuses_a_second_unfinished_send_for_a_year`.
+
+### Q: Why does a downloaded file not count as sent?
+**A:** Because a file on someone's desktop has not changed anything in VIP. If it counted, and nobody
+imported it, every later journal would be measured from numbers VIP never received. It waits in
+"waiting for import" until someone confirms it was loaded (optionally with VIP's journal number) or
+discards it, and it holds the year meanwhile so the same change cannot go by a second route.
+**Look at:** `BudgetTransmission.ConfirmImported`, `An_import_file_holds_the_year_until_someone_confirms_it_was_loaded`.
+
+### Q: What if VIP does not have one of the accounts?
+**A:** It refuses the journal whole, and CivicBudget shows each refused account with VIP's reason. Nothing
+counts as sent and the year is free to try again once the account exists. Posting the good lines and
+skipping one would leave the two systems quietly disagreeing on that line.
+**Look at:** `BudgetTransmission.MarkRejected`, `Vip_refusing_an_account_posts_nothing_and_leaves_the_year_ready_to_send_again`.
+
+### Q: Why does the app never say "VIP"?
+**A:** Because the product is meant for any ERP vendor to take on. VIP is the ERP I know and the one I
+checked the rules against, so it appears in these docs as the example, but a buyer's customers would
+see their own ERP, not a competitor's name. The button says "Send to ERP", the demo's connection is
+"ERP (simulated)", and each connection's name comes from its adapter, so a real one names itself.
+**Look at:** `IErpBudgetApi.Name`, `SimulatedErpBudgetApi`.

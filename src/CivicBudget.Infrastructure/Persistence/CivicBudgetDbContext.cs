@@ -54,6 +54,7 @@ public sealed class CivicBudgetDbContext(DbContextOptions<CivicBudgetDbContext> 
     public DbSet<ErpActual> ErpActuals => Set<ErpActual>();
     public DbSet<ErpEncumbrance> ErpEncumbrances => Set<ErpEncumbrance>();
     public DbSet<ErpFundCash> ErpFundCash => Set<ErpFundCash>();
+    public DbSet<BudgetTransmission> BudgetTransmissions => Set<BudgetTransmission>();
     public DbSet<UserDepartment> UserDepartments => Set<UserDepartment>();
     public DbSet<UserAvatar> UserAvatars => Set<UserAvatar>();
     public DbSet<GovernmentLogo> GovernmentLogos => Set<GovernmentLogo>();

@@ -130,7 +130,7 @@ public class DepartmentPagesTests : BunitContext
         BudgetLineDto overtime = Line(Streets, "620", "5120", AccountType.Expenditure, 20m, canEdit: true) with { YearToDate = 65m };
         _entry.Workspace = Workspace([Request(Streets, "620", "Streets", DepartmentRequestStatus.InProgress, true, true, false)], [salaries, overtime]) with
         {
-            CurrentYearActuals = new Application.Erp.ActualsYearDto(2026, 8, new DateOnly(2026, 8, 31), DateTimeOffset.UtcNow, "system", "VIP (simulated)"),
+            CurrentYearActuals = new Application.Erp.ActualsYearDto(2026, 8, new DateOnly(2026, 8, 31), DateTimeOffset.UtcNow, "system", "ERP (simulated)"),
         };
 
         IRenderedComponent<DepartmentEntry> page = Render<DepartmentEntry>(p => p.Add(x => x.VersionId, VersionId).Add(x => x.DepartmentId, Streets));

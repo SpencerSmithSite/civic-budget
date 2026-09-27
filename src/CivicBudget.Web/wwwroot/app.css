@@ -2058,6 +2058,18 @@ legend.form-label {
     background: var(--cb-warning);
 }
 
+/* Send to the ERP: the journal's description takes the room, the posting date sits beside it. */
+.cb-send-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 16px;
+    max-width: 760px;
+}
+
+@media (max-width: 575.98px) {
+    .cb-send-fields { grid-template-columns: minmax(0, 1fr); }
+}
+
 .cb-import-kpis {
     margin-bottom: 16px;
 }

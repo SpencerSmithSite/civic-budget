@@ -18,7 +18,7 @@ Two constraints shaped the design:
 - **VIP's interface is not mine to see.** It can deliver data by API or by export file,
   whichever the customer prefers, but I have neither its API nor its export layout. The code has
   to work now and change in exactly one place when the real layout is known.
-- **The demo has to show it working.** A reviewer should be able to click "Fetch from VIP" on
+- **The demo has to show it working.** A reviewer should be able to click "Fetch from the ERP" on
   the live site and watch numbers arrive, without pretending the demo is connected to real VIP.
 
 ## 2. The same shape as the chart sync
@@ -109,10 +109,10 @@ spending inside the budget cell fixed the width, and it reads better too: the ba
 something next to that budget. The line drawer (the phone view of a line) shows the same figure
 and adds open encumbrances.
 
-## 6. The simulated VIP
+## 6. The simulated ERP
 
-`SimulatedVipActualsApi` stands in for VIP's API wherever the demo data is seeded. It is honest
-about being a stand-in: its name, "VIP (simulated)", appears on the page, in the sync log, and
+`SimulatedErpActualsApi` stands in for VIP's API wherever the demo data is seeded. It is honest
+about being a stand-in: its name, "ERP (simulated)", appears on the page, in the sync log, and
 in the audit trail. What makes it useful rather than a random-number generator:
 
 - **Its books are the seed's own fictional history**, so FY2025's totals equal the prior-year
@@ -135,7 +135,7 @@ registers nothing, and the page offers the file upload alone, until a real conne
 - **Unit** (`Application.Tests/Erp/ErpActualsTests`): the file (every column, padded and dotted
   numbers, negative months, errors by row, mixed years), the matcher (padding, repeated rows,
   unknown codes listed once, receipts against disbursements), per-line totals (the fund-level
-  rule), and the simulated VIP (month closing, a closed year that adds up, real estate taxes only
+  rule), and the simulated ERP (month closing, a closed year that adds up, real estate taxes only
   in settlement months, cash less encumbrances equal to the next beginning balance).
 - **Integration** (`ActualsSyncServiceTests`): the seed's two years; a fetch that restores a
   drifted prior-year actual, with its audit entry and log row; a file that replaces a year and

@@ -61,6 +61,7 @@ public class AuthorizationPolicyTests
         Row(Policies.CanEditBeginningBalances, Roles.Admin, Roles.FinanceDirector);
         Row(Policies.CanAdvanceWorkflow, Roles.Admin, Roles.FinanceDirector);
         Row(Policies.CanPublish, Roles.Admin, Roles.FinanceDirector);
+        Row(Policies.CanSendToErp, Roles.Admin, Roles.FinanceDirector);
         Row(Policies.CanImport, Roles.Admin, Roles.FinanceDirector);
         Row(Policies.CanViewAudit, Roles.Admin, Roles.FinanceDirector, Roles.DepartmentHead);
         return data;

@@ -982,7 +982,7 @@ and change in one place when they are.
 - **A fund-level line collects unclaimed department amounts.** When revenue is budgeted by fund
   but the ERP records it by department, the fund-level line takes every amount on that fund and
   account that no department-level line claims (`ActualsByLine`): counted once, never dropped.
-- **The demo connects to a simulated VIP** (`SimulatedVipActualsApi`), registered exactly where
+- **The demo connects to a simulated ERP** (`SimulatedErpActualsApi`), registered exactly where
   the demo data is seeded. Its books are the seed's own fictional history spread over the months
   the way municipal money moves (tax settlements, biweekly payroll, summer capital work, debt
   service twice a year), and a month closes ten days after it ends. Year-end cash less carried
@@ -998,7 +998,58 @@ every capability (forces an adapter to stub what its ERP cannot do).
 builds on, and the certificate of resources (Phase 24) has cash and carried encumbrances to start
 from. Removing and re-adding tracked rows is fine for a village's or a township's few thousand
 rows a year; a large county's would want a set-based delete inside a transaction. The simulated
-VIP is a stand-in, and says so in its name wherever it appears.
+ERP is a stand-in, and says so in its name wherever it appears.
+
+---
+
+## ADR-0035: The adopted budget goes to the ERP as a journal of changes, sent once
+**Date:** 2026-09-27 · **Status:** Accepted
+
+**Context.** The point of budgeting in CivicBudget is that the adopted numbers end up in the ERP,
+which is where purchase orders are checked against appropriations. Today someone retypes them.
+VIP takes a budget journal by API or by import file, the customer's choice, with four fields per
+line: the full account number, the amount, one description for the whole journal, and one posting
+date. Three things can go wrong with a "send" button: the same change posted twice, a change that
+never arrived counted as if it had, and a journal half-posted.
+
+**Decision.**
+- **A journal of changes.** Each amount is the budget's figure less what earlier journals for the
+  fiscal year already posted (`BudgetJournalBuilder`, pure). The first send is the whole budget, an
+  amendment's is only what it moved, a removed line sends a decrease, and a budget the ERP already
+  matches sends nothing. VIP adds a journal's amounts to the account's budget, as a journal does
+  in every fund-accounting system I know, so a decrease is a negative amount (confirmed
+  2026-09-27).
+- **Only the latest adopted version**, the same rule as publishing, by an Administrator or the
+  Fiscal Officer (`CanSendToErp`). The posting date must fall in the fiscal year.
+- **Every send is a record** (`BudgetTransmission` and its lines), saved before the ERP is called.
+  Only a send the ERP accepted, or a file someone confirmed was imported, counts as "in the ERP".
+- **Idempotent by id.** The record's id travels with the journal. A call that gets no answer is
+  marked Failed, not Rejected: nobody knows whether it posted. Trying again sends the same journal
+  under the same id, and the ERP answers with the journal it already has. The simulated ERP
+  behaves this way, and a test loses the first answer on purpose to prove it.
+- **Whole or nothing.** When the ERP refuses any account, nothing posts, and each refused account
+  is shown with the ERP's reason. A partly posted journal would leave the two systems disagreeing
+  in a way that is hard to see and harder to undo.
+- **One unfinished send per year.** A failed send or a downloaded file holds the year until it is
+  settled (retried, confirmed, or discarded). The service checks first so people get a sentence;
+  a filtered unique index on government and year catches two clicks racing each other.
+- **The import file is VIP's four columns**, CSV, with the description and date repeated on every
+  line as VIP expects: `yyyy-MM-dd` dates, amounts with a period and no separators, and a
+  description of at most 100 characters. VIP answers a repeated journal id with its first answer.
+  All four confirmed 2026-09-27.
+- **The app says "ERP", never a vendor's name.** VIP is the ERP I know and the one I built against,
+  but CivicBudget is meant for any ERP vendor to take on, so buttons, messages, and the simulated
+  connection ("ERP (simulated)") name the kind of system, not the product.
+
+**Alternatives.** Sending full amounts every time (an amendment would double the budget in an
+additive ERP); marking a file "sent" the moment it is downloaded (a file never imported would make
+every later journal wrong); posting the accounts VIP accepts and skipping the rest (a half-posted
+budget); a new id on every retry (a lost answer followed by a retry would post twice).
+
+**Consequences.** CivicBudget's record of what the ERP holds is only as good as the sends that go
+through it; a budget typed straight into VIP would not be known here. A reconciliation against
+VIP's budget (reading it back through the actuals connection) is the natural next safeguard. The
+simulated ERP's memory of journal ids lasts as long as the process, which is enough for a stand-in.
 
 ---
 

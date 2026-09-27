@@ -163,7 +163,7 @@ public class ErpActualsTests
         Assert.Equal(900m, totals[parksSalaries]);
     }
 
-    // ---- the simulated VIP ----------------------------------------------------------------------
+    // ---- the simulated ERP ----------------------------------------------------------------------
 
     private static readonly ErpEntity MapleRidge = new(Guid.NewGuid(), "maple-ridge-oh", "Village of Maple Ridge", 1, Uan);
     private static readonly ErpEntity PineHollow = new(Guid.NewGuid(), "pine-hollow-twp-oh", "Pine Hollow Township", 7, new AccountNumberFormat(4, 3, 4, ".", "Department"));
@@ -171,10 +171,10 @@ public class ErpActualsTests
     [Fact]
     public async Task A_month_counts_once_its_books_close_ten_days_after_it_ends()
     {
-        var vip = new SimulatedVipActualsApi(new FixedClock(new DateTimeOffset(2026, 9, 9, 12, 0, 0, TimeSpan.Zero)));
+        var vip = new SimulatedErpActualsApi(new FixedClock(new DateTimeOffset(2026, 9, 9, 12, 0, 0, TimeSpan.Zero)));
         Assert.Equal(7, (await vip.FetchAsync(MapleRidge, 2026)).Value.ThroughPeriod);           // August closes on the 10th
 
-        var later = new SimulatedVipActualsApi(new FixedClock(new DateTimeOffset(2026, 9, 10, 12, 0, 0, TimeSpan.Zero)));
+        var later = new SimulatedErpActualsApi(new FixedClock(new DateTimeOffset(2026, 9, 10, 12, 0, 0, TimeSpan.Zero)));
         Assert.Equal(8, (await later.FetchAsync(MapleRidge, 2026)).Value.ThroughPeriod);
         Assert.Equal(2, (await later.FetchAsync(PineHollow, 2027)).Value.ThroughPeriod);         // July start: July and August
         Assert.Contains("not closed a month of FY2027", (await later.FetchAsync(MapleRidge, 2027)).Errors.Single().Message, StringComparison.Ordinal);
@@ -183,7 +183,7 @@ public class ErpActualsTests
     [Fact]
     public async Task A_closed_year_is_twelve_months_that_add_up_and_cash_agrees_with_next_years_balance()
     {
-        var vip = new SimulatedVipActualsApi(new FixedClock(new DateTimeOffset(2026, 9, 27, 12, 0, 0, TimeSpan.Zero)));
+        var vip = new SimulatedErpActualsApi(new FixedClock(new DateTimeOffset(2026, 9, 27, 12, 0, 0, TimeSpan.Zero)));
 
         ErpActuals fy2025 = (await vip.FetchAsync(MapleRidge, 2025)).Value;
 
@@ -200,7 +200,7 @@ public class ErpActualsTests
     [Fact]
     public async Task Knows_only_the_demo_governments_and_their_years()
     {
-        var vip = new SimulatedVipActualsApi(TimeProvider.System);
+        var vip = new SimulatedErpActualsApi(TimeProvider.System);
 
         Assert.Contains("no entity set up for Elsewhere", (await vip.FetchAsync(MapleRidge with { Slug = "elsewhere", Name = "Elsewhere" }, 2025)).Errors.Single().Message, StringComparison.Ordinal);
         Assert.Contains("no books for FY2019", (await vip.FetchAsync(MapleRidge, 2019)).Errors.Single().Message, StringComparison.Ordinal);

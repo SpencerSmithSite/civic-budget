@@ -144,7 +144,8 @@ public sealed class TestDatabase
         services.AddApplication();
         services.AddInfrastructure(connectionString);
         services.Configure<SeedOptions>(o => o.DemoPassword = DemoPassword);
-        services.AddSingleton<IErpActualsApi, SimulatedVipActualsApi>(); // as Program.cs does wherever the demo data is seeded
+        services.AddSingleton<IErpActualsApi, SimulatedErpActualsApi>(); // as Program.cs does wherever the demo data is seeded
+        services.AddSingleton<IErpBudgetApi, SimulatedErpBudgetApi>();
         _provider = services.BuildServiceProvider();
     }
 
