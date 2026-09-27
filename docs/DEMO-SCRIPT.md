@@ -97,6 +97,10 @@ fiscal officer is never locked out."
   **Download PDF**. Switch to FY2027: "Before the ERP closes 2026 it uses the budget's estimate,
   and says so; and the Street fund is over its total." Setup, **Report settings**: "Which
   accounts are taxes is the village's choice, and the headings follow the county's template."
+- Reports, pick **FY2026 Amendment 1**, **Revenue vs. Receipts**. "Real estate taxes are 96%
+  collected in August, and that is normal: last year it was 95% by now. A straight line would
+  call that ahead; income tax at 67% against 65% is the one to watch." Then **Projected Fund
+  Balances**: "Each line projected from last year's pattern, not a straight line."
 
 ## 6. The code, briefly (2 minutes)
 

@@ -315,12 +315,14 @@ journal, repeated on every line), and `Date` (the journal's posting date, repeat
 - [x] Reviewed and approved (2026-09-27)
 
 ## Phase 25: Reports VIP cannot produce alone  `phase-25-combined-reports`
-- [ ] Budget against actual, year to date: percent used, encumbered, remaining
-- [ ] Revenue estimates against receipts
-- [ ] Projected fund balances
-- [ ] Multi-year trends
-- [ ] The appropriation measure as ORC 5705.38 requires it: personal services and other, by department, by fund
-- [ ] Report index grouped by category
+- [x] Budget against actual, year to date: spent, encumbered, remaining, percent used against the year's pace, and last year at the same point
+- [x] Revenue estimates against receipts, paced by how much of last year's total had arrived by the same month
+- [x] Projected fund balances, each line projected from last year's monthly pattern (`ActualsReportBuilder.Project`)
+- [x] Multi-year trends: each fund's budgets and actuals by year up to the budget
+- [x] The appropriation measure as ORC 5705.38 requires it: personal services and other, by department, by fund, transfers out beside; columns in report settings
+- [x] Report index grouped by category; every new report exports to XLSX
+- [x] Tests: projection, grouping, pace, fund projection, measure (unit); the seeded reports, trends, measure columns, department visibility (integration); pages (bUnit); ADR-0037, walkthrough 24
+- [ ] Reviewed and approved
 
 ## Phase 26: Personnel budgeting  `phase-26-personnel`
 - [ ] Any line can be calculated from personnel; typing an amount keeps working everywhere

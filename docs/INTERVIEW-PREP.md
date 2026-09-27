@@ -1270,3 +1270,37 @@ section needs its own copy with the landscape size set outright (the orientation
 portrait with the right-hand columns cut off); and a Linux container has no fonts, so the typeface
 ships embedded in the assembly. A test checks the page count, the landscape page size, and the font.
 **Look at:** `CertificatePdfRenderer`, `EmbeddedFontResolver`, ADR-0036.
+
+
+## Phase 25: Reports the ERP cannot produce alone
+
+### Q: How do you decide whether a revenue line is "on track" in August?
+**A:** Not by the calendar. Eight months is two-thirds of the year, but a village has nearly all its
+real estate tax by August (two settlements) and only two-thirds of its income tax. So each account is
+compared with the share of last year's total that had arrived by the same month, from the ERP's monthly
+history, and it is "behind" only when it trails that by more than ten points. In the demo, real estate
+tax at 96% collected reads as normal, because last year it was 95% by now.
+**Look at:** `RevenueReceiptRowDto.IsBehind`, `ActualsReportBuilder.RevenueVsReceipts`.
+
+### Q: How is the year-end projection made?
+**A:** Line by line: this year to date, scaled by last year's full year over last year at the same month.
+A closed year is simply its actual. A line with no history is carried at its budget (never below what
+has already happened), and the report says how many lines that is. Encumbered money always counts as
+spent. It is one pure function with a test for each case, and the report prints its method, because a
+projection nobody can explain is not one a fiscal officer will use.
+**Look at:** `ActualsReportBuilder.Project`, `ActualsReportBuilderTests`.
+
+### Q: What is the appropriation measure, and what did you have to decide?
+**A:** The ordinance or resolution that appropriates: by fund, then by office and department, with
+personal services set out separately (ORC 5705.38(C)); transfers out sit beside the departments as other
+financing uses. The decision was what "personal services" includes. Most measures put fringe benefits
+with pay, but not all, so it is a report setting with that default, using the same column mechanism the
+certificate's taxes use, with the same rules shared.
+**Look at:** `AppropriationMeasureBuilder`, `MeasureColumnService`, `ReportColumnRules`.
+
+### Q: Why can a department user run budget against actual but not the projection?
+**A:** Budget against actual is a list of lines, and a department user's view of the budget is their
+departments' lines, so the report is complete for them. A projection, a trend, or an appropriation
+measure is about whole funds; built from part of a fund it would be wrong, not partial. Those return
+nothing for department users, the same rule as the certificate.
+**Look at:** `ActualsReportService.LoadAsync`, `A_department_user_gets_their_own_lines_and_none_of_the_whole_fund_reports`.

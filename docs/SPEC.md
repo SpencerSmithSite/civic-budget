@@ -298,6 +298,33 @@ total available = carryover + revenue columns + other sources
   detailed schedule and reconciliations), an XLSX, and print. Administrators,
   the Fiscal Officer, and Viewers; not department users, whose view of the
   budget is partial.
+
+### 3.15 Reports on the ERP's books, and the appropriation measure
+For a budget version of FY Y, compared with the ERP's FY Y actuals (§3.12):
+
+- **Budget vs. actual**: each appropriation's budget, spent, encumbered,
+  remaining, the share used with a tick for the share of the year gone, and last
+  year's figure at the same month. By fund, then department; transfers out as
+  the fund's other financing uses.
+- **Revenue vs. receipts**: each estimate, received, still to collect, and the
+  share collected against the share of last year's total in by the same month.
+  "Behind" means more than ten points behind last year, not behind the calendar.
+- **Projected fund balances**: beginning balance, budgeted and projected
+  receipts and spending, and budgeted and projected ending balances. Each line
+  is projected by scaling its year to date by last year's full year over last
+  year at the same month; lines without that history are carried at budget and
+  counted; encumbrances count as spent.
+- **Multi-year trends**: per fund, each year's budgeted and actual receipts and
+  appropriations and actual spending, from each past year's latest adopted
+  version and the ERP's actuals, up to this budget.
+- **Appropriation measure** (ORC 5705.38): per fund, per department, the
+  measure's columns (default "Personal services": the personal services and
+  fringe benefit accounts) and "Other", with transfers out beside the
+  departments. Columns are report settings, like the certificate's.
+
+Department users run budget vs. actual and revenue vs. receipts for their own
+departments; the projection, trends, and measure cover whole funds and are for
+the Administrator, Fiscal Officer, and Viewers.
 ---
 
 ## 4. Workflow
@@ -553,6 +580,7 @@ prove tenant isolation in the tests and in the demo.
 | §3.12 Actuals from the ERP | 22 | ADR-0034; simulated ERP in the demo |
 | §3.13 Sending the budget to the ERP | 23 | ADR-0035 |
 | §3.14 Certificate of estimated resources | 24 | ADR-0036 |
+| §3.15 Reports on the ERP's books, appropriation measure | 25 | ADR-0037 |
 | §4 Workflow, §5 Validation | 4 | Block or Warn at the transition |
 | §6 Publishing | 4, 5, 18 | Denormalized snapshots (ADR-0005, 0019); read-only portal context (ADR-0006); cache evicted by tag (ADR-0021) |
 | §7.1 Admin | 2–4, 6, 9c, 9d, 10 | Two entry modes, live fund panel, audit trail, import, reports, department round, profile pictures |
