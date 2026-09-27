@@ -288,7 +288,7 @@ comes last so its screenshots and demos show the finished product.
 - [x] Seed: Maple Ridge and Pine Hollow start with FY2025 and FY2026 from the simulated VIP
 - [x] Fixed on the way: a long fund name in a department grid's total row forced the table past the screen
 - [x] Tests: file source, matcher, per-line totals, simulated VIP (unit); sync from VIP and file, prior-year fill, add line, permissions, tenancy (integration); page and department grid (bUnit); ADR-0034, walkthrough 21
-- [ ] Reviewed and approved
+- [x] Reviewed and approved (2026-09-27)
 
 ## Phase 23: Send the budget to VIP  `phase-23-send-to-erp`
 VIP accepts a budget journal by API or import file, the customer's choice. Each line carries
