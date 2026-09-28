@@ -17,7 +17,7 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
   - the live demo with every login;
   - FAQ, and a contact form through Formspree.
 - `scripts/screenshots/site-clips.mjs`: records the site's three clips from a freshly seeded app.
-- A CivicBudget card in the portfolio's projects list.
+- The site is reached by its address and is not listed on the portfolio's home page.
 
 ## Phase 29: 2026-09-28 (SOC 2 by design)
 ### Added

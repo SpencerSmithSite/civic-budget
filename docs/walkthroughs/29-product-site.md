@@ -9,6 +9,7 @@ or the contact form in one scroll. The mockup was approved before any of it was 
 
 The site is not in this repository. It is one static page in my portfolio's repository,
 `public/CivicBudget/`, next to Council's site, and Vercel serves it with the rest of spencersmith.site.
+It is not listed on the portfolio itself.
 
 ```
 public/CivicBudget/
@@ -37,7 +38,7 @@ That repository's `docs/civicbudget-site.md` is the maintenance guide.
 | For ERP vendors | What moves each way (chart, actuals, employees in; the adopted journal out), by API or by file, one adapter per ERP |
 | Security | "Designed and built to achieve SOC 2 compliance", six controls, and a plain statement that no report has been issued |
 | Live demo | The password, every login and what to try, and a warning about the cold start |
-| FAQ, Contact | Five questions; a form through Formspree, subject "CivicBudget inquiry" |
+| FAQ, Contact | Four questions; a form through Formspree, subject "CivicBudget inquiry" |
 
 The design uses the app's own tokens: the sidebar's navy, the logo's teal, and the over-limit red,
 which appears once, on the fund that breaks the Ohio rule. The type is Public Sans, the U.S.
@@ -93,4 +94,5 @@ page's canonical link keeps search engines on one address.
 - **Clips:** they play when scrolled into view, stay still under reduced motion, and start from Play.
 - **Production build:** every spelling of the address serves the page and its files; an unknown
   file is still a 404; Council is unaffected.
-- **Portfolio:** the CivicBudget card on the home page links to the site.
+- **Portfolio:** unchanged. The site is not listed on spencersmith.site's home page; it is reached
+  by its address.
