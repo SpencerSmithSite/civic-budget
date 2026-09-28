@@ -322,7 +322,7 @@ journal, repeated on every line), and `Date` (the journal's posting date, repeat
 - [x] The appropriation measure as ORC 5705.38 requires it: personal services and other, by department, by fund, transfers out beside; columns in report settings
 - [x] Report index grouped by category; every new report exports to XLSX
 - [x] Tests: projection, grouping, pace, fund projection, measure (unit); the seeded reports, trends, measure columns, department visibility (integration); pages (bUnit); ADR-0037, walkthrough 24
-- [ ] Reviewed and approved
+- [x] Reviewed and approved (2026-09-27)
 
 ## Phase 26: Personnel budgeting  `phase-26-personnel`
 - [ ] Any line can be calculated from personnel; typing an amount keeps working everywhere
