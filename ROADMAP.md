@@ -345,7 +345,7 @@ Decided with Spencer (2026-09-27):
 - [x] Save, and the line shows the total with "from 9 positions"; settings changes reprice the year's open budgets
 - [x] Amendments copy positions; next year carries them forward
 - [x] Tests: calculator, longevity, settings, version rules (unit); services, permissions, repricing, import (integration); pages (bUnit); ADR-0038, walkthrough 25
-- [ ] Reviewed and approved
+- [x] Reviewed and approved (2026-09-27)
 
 ## Phase 27: Personnel from VIP and personnel reports  `phase-27-personnel-seed`
 - [ ] Once a year, start personnel from VIP's employee list and pay
