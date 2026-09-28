@@ -386,4 +386,13 @@ Decided with Spencer (2026-09-27): no official audit for now; our own scan near 
 
 - [x] Automated checks (axe) across every page and role, plus subagent reviews of the portal and admin
 - [x] Fix what they find; write the accessibility conformance report (VPAT)
+- [x] Reviewed and approved (2026-09-28, civic-budget PR #62 and spencersmith.site PR #20)
+
+## Phase 32: Finish accessibility  `phase-32-accessibility-finish`
+Decided with Spencer (2026-09-28): close the two partial passes in the conformance report, then a screen-reader pass.
+
+- [ ] Editable amounts show a faint border at rest (WCAG 1.4.11), darker on hover and focus
+- [ ] Worksheet fund and program group rows become row-group headers (WCAG 1.3.1)
+- [ ] Screen-reader pass (VoiceOver) on the sign-in, worksheet, department request, dialogs, idle warning, and portal
+- [ ] Update the conformance report
 - [ ] Reviewed and approved
