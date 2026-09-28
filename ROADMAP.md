@@ -355,15 +355,34 @@ Decided with Spencer (2026-09-27): VIP's employee export is not known yet. Seed 
 - [x] Position roster, personnel cost by fund, benefits summary, each with XLSX export
 - [x] Tests: file reader, matcher, report builder (unit); preview, apply, file, refusals, a new government, reports (integration); pages (bUnit); ADR-0039, walkthrough 26
 - [ ] Confirm the assumed export fields with VIP's real layout
+- [x] Reviewed and approved (2026-09-27)
+
+## Phase 28: Onboarding, email, and MFA  `phase-28-market-readiness`
+Decided with Spencer (2026-09-27): no Microsoft sign-in (Entra ID) for now. App email goes through an interface: SMTP for a real deployment, an in-app outbox in the demo (every demo address is fictional). The website's contact form uses Formspree, like spencersmith.site.
+
+- [ ] Set up a new government without the seed: details, fiscal year, chart (from the ERP or a file), first year, first administrator
+- [ ] Email: department submitted or returned, forgot password, welcome for a new user; SMTP sender and a demo outbox
+- [ ] MFA with an authenticator app, recovery codes, and an optional "require MFA" setting per government
 - [ ] Reviewed and approved
 
-## Phase 28: What a buyer will ask about  `phase-28-market-readiness`
-- [ ] Set up a new government without the seed
-- [ ] Email: department submitted or returned, and a forgot-password flow
-- [ ] Microsoft sign-in (Entra ID) and MFA
-- [ ] WCAG 2.1 AA audit of the transparency portal (the DOJ's Title II web rule; confirm the compliance dates for smaller governments)
+## Phase 29: SOC 2 by design  `phase-29-soc2`
+Decided with Spencer (2026-09-27): designed and built to achieve SOC 2 compliance, without going through certification; cover similar frameworks buyers ask about (GovRAMP, NIST CSF 2.0).
 
-## Phase 29: Marketing website  `phase-29-marketing-site`
-- [ ] Static site in the repo, at `spencersmith.site/CivicBudget` (or a subdomain, decided in the phase), mockups approved first
-- [ ] Hero, features with screenshots, GIF and video demos recorded with Playwright, FAQ, and a clear "Try the live demo" with the demo sign-in
-- [ ] Contact form through the third-party form service spencersmith.site already uses, to CivicBudget@spencersmith.site
+- [ ] Security event log (sign-ins, failures, role and MFA changes, exports), session timeout, lockout, security headers
+- [ ] Dependency and code scanning in CI
+- [ ] Export all of a government's data; off-board a government
+- [ ] docs/security: policies, backup and recovery targets, a control matrix (SOC 2 criteria, GovRAMP/NIST where they overlap) with evidence
+- [ ] Reviewed and approved
+
+## Phase 30: Marketing website  `phase-30-marketing-site`
+- [ ] Static site in the spencersmith.site repository at `public/CivicBudget`, served at spencersmith.site/CivicBudget (the Council pattern), mockups approved first
+- [ ] Hero, features with screenshots, GIF and video demos recorded with Playwright, FAQ, a trust page, and a clear "Try the live demo" with the demo sign-in
+- [ ] Contact form through Formspree, marked as CivicBudget in the subject
+- [ ] Reviewed and approved
+
+## Phase 31: Accessibility self-scan  `phase-31-accessibility`
+Decided with Spencer (2026-09-27): no official audit for now; our own scan near the end of the project.
+
+- [ ] Automated checks (axe) across every page and role, plus subagent reviews of the portal and admin
+- [ ] Fix what they find; write the accessibility conformance report (VPAT)
+- [ ] Reviewed and approved
