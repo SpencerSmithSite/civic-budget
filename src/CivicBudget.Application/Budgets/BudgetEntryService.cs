@@ -159,7 +159,16 @@ public sealed class BudgetEntryService(
             return denied;
         }
 
-        version.UpdateLineAmount(line.Id, amount);
+        try
+        {
+            version.UpdateLineAmount(line.Id, amount);
+        }
+        catch (DomainException ex)
+        {
+            // A line calculated from positions: the message says to change the positions instead.
+            return Result.Failure(nameof(amount), ex.Message);
+        }
+
         if (await db.TrySaveAsync(ct) is { } conflict)
         {
             return conflict;
@@ -256,7 +265,15 @@ public sealed class BudgetEntryService(
             return denied;
         }
 
-        version.RemoveLine(line.Id);
+        try
+        {
+            version.RemoveLine(line.Id);
+        }
+        catch (DomainException ex)
+        {
+            return Result.Failure(ex.Message);
+        }
+
         if (await db.TrySaveAsync(ct) is { } conflict)
         {
             return conflict;
@@ -372,5 +389,5 @@ public sealed class BudgetEntryService(
         l.AccountId, l.Account.Code, l.Account.Name,
         AccountNumber.Compose(format, l.Fund.Code, l.Department?.Code, l.Account.Code),
         l.Account.Type, l.Account.Category,
-        l.Amount, l.PriorYearActual, l.CurrentYearBudget, l.Justification, canEdit);
+        l.Amount, l.PriorYearActual, l.CurrentYearBudget, l.Justification, canEdit, PositionCount: l.PositionCount);
 }

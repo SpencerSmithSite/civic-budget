@@ -8,6 +8,7 @@ using CivicBudget.Domain.Erp;
 using CivicBudget.Domain.FiscalYears;
 using CivicBudget.Domain.Funds;
 using CivicBudget.Domain.Governments;
+using CivicBudget.Domain.Personnel;
 using CivicBudget.Domain.Publishing;
 using CivicBudget.Domain.Reports;
 using CivicBudget.Infrastructure.Erp;
@@ -189,6 +190,19 @@ public sealed class DevelopmentSeeder(
         fy2027.SubmitDepartment(chart.Department("310"), SeedUserId, "Sam Okafor (Service Director)", new DateTimeOffset(2026, 9, 10, 18, 40, 0, TimeSpan.Zero));
         fy2027.ReturnDepartment(chart.Department("310"), MapleRidgeSeed.ParksReturnNote, new DateTimeOffset(2026, 9, 11, 13, 5, 0, TimeSpan.Zero));
 
+        // FY2027 personnel: the year's settings and the positions of Police, Finance, and Streets & Service.
+        // Adding each position prices its department, so those departments' salary and benefit lines
+        // become calculated ("from 9 positions") the moment the seed runs, as they would for a real user.
+        PersonnelSettings personnel = MapleRidgePersonnel.Settings(government.Id, code => chart.Account(code).Id);
+        FiscalYear personnelYear = chart.FiscalYear(MapleRidgePersonnel.Year);
+        PayrollRules rules = personnel.ToRules(personnelYear.StartDate, personnelYear.EndDate);
+        foreach ((string deptCode, PositionDetails details) in MapleRidgePersonnel.Positions(rules, code => chart.Fund(code).Id))
+        {
+            fy2027.AddPosition(chart.PersonnelChart(deptCode), details, rules);
+        }
+
+        db.PersonnelSettings.Add(personnel);
+
         // Fiscal years are not reachable from a version by navigation, so they are added explicitly.
         db.FiscalYears.AddRange(chart.FiscalYears);
         db.BudgetVersions.AddRange(fy2025, fy2026, fy2026Amendment, fy2027);
@@ -279,6 +293,11 @@ public sealed class DevelopmentSeeder(
         }
 
         public Fund Fund(string code) => funds[code];
+
+        /// <summary>A department and the whole chart, for adding its positions.</summary>
+        public PersonnelChart PersonnelChart(string departmentCode) =>
+            new(departments[departmentCode], funds.Values.ToDictionary(f => f.Id), accounts.Values.ToDictionary(a => a.Id));
+
         public Department Department(string code) => departments[code];
         public Account Account(string code) => accounts[code];
 

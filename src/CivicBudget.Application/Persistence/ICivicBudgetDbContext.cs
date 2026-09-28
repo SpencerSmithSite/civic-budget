@@ -6,6 +6,7 @@ using CivicBudget.Domain.Erp;
 using CivicBudget.Domain.FiscalYears;
 using CivicBudget.Domain.Funds;
 using CivicBudget.Domain.Governments;
+using CivicBudget.Domain.Personnel;
 using CivicBudget.Domain.Publishing;
 using CivicBudget.Domain.Reports;
 using Microsoft.EntityFrameworkCore;
@@ -40,6 +41,8 @@ public interface ICivicBudgetDbContext : IAsyncDisposable, IDisposable
     DbSet<CertificateSettings> CertificateSettings { get; }
     DbSet<ReportAccountGroup> ReportAccountGroups { get; }
     DbSet<CertificateFundAdjustment> CertificateFundAdjustments { get; }
+    DbSet<PersonnelSettings> PersonnelSettings { get; }
+    DbSet<Position> Positions { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

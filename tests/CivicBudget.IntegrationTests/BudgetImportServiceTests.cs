@@ -74,12 +74,12 @@ public class BudgetImportServiceTests(SqlServerFixture fixture) : IAsyncLifetime
     {
         await using AsyncServiceScope scope = As(Roles.FinanceDirector);
         IBudgetImportService import = scope.ServiceProvider.GetRequiredService<IBudgetImportService>();
-        BudgetLineDto overtime = await LineAsync(scope, "1000", "110", "5120");
+        BudgetLineDto contracts = await LineAsync(scope, "1000", "110", "5310");
         int linesBefore = (await Workspace(scope)).Lines.Count;
 
         ImportPreviewDto preview = (await import.PreviewAsync(_draft2027, "budget.csv", Csv(
             "Fund,Department,Account,Amount,Prior Year Actual,Current Year Budget,Justification",
-            $"1000,110,5120,{overtime.Amount + 5000},,,Contract settlement",
+            $"1000,110,5310,{contracts.Amount + 5000},,,Dispatch contract settlement",
             "4901,110,5420,750,700,725,Fuel for the new truck"))).Value;
         Assert.True(preview.CanCommit);
 
@@ -90,17 +90,37 @@ public class BudgetImportServiceTests(SqlServerFixture fixture) : IAsyncLifetime
 
         BudgetWorkspaceDto after = await Workspace(scope);
         Assert.Equal(linesBefore + 1, after.Lines.Count);
-        BudgetLineDto updated = after.Lines.Single(l => l.Id == overtime.Id);
-        Assert.Equal(overtime.Amount + 5000, updated.Amount);
-        Assert.Equal(overtime.PriorYearActual, updated.PriorYearActual); // blank column left it alone
-        Assert.Equal("Contract settlement", updated.Justification);
+        BudgetLineDto updated = after.Lines.Single(l => l.Id == contracts.Id);
+        Assert.Equal(contracts.Amount + 5000, updated.Amount);
+        Assert.Equal(contracts.PriorYearActual, updated.PriorYearActual); // blank column left it alone
+        Assert.Equal("Dispatch contract settlement", updated.Justification);
         BudgetLineDto added = after.Lines.Single(l => l.FundCode == "4901" && l.DepartmentCode == "110" && l.AccountCode == "5420");
         Assert.Equal((750m, 700m, 725m), (added.Amount, added.PriorYearActual, added.CurrentYearBudget));
 
         await using CivicBudgetDbContext db = _database.CreateContext(_mapleRidge);
         AuditEntry importEvent = await db.AuditEntries.SingleAsync(a => a.Kind == AuditKind.Event && a.EntityId == _draft2027 && a.Description!.StartsWith("Imported"));
         Assert.Equal("Imported budget.csv: 1 added, 1 updated, 0 unchanged", importEvent.Description);
-        Assert.True(await db.AuditEntries.AnyAsync(a => a.EntityId == overtime.Id && a.PropertyName == nameof(BudgetLine.Amount))); // the interceptor still saw the field change
+        Assert.True(await db.AuditEntries.AnyAsync(a => a.EntityId == contracts.Id && a.PropertyName == nameof(BudgetLine.Amount))); // the interceptor still saw the field change
+    }
+
+    [Fact]
+    public async Task A_line_calculated_from_positions_keeps_its_amount_but_takes_comparatives()
+    {
+        await using AsyncServiceScope scope = As(Roles.FinanceDirector);
+        IBudgetImportService import = scope.ServiceProvider.GetRequiredService<IBudgetImportService>();
+        BudgetLineDto salaries = await LineAsync(scope, "1000", "110", "5110");
+        Assert.NotNull(salaries.PositionCount);
+
+        ImportPreviewDto changed = (await import.PreviewAsync(_draft2027, "salaries.csv", Csv(
+            "Fund,Department,Account,Amount", $"1000,110,5110,{salaries.Amount + 1}"))).Value;
+        ImportPreviewDto comparativesOnly = (await import.PreviewAsync(_draft2027, "comparatives.csv", Csv(
+            "Fund,Department,Account,Amount,Prior Year Actual", $"1000,110,5110,{salaries.Amount},512000"))).Value;
+        Result<ImportResultDto> committed = await import.CommitAsync(_draft2027, "comparatives.csv", comparativesOnly.Inputs);
+
+        Assert.Contains("calculated from 9 positions", changed.Rows.Single().Errors.Single(), StringComparison.Ordinal);
+        Assert.True(committed.IsSuccess, string.Join("; ", committed.Errors.Select(e => e.Message)));
+        BudgetLineDto after = await LineAsync(scope, "1000", "110", "5110");
+        Assert.Equal((salaries.Amount, 512_000m, 9), (after.Amount, after.PriorYearActual, after.PositionCount!.Value));
     }
 
     [Fact]

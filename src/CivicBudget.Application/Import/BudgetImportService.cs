@@ -79,7 +79,12 @@ public sealed class BudgetImportService(
                         break;
                     case ImportRowAction.Update:
                         BudgetLine line = version.Lines.Single(l => l.FundId == fund.Id && l.DepartmentId == department?.Id && l.AccountId == account.Id);
-                        version.UpdateLineAmount(line.Id, row.Amount!.Value);
+                        // A calculated line's amount is left alone; the analyser refused any file that changes it.
+                        if (line.Amount != row.Amount!.Value)
+                        {
+                            version.UpdateLineAmount(line.Id, row.Amount.Value);
+                        }
+
                         version.UpdateLineComparatives(line.Id, row.PriorYearActual ?? line.PriorYearActual, row.CurrentYearBudget ?? line.CurrentYearBudget);
                         if (row.Justification is not null)
                         {
@@ -181,7 +186,7 @@ public sealed class BudgetImportService(
             funds.Select(f => new ImportLookup(f.Id, f.Code, f.Name, f.IsActive)).ToList(),
             departments.Select(d => new ImportLookup(d.Id, d.Code, d.Name, d.IsActive)).ToList(),
             accounts.Select(a => new ImportLookup(a.Id, a.Code, a.Name, a.IsActive, a.Type)).ToList(),
-            version.Lines.Select(l => new ExistingLine(l.Id, l.FundId, l.DepartmentId, l.AccountId, l.Amount, l.PriorYearActual, l.CurrentYearBudget, l.Justification)).ToList());
+            version.Lines.Select(l => new ExistingLine(l.Id, l.FundId, l.DepartmentId, l.AccountId, l.Amount, l.PriorYearActual, l.CurrentYearBudget, l.Justification, l.PositionCount)).ToList());
 
         var lookups = new Lookups(funds.ToDictionary(f => f.Id), departments.ToDictionary(d => d.Id), accounts.ToDictionary(a => a.Id));
         return Result.Success(new Analysis(version, analysed, lookups));

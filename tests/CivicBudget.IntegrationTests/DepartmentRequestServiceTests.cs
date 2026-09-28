@@ -80,7 +80,7 @@ public class DepartmentRequestServiceTests(SqlServerFixture fixture) : IAsyncLif
         Assert.True((await Requests(chief).SubmitAsync(_draft2027, _police)).IsFailure); // not twice
 
         await using AsyncServiceScope officer = As(Roles.FinanceDirector);
-        BudgetLineDto policeLine = (await Entry(officer).GetWorkspaceAsync(_draft2027))!.Lines.First(l => l.DepartmentId == _police);
+        BudgetLineDto policeLine = (await Entry(officer).GetWorkspaceAsync(_draft2027))!.Lines.First(l => l.DepartmentId == _police && l.CanEditAmount);
         Assert.True(policeLine.CanEdit);
         Assert.True((await Entry(officer).UpdateLineAmountAsync(_draft2027, policeLine.Id, policeLine.Amount + 1m)).IsSuccess);
     }

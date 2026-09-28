@@ -1,12 +1,14 @@
 using CivicBudget.Application.Common;
 using CivicBudget.Application.Erp;
 using CivicBudget.Application.Persistence;
+using CivicBudget.Application.Personnel;
 using CivicBudget.Application.Security;
 using CivicBudget.Domain.Auditing;
 using CivicBudget.Domain.Budgets;
 using CivicBudget.Domain.Common;
 using CivicBudget.Domain.FiscalYears;
 using CivicBudget.Domain.Governments;
+using CivicBudget.Domain.Personnel;
 using Microsoft.EntityFrameworkCore;
 
 namespace CivicBudget.Application.Budgets;
@@ -78,7 +80,8 @@ public sealed class BudgetWorkflowService(
         }
 
         await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
-        BudgetVersion? adopted = await LoadAsync(db, adoptedVersionId, ct);
+        // With its positions: the amendment copies them along with the lines they calculate.
+        BudgetVersion? adopted = await PersonnelData.VersionsWithPositions(db).FirstOrDefaultAsync(v => v.Id == adoptedVersionId, ct);
         if (adopted is null)
         {
             return Result.Failure<Guid>("Budget version was not found.");
@@ -130,6 +133,7 @@ public sealed class BudgetWorkflowService(
 
         BudgetVersion version;
         IReadOnlyList<string> skipped = [];
+        int positionsCarried = 0;
         string description;
         try
         {
@@ -153,7 +157,9 @@ public sealed class BudgetWorkflowService(
 
                 // Last year's lines carry no prior-year actuals of their own; the ERP supplies them when it holds that year.
                 await PriorYearActuals.FillAsync(db, version, year.Year, ct);
-                description = $"Started the {year.Label} budget from FY{year.Year - 1} {prior.Label}{SeedNote(options)}";
+                positionsCarried = await CarryPositionsAsync(db, prior, version, year, ct);
+                description = $"Started the {year.Label} budget from FY{year.Year - 1} {prior.Label}{SeedNote(options)}"
+                    + (positionsCarried > 0 ? $", {positionsCarried} positions carried forward" : "");
             }
         }
         catch (DomainException ex)
@@ -168,16 +174,45 @@ public sealed class BudgetWorkflowService(
             return Result.Failure<StartBudgetResultDto>(conflict.Errors);
         }
 
-        return Result.Success(new StartBudgetResultDto(version.Id, version.Lines.Count, skipped));
+        return Result.Success(new StartBudgetResultDto(version.Id, version.Lines.Count, skipped, positionsCarried));
+    }
+
+    /// <summary>
+    /// Carries last year's positions into the new budget and prices them with the new year's personnel
+    /// settings, which start as a copy of last year's when the year has none yet. The new lines those
+    /// positions cost into become calculated, so the year-over-year change on personnel lines is what
+    /// the positions say rather than the percentage the rest of the budget was started with.
+    /// </summary>
+    private static async Task<int> CarryPositionsAsync(ICivicBudgetDbContext db, BudgetVersion prior, BudgetVersion version, FiscalYear year, CancellationToken ct)
+    {
+        PersonnelSettings? priorSettings = prior.Positions.Count == 0 ? null : await PersonnelData.SettingsAsync(db, year.Year - 1, ct);
+        if (priorSettings is null)
+        {
+            return 0;
+        }
+
+        PersonnelSettings? settings = await PersonnelData.SettingsAsync(db, year.Year, ct);
+        IReadOnlyDictionary<Guid, Guid> newIds;
+        if (settings is null)
+        {
+            (settings, newIds) = priorSettings.CopyTo(year.Year);
+            db.PersonnelSettings.Add(settings);
+        }
+        else
+        {
+            newIds = settings.IdsMatching(priorSettings);
+        }
+
+        FiscalYear priorYear = await db.FiscalYears.SingleAsync(f => f.Id == prior.FiscalYearId, ct);
+        HashSet<Guid> activeDepartments = (await db.Departments.Where(d => d.IsActive).Select(d => d.Id).ToListAsync(ct)).ToHashSet();
+        int carried = version.CarryForwardPositions(prior, priorSettings.ToRules(priorYear.StartDate, priorYear.EndDate), newIds, activeDepartments);
+        await PersonnelData.ApplyAllAsync(db, version, settings.ToRules(year.StartDate, year.EndDate), ct);
+        return carried;
     }
 
     /// <summary>The version of that year citizens would see: adopted, and not replaced by a later amendment.</summary>
     private static Task<BudgetVersion?> LatestAdoptedAsync(ICivicBudgetDbContext db, int fiscalYear, CancellationToken ct) =>
-        db.BudgetVersions
-            .Include(v => v.Lines).ThenInclude(l => l.Account)
-            .Include(v => v.Lines).ThenInclude(l => l.Fund)
-            .Include(v => v.Lines).ThenInclude(l => l.Department)
-            .Include(v => v.BeginningBalances)
+        PersonnelData.VersionsWithPositions(db)
             .Where(v => v.Status == BudgetStatus.Adopted && v.SupersededByVersionId == null
                 && db.FiscalYears.Any(f => f.Id == v.FiscalYearId && f.Year == fiscalYear))
             .OrderByDescending(v => v.VersionNumber)

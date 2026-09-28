@@ -39,7 +39,7 @@ public class ConcurrencyTests(SqlServerFixture fixture) : IAsyncLifetime
         await using CivicBudgetDbContext second = _database.CreateContext(_mapleRidge);
         BudgetVersion mine = await LoadAsync(first);
         BudgetVersion theirs = await LoadAsync(second);
-        Guid lineId = mine.Lines.First().Id;
+        Guid lineId = mine.Lines.First(l => !l.IsFromPersonnel).Id;
 
         mine.UpdateLineAmount(lineId, 1_111m);
         Assert.Null(await first.TrySaveAsync(CancellationToken.None));
@@ -64,7 +64,7 @@ public class ConcurrencyTests(SqlServerFixture fixture) : IAsyncLifetime
         adopting.Adopt("2027-60", "user-fd", DateTimeOffset.UtcNow);
         Assert.Null(await officer.TrySaveAsync(CancellationToken.None));
 
-        editing.UpdateLineAmount(editing.Lines.First().Id, 9_999m); // allowed by the stale in-memory Draft status
+        editing.UpdateLineAmount(editing.Lines.First(l => !l.IsFromPersonnel).Id, 9_999m); // allowed by the stale in-memory Draft status
         Assert.NotNull(await editor.TrySaveAsync(CancellationToken.None));
     }
 

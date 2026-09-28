@@ -10,6 +10,7 @@ using CivicBudget.Domain.Erp;
 using CivicBudget.Domain.FiscalYears;
 using CivicBudget.Domain.Funds;
 using CivicBudget.Domain.Governments;
+using CivicBudget.Domain.Personnel;
 using CivicBudget.Domain.Publishing;
 using CivicBudget.Domain.Reports;
 using CivicBudget.Infrastructure.Identity;
@@ -59,6 +60,8 @@ public sealed class CivicBudgetDbContext(DbContextOptions<CivicBudgetDbContext> 
     public DbSet<CertificateSettings> CertificateSettings => Set<CertificateSettings>();
     public DbSet<ReportAccountGroup> ReportAccountGroups => Set<ReportAccountGroup>();
     public DbSet<CertificateFundAdjustment> CertificateFundAdjustments => Set<CertificateFundAdjustment>();
+    public DbSet<PersonnelSettings> PersonnelSettings => Set<PersonnelSettings>();
+    public DbSet<Position> Positions => Set<Position>();
     public DbSet<UserDepartment> UserDepartments => Set<UserDepartment>();
     public DbSet<UserAvatar> UserAvatars => Set<UserAvatar>();
     public DbSet<GovernmentLogo> GovernmentLogos => Set<GovernmentLogo>();

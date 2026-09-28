@@ -32,6 +32,7 @@ else
             <div class="dropdown">
                 <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-tools me-1" aria-hidden="true"></i>Tools</button>
                 <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="@PersonnelLinks.For(VersionId, DepartmentId)"><i class="bi bi-people me-2" aria-hidden="true"></i>Personnel</a></li>
                     <li><a class="dropdown-item" href="admin/reports/@VersionId/department-detail?department=@DepartmentId"><i class="bi bi-file-earmark-text me-2" aria-hidden="true"></i>Department detail report</a></li>
                     <li><a class="dropdown-item" href="admin/export/budgets/@VersionId/lines.xlsx"><i class="bi bi-file-earmark-spreadsheet me-2" aria-hidden="true"></i>Export lines (XLSX)</a></li>
                     <AuthorizeView Policy="@Policies.CanAdvanceWorkflow">
@@ -136,7 +137,7 @@ else
                                                 }
                                             </td>
                                             <td class="cb-num">
-                                                <AmountCell Value="line.Amount" CanEdit="line.CanEdit" Label="@($"FY{workspace.Version.Year} request for {line.AccountNumber} {line.AccountName}")"
+                                                <AmountCell Value="line.Amount" CanEdit="line.CanEdit" Positions="line.PositionCount" PositionsHref="@PersonnelLinks.For(VersionId, DepartmentId)" Label="@($"FY{workspace.Version.Year} request for {line.AccountNumber} {line.AccountName}")"
                                                             ValueChanged="amount => UpdateAmountAsync(line.Id, amount)" />
                                             </td>
                                             <td class="cb-num cb-col-wide @(line.DollarChange < 0 ? "cb-neg" : line.DollarChange > 0 ? "cb-pos" : "")">@Display.SignedChange(line.DollarChange)</td>
@@ -149,7 +150,7 @@ else
                                                         <li><button type="button" class="dropdown-item" @onclick="() => editingNoteId = line.Id"><i class="bi bi-chat-left-text me-2" aria-hidden="true"></i>@(string.IsNullOrEmpty(line.Justification) ? "Add note" : "Edit note")</button></li>
                                                     }
                                                     <li><button type="button" class="dropdown-item" @onclick="() => ShowHistory(line)"><i class="bi bi-clock-history me-2" aria-hidden="true"></i>History</button></li>
-                                                    @if (line.CanEdit)
+                                                    @if (line.CanEditAmount)
                                                     {
                                                         <li><hr class="dropdown-divider" /></li>
                                                         <li><button type="button" class="dropdown-item text-danger" @onclick="() => AskRemove(line)"><i class="bi bi-trash me-2" aria-hidden="true"></i>Remove line</button></li>
@@ -282,7 +283,7 @@ else
         @if (historyLine is not null)
         {
             <div class="px-3 pt-2 small text-secondary">@historyLine.AccountName · @historyLine.FundCode @historyLine.FundName</div>
-            <LineDetail Line="historyLine" FiscalYear="workspace.Version.Year" CurrentYearActuals="workspace.CurrentYearActuals" OnAmountChanged="c => UpdateAmountAsync(c.LineId, c.Amount)" OnJustificationChanged="c => SaveNoteAsync(c.LineId, c.Justification)" OnRemove="AskRemove" />
+            <LineDetail Line="historyLine" FiscalYear="workspace.Version.Year" VersionId="workspace.Version.Id" CurrentYearActuals="workspace.CurrentYearActuals" OnAmountChanged="c => UpdateAmountAsync(c.LineId, c.Amount)" OnJustificationChanged="c => SaveNoteAsync(c.LineId, c.Justification)" OnRemove="AskRemove" />
             <h3 class="h6 fw-semibold px-3 pt-3 mb-0">History</h3>
             <LineHistory Line="historyLine" Version="historyVersion" />
         }

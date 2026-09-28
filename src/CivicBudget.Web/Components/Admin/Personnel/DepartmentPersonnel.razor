@@ -1,0 +1,374 @@
+@page "/admin/budgets/{VersionId:guid}/personnel/{DepartmentId:guid}"
+@attribute [Authorize(Policy = Policies.CanViewBudget)]
+@using CivicBudget.Domain.Personnel
+@inject IPersonnelService Personnel
+@inject NavigationManager Navigation
+@inject ToastService Toasts
+
+@* A department's positions in one budget version: who is budgeted, what each costs, and the budget
+   lines those costs add up to. Saving a position updates the lines in the same step, so the
+   department view and every report agree with this one the moment it saves. *@
+<PageTitle>@(view is null ? "Personnel" : $"Personnel, {view.Department.Name}")</PageTitle>
+
+@if (notFound)
+{
+    <PageHeader Title="Personnel" Eyebrow="Budget" Crumbs="@([new Crumb("Budget"), new Crumb("Personnel")])" />
+    <EmptyState Icon="bi-people" Title="Not available" Text="This department is not in that budget version, or you are not assigned to it.">
+        <a class="btn btn-primary" href="admin/budgets">Budget versions</a>
+    </EmptyState>
+}
+else if (view is null)
+{
+    <PageHeader Title="Personnel" Eyebrow="Budget" Crumbs="@([new Crumb("Budget"), new Crumb("Personnel")])" />
+    <SkeletonRows Rows="8" Columns="6" />
+}
+else
+{
+    <PageHeader Title="@($"Personnel, {view.Department.Name}")" Eyebrow="@($"FY{view.FiscalYear} {view.VersionLabel}")"
+                Crumbs="@([new Crumb("Budget"), new Crumb("Departments", $"admin/budgets/{VersionId}/departments"), new Crumb(view.Department.Name, $"admin/budgets/{VersionId}/departments/{DepartmentId}"), new Crumb("Personnel")])"
+                Tip="Each position's pay and benefits, priced with the year's personnel settings. The department's salary and benefit lines are the sum of these positions and change when you save one.">
+        <TitleAddon><StatusPill Budget="view.Status" /></TitleAddon>
+        <Actions>
+            @if (view.Departments.Count > 1)
+            {
+                <select class="form-select form-select-sm cb-dept-picker" aria-label="Department" value="@DepartmentId" @onchange="e => Navigation.NavigateTo(PersonnelLinks.For(VersionId, Guid.Parse(e.Value!.ToString()!)))">
+                    @foreach (LookupDto d in view.Departments)
+                    {
+                        <option value="@d.Id">@d.Code @d.Name</option>
+                    }
+                </select>
+            }
+            @if (view.CanEdit)
+            {
+                <button type="button" class="btn btn-primary btn-sm" @onclick="StartAdd"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add position</button>
+            }
+        </Actions>
+    </PageHeader>
+
+    @if (view.Rules is null)
+    {
+        <EmptyState Icon="bi-sliders" Title="@($"FY{view.FiscalYear} has no personnel settings yet")"
+                    Text="Positions are priced with a year's retirement rates, insurance premiums, and pay rules. They are set once for the year in Personnel settings.">
+            @if (view.CanSetUpSettings)
+            {
+                <a class="btn btn-primary" href="admin/personnel-settings?year=@view.FiscalYear">Set up FY@(view.FiscalYear)</a>
+            }
+        </EmptyState>
+    }
+    else
+    {
+        @if (!view.LinesMatchPositions)
+        {
+            <div class="alert alert-info small" role="status">
+                <i class="bi bi-info-circle me-2" aria-hidden="true"></i>FY@(view.FiscalYear)'s personnel settings changed after this budget was adopted, so the positions below cost slightly different amounts than the adopted lines, which keep what was adopted.
+            </div>
+        }
+
+        <div class="cb-kpis">
+            <KpiCard Label="Positions" Value="@view.Positions.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)" Detail="@(view.Vacancies == 0 ? "All filled" : $"{view.Vacancies} vacant")" />
+            <KpiCard Label="Pay" Value="@Display.Money(view.Positions.Sum(p => p.Cost?.Pay ?? 0m))" Detail="Base pay, longevity, and other pay" />
+            <KpiCard Label="Benefits" Value="@Display.Money(view.Positions.Sum(p => p.Cost?.Benefits ?? 0m))" Detail="Retirement, Medicare, workers' comp, insurance" />
+            <KpiCard Label="@($"FY{view.FiscalYear} personnel cost")" Value="@Display.Money(view.Total)" Detail="@($"{view.Lines.Count} budget lines")" />
+        </div>
+
+        @if (view.Positions.Count == 0)
+        {
+            <EmptyState Icon="bi-person-plus" Title="No positions yet" Text="Add the department's positions, filled and vacant, and its salary and benefit lines will be calculated from them.">
+                @if (view.CanEdit)
+                {
+                    <button type="button" class="btn btn-primary" @onclick="StartAdd"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add position</button>
+                }
+            </EmptyState>
+        }
+        else
+        {
+            <div class="card mb-3 d-none d-md-block">
+                <div class="cb-grid-wrap">
+                    <table class="cb-grid table" aria-label="Positions">
+                        <thead>
+                            <tr>
+                                <th scope="col">Position</th>
+                                <th scope="col">Pay</th>
+                                <th scope="col" class="cb-col-wide">Paid from</th>
+                                <th scope="col" class="cb-num cb-col-wide">Pay</th>
+                                <th scope="col" class="cb-num cb-col-wide">Benefits</th>
+                                <th scope="col" class="cb-num">Total</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (PositionDto p in view.Positions)
+                            {
+                                <tr @key="p.Id">
+                                    <td class="cb-wrap">
+                                        <button type="button" class="cb-link-button" @onclick="() => Open(p)">@p.Details.Title</button>
+                                        <div class="small">@Who(p)</div>
+                                    </td>
+                                    <td class="cb-wrap small">@PayText(p.Details)<div class="text-secondary">@Months(p.Details)</div></td>
+                                    <td class="cb-wrap small cb-col-wide">@FundsText(p.Details)</td>
+                                    <td class="cb-num cb-col-wide">@(p.Cost is { } c ? Display.Amount(c.Pay) : "")</td>
+                                    <td class="cb-num cb-col-wide">@(p.Cost is { } b ? Display.Amount(b.Benefits) : "")</td>
+                                    <td class="cb-num fw-semibold">
+                                        @if (p.Cost is { } t)
+                                        {
+                                            @Display.Amount(t.Total)
+                                        }
+                                        else
+                                        {
+                                            <StatusPill Tone="danger" Label="Cannot price" />
+                                        }
+                                    </td>
+                                    <td class="text-end">@Menu(p)</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3">@view.Positions.Count positions</td>
+                                <td class="cb-num cb-col-wide">@Display.Amount(view.Positions.Sum(p => p.Cost?.Pay ?? 0m))</td>
+                                <td class="cb-num cb-col-wide">@Display.Amount(view.Positions.Sum(p => p.Cost?.Benefits ?? 0m))</td>
+                                <td class="cb-num">@Display.Amount(view.Total)</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <div class="cb-cards d-md-none mb-3">
+                @foreach (PositionDto p in view.Positions)
+                {
+                    <ListCard Title="@p.Details.Title" @key="p.Id">
+                        <Summary>@Who(p) · @PayText(p.Details)</Summary>
+                        <Aside><span class="cb-num fw-semibold">@(p.Cost is { } c ? Display.Money(c.Total) : "")</span></Aside>
+                        <Menu>@Menu(p)</Menu>
+                    </ListCard>
+                }
+            </div>
+        }
+
+        @if (view.Lines.Count > 0)
+        {
+            <div class="card">
+                <div class="cb-grid-wrap">
+                    <table class="cb-grid table" aria-label="Budget lines calculated from these positions">
+                        <caption class="caption-top px-3 pt-2 pb-1 fw-semibold small">
+                            Budget lines from these positions
+                            <InfoTip Text="What the positions add up to by fund and account. These lines on the department view are read-only; they change when a position here does." />
+                        </caption>
+                        <thead><tr><th scope="col">Account</th><th scope="col" class="cb-num">Positions</th><th scope="col" class="cb-num">FY@(view.FiscalYear)</th></tr></thead>
+                        <tbody>
+                            @foreach (PersonnelLineDto line in view.Lines)
+                            {
+                                <tr>
+                                    <td class="cb-wrap"><span class="cb-code">@line.AccountNumber</span> @line.AccountName <small class="text-secondary">· @line.FundName</small></td>
+                                    <td class="cb-num">@line.PositionCount</td>
+                                    <td class="cb-num">@Display.Amount(line.Amount)</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot><tr><td>Total</td><td></td><td class="cb-num">@Display.Amount(view.Lines.Sum(l => l.Amount))</td></tr></tfoot>
+                    </table>
+                </div>
+            </div>
+        }
+
+        <SideDrawer IsOpen="form is not null" IsOpenChanged="open => { if (!open) form = null; }" Title="@DrawerTitle">
+            @if (form is not null)
+            {
+                <PositionEditor Page="view" Form="form" Errors="errors" ReadOnly="!view.CanEdit" />
+                <div class="cb-drawer-actions">
+                    @if (view.CanEdit)
+                    {
+                        <button type="button" class="btn btn-primary" @onclick="SaveAsync" disabled="@saving"><i class="bi bi-check2 me-1" aria-hidden="true"></i>Save position</button>
+                        <button type="button" class="btn btn-outline-secondary" @onclick="() => form = null">Cancel</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-outline-secondary" @onclick="() => form = null">Close</button>
+                    }
+                </div>
+            }
+        </SideDrawer>
+
+        <ConfirmDialog @ref="removeDialog" Title="Remove this position?" ConfirmText="Remove position" ConfirmClass="btn-danger" OnConfirm="ConfirmRemoveAsync">
+            <Body>
+                @if (removing is not null)
+                {
+                    <p><b>@removing.Details.Title</b> (@Who(removing)) will be removed from FY@(view.FiscalYear) @view.VersionLabel, and the department's lines will drop by @Display.Money(removing.Cost?.Total ?? 0m).</p>
+                    <p class="mb-0 text-secondary">The audit trail keeps a record.</p>
+                }
+            </Body>
+        </ConfirmDialog>
+    }
+}
+
+@code {
+    [Parameter]
+    public Guid VersionId { get; set; }
+
+    [Parameter]
+    public Guid DepartmentId { get; set; }
+
+    private PersonnelPageDto? view;
+    private bool notFound;
+    private PositionForm? form;
+    private Guid? editingId;
+    private IReadOnlyList<ValidationError> errors = [];
+    private bool saving;
+    private PositionDto? removing;
+    private ConfirmDialog removeDialog = default!;
+    private (Guid, Guid) loadedFor;
+
+    private string DrawerTitle => editingId is null ? "New position" : view?.CanEdit == true ? "Edit position" : "Position";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (loadedFor == (VersionId, DepartmentId))
+        {
+            return;
+        }
+
+        loadedFor = (VersionId, DepartmentId);
+        view = null;
+        form = null;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        view = await Personnel.GetDepartmentAsync(VersionId, DepartmentId);
+        notFound = view is null;
+    }
+
+    private void StartAdd()
+    {
+        // A new position is paid from the fund the department's positions use most, which is usually right.
+        Guid? fund = view!.Positions.SelectMany(p => p.Details.Funds).GroupBy(f => f.FundId).OrderByDescending(g => g.Count()).Select(g => (Guid?)g.Key).FirstOrDefault()
+            ?? view.Funds.FirstOrDefault()?.Id;
+        form = PositionForm.New(view.Rules!, fund);
+        editingId = null;
+        errors = [];
+    }
+
+    private void Open(PositionDto position)
+    {
+        form = PositionForm.From(position.Details);
+        editingId = position.Id;
+        errors = [];
+    }
+
+    private void Duplicate(PositionDto position)
+    {
+        form = PositionForm.From(position.Details with { EmployeeName = null, HireDate = null });
+        form.IsVacant = true;
+        editingId = null;
+        errors = [];
+    }
+
+    private async Task SaveAsync()
+    {
+        saving = true;
+        try
+        {
+            PositionDetails details = form!.ToDetails();
+            Result<PersonnelSavedDto> saved = editingId is { } id
+                ? await Personnel.UpdatePositionAsync(VersionId, id, details)
+                : await Personnel.AddPositionAsync(VersionId, DepartmentId, details);
+            if (saved.IsFailure)
+            {
+                errors = saved.Errors;
+                return;
+            }
+
+            int lines = saved.Value.LinesChanged;
+            Toasts.Success(lines == 0 ? "Position saved." : $"Position saved. {lines} budget line{(lines == 1 ? "" : "s")} updated.");
+            form = null;
+            await LoadAsync();
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private void AskRemove(PositionDto position)
+    {
+        removing = position;
+        removeDialog.Show();
+    }
+
+    private async Task<bool> ConfirmRemoveAsync()
+    {
+        if (removing is not null)
+        {
+            Result<PersonnelSavedDto> removed = await Personnel.RemovePositionAsync(VersionId, removing.Id);
+            if (removed.IsSuccess)
+            {
+                Toasts.Success($"Position removed. {removed.Value.LinesChanged} budget line{(removed.Value.LinesChanged == 1 ? "" : "s")} updated.");
+            }
+            else
+            {
+                Toasts.Danger(removed.Errors[0].Message);
+            }
+
+            await LoadAsync();
+            StateHasChanged(); // the dialog calls this through a Func, which does not re-render the view
+        }
+
+        return true;
+    }
+
+    private RenderFragment Menu(PositionDto p) => __builder =>
+    {
+        <RowMenu Label="@($"Actions for {p.Details.Title}")">
+            <li><button type="button" class="dropdown-item" @onclick="() => Open(p)"><i class="bi bi-pencil me-2" aria-hidden="true"></i>@(view!.CanEdit ? "Edit" : "View")</button></li>
+            @if (view.CanEdit)
+            {
+                <li><button type="button" class="dropdown-item" @onclick="() => Duplicate(p)"><i class="bi bi-copy me-2" aria-hidden="true"></i>Duplicate as a vacancy</button></li>
+                <li><hr class="dropdown-divider" /></li>
+                <li><button type="button" class="dropdown-item text-danger" @onclick="() => AskRemove(p)"><i class="bi bi-trash me-2" aria-hidden="true"></i>Remove</button></li>
+            }
+        </RowMenu>
+    };
+
+    private RenderFragment Who(PositionDto p) => __builder =>
+    {
+        if (p.Details.EmployeeName is { } name)
+        {
+            <span>@name</span>
+        }
+        else
+        {
+            <StatusPill Tone="warning" Label="Vacant" />
+        }
+
+        if (p.Problem is { } problem)
+        {
+            <div class="small text-danger">@problem</div>
+        }
+    };
+
+    private string PayText(PositionDetails d)
+    {
+        if (d.PayScaleId is { } scaleId && view!.Rules?.PayScale(scaleId) is { } scale)
+        {
+            decimal? rate = scale.Rate(d.Grade ?? "", d.Step ?? 0);
+            string amount = rate is null ? "" : scale.Basis == PayBasis.Salary ? $" · {PositionCostCalculator.Dollars(rate.Value)}" : $" · {PositionCostCalculator.Dollars(rate.Value)}/hr";
+            return $"{d.Grade} step {d.Step}{amount}";
+        }
+
+        string raise = d.RaisePercent > 0m ? $", +{PositionCostCalculator.Number(d.RaisePercent)}%" : "";
+        return d.Basis == PayBasis.Salary
+            ? $"{PositionCostCalculator.Dollars(d.Rate)} salary{raise}"
+            : $"{PositionCostCalculator.Dollars(d.Rate)}/hr × {PositionCostCalculator.Number(d.AnnualHours)} h{raise}";
+    }
+
+    private string Months(PositionDetails d) => FiscalMonths.Span(view!.FiscalYearStartMonth, d.FirstMonth, d.LastMonth);
+
+    private string FundsText(PositionDetails d) => string.Join(" · ", d.Funds.Select(f =>
+    {
+        LookupDto? fund = view!.Funds.FirstOrDefault(x => x.Id == f.FundId);
+        return d.Funds.Count == 1 ? fund?.Display ?? "" : $"{fund?.Code} {PositionCostCalculator.Number(f.Percent)}%";
+    }));
+}

@@ -1,0 +1,129 @@
+@using CivicBudget.Domain.Personnel
+
+@* One longevity schedule, built as sentences: how it pays, the steps, and when years are counted.
+   Beside it, the schedule read back in plain English and a worked example, both from the same code
+   the budget uses, so the administrator can check it against the contract clause before saving. *@
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="d-flex gap-2 align-items-end mb-3">
+            <div class="flex-grow-1">
+                <label class="form-label fw-semibold" for="@($"{Prefix}name")">Schedule name</label>
+                <input id="@($"{Prefix}name")" class="form-control" maxlength="@PersonnelSettings.NameMaxLength" @bind="Schedule.Name" @bind:event="oninput" placeholder="FOP Lodge 112 contract" />
+            </div>
+            <button type="button" class="btn btn-outline-danger btn-sm" @onclick="OnRemove" disabled="@(UsedBy > 0)"
+                    title="@(UsedBy > 0 ? $"{UsedBy} positions use this schedule" : "Remove this schedule")" aria-label="@($"Remove {Schedule.Name}")"><i class="bi bi-trash" aria-hidden="true"></i></button>
+        </div>
+
+        <div class="cb-longevity">
+            <div>
+                <div class="cb-sentence mb-2">
+                    <span>Pay</span>
+                    <select class="form-select form-select-sm w-auto" aria-label="How longevity is paid" @bind="Schedule.Method">
+                        <option value="@LongevityMethod.FlatAmount">a flat amount a year</option>
+                        <option value="@LongevityMethod.PercentOfPay">a percentage of base pay</option>
+                        <option value="@LongevityMethod.AmountPerYear">an amount for each year of service</option>
+                    </select>
+                    <span>once an employee reaches:</span>
+                </div>
+                <table class="table table-sm cb-steps-table mb-2">
+                    <thead><tr><th scope="col">Years of service</th><th scope="col">@ValueHeading</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (LongevityStepForm step in Schedule.Steps)
+                        {
+                            LongevityStepForm current = step;
+                            <tr>
+                                <td><input type="number" min="0" max="60" class="form-control form-control-sm" aria-label="Years of service" @bind="current.MinYears" /></td>
+                                <td>
+                                    <div class="input-group input-group-sm">
+                                        @if (Schedule.Method != LongevityMethod.PercentOfPay)
+                                        {
+                                            <span class="input-group-text">$</span>
+                                        }
+                                        <input type="number" step="0.01" min="0" class="form-control" aria-label="@ValueHeading" @bind="current.Value" />
+                                        @if (Schedule.Method == LongevityMethod.PercentOfPay)
+                                        {
+                                            <span class="input-group-text">%</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="text-end"><button type="button" class="btn btn-link btn-sm text-danger" aria-label="Remove this step" @onclick="() => Schedule.Steps.Remove(current)"><i class="bi bi-x-lg" aria-hidden="true"></i></button></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                <button type="button" class="btn btn-outline-primary btn-sm mb-3" @onclick="AddStep"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add a step</button>
+
+                @if (Schedule.Method == LongevityMethod.AmountPerYear)
+                {
+                    <div class="cb-sentence mb-2">
+                        <span>Count at most</span>
+                        <input type="number" min="0" max="60" class="form-control form-control-sm cb-share-input" aria-label="Most years counted" @bind="Schedule.MaxYears" placeholder="all" />
+                        <span>years (leave blank for no limit).</span>
+                    </div>
+                }
+                <div class="cb-sentence mb-2">
+                    <span>Count years of service on the</span>
+                    <select class="form-select form-select-sm w-auto" aria-label="When years are counted" @bind="Schedule.CountedOn">
+                        <option value="@ServiceCountedOn.FirstDayOfYear">first day</option>
+                        <option value="@ServiceCountedOn.LastDayOfYear">last day</option>
+                    </select>
+                    <span>of the budget year.</span>
+                </div>
+                <div class="cb-sentence">
+                    <span>Charge it to</span>
+                    <AccountSelect Accounts="Accounts" @bind-Value="Schedule.AccountId" EmptyText="the position's base pay account" Label="Longevity account" />
+                </div>
+            </div>
+
+            <aside class="cb-plain-english" aria-live="polite">
+                <div class="cb-eyebrow mb-1">In plain English</div>
+                <ul class="mb-3">
+                    @foreach (string line in Longevity.Describe(Schedule.ToRule()))
+                    {
+                        <li>@line</li>
+                    }
+                </ul>
+                <div class="cb-eyebrow mb-1">Try it</div>
+                <div class="cb-sentence small">
+                    <input type="number" min="0" max="60" class="form-control form-control-sm cb-share-input" aria-label="Example years of service" @bind="exampleYears" @bind:event="oninput" />
+                    <span>years, base pay $</span>
+                    <input type="number" min="0" step="100" class="form-control form-control-sm cb-pay-input" aria-label="Example base pay" @bind="examplePay" @bind:event="oninput" />
+                    <span>earns <b>@PositionCostCalculator.Dollars(Longevity.Amount(Schedule.ToRule(), exampleYears, examplePay))</b> a year.</span>
+                </div>
+            </aside>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public LongevityForm Schedule { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<AccountLookupDto> Accounts { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public string Prefix { get; set; } = "";
+
+    [Parameter]
+    public int UsedBy { get; set; }
+
+    [Parameter]
+    public EventCallback OnRemove { get; set; }
+
+    private int exampleYears = 12;
+    private decimal examplePay = 50_000m;
+
+    private string ValueHeading => Schedule.Method switch
+    {
+        LongevityMethod.PercentOfPay => "Percent of base pay",
+        LongevityMethod.AmountPerYear => "For each year of service",
+        _ => "A year",
+    };
+
+    private void AddStep()
+    {
+        int next = Schedule.Steps.Count == 0 ? 5 : Schedule.Steps.Max(s => s.MinYears) + 5;
+        Schedule.Steps.Add(new LongevityStepForm { MinYears = next, Value = Schedule.Steps.Count == 0 ? 0m : Schedule.Steps[^1].Value });
+    }
+}

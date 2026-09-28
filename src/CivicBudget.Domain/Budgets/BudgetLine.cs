@@ -39,6 +39,15 @@ public sealed class BudgetLine : Entity, ITenantOwned
 
     public string? Justification { get; private set; }
 
+    /// <summary>
+    /// How many of the department's positions this line's amount is calculated from, or null for a
+    /// line whose amount is typed. A calculated line changes only when its positions or the year's
+    /// personnel settings do, so nobody can type over it and leave the positions saying something else.
+    /// </summary>
+    public int? PositionCount { get; private set; }
+
+    public bool IsFromPersonnel => PositionCount is not null;
+
     // Navigation properties. Loaded by Infrastructure when a query needs them (e.g. grouping by
     // account type); the domain never assumes they are populated.
     public Fund Fund { get; private set; } = null!;
@@ -79,6 +88,23 @@ public sealed class BudgetLine : Entity, ITenantOwned
 
     internal void SetAmount(decimal amount) => Amount = ValidAmount(amount, nameof(amount));
 
+    internal void SetFromPersonnel(decimal amount, int positionCount)
+    {
+        Guard.Against(positionCount < 1, "A calculated line comes from at least one position.");
+        Amount = ValidAmount(amount, nameof(amount));
+        PositionCount = positionCount;
+    }
+
+    /// <summary>
+    /// No position costs into this line any more: it goes back to being a typed line, at zero, so the
+    /// comparison with this year and last stays on the page and the line can be typed into or removed.
+    /// </summary>
+    internal void ReleaseFromPersonnel()
+    {
+        Amount = 0m;
+        PositionCount = null;
+    }
+
     internal void SetComparatives(decimal priorYearActual, decimal currentYearBudget)
     {
         decimal prior = ValidAmount(priorYearActual, nameof(priorYearActual));
@@ -106,7 +132,10 @@ public sealed class BudgetLine : Entity, ITenantOwned
     /// Requires the navigation properties to be loaded, which the amendment service guarantees.
     /// </summary>
     internal BudgetLine CopyTo(Guid targetVersionId) =>
-        new(GovernmentId, targetVersionId, Fund, Department, Account, Amount, PriorYearActual, CurrentYearBudget, Justification);
+        new(GovernmentId, targetVersionId, Fund, Department, Account, Amount, PriorYearActual, CurrentYearBudget, Justification)
+        {
+            PositionCount = PositionCount,
+        };
 
     private static string? NormalizeJustification(string? value)
     {

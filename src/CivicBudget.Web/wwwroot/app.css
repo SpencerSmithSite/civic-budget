@@ -3201,3 +3201,207 @@ table.pt-grid th[scope="row"] a {
         margin-bottom: 10px;
     }
 }
+
+/* ---- Personnel ------------------------------------------------------------------------------ */
+
+/* Under a calculated amount: how many positions it comes from, linking to them. */
+.cb-from-positions {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--cb-teal);
+    text-align: right;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.cb-from-positions:hover {
+    text-decoration: underline;
+}
+
+.cb-dept-picker {
+    width: auto;
+    max-width: 16rem;
+}
+
+/* The position editor fills the drawer; the drawer is wider for it on a desktop. */
+.cb-drawer:has(.cb-position-editor) {
+    width: min(720px, 100vw);
+}
+
+.cb-position-editor {
+    padding: 12px 16px 0;
+}
+
+.cb-position-editor fieldset {
+    min-width: 0;
+}
+
+.cb-position-editor section {
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--cb-border);
+}
+
+.cb-editor-heading {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--cb-muted);
+    margin-bottom: 10px;
+}
+
+.cb-editor-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 16px;
+}
+
+.cb-span-2 {
+    grid-column: span 2;
+}
+
+@media (max-width: 575.98px) {
+    .cb-editor-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .cb-span-2 {
+        grid-column: auto;
+    }
+}
+
+.cb-share-input {
+    width: 6.5rem;
+    flex: 0 0 auto;
+}
+
+.input-group.cb-share-input {
+    width: 8rem;
+    flex-wrap: nowrap;
+}
+
+.cb-rate-input {
+    width: 7.5rem;
+    margin-left: auto;
+    flex-wrap: nowrap;
+}
+
+/* A row's title that opens it: reads as the row's name, underlined only on hover. */
+.cb-link-button {
+    padding: 0;
+    border: 0;
+    background: none;
+    font-weight: 600;
+    color: var(--cb-teal);
+    text-align: left;
+}
+
+.cb-link-button:hover,
+.cb-link-button:focus-visible {
+    text-decoration: underline;
+}
+
+.cb-pay-input {
+    width: 7.5rem;
+}
+
+.cb-cost-breakdown {
+    background: var(--cb-subtotal);
+    border-radius: var(--cb-radius);
+    padding: 12px;
+    border-bottom: 0 !important;
+}
+
+.cb-breakdown-table {
+    --bs-table-bg: transparent;
+    font-variant-numeric: tabular-nums;
+}
+
+.cb-breakdown-table td {
+    vertical-align: top;
+}
+
+.cb-drawer-actions {
+    position: sticky;
+    bottom: 0;
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    background: var(--cb-surface);
+    border-top: 1px solid var(--cb-border);
+}
+
+/* Settings: sentences with inputs in them, and the schedule read back beside the steps. */
+.cb-sentence {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.cb-longevity {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: 24px;
+}
+
+@media (max-width: 991.98px) {
+    .cb-longevity {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.cb-plain-english {
+    background: var(--cb-subtotal);
+    border-radius: var(--cb-radius);
+    padding: 12px 14px;
+}
+
+.cb-plain-english ul {
+    padding-left: 1.1rem;
+}
+
+.cb-steps-table {
+    max-width: 28rem;
+}
+
+.cb-scale-table input.cb-num {
+    min-width: 6rem;
+    text-align: right;
+}
+
+.cb-grade-input {
+    width: 5.5rem;
+}
+
+.cb-settings-table td {
+    vertical-align: middle;
+}
+
+.cb-settings-table td > input:not([type="checkbox"]),
+.cb-settings-table td > select {
+    min-width: 8rem;
+}
+
+.cb-settings-table td:first-child > input {
+    min-width: 14rem;
+}
+
+.cb-save-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 12px 0;
+    background: var(--cb-canvas);
+    border-top: 1px solid var(--cb-border);
+}
+
+.cb-setup-card {
+    max-width: 56rem;
+}

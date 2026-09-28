@@ -1,0 +1,44 @@
+@* An account picker for personnel settings. The service sends active expenditure accounts, plus any
+   the settings already use, so a saved setting always shows what it points at. *@
+<select class="form-select form-select-sm @Class" aria-label="@Label" value="@(Value?.ToString() ?? "")" @onchange="ChangedAsync">
+    @if (EmptyText is not null)
+    {
+        <option value="">@EmptyText</option>
+    }
+    else if (Value is null)
+    {
+        <option value="">Choose an account</option>
+    }
+    @foreach (AccountLookupDto a in Accounts.OrderBy(a => IsPersonnel(a) ? 0 : 1).ThenBy(a => a.Code))
+    {
+        <option value="@a.Id">@a.Code @a.Name</option>
+    }
+</select>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<AccountLookupDto> Accounts { get; set; } = [];
+
+    [Parameter]
+    public Guid? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid?> ValueChanged { get; set; }
+
+    /// <summary>When set, an empty choice with this text (for costs that can land with base pay).</summary>
+    [Parameter]
+    public string? EmptyText { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    /// <summary>Personnel costs are personal services or fringe benefits almost everywhere, so those come first; the rest follow.</summary>
+    private static bool IsPersonnel(AccountLookupDto a) =>
+        a.Category is Domain.Accounts.ReportingCategory.PersonalServices or Domain.Accounts.ReportingCategory.FringeBenefits;
+
+    private Task ChangedAsync(ChangeEventArgs e) =>
+        ValueChanged.InvokeAsync(Guid.TryParse(e.Value?.ToString(), out Guid id) ? id : null);
+}

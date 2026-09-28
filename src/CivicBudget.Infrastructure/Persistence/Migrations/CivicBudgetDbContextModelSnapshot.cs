@@ -146,6 +146,9 @@ namespace CivicBudget.Infrastructure.Persistence.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<int?>("PositionCount")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("PriorYearActual")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -790,6 +793,505 @@ namespace CivicBudget.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Governments");
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.ExtraPay", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("AccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("GovernmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsPensionable")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsTaxable")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Multiplier")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("decimal(9,4)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<Guid>("PersonnelSettingsId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("GovernmentId");
+
+                    b.HasIndex("PersonnelSettingsId");
+
+                    b.ToTable("ExtraPay", (string)null);
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.InsurancePlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("EmployeeSharePercent")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("decimal(9,4)");
+
+                    b.Property<decimal?>("EmployeeSpousePremium")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("FamilyPremium")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("GovernmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<Guid>("PersonnelSettingsId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("SinglePremium")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("GovernmentId");
+
+                    b.HasIndex("PersonnelSettingsId");
+
+                    b.ToTable("InsurancePlans", (string)null);
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.LongevitySchedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("AccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("CountedOn")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("GovernmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("MaxYears")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Method")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<Guid>("PersonnelSettingsId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("GovernmentId");
+
+                    b.HasIndex("PersonnelSettingsId");
+
+                    b.ToTable("LongevitySchedules", (string)null);
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.LongevityStep", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("GovernmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("LongevityScheduleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("MinYears")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Value")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GovernmentId");
+
+                    b.HasIndex("LongevityScheduleId", "MinYears")
+                        .IsUnique();
+
+                    b.ToTable("LongevitySteps", (string)null);
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.PayScale", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Basis")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("GovernmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<Guid>("PersonnelSettingsId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GovernmentId");
+
+                    b.HasIndex("PersonnelSettingsId");
+
+                    b.ToTable("PayScales", (string)null);
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.PayScaleRate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("GovernmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Grade")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<Guid>("PayScaleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Rate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Step")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GovernmentId");
+
+                    b.HasIndex("PayScaleId", "Grade", "Step")
+                        .IsUnique();
+
+                    b.ToTable("PayScaleRates", (string)null);
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.PersonnelSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("FiscalYear")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("GovernmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("MedicareAccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("MedicareRate")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("decimal(9,4)");
+
+                    b.Property<Guid>("PayAccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("StandardHours")
+                        .HasPrecision(9, 2)
+                        .HasColumnType("decimal(9,2)");
+
+                    b.Property<Guid>("WorkersCompAccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("WorkersCompRate")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("decimal(9,4)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MedicareAccountId");
+
+                    b.HasIndex("PayAccountId");
+
+                    b.HasIndex("WorkersCompAccountId");
+
+                    b.HasIndex("GovernmentId", "FiscalYear")
+                        .IsUnique();
+
+                    b.ToTable("PersonnelSettings", (string)null);
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.Position", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("AnnualHours")
+                        .HasPrecision(9, 2)
+                        .HasColumnType("decimal(9,2)");
+
+                    b.Property<int>("Basis")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("BudgetVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DepartmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EmployeeName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("FirstMonth")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("GovernmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Grade")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<DateOnly?>("HireDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("LastMonth")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("LongevityScheduleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("PayAccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("PayScaleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("PicksUpEmployeeShare")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("RaiseMonth")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("RaisePercent")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("decimal(9,4)");
+
+                    b.Property<decimal>("Rate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid?>("RetirementPlanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("Step")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("StepIncreaseMonth")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("GovernmentId");
+
+                    b.HasIndex("LongevityScheduleId");
+
+                    b.HasIndex("PayAccountId");
+
+                    b.HasIndex("PayScaleId");
+
+                    b.HasIndex("RetirementPlanId");
+
+                    b.HasIndex("BudgetVersionId", "DepartmentId");
+
+                    b.ToTable("Positions");
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.PositionCoverage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("GovernmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("InsurancePlanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PositionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Tier")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GovernmentId");
+
+                    b.HasIndex("InsurancePlanId");
+
+                    b.HasIndex("PositionId", "InsurancePlanId")
+                        .IsUnique();
+
+                    b.ToTable("PositionCoverages", (string)null);
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.PositionExtraPay", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ExtraPayId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("GovernmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PositionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Value")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExtraPayId");
+
+                    b.HasIndex("GovernmentId");
+
+                    b.HasIndex("PositionId", "ExtraPayId")
+                        .IsUnique();
+
+                    b.ToTable("PositionExtraPay", (string)null);
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.PositionFundShare", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("FundId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("GovernmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Percent")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("decimal(9,4)");
+
+                    b.Property<Guid>("PositionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FundId");
+
+                    b.HasIndex("GovernmentId");
+
+                    b.HasIndex("PositionId", "FundId")
+                        .IsUnique();
+
+                    b.ToTable("PositionFundShares", (string)null);
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.RetirementPlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("EmployeeRate")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("decimal(9,4)");
+
+                    b.Property<decimal>("EmployerRate")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("decimal(9,4)");
+
+                    b.Property<Guid>("GovernmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<Guid>("PersonnelSettingsId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("GovernmentId");
+
+                    b.HasIndex("PersonnelSettingsId");
+
+                    b.ToTable("RetirementPlans", (string)null);
                 });
 
             modelBuilder.Entity("CivicBudget.Domain.Publishing.PublishedBudgetSnapshot", b =>
@@ -1753,6 +2255,264 @@ namespace CivicBudget.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.ExtraPay", b =>
+                {
+                    b.HasOne("CivicBudget.Domain.Accounts.Account", null)
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CivicBudget.Domain.Governments.Government", null)
+                        .WithMany()
+                        .HasForeignKey("GovernmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CivicBudget.Domain.Personnel.PersonnelSettings", null)
+                        .WithMany("ExtraPay")
+                        .HasForeignKey("PersonnelSettingsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.InsurancePlan", b =>
+                {
+                    b.HasOne("CivicBudget.Domain.Accounts.Account", null)
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CivicBudget.Domain.Governments.Government", null)
+                        .WithMany()
+                        .HasForeignKey("GovernmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CivicBudget.Domain.Personnel.PersonnelSettings", null)
+                        .WithMany("InsurancePlans")
+                        .HasForeignKey("PersonnelSettingsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.LongevitySchedule", b =>
+                {
+                    b.HasOne("CivicBudget.Domain.Accounts.Account", null)
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CivicBudget.Domain.Governments.Government", null)
+                        .WithMany()
+                        .HasForeignKey("GovernmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CivicBudget.Domain.Personnel.PersonnelSettings", null)
+                        .WithMany("LongevitySchedules")
+                        .HasForeignKey("PersonnelSettingsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.LongevityStep", b =>
+                {
+                    b.HasOne("CivicBudget.Domain.Governments.Government", null)
+                        .WithMany()
+                        .HasForeignKey("GovernmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CivicBudget.Domain.Personnel.LongevitySchedule", null)
+                        .WithMany("Steps")
+                        .HasForeignKey("LongevityScheduleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.PayScale", b =>
+                {
+                    b.HasOne("CivicBudget.Domain.Governments.Government", null)
+                        .WithMany()
+                        .HasForeignKey("GovernmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CivicBudget.Domain.Personnel.PersonnelSettings", null)
+                        .WithMany("PayScales")
+                        .HasForeignKey("PersonnelSettingsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.PayScaleRate", b =>
+                {
+                    b.HasOne("CivicBudget.Domain.Governments.Government", null)
+                        .WithMany()
+                        .HasForeignKey("GovernmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CivicBudget.Domain.Personnel.PayScale", null)
+                        .WithMany("Rates")
+                        .HasForeignKey("PayScaleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.PersonnelSettings", b =>
+                {
+                    b.HasOne("CivicBudget.Domain.Governments.Government", null)
+                        .WithMany()
+                        .HasForeignKey("GovernmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CivicBudget.Domain.Accounts.Account", null)
+                        .WithMany()
+                        .HasForeignKey("MedicareAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CivicBudget.Domain.Accounts.Account", null)
+                        .WithMany()
+                        .HasForeignKey("PayAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CivicBudget.Domain.Accounts.Account", null)
+                        .WithMany()
+                        .HasForeignKey("WorkersCompAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.Position", b =>
+                {
+                    b.HasOne("CivicBudget.Domain.Budgets.BudgetVersion", null)
+                        .WithMany("Positions")
+                        .HasForeignKey("BudgetVersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CivicBudget.Domain.Departments.Department", null)
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CivicBudget.Domain.Governments.Government", null)
+                        .WithMany()
+                        .HasForeignKey("GovernmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CivicBudget.Domain.Personnel.LongevitySchedule", null)
+                        .WithMany()
+                        .HasForeignKey("LongevityScheduleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CivicBudget.Domain.Accounts.Account", null)
+                        .WithMany()
+                        .HasForeignKey("PayAccountId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CivicBudget.Domain.Personnel.PayScale", null)
+                        .WithMany()
+                        .HasForeignKey("PayScaleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CivicBudget.Domain.Personnel.RetirementPlan", null)
+                        .WithMany()
+                        .HasForeignKey("RetirementPlanId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.PositionCoverage", b =>
+                {
+                    b.HasOne("CivicBudget.Domain.Governments.Government", null)
+                        .WithMany()
+                        .HasForeignKey("GovernmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CivicBudget.Domain.Personnel.InsurancePlan", null)
+                        .WithMany()
+                        .HasForeignKey("InsurancePlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CivicBudget.Domain.Personnel.Position", null)
+                        .WithMany("Coverages")
+                        .HasForeignKey("PositionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.PositionExtraPay", b =>
+                {
+                    b.HasOne("CivicBudget.Domain.Personnel.ExtraPay", null)
+                        .WithMany()
+                        .HasForeignKey("ExtraPayId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CivicBudget.Domain.Governments.Government", null)
+                        .WithMany()
+                        .HasForeignKey("GovernmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CivicBudget.Domain.Personnel.Position", null)
+                        .WithMany("ExtraPay")
+                        .HasForeignKey("PositionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.PositionFundShare", b =>
+                {
+                    b.HasOne("CivicBudget.Domain.Funds.Fund", null)
+                        .WithMany()
+                        .HasForeignKey("FundId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CivicBudget.Domain.Governments.Government", null)
+                        .WithMany()
+                        .HasForeignKey("GovernmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CivicBudget.Domain.Personnel.Position", null)
+                        .WithMany("Funds")
+                        .HasForeignKey("PositionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.RetirementPlan", b =>
+                {
+                    b.HasOne("CivicBudget.Domain.Accounts.Account", null)
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CivicBudget.Domain.Governments.Government", null)
+                        .WithMany()
+                        .HasForeignKey("GovernmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CivicBudget.Domain.Personnel.PersonnelSettings", null)
+                        .WithMany("RetirementPlans")
+                        .HasForeignKey("PersonnelSettingsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("CivicBudget.Domain.Publishing.PublishedBudgetSnapshot", b =>
                 {
                     b.HasOne("CivicBudget.Domain.Governments.Government", null)
@@ -1961,11 +2721,45 @@ namespace CivicBudget.Infrastructure.Persistence.Migrations
                     b.Navigation("DepartmentRequests");
 
                     b.Navigation("Lines");
+
+                    b.Navigation("Positions");
                 });
 
             modelBuilder.Entity("CivicBudget.Domain.Erp.BudgetTransmission", b =>
                 {
                     b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.LongevitySchedule", b =>
+                {
+                    b.Navigation("Steps");
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.PayScale", b =>
+                {
+                    b.Navigation("Rates");
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.PersonnelSettings", b =>
+                {
+                    b.Navigation("ExtraPay");
+
+                    b.Navigation("InsurancePlans");
+
+                    b.Navigation("LongevitySchedules");
+
+                    b.Navigation("PayScales");
+
+                    b.Navigation("RetirementPlans");
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Personnel.Position", b =>
+                {
+                    b.Navigation("Coverages");
+
+                    b.Navigation("ExtraPay");
+
+                    b.Navigation("Funds");
                 });
 
             modelBuilder.Entity("CivicBudget.Domain.Publishing.PublishedBudgetSnapshot", b =>

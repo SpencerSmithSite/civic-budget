@@ -17,7 +17,7 @@
     }
     <div>
         <dt>FY@(FiscalYear) @(Line.AccountType == Domain.Accounts.AccountType.Expenditure ? "proposed" : "estimate")</dt>
-        <dd><AmountCell Value="Line.Amount" CanEdit="Line.CanEdit" Label="@($"FY{FiscalYear} amount for {Line.AccountNumber} {Line.AccountName}")" ValueChanged="amount => OnAmountChanged.InvokeAsync((Line.Id, amount))" /></dd>
+        <dd><AmountCell Value="Line.Amount" CanEdit="Line.CanEdit" Positions="Line.PositionCount" PositionsHref="@PersonnelLinks.For(VersionId, Line.DepartmentId)" Label="@($"FY{FiscalYear} amount for {Line.AccountNumber} {Line.AccountName}")" ValueChanged="amount => OnAmountChanged.InvokeAsync((Line.Id, amount))" /></dd>
     </div>
     <div>
         <dt>Change</dt>
@@ -38,7 +38,7 @@
         </dd>
     </div>
 </dl>
-@if (Line.CanEdit && OnRemove.HasDelegate)
+@if (Line.CanEditAmount && OnRemove.HasDelegate)
 {
     <div class="px-3 pb-2 text-end">
         <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => OnRemove.InvokeAsync(Line)"><i class="bi bi-trash me-1" aria-hidden="true"></i>Remove line</button>
@@ -51,6 +51,10 @@
 
     [Parameter, EditorRequired]
     public int FiscalYear { get; set; }
+
+    /// <summary>For the link from a calculated amount to the department's positions.</summary>
+    [Parameter]
+    public Guid VersionId { get; set; }
 
     /// <summary>How far the ERP's figures for the year before <see cref="FiscalYear"/> run; null hides those rows.</summary>
     [Parameter]
