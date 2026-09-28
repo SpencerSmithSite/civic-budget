@@ -56,6 +56,14 @@ Sign in as `finance@mapleridge.example`, then **Continue FY2027** on the overvie
   had a raise, a street worker retired. Here is every line that moves." Apply.
 - **Reports**, Personnel: the roster, cost by fund, and the benefits summary. "The roster's
   total is the personnel lines to the cent."
+- Sign out; **Forgot your password?** for `viewer@mapleridge.example`. Sign in as the
+  administrator and open **Email outbox**: "The demo keeps its mail here, since every address is
+  fictional. In production it goes out over SMTP, written in the same save as the change that
+  caused it." Click the link to show the reset works.
+- **Your account**, **Two-step sign-in**: scan the QR code with a phone. "Any authenticator app.
+  An administrator can require it for everyone under Government settings."
+- **Getting started**: "A new government is set up with one command, and its administrator
+  follows this list, worked out from what exists."
 
 ## 3. The police chief's view (1 minute)
 

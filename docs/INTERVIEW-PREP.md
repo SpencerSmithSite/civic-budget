@@ -1384,3 +1384,42 @@ kind to the cost, so "retirement paid by the Street fund" is a sum, not a new fo
 asserts the roster's total equals the personnel lines, and the cost report's Street fund equals that fund's
 lines.
 **Look at:** `PositionCost.ByFundAndKind`, `The_personnel_reports_add_up_to_the_personnel_lines`.
+
+## Phase 28: Email, two-step sign-in, and onboarding
+
+### Q: Why an outbox table instead of sending the email when the department submits?
+**A:** Two failures I did not want. If I send first and the save fails, someone is told about a
+submission that never happened. If I save first and the send fails, or the mail server is slow, the
+user's click fails or hangs over an email. With an outbox the email is a row written in the same
+save as the submission, so both happen or neither does. A background sender delivers it afterwards
+and retries a refusal. The rows also answer "what did we send to whom", which an auditor asks.
+**Look at:** `DepartmentRequestService.SubmitAsync`, `OutboxEmail`, `EmailDeliveryService`.
+
+### Q: Why doesn't the sender poll the table?
+**A:** The demo runs on a serverless database that pauses when idle, and a poll every minute would
+keep it awake and cost money. After a successful save the service writes to an in-memory channel,
+which costs nothing, and the sender wakes and drains what is pending. Retries schedule their own
+wake-up. No database call happens unless there is mail.
+**Look at:** `EmailSignal`, `EmailOutbox.Notify`, `EmailDeliveryService.ExecuteAsync`.
+
+### Q: How is password reset kept safe?
+**A:** The link carries Identity's reset token, not a password. The token is tied to the user's
+security stamp, so it stops working the moment the password changes: single use. It also expires
+in a day. The request page answers the same way whether the address has an account, so nobody can
+use it to find out who works for the village. New users get the same kind of link to choose their
+first password, so no administrator ever knows it.
+**Look at:** `AccountEmailService`, `A_reset_link_sets_a_new_password_once_and_an_unknown_address_gets_nothing`.
+
+### Q: How does "require MFA" reach people who are already signed in?
+**A:** Turning it on changes the security stamp of everyone without MFA, which signs them out within
+the revalidation interval. At their next sign-in the claims factory adds a claim, and middleware
+keeps them on the setup page until they have scanned the code. That is the same pattern as the
+temporary-password rule, so there is one way the app says "finish this before anything else".
+**Look at:** `SignInSecurityService.SetRequireMfaAsync`, `ApplicationUserClaimsPrincipalFactory`, `RequireMfaMiddleware`.
+
+### Q: Who can create a new government?
+**A:** Only the vendor, from the command line with the deployment's credentials, the same way the
+nightly reset runs. A sign-up page would let anyone create tenants on a public demo. The first
+Administrator is emailed a link and then follows a checklist that is computed from what exists, so it
+cannot be out of date.
+**Look at:** `ProvisionCommand`, `GovernmentProvisioningService`, `SetupChecklistService`.

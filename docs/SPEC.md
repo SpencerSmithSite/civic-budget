@@ -372,6 +372,27 @@ insurance by fund and department), and the **benefits summary** (retirement memb
 pensionable pay, employer share and pick-up; insurance enrollment by plan and tier
 with employer and employee shares; Medicare and workers' compensation). The roster
 follows a department user's departments; the other two are whole-government.
+
+### 3.18 Email, two-step sign-in, and onboarding
+**Email.**
+- A department's submission notifies the government's Administrators and Fiscal Officers, except
+  whoever submitted it.
+- A returned request notifies the department's users, with the note.
+- "Forgot your password?" emails a single-use reset link, valid for a day.
+- A new user is emailed a link to choose their password; an Administrator can send a fresh one.
+
+Every email is kept in the government's outbox, readable by its Administrators. It is delivered
+over SMTP where a mail server is configured, and only kept where one is not (the demo).
+
+**Two-step sign-in.**
+- Any user can turn on a six-digit code from an authenticator app, with ten recovery codes.
+- An Administrator can require it for everyone, and can reset it for a user who lost their phone.
+
+**Onboarding.**
+- The vendor sets up a government and its first Administrator from the command line.
+- The Administrator chooses a password from the emailed link, then follows the getting-started
+  checklist: the chart, a fiscal year, the first budget, and the team, then personnel, actuals,
+  two-step sign-in, and the portal.
 ---
 
 ## 4. Workflow
@@ -630,6 +651,7 @@ prove tenant isolation in the tests and in the demo.
 | §3.15 Reports on the ERP's books, appropriation measure | 25 | ADR-0037 |
 | §3.16 Personnel budgeting | 26 | ADR-0038 |
 | §3.17 Employees from the ERP, personnel reports | 27 | ADR-0039; simulated payroll in the demo |
+| §3.18 Email, two-step sign-in, onboarding | 28 | ADR-0040; the demo keeps email in its outbox |
 | §4 Workflow, §5 Validation | 4 | Block or Warn at the transition |
 | §6 Publishing | 4, 5, 18 | Denormalized snapshots (ADR-0005, 0019); read-only portal context (ADR-0006); cache evicted by tag (ADR-0021) |
 | §7.1 Admin | 2–4, 6, 9c, 9d, 10 | Two entry modes, live fund panel, audit trail, import, reports, department round, profile pictures |

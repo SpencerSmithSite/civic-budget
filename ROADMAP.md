@@ -360,9 +360,10 @@ Decided with Spencer (2026-09-27): VIP's employee export is not known yet. Seed 
 ## Phase 28: Onboarding, email, and MFA  `phase-28-market-readiness`
 Decided with Spencer (2026-09-27): no Microsoft sign-in (Entra ID) for now. App email goes through an interface: SMTP for a real deployment, an in-app outbox in the demo (every demo address is fictional). The website's contact form uses Formspree, like spencersmith.site.
 
-- [ ] Set up a new government without the seed: details, fiscal year, chart (from the ERP or a file), first year, first administrator
-- [ ] Email: department submitted or returned, forgot password, welcome for a new user; SMTP sender and a demo outbox
-- [ ] MFA with an authenticator app, recovery codes, and an optional "require MFA" setting per government
+- [x] Set up a new government without the seed: `--provision` creates it and its first Administrator; the getting-started checklist covers the chart (from the ERP or a file), a fiscal year, the first budget, and the team
+- [x] Email: department submitted or returned, forgot password, welcome for a new user; a transactional outbox, SMTP delivery, and the demo outbox page
+- [x] MFA with an authenticator app, recovery codes, a "require MFA" setting per government, and an Administrator reset
+- [x] Tests: outbox and templates (unit); notices, reset and welcome links, delivery and retries, MFA, provisioning and the checklist (integration); pages and middleware (bUnit); ADR-0040, walkthrough 27
 - [ ] Reviewed and approved
 
 ## Phase 29: SOC 2 by design  `phase-29-soc2`
