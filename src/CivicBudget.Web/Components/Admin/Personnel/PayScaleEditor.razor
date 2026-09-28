@@ -1,0 +1,106 @@
+@using CivicBudget.Domain.Personnel
+
+@* A pay scale as the grid it is printed as in a contract: a row per grade, a column per step. A blank
+   cell is a step that grade does not have. *@
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="d-flex flex-wrap gap-2 align-items-end mb-3">
+            <div class="flex-grow-1">
+                <label class="form-label fw-semibold" for="@($"{Prefix}name")">Scale name</label>
+                <input id="@($"{Prefix}name")" class="form-control" maxlength="@PersonnelSettings.NameMaxLength" @bind="Scale.Name" @bind:event="oninput" placeholder="FOP patrol and sergeants" />
+            </div>
+            <div>
+                <label class="form-label fw-semibold" for="@($"{Prefix}basis")">Rates are</label>
+                <select id="@($"{Prefix}basis")" class="form-select" @bind="Scale.Basis">
+                    <option value="@PayBasis.Salary">Yearly salaries</option>
+                    <option value="@PayBasis.Hourly">Hourly rates</option>
+                </select>
+            </div>
+            <button type="button" class="btn btn-outline-danger btn-sm" @onclick="OnRemove" disabled="@(UsedBy > 0)"
+                    title="@(UsedBy > 0 ? $"{UsedBy} positions use this scale" : "Remove this scale")" aria-label="@($"Remove {Scale.Name}")"><i class="bi bi-trash" aria-hidden="true"></i></button>
+        </div>
+        <div class="cb-grid-wrap">
+            <table class="table table-sm cb-scale-table mb-2">
+                <thead>
+                    <tr>
+                        <th scope="col">Grade</th>
+                        @for (int s = 1; s <= Scale.StepCount; s++)
+                        {
+                            <th scope="col" class="cb-num">Step @s</th>
+                        }
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (PayScaleRowForm row in Scale.Rows)
+                    {
+                        PayScaleRowForm current = row;
+                        <tr>
+                            <td><input class="form-control form-control-sm cb-grade-input" maxlength="@PositionDetails.GradeMaxLength" aria-label="Grade" @bind="current.Grade" /></td>
+                            @for (int s = 0; s < Scale.StepCount; s++)
+                            {
+                                int step = s;
+                                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm cb-num" aria-label="@($"Grade {current.Grade} step {step + 1}")"
+                                           value="@current.Rates[step]" @onchange="e => SetRate(current, step, e.Value?.ToString())" /></td>
+                            }
+                            <td class="text-end"><button type="button" class="btn btn-link btn-sm text-danger" aria-label="Remove this grade" @onclick="() => Scale.Rows.Remove(current)"><i class="bi bi-x-lg" aria-hidden="true"></i></button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddGrade"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add a grade</button>
+            <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddStep"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add a step</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="RemoveStep" disabled="@(Scale.StepCount <= 1)">Remove the last step</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public PayScaleForm Scale { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string Prefix { get; set; } = "";
+
+    [Parameter]
+    public int UsedBy { get; set; }
+
+    [Parameter]
+    public EventCallback OnRemove { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        foreach (PayScaleRowForm row in Scale.Rows)
+        {
+            while (row.Rates.Count < Scale.StepCount)
+            {
+                row.Rates.Add(null);
+            }
+        }
+    }
+
+    private static void SetRate(PayScaleRowForm row, int step, string? text) =>
+        row.Rates[step] = decimal.TryParse(text, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out decimal rate) ? rate : null;
+
+    private void AddGrade() => Scale.Rows.Add(new PayScaleRowForm { Rates = Enumerable.Repeat<decimal?>(null, Scale.StepCount).ToList() });
+
+    private void AddStep()
+    {
+        Scale.StepCount++;
+        foreach (PayScaleRowForm row in Scale.Rows)
+        {
+            row.Rates.Add(null);
+        }
+    }
+
+    private void RemoveStep()
+    {
+        Scale.StepCount--;
+        foreach (PayScaleRowForm row in Scale.Rows.Where(r => r.Rates.Count > Scale.StepCount))
+        {
+            row.Rates.RemoveAt(row.Rates.Count - 1);
+        }
+    }
+}

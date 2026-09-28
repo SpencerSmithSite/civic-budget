@@ -47,4 +47,5 @@ public interface IBudgetWorkflowService
 public sealed record StartBudgetRequest(Guid FiscalYearId, bool StartFromPriorYear, decimal AdjustmentPercent = 0m, SeedAdjustmentScope Scope = SeedAdjustmentScope.AllLines, bool RoundToWholeDollars = false);
 
 /// <param name="Skipped">Prior-year lines left out because their fund, department, or account has been retired.</param>
-public sealed record StartBudgetResultDto(Guid VersionId, int LineCount, IReadOnlyList<string> Skipped);
+/// <param name="PositionsCarried">Positions carried from the prior year's budget, each at the rate it ended that year.</param>
+public sealed record StartBudgetResultDto(Guid VersionId, int LineCount, IReadOnlyList<string> Skipped, int PositionsCarried = 0);

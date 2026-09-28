@@ -64,7 +64,7 @@ public class BudgetEntryServiceTests(SqlServerFixture fixture) : IAsyncLifetime
         await using AsyncServiceScope scope = As(Roles.FinanceDirector);
         BudgetWorkspaceDto workspace = (await scope.ServiceProvider.GetRequiredService<IBudgetEntryService>().GetWorkspaceAsync(_draft2027))!;
 
-        Assert.Equal(95, workspace.Lines.Count);
+        Assert.Equal(99, workspace.Lines.Count);
         Assert.All(workspace.Lines, l => Assert.True(l.CanEdit));
         Assert.True(workspace.IsEditable);
         Assert.True(workspace.CanAddLines);
@@ -94,7 +94,7 @@ public class BudgetEntryServiceTests(SqlServerFixture fixture) : IAsyncLifetime
         await using AsyncServiceScope scope = As(Roles.Viewer);
         BudgetWorkspaceDto workspace = (await scope.ServiceProvider.GetRequiredService<IBudgetEntryService>().GetWorkspaceAsync(_draft2027))!;
 
-        Assert.Equal(95, workspace.Lines.Count);
+        Assert.Equal(99, workspace.Lines.Count);
         Assert.All(workspace.Lines, l => Assert.False(l.CanEdit));
         Assert.False(workspace.CanAddLines);
     }
@@ -136,7 +136,7 @@ public class BudgetEntryServiceTests(SqlServerFixture fixture) : IAsyncLifetime
         await using AsyncServiceScope scope = As(Roles.FinanceDirector);
         IBudgetEntryService service = scope.ServiceProvider.GetRequiredService<IBudgetEntryService>();
         BudgetWorkspaceDto before = (await service.GetWorkspaceAsync(_draft2027))!;
-        BudgetLineDto line = before.Lines.First(l => l.FundCode == "1000" && l.AccountType == Domain.Accounts.AccountType.Expenditure);
+        BudgetLineDto line = before.Lines.First(l => l.FundCode == "1000" && l.AccountType == Domain.Accounts.AccountType.Expenditure && l.PositionCount is null);
         decimal appropriationsBefore = before.FundBalances.Single(f => f.FundCode == "1000").Summary.Appropriations;
 
         Result result = await service.UpdateLineAmountAsync(_draft2027, line.Id, line.Amount + 1_000m);

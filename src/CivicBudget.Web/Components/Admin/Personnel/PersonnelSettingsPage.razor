@@ -1,0 +1,344 @@
+@page "/admin/personnel-settings"
+@attribute [Authorize(Policy = Policies.CanMaintainSetup)]
+@using CivicBudget.Domain.Personnel
+@inject IPersonnelSettingsService Settings
+@inject NavigationManager Navigation
+@inject ToastService Toasts
+
+@* A fiscal year's personnel settings: the rates and plans every position in that year's budgets is
+   priced with. They belong to the year, so next year's premiums can be entered while this year's
+   amendment is still open. Saving reprices the year's open budgets and says which lines moved. *@
+<PageTitle>Personnel settings</PageTitle>
+
+<PageHeader Title="Personnel settings" Eyebrow="Setup" Crumbs="@([new Crumb("Setup"), new Crumb("Personnel settings")])"
+            Tip="Retirement rates, insurance premiums, longevity, extra pay, and pay scales for one fiscal year. Every position in that year's budgets is priced with them.">
+    <Actions>
+        @if (view is not null)
+        {
+            <select class="form-select form-select-sm" aria-label="Fiscal year" value="@view.FiscalYear" @onchange="@(e => Navigation.NavigateTo($"admin/personnel-settings?year={e.Value}"))">
+                @foreach (int y in view.Years)
+                {
+                    <option value="@y">FY@(y)</option>
+                }
+            </select>
+        }
+    </Actions>
+</PageHeader>
+
+@if (loaded && view is null)
+{
+    <EmptyState Icon="bi-calendar3" Title="No fiscal years yet" Text="Add a fiscal year first; personnel settings belong to one.">
+        <a class="btn btn-primary" href="admin/fiscal-years">Fiscal years</a>
+    </EmptyState>
+}
+else if (view is null)
+{
+    <SkeletonRows Rows="6" Columns="4" />
+}
+else if (form is null)
+{
+    <div class="card cb-setup-card">
+        <div class="card-body">
+            <h2 class="h5">Set up FY@(view.FiscalYear)</h2>
+            <p class="text-secondary">FY@(view.FiscalYear) has no personnel settings yet, so its positions cannot be priced.</p>
+            @if (view.PriorYearIsSetUp)
+            {
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-4">
+                    <button type="button" class="btn btn-primary" @onclick="() => CreateAsync(copyPrior: true)" disabled="@(!view.CanEdit || busy)">
+                        <i class="bi bi-files me-1" aria-hidden="true"></i>Copy FY@(view.FiscalYear - 1)'s settings
+                    </button>
+                    <span class="small text-secondary">The usual start: then change what changed, such as next year's premiums.</span>
+                </div>
+                <h3 class="h6">Or start from the Ohio defaults</h3>
+            }
+            <p class="small text-secondary">OPERS, OP&amp;F, and Social Security at their employer and employee rates, Medicare at 1.45%, and the common kinds of extra pay. Choose where each cost lands:</p>
+            <div class="cb-settings-grid mb-3">
+                <div><label class="form-label fw-semibold">Salaries and wages</label><AccountSelect Accounts="view.Accounts" @bind-Value="setup.Pay" Label="Salaries account" /></div>
+                <div><label class="form-label fw-semibold">Overtime</label><AccountSelect Accounts="view.Accounts" @bind-Value="setup.Overtime" EmptyText="With salaries" Label="Overtime account" /></div>
+                <div><label class="form-label fw-semibold">Retirement</label><AccountSelect Accounts="view.Accounts" @bind-Value="setup.Retirement" Label="Retirement account" /></div>
+                <div><label class="form-label fw-semibold">Medicare</label><AccountSelect Accounts="view.Accounts" @bind-Value="setup.Medicare" Label="Medicare account" /></div>
+                <div><label class="form-label fw-semibold">Workers' compensation</label><AccountSelect Accounts="view.Accounts" @bind-Value="setup.WorkersComp" Label="Workers' compensation account" /></div>
+            </div>
+            <button type="button" class="btn @(view.PriorYearIsSetUp ? "btn-outline-primary" : "btn-primary")" @onclick="() => CreateAsync(copyPrior: false)"
+                    disabled="@(!view.CanEdit || busy || setup.Pay is null || setup.Retirement is null || setup.Medicare is null || setup.WorkersComp is null)">
+                Start from the defaults
+            </button>
+            @ErrorList
+        </div>
+    </div>
+}
+else
+{
+    <fieldset disabled="@(!view.CanEdit)">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h2 class="h6 mb-1">Payroll basics</h2>
+                <p class="small text-secondary mb-3">Every position pays Medicare and workers' compensation on its taxable pay.</p>
+                <div class="cb-settings-grid">
+                    <div>
+                        <label class="form-label fw-semibold" for="hours">Full-time hours a year</label>
+                        <input id="hours" type="number" min="1" class="form-control" @bind="form.StandardHours" />
+                        <div class="form-text">2,080 is 40 hours a week for 52 weeks.</div>
+                    </div>
+                    <div><label class="form-label fw-semibold">Base pay account</label><AccountSelect Accounts="view.Accounts" Value="form.PayAccountId" ValueChanged="id => form.PayAccountId = id ?? form.PayAccountId" Label="Base pay account" /></div>
+                    <div>
+                        <label class="form-label fw-semibold" for="medicare">Medicare</label>
+                        <div class="input-group"><input id="medicare" type="number" step="0.01" min="0" max="100" class="form-control" @bind="form.MedicareRate" /><span class="input-group-text">%</span></div>
+                        <AccountSelect Class="mt-1" Accounts="view.Accounts" Value="form.MedicareAccountId" ValueChanged="id => form.MedicareAccountId = id ?? form.MedicareAccountId" Label="Medicare account" />
+                    </div>
+                    <div>
+                        <label class="form-label fw-semibold" for="bwc">Workers' compensation (BWC)</label>
+                        <div class="input-group"><input id="bwc" type="number" step="0.0001" min="0" max="100" class="form-control" @bind="form.WorkersCompRate" /><span class="input-group-text">% of payroll</span></div>
+                        <AccountSelect Class="mt-1" Accounts="view.Accounts" Value="form.WorkersCompAccountId" ValueChanged="id => form.WorkersCompAccountId = id ?? form.WorkersCompAccountId" Label="Workers' compensation account" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="h6 mb-2">Retirement systems</h2>
+        <div class="card mb-4">
+            <div class="cb-grid-wrap">
+                <table class="table cb-grid cb-settings-table mb-0">
+                    <thead><tr><th scope="col">Name</th><th scope="col" class="cb-num">Employer</th><th scope="col" class="cb-num">Employee</th><th scope="col">Account</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (RetirementPlanForm plan in form.RetirementPlans)
+                        {
+                            RetirementPlanForm p = plan;
+                            <tr>
+                                <td><input class="form-control form-control-sm" maxlength="@PersonnelSettings.NameMaxLength" aria-label="Plan name" @bind="p.Name" /></td>
+                                <td><div class="input-group input-group-sm cb-rate-input"><input type="number" step="0.01" class="form-control" aria-label="Employer rate" @bind="p.EmployerRate" /><span class="input-group-text">%</span></div></td>
+                                <td><div class="input-group input-group-sm cb-rate-input"><input type="number" step="0.01" class="form-control" aria-label="Employee rate" @bind="p.EmployeeRate" /><span class="input-group-text">%</span></div></td>
+                                <td><AccountSelect Accounts="view.Accounts" Value="p.AccountId" ValueChanged="id => p.AccountId = id ?? p.AccountId" Label="@($"{p.Name} account")" /></td>
+                                <td class="text-end">@RemoveButton(p.Id, p.Name, () => form.RetirementPlans.Remove(p))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer"><button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => form.RetirementPlans.Add(new RetirementPlanForm { AccountId = form.RetirementPlans.FirstOrDefault()?.AccountId ?? form.PayAccountId })"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add a retirement system</button></div>
+        </div>
+
+        <h2 class="h6 mb-1">Insurance plans</h2>
+        <p class="small text-secondary mb-2">Monthly premiums by coverage. Leave a tier blank if the plan does not offer it (a life policy covers the employee only).</p>
+        <div class="card mb-4">
+            <div class="cb-grid-wrap">
+                <table class="table cb-grid cb-settings-table mb-0">
+                    <thead><tr><th scope="col">Name</th><th scope="col" class="cb-num">Single</th><th scope="col" class="cb-num">Employee and spouse</th><th scope="col" class="cb-num">Family</th><th scope="col" class="cb-num">Employee pays</th><th scope="col">Account</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (InsurancePlanForm plan in form.InsurancePlans)
+                        {
+                            InsurancePlanForm p = plan;
+                            <tr>
+                                <td><input class="form-control form-control-sm" maxlength="@PersonnelSettings.NameMaxLength" aria-label="Plan name" @bind="p.Name" /></td>
+                                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm cb-num" aria-label="Single premium" @bind="p.SinglePremium" /></td>
+                                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm cb-num" aria-label="Employee and spouse premium" @bind="p.EmployeeSpousePremium" /></td>
+                                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm cb-num" aria-label="Family premium" @bind="p.FamilyPremium" /></td>
+                                <td><div class="input-group input-group-sm cb-rate-input"><input type="number" step="0.01" min="0" max="100" class="form-control" aria-label="Employee share" @bind="p.EmployeeSharePercent" /><span class="input-group-text">%</span></div></td>
+                                <td><AccountSelect Accounts="view.Accounts" Value="p.AccountId" ValueChanged="id => p.AccountId = id ?? p.AccountId" Label="@($"{p.Name} account")" /></td>
+                                <td class="text-end">@RemoveButton(p.Id, p.Name, () => form.InsurancePlans.Remove(p))</td>
+                            </tr>
+                        }
+                        @if (form.InsurancePlans.Count == 0)
+                        {
+                            <tr><td colspan="7" class="text-secondary small">No plans yet. Add your medical, dental, vision, and life plans.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer"><button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddInsurance"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add an insurance plan</button></div>
+        </div>
+
+        <h2 class="h6 mb-1">Longevity</h2>
+        <p class="small text-secondary mb-2">One schedule for each contract or policy. Each position chooses its schedule.</p>
+        @for (int i = 0; i < form.Longevity.Count; i++)
+        {
+            LongevityForm schedule = form.Longevity[i];
+            <LongevityEditor @key="schedule" Schedule="schedule" Accounts="view.Accounts" Prefix="@($"long{i}-")" UsedBy="Used(schedule.Id)" OnRemove="() => form.Longevity.Remove(schedule)" />
+        }
+        <button type="button" class="btn btn-outline-primary btn-sm mb-4" @onclick="AddLongevity"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add a longevity schedule</button>
+
+        <h2 class="h6 mb-1">Other pay</h2>
+        <p class="small text-secondary mb-2">Pay beyond base pay. Each position enters its own amount, hours, or percentage.</p>
+        <div class="card mb-4">
+            <div class="cb-grid-wrap">
+                <table class="table cb-grid cb-settings-table mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">Name</th><th scope="col">Figured as</th>
+                            <th scope="col">Counts toward <InfoTip Text="Retirement: earnable salary for OPERS and OP&F. Medicare and workers' comp: taxable wages. A cash uniform allowance, for example, is taxable but not earnable salary." /></th>
+                            <th scope="col">Account</th><th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < form.ExtraPay.Count; i++)
+                        {
+                            ExtraPayForm p = form.ExtraPay[i];
+                            string id = $"extra{i}";
+                            <tr @key="p">
+                                <td><input class="form-control form-control-sm" maxlength="@PersonnelSettings.NameMaxLength" aria-label="Name" @bind="p.Name" /></td>
+                                <td>
+                                    <div class="d-flex gap-1 align-items-center">
+                                        <select class="form-select form-select-sm" aria-label="How it is figured" @bind="p.Kind">
+                                            <option value="@ExtraPayKind.AnnualAmount">An amount a year</option>
+                                            <option value="@ExtraPayKind.Hours">Hours at</option>
+                                            <option value="@ExtraPayKind.PercentOfBase">A percent of base pay</option>
+                                        </select>
+                                        @if (p.Kind == ExtraPayKind.Hours)
+                                        {
+                                            <input type="number" step="0.25" min="0" max="5" class="form-control form-control-sm cb-share-input" aria-label="Times the hourly rate" @bind="p.Multiplier" />
+                                            <span class="small text-nowrap">× rate</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="small">
+                                    <div class="form-check"><input id="@($"{id}-pension")" class="form-check-input" type="checkbox" @bind="p.IsPensionable" /><label class="form-check-label" for="@($"{id}-pension")">Retirement</label></div>
+                                    <div class="form-check"><input id="@($"{id}-tax")" class="form-check-input" type="checkbox" @bind="p.IsTaxable" /><label class="form-check-label" for="@($"{id}-tax")">Medicare and workers' comp</label></div>
+                                </td>
+                                <td><AccountSelect Accounts="view.Accounts" @bind-Value="p.AccountId" EmptyText="With base pay" Label="@($"{p.Name} account")" /></td>
+                                <td class="text-end">@RemoveButton(p.Id, p.Name, () => form.ExtraPay.Remove(p))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer"><button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => form.ExtraPay.Add(new ExtraPayForm())"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add a kind of pay</button></div>
+        </div>
+
+        <h2 class="h6 mb-1">Pay scales</h2>
+        <p class="small text-secondary mb-2">Salary schedules by grade and step, from a contract or the pay ordinance. A position on a scale takes its rate from here.</p>
+        @for (int i = 0; i < form.PayScales.Count; i++)
+        {
+            PayScaleForm scale = form.PayScales[i];
+            <PayScaleEditor @key="scale" Scale="scale" Prefix="@($"scale{i}-")" UsedBy="Used(scale.Id)" OnRemove="() => form.PayScales.Remove(scale)" />
+        }
+        <button type="button" class="btn btn-outline-primary btn-sm mb-4" @onclick="AddScale"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add a pay scale</button>
+    </fieldset>
+
+    @ErrorList
+
+    @if (view.CanEdit)
+    {
+        <div class="cb-save-bar">
+            <span class="small text-secondary">Saving reprices every position in FY@(view.FiscalYear)'s open budgets. Adopted budgets keep their amounts.</span>
+            <button type="button" class="btn btn-primary" @onclick="SaveAsync" disabled="@busy"><i class="bi bi-check2 me-1" aria-hidden="true"></i>Save settings</button>
+        </div>
+    }
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "year")]
+    public int? Year { get; set; }
+
+    private PersonnelSettingsPageDto? view;
+    private PersonnelSettingsForm? form;
+    private IReadOnlyList<ValidationError> errors = [];
+    private bool loaded;
+    private bool busy;
+    private int? loadedYear = -1;
+    private readonly SetupChoice setup = new();
+
+    private sealed class SetupChoice
+    {
+        public Guid? Pay { get; set; }
+        public Guid? Overtime { get; set; }
+        public Guid? Retirement { get; set; }
+        public Guid? Medicare { get; set; }
+        public Guid? WorkersComp { get; set; }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (loadedYear == Year)
+        {
+            return;
+        }
+
+        loadedYear = Year;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        view = await Settings.GetAsync(Year);
+        loaded = true;
+        form = view?.Form;
+        errors = [];
+        if (view is not null)
+        {
+            (setup.Pay, setup.Overtime, setup.Retirement, setup.Medicare, setup.WorkersComp) =
+                (view.Suggested.Pay, view.Suggested.Overtime, view.Suggested.Retirement, view.Suggested.Medicare, view.Suggested.WorkersComp);
+        }
+    }
+
+    private RenderFragment ErrorList => __builder =>
+    {
+        if (errors.Count > 0)
+        {
+            <div class="alert alert-danger mt-3" role="alert"><ul class="mb-0">@foreach (ValidationError e in errors) { <li>@e.Message</li> }</ul></div>
+        }
+    };
+
+    private int Used(Guid? id) => id is { } known ? view!.PositionsUsing.GetValueOrDefault(known) : 0;
+
+    private RenderFragment RemoveButton(Guid? id, string name, Action remove) => __builder =>
+    {
+        int used = Used(id);
+        <button type="button" class="btn btn-link btn-sm text-danger" @onclick="remove" disabled="@(used > 0)"
+                title="@(used > 0 ? $"{used} position{(used == 1 ? " uses" : "s use")} this" : "Remove")" aria-label="@($"Remove {name}")"><i class="bi bi-trash" aria-hidden="true"></i></button>
+    };
+
+    private void AddInsurance() =>
+        form!.InsurancePlans.Add(new InsurancePlanForm { AccountId = form.InsurancePlans.LastOrDefault()?.AccountId ?? view!.Suggested.Insurance ?? form.PayAccountId });
+
+    private void AddLongevity() =>
+        form!.Longevity.Add(new LongevityForm { Steps = [new LongevityStepForm { MinYears = 5, Value = 500m }] });
+
+    private void AddScale() =>
+        form!.PayScales.Add(new PayScaleForm { StepCount = 3, Rows = [new PayScaleRowForm { Grade = "A", Rates = [null, null, null] }] });
+
+    private async Task CreateAsync(bool copyPrior)
+    {
+        busy = true;
+        try
+        {
+            Result created = await Settings.CreateAsync(view!.FiscalYear, new CreatePersonnelSettingsRequest(
+                copyPrior, setup.Pay ?? Guid.Empty, setup.Overtime, setup.Retirement ?? Guid.Empty, setup.Medicare ?? Guid.Empty, setup.WorkersComp ?? Guid.Empty));
+            if (created.IsFailure)
+            {
+                errors = created.Errors;
+                return;
+            }
+
+            Toasts.Success($"FY{view.FiscalYear} personnel settings are set up.");
+            await LoadAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        busy = true;
+        try
+        {
+            Result<PersonnelSettingsSavedDto> saved = await Settings.SaveAsync(view!.FiscalYear, form!);
+            if (saved.IsFailure)
+            {
+                errors = saved.Errors;
+                return;
+            }
+
+            int lines = saved.Value.LinesChanged;
+            Toasts.Success(lines == 0
+                ? "Settings saved. No budget line changed."
+                : $"Settings saved. {lines} budget line{(lines == 1 ? "" : "s")} recalculated in {string.Join(" and ", saved.Value.BudgetsRecalculated)}.");
+            await LoadAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

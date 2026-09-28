@@ -1304,3 +1304,45 @@ departments' lines, so the report is complete for them. A projection, a trend, o
 measure is about whole funds; built from part of a fund it would be wrong, not partial. Those return
 nothing for department users, the same rule as the certificate.
 **Look at:** `ActualsReportService.LoadAsync`, `A_department_user_gets_their_own_lines_and_none_of_the_whole_fund_reports`.
+
+## Phase 26: Personnel budgeting
+
+### Q: How do salary and benefit lines get their amounts?
+**A:** From positions. Each position is priced by one pure function: base pay month by month, longevity,
+other pay, retirement on pensionable pay, Medicare and workers' compensation on taxable pay, and
+insurance by tier less the employee's share. Each piece is split among the position's funds, and the
+pieces are summed by fund and account into the department's lines. A line is either typed or calculated,
+never both. A calculated line says "from 9 positions", and the domain refuses typing over it, so the
+budget can never say something its positions do not.
+**Look at:** `PositionCostCalculator.Calculate`, `BudgetVersion.ApplyPersonnel`, `BudgetLine.PositionCount`.
+
+### Q: Why are positions part of the budget version rather than their own thing?
+**A:** Because the rules I need already live on the version. An adopted budget cannot change, an
+amendment is a copy, the revision token stops two people overwriting each other, and a department user
+edits only their own departments until they submit. As children of the version, positions get all of
+that for free. As a separate aggregate, the lines and the positions could disagree between two saves.
+**Look at:** `BudgetVersion.AddPosition`, `CreateAmendment`, `Position.CarryForward`.
+
+### Q: Why are the settings per fiscal year?
+**A:** Because premiums and rates change by year, and the years overlap. In August the fiscal officer
+enters next year's health premiums while this year's mid-year amendment is still open; one set of
+settings would push next year's premiums into this year's amendment. Per-year settings keep each budget
+priced with its own year. Saving them reprices only that year's open budgets, and a change that would
+leave a position unpriceable is refused, with the position named.
+**Look at:** `PersonnelSettingsService.SaveAsync`, `A_plan_someone_is_on_cannot_be_removed`.
+
+### Q: How do you make longevity configurable without a formula language?
+**A:** Every Ohio contract I have seen uses one of three shapes: a step table of flat amounts, a
+percentage of pay by years, or an amount per year of service with a cap. So a schedule is one of those
+methods plus a list of steps. The page builds it as sentences and reads it back in plain English with a
+worked example, both from the code the budget uses. The administrator checks the sentences against the
+contract, not the numbers against a formula.
+**Look at:** `Longevity.Amount`, `Longevity.Describe`, `LongevityEditor.razor`.
+
+### Q: Tell me about a bug you found in this phase.
+**A:** Saving unchanged settings said it had recalculated six lines. The amounts were moving by one
+cent, between the General and Street funds. The rounding cent went to "the last fund" in a split, and
+the database returns a position's funds in no fixed order. Now the fund with the largest share takes
+it, with ties broken by id, and two tests pin it down: a split is the same in either order, and an
+unchanged save moves no line.
+**Look at:** `PositionCostCalculator.SplitAmongFunds`, `Saving_settings_touches_only_the_lines_the_change_reaches`.

@@ -3,6 +3,7 @@ using CivicBudget.Application.Auditing;
 using CivicBudget.Application.Budgets;
 using CivicBudget.Application.Erp;
 using CivicBudget.Application.Import;
+using CivicBudget.Application.Personnel;
 using CivicBudget.Application.Publishing;
 using CivicBudget.Application.Reports;
 using CivicBudget.Application.Setup;
@@ -36,6 +37,8 @@ public static class DependencyInjection
         services.AddScoped<IErpActualsFileSource, ErpActualsFileSource>();
         services.AddScoped<IActualsSyncService, ActualsSyncService>();
         services.AddScoped<IBudgetTransmissionService, BudgetTransmissionService>();
+        services.AddScoped<IPersonnelService, PersonnelService>();
+        services.AddScoped<IPersonnelSettingsService, PersonnelSettingsService>();
 
         // Validators are found by convention (any class implementing IValidator<T>) so adding one
         // is a single file, not a file plus a registration line.

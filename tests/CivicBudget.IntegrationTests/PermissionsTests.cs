@@ -51,7 +51,7 @@ public class PermissionsTests(SqlServerFixture fixture) : IAsyncLifetime
         Assert.All(workspace.Lines, l => Assert.True(l.CanEdit));
         Assert.All(workspace.FundBalances, f => Assert.True(f.CanEditBeginningBalance));
 
-        BudgetLineDto line = workspace.Lines.First(l => l.DepartmentCode == "620");
+        BudgetLineDto line = workspace.Lines.First(l => l.DepartmentCode == "620" && l.CanEditAmount);
         Assert.True((await entry.UpdateLineAmountAsync(_draft2027, line.Id, line.Amount + 1m)).IsSuccess);
         Assert.True((await entry.SetBeginningBalanceAsync(_draft2027, workspace.FundBalances[0].FundId, 1_000m)).IsSuccess);
 
@@ -85,8 +85,8 @@ public class PermissionsTests(SqlServerFixture fixture) : IAsyncLifetime
         {
             IBudgetEntryService entry = officer.ServiceProvider.GetRequiredService<IBudgetEntryService>();
             BudgetWorkspaceDto all = (await entry.GetWorkspaceAsync(_draft2027))!;
-            BudgetLineDto streets = all.Lines.First(l => l.DepartmentCode == "620");
-            BudgetLineDto police = all.Lines.First(l => l.DepartmentCode == "110");
+            BudgetLineDto streets = all.Lines.First(l => l.DepartmentCode == "620" && l.CanEditAmount);
+            BudgetLineDto police = all.Lines.First(l => l.DepartmentCode == "110" && l.CanEditAmount);
             Assert.True((await entry.UpdateLineAmountAsync(_draft2027, streets.Id, streets.Amount + 10m)).IsSuccess);
             Assert.True((await entry.UpdateLineAmountAsync(_draft2027, police.Id, police.Amount + 20m)).IsSuccess);
         }

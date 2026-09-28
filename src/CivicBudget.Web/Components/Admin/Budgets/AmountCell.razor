@@ -2,13 +2,21 @@
    value until hovered or focused and saves on change. Typing is local: nothing crosses the circuit
    until the field loses focus or Enter is pressed. While the save round-trip runs the value shows
    in "unsaved" blue (a convention from planning tools like Adaptive). *@
-@if (CanEdit)
+@if (CanEdit && Positions is null)
 {
     <input @key="resetKey" type="text" inputmode="decimal"
            class="cb-amount-input @(invalid ? "is-invalid" : "") @(saving ? "cb-saving" : "")"
            value="@Value.ToString("N2", Culture)"
            aria-label="@Label"
            @onchange="OnChangedAsync" />
+}
+else if (Positions is { } positions)
+{
+    @* Calculated from the department's positions: read-only here, changed on the personnel page. *@
+    <span class="cb-num d-block">@Display.Money(Value)</span>
+    <a class="cb-from-positions" href="@PositionsHref" title="Calculated from positions; change them on the personnel page">
+        <i class="bi bi-people me-1" aria-hidden="true"></i>from @positions position@(positions == 1 ? "" : "s")
+    </a>
 }
 else
 {
@@ -34,6 +42,13 @@ else
 
     [Parameter]
     public string Label { get; set; } = "Amount";
+
+    /// <summary>Set when the amount is calculated from positions: it then shows read-only with a link to them.</summary>
+    [Parameter]
+    public int? Positions { get; set; }
+
+    [Parameter]
+    public string? PositionsHref { get; set; }
 
     [Parameter]
     public EventCallback<decimal> ValueChanged { get; set; }

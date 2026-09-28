@@ -32,7 +32,7 @@ public class DatabaseResetTests(SqlServerFixture fixture)
         await using (CivicBudgetDbContext db = database.CreateContext(mapleRidge))
         {
             BudgetVersion draft = await db.BudgetVersions.Include(v => v.Lines).SingleAsync(v => v.Status == BudgetStatus.Draft);
-            draft.UpdateLineAmount(draft.Lines.First().Id, 999_999m);
+            draft.UpdateLineAmount(draft.Lines.First(l => !l.IsFromPersonnel).Id, 999_999m);
             await db.SaveChangesAsync();
         }
 

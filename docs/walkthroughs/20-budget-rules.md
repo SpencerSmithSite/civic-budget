@@ -59,6 +59,11 @@ has been retired are left out and listed in a warning. `BudgetVersion.CreateOrig
 holds the rules; `BudgetWorkflowService.StartBudgetAsync` finds the source and
 checks the year.
 
+> **Since Phase 26:** a line calculated from positions refuses a typed amount and removal; its
+> amount changes only through its positions or the year's personnel settings (walkthrough 25,
+> ADR-0038). Starting a new year carries positions forward and prices those lines instead of
+> applying the percentage.
+
 ## 2. Optimistic concurrency
 
 Each budget service loads the version, changes it, and saves. Two of those in

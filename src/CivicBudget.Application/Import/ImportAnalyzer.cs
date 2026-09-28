@@ -10,7 +10,9 @@ namespace CivicBudget.Application.Import;
 public sealed record ImportLookup(Guid Id, string Code, string Name, bool IsActive, AccountType? AccountType = null);
 
 /// <summary>A line already in the version, so the analyser can tell an add from an update.</summary>
-public sealed record ExistingLine(Guid LineId, Guid FundId, Guid? DepartmentId, Guid AccountId, decimal Amount, decimal PriorYearActual, decimal CurrentYearBudget, string? Justification);
+public sealed record ExistingLine(Guid LineId, Guid FundId, Guid? DepartmentId, Guid AccountId, decimal Amount, decimal PriorYearActual, decimal CurrentYearBudget, string? Justification,
+    /// <summary>Set when the line is calculated from positions; its amount then comes only from them.</summary>
+    int? PositionCount = null);
 
 /// <summary>
 /// The import rules, as a pure function over rows and lookups so every rule has a unit test with
@@ -80,7 +82,12 @@ public static class ImportAnalyzer
                 {
                     errors.Add("This fund, department, and account appear more than once in the file.");
                 }
-                else if (existingByKey.TryGetValue(key, out ExistingLine? line))
+                else if (existingByKey.TryGetValue(key, out ExistingLine? line) && line.PositionCount is { } positions && line.Amount != amount)
+                {
+                    existingAmount = line.Amount;
+                    errors.Add($"This line is calculated from {positions} position{(positions == 1 ? "" : "s")}, so its amount changes only with them. Leave it at {Domain.Personnel.PositionCostCalculator.Dollars(line.Amount)} or change the positions.");
+                }
+                else if (line is not null)
                 {
                     existingAmount = line.Amount;
                     // Blank optional columns mean "leave as is", so a file with only Amount filled in updates amounts alone.

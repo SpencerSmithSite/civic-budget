@@ -1,0 +1,427 @@
+@using CivicBudget.Domain.Personnel
+
+@* One position, edited in the drawer, with its cost worked out below the fields as they change.
+   The breakdown comes from the same calculator the save uses, so what the page shows is what the
+   budget lines will say. Read-only users see the same form, disabled. *@
+<div class="cb-position-editor">
+    <fieldset disabled="@ReadOnly">
+        <section>
+            <h3 class="cb-editor-heading">Who</h3>
+            <div class="cb-editor-grid">
+                <div class="cb-span-2">
+                    <label class="form-label fw-semibold" for="pos-title">Title</label>
+                    <input id="pos-title" class="form-control @Invalid(nameof(PositionDetails.Title))" maxlength="@PositionDetails.TitleMaxLength" @bind="Form.Title" @bind:event="oninput" />
+                    @FieldError(nameof(PositionDetails.Title))
+                </div>
+                <div>
+                    <label class="form-label fw-semibold" for="pos-name">Employee</label>
+                    <input id="pos-name" class="form-control @Invalid(nameof(PositionDetails.EmployeeName))" maxlength="@PositionDetails.NameMaxLength" @bind="Form.EmployeeName" @bind:event="oninput" disabled="@Form.IsVacant" placeholder="@(Form.IsVacant ? "Vacant" : "")" />
+                    <div class="form-check mt-1">
+                        <input id="pos-vacant" class="form-check-input" type="checkbox" @bind="Form.IsVacant" @bind:after="Changed" />
+                        <label class="form-check-label small" for="pos-vacant">Vacant: budgeted, not yet filled</label>
+                    </div>
+                    @FieldError(nameof(PositionDetails.EmployeeName))
+                </div>
+                <div>
+                    <label class="form-label fw-semibold" for="pos-hired">Hire date</label>
+                    <input id="pos-hired" type="date" class="form-control @Invalid(nameof(PositionDetails.HireDate))" @bind="Form.HireDate" @bind:after="Changed" />
+                    <div class="form-text">For longevity. @(cost?.YearsOfService is { } years ? $"{years} year{(years == 1 ? "" : "s")} of service." : "")</div>
+                    @FieldError(nameof(PositionDetails.HireDate))
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h3 class="cb-editor-heading">Pay</h3>
+            @if (Rules.PayScales.Count > 0)
+            {
+                <div class="btn-group btn-group-sm mb-2" role="group" aria-label="How the rate is set">
+                    <input type="radio" class="btn-check" name="pos-rate-source" id="pos-typed" checked="@(!Form.OnScale)" @onchange="() => SetOnScale(false)" />
+                    <label class="btn btn-outline-primary" for="pos-typed">Rate I enter</label>
+                    <input type="radio" class="btn-check" name="pos-rate-source" id="pos-scale" checked="@Form.OnScale" @onchange="() => SetOnScale(true)" />
+                    <label class="btn btn-outline-primary" for="pos-scale">From a pay scale</label>
+                </div>
+            }
+            <div class="cb-editor-grid">
+                @if (Form.OnScale)
+                {
+                    <div class="cb-span-2">
+                        <label class="form-label fw-semibold" for="pos-scale-id">Pay scale</label>
+                        <select id="pos-scale-id" class="form-select" @bind="Form.PayScaleId" @bind:after="ScaleChanged">
+                            @foreach (PayScaleRule s in Rules.PayScales)
+                            {
+                                <option value="@s.Id">@s.Name (@(s.Basis == PayBasis.Salary ? "yearly" : "hourly"))</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label fw-semibold" for="pos-grade">Grade</label>
+                        <select id="pos-grade" class="form-select @Invalid(nameof(PositionDetails.Grade))" @bind="Form.Grade" @bind:after="Changed">
+                            <option value="">Choose</option>
+                            @foreach (string grade in Scale?.Rates.Select(r => r.Grade).Distinct() ?? [])
+                            {
+                                <option value="@grade">@grade</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label fw-semibold" for="pos-step">Step</label>
+                        <select id="pos-step" class="form-select @Invalid(nameof(PositionDetails.Grade))" @bind="Form.Step" @bind:after="Changed">
+                            <option value="">Choose</option>
+                            @foreach (PayScaleRateRule r in Scale?.Rates.Where(r => r.Grade == Form.Grade) ?? [])
+                            {
+                                <option value="@r.Step">Step @r.Step · @PositionCostCalculator.Dollars(r.Rate)</option>
+                            }
+                        </select>
+                        @FieldError(nameof(PositionDetails.Grade))
+                    </div>
+                    <div class="cb-span-2">
+                        <label class="form-label fw-semibold" for="pos-step-month">Step increase</label>
+                        <select id="pos-step-month" class="form-select" @bind="Form.StepIncreaseMonth" @bind:after="Changed">
+                            <option value="">None this year</option>
+                            @for (int m = 1; m <= 12; m++)
+                            {
+                                <option value="@m">Moves up a step in @FiscalMonths.Name(StartMonth, m)</option>
+                            }
+                        </select>
+                    </div>
+                }
+                else
+                {
+                    <div>
+                        <label class="form-label fw-semibold" for="pos-basis">Paid</label>
+                        <select id="pos-basis" class="form-select" @bind="Form.Basis" @bind:after="Changed">
+                            <option value="@PayBasis.Salary">A yearly salary</option>
+                            <option value="@PayBasis.Hourly">By the hour</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label fw-semibold" for="pos-rate">@(Form.Basis == PayBasis.Salary ? "Salary" : "Hourly rate")</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input id="pos-rate" type="number" step="0.01" min="0" class="form-control @Invalid(nameof(PositionDetails.Rate))" @bind="Form.Rate" @bind:after="Changed" />
+                        </div>
+                        @FieldError(nameof(PositionDetails.Rate))
+                    </div>
+                    <div>
+                        <label class="form-label fw-semibold" for="pos-raise">Raise</label>
+                        <div class="input-group">
+                            <input id="pos-raise" type="number" step="0.01" min="0" max="100" class="form-control @Invalid(nameof(PositionDetails.RaisePercent))" @bind="Form.RaisePercent" @bind:after="Changed" />
+                            <span class="input-group-text">%</span>
+                        </div>
+                        @FieldError(nameof(PositionDetails.RaisePercent))
+                    </div>
+                    <div>
+                        <label class="form-label fw-semibold" for="pos-raise-month">Starting</label>
+                        <select id="pos-raise-month" class="form-select" @bind="Form.RaiseMonth" @bind:after="Changed" disabled="@(Form.RaisePercent == 0m)">
+                            @for (int m = 1; m <= 12; m++)
+                            {
+                                <option value="@m">@FiscalMonths.Name(StartMonth, m)</option>
+                            }
+                        </select>
+                    </div>
+                }
+                <div>
+                    <label class="form-label fw-semibold" for="pos-hours">Hours a year</label>
+                    <input id="pos-hours" type="number" step="1" min="1" class="form-control @Invalid(nameof(PositionDetails.AnnualHours))" @bind="Form.AnnualHours" @bind:after="Changed" />
+                    <div class="form-text">@(Rules.StandardHours == Form.AnnualHours ? "Full time." : $"Full time is {PositionCostCalculator.Number(Rules.StandardHours)}.") @(IsSalaried ? "Sets the hourly rate for overtime." : "")</div>
+                </div>
+                <div>
+                    <span class="form-label fw-semibold d-block">Months paid</span>
+                    <div class="d-flex gap-2 align-items-center">
+                        <select id="pos-first" class="form-select" aria-label="First month paid" @bind="Form.FirstMonth" @bind:after="Changed">
+                            @for (int m = 1; m <= 12; m++)
+                            {
+                                <option value="@m">@FiscalMonths.Abbreviated(StartMonth, m)</option>
+                            }
+                        </select>
+                        <span>to</span>
+                        <select id="pos-last" class="form-select" aria-label="Last month paid" @bind="Form.LastMonth" @bind:after="Changed">
+                            @for (int m = 1; m <= 12; m++)
+                            {
+                                <option value="@m">@FiscalMonths.Abbreviated(StartMonth, m)</option>
+                            }
+                        </select>
+                    </div>
+                    @FieldError(nameof(PositionDetails.FirstMonth))
+                </div>
+                <div class="cb-span-2">
+                    <label class="form-label fw-semibold" for="pos-longevity">Longevity</label>
+                    <select id="pos-longevity" class="form-select" @bind="Form.LongevityScheduleId" @bind:after="Changed">
+                        <option value="">None</option>
+                        @foreach (LongevityRule l in Rules.Longevity)
+                        {
+                            <option value="@l.Id">@l.Name</option>
+                        }
+                    </select>
+                    @if (Form.LongevityScheduleId is not null && Form.HireDate is null)
+                    {
+                        <div class="form-text">Enter the hire date to count years of service.</div>
+                    }
+                </div>
+            </div>
+        </section>
+
+        @if (Rules.ExtraPay.Count > 0)
+        {
+            <section>
+                <h3 class="cb-editor-heading">Other pay</h3>
+                <div class="cb-editor-grid">
+                    @foreach (ExtraPayRule item in Rules.ExtraPay)
+                    {
+                        string id = $"pos-extra-{item.Id:N}";
+                        <div>
+                            <label class="form-label" for="@id">@item.Name</label>
+                            <div class="input-group input-group-sm">
+                                @if (item.Kind == ExtraPayKind.AnnualAmount)
+                                {
+                                    <span class="input-group-text">$</span>
+                                }
+                                <input id="@id" type="number" step="0.01" min="0" class="form-control" value="@Form.ExtraPay.GetValueOrDefault(item.Id)"
+                                       @onchange="e => SetExtra(item.Id, e.Value?.ToString())" />
+                                @if (item.Kind == ExtraPayKind.Hours)
+                                {
+                                    <span class="input-group-text">hours</span>
+                                }
+                                else if (item.Kind == ExtraPayKind.PercentOfBase)
+                                {
+                                    <span class="input-group-text">% of base</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+                @FieldError(nameof(PositionDetails.ExtraPay))
+            </section>
+        }
+
+        <section>
+            <h3 class="cb-editor-heading">Benefits</h3>
+            <div class="cb-editor-grid">
+                <div>
+                    <label class="form-label fw-semibold" for="pos-retirement">Retirement</label>
+                    <select id="pos-retirement" class="form-select" @bind="Form.RetirementPlanId" @bind:after="Changed">
+                        <option value="">Not in a retirement system</option>
+                        @foreach (RetirementPlanRule p in Rules.RetirementPlans)
+                        {
+                            <option value="@p.Id">@p.Name (@PositionCostCalculator.Number(p.EmployerRate)%)</option>
+                        }
+                    </select>
+                    <div class="form-check mt-1">
+                        <input id="pos-pickup" class="form-check-input" type="checkbox" @bind="Form.PicksUpEmployeeShare" @bind:after="Changed" disabled="@(Form.RetirementPlanId is null)" />
+                        <label class="form-check-label small" for="pos-pickup">Employer also pays the employee's share (pick-up)</label>
+                    </div>
+                </div>
+                @foreach (InsurancePlanRule plan in Rules.InsurancePlans)
+                {
+                    string id = $"pos-ins-{plan.Id:N}";
+                    <div>
+                        <label class="form-label fw-semibold" for="@id">@plan.Name</label>
+                        <select id="@id" class="form-select" value="@(Form.Coverage.GetValueOrDefault(plan.Id)?.ToString() ?? "")" @onchange="e => SetCoverage(plan.Id, e.Value?.ToString())">
+                            <option value="">Not covered</option>
+                            @foreach (CoverageTier tier in plan.OfferedTiers)
+                            {
+                                <option value="@tier">@Capitalized(PositionCostCalculator.TierName(tier)) · @PositionCostCalculator.Dollars(plan.Premium(tier)!.Value)/mo</option>
+                            }
+                        </select>
+                    </div>
+                }
+            </div>
+            @FieldError(nameof(PositionDetails.Coverages))
+        </section>
+
+        <section>
+            <h3 class="cb-editor-heading">Paid from</h3>
+            @foreach (PositionForm.FundRow row in Form.Funds)
+            {
+                PositionForm.FundRow current = row;
+                <div class="d-flex gap-2 mb-2 align-items-center">
+                    <select class="form-select" aria-label="Fund" @bind="current.FundId" @bind:after="Changed">
+                        @foreach (LookupDto f in Page.Funds)
+                        {
+                            <option value="@f.Id">@f.Code @f.Name</option>
+                        }
+                    </select>
+                    <div class="input-group cb-share-input">
+                        <input type="number" step="0.01" min="0" max="100" class="form-control" aria-label="Share" @bind="current.Percent" @bind:after="Changed" />
+                        <span class="input-group-text">%</span>
+                    </div>
+                    <button type="button" class="btn btn-outline-danger btn-sm" aria-label="Remove this fund" @onclick="() => RemoveFund(current)" disabled="@(Form.Funds.Count == 1)"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+                </div>
+            }
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddFund"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Split with another fund</button>
+                <span class="small ms-auto @(Form.FundTotal == 100m ? "text-secondary" : "text-danger")">Shares add up to @PositionCostCalculator.Number(Form.FundTotal)%</span>
+            </div>
+            @FieldError(nameof(PositionDetails.Funds))
+
+            <details class="mt-3">
+                <summary class="small">Base pay account</summary>
+                <select id="pos-pay-account" class="form-select form-select-sm mt-2" aria-label="Base pay account" @bind="Form.PayAccountId" @bind:after="Changed">
+                    <option value="">@AccountName(Rules.PayAccountId) (the usual account)</option>
+                    @foreach (AccountLookupDto a in Page.Accounts.Where(a => a.Type == Domain.Accounts.AccountType.Expenditure && a.Id != Rules.PayAccountId))
+                    {
+                        <option value="@a.Id">@a.Code @a.Name</option>
+                    }
+                </select>
+                <div class="form-text">Elected officials' salaries are often coded to their own account.</div>
+            </details>
+        </section>
+    </fieldset>
+
+    <section class="cb-cost-breakdown" aria-live="polite">
+        <h3 class="cb-editor-heading">What it costs, FY@(Page.FiscalYear)</h3>
+        @if (problems.Count > 0)
+        {
+            <ul class="small text-secondary mb-0">
+                @foreach ((string _, string message) in problems)
+                {
+                    <li>@message</li>
+                }
+            </ul>
+        }
+        else if (cost is not null)
+        {
+            <table class="table table-sm cb-breakdown-table mb-2">
+                <tbody>
+                    @foreach (CostPart part in cost.Parts)
+                    {
+                        <tr>
+                            <td>
+                                @part.Label
+                                <div class="small text-secondary">@part.Basis</div>
+                            </td>
+                            <td class="small text-secondary text-nowrap"><span class="cb-code">@AccountCode(part.AccountId)</span></td>
+                            <td class="cb-num">@Display.Amount(part.Amount)</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr><th scope="row" colspan="2">Total</th><td class="cb-num fw-semibold">@Display.Money(cost.Total)</td></tr>
+                </tfoot>
+            </table>
+            @if (Form.Funds.Count > 1)
+            {
+                <div class="small text-secondary">
+                    @foreach (IGrouping<Guid, FundAccountCost> fund in cost.ByFund.GroupBy(c => c.FundId))
+                    {
+                        <div>@FundName(fund.Key): @Display.Money(fund.Sum(c => c.Amount))</div>
+                    }
+                </div>
+            }
+        }
+    </section>
+
+    @if (Errors.Count > 0)
+    {
+        <div class="alert alert-danger mt-3 mb-0" role="alert">
+            <ul class="mb-0">
+                @foreach (ValidationError e in Errors.Where(e => string.IsNullOrEmpty(e.PropertyName) || !Shown.Contains(e.PropertyName)))
+                {
+                    <li>@e.Message</li>
+                }
+            </ul>
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly HashSet<string> Shown =
+    [
+        nameof(PositionDetails.Title), nameof(PositionDetails.EmployeeName), nameof(PositionDetails.HireDate), nameof(PositionDetails.Rate),
+        nameof(PositionDetails.RaisePercent), nameof(PositionDetails.Grade), nameof(PositionDetails.FirstMonth), nameof(PositionDetails.Funds),
+        nameof(PositionDetails.Coverages), nameof(PositionDetails.ExtraPay),
+    ];
+
+    [Parameter, EditorRequired]
+    public PersonnelPageDto Page { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public PositionForm Form { get; set; } = default!;
+
+    /// <summary>What the service refused on the last save, by field.</summary>
+    [Parameter]
+    public IReadOnlyList<ValidationError> Errors { get; set; } = [];
+
+    [Parameter]
+    public bool ReadOnly { get; set; }
+
+    private PayrollRules Rules => Page.Rules!;
+    private int StartMonth => Page.FiscalYearStartMonth;
+    private PayScaleRule? Scale => Form.PayScaleId is { } id ? Rules.PayScale(id) : null;
+    private bool IsSalaried => Form.OnScale ? Scale?.Basis == PayBasis.Salary : Form.Basis == PayBasis.Salary;
+
+    private PositionCost? cost;
+    private IReadOnlyList<(string Field, string Message)> problems = [];
+
+    protected override void OnParametersSet() => Changed();
+
+    /// <summary>Prices the form as it stands. Problems are listed instead while it cannot be priced yet.</summary>
+    private void Changed()
+    {
+        PositionDetails details = Form.ToDetails();
+        problems = details.Problems(Rules);
+        cost = problems.Count == 0 ? PositionCostCalculator.Calculate(details, Rules) : null;
+    }
+
+    private void SetOnScale(bool onScale)
+    {
+        Form.OnScale = onScale;
+        if (onScale && Form.PayScaleId is null)
+        {
+            Form.PayScaleId = Rules.PayScales[0].Id;
+        }
+
+        Changed();
+    }
+
+    private void ScaleChanged()
+    {
+        Form.Grade = null;
+        Form.Step = null;
+        Changed();
+    }
+
+    private void SetExtra(Guid id, string? text)
+    {
+        Form.ExtraPay[id] = decimal.TryParse(text, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out decimal value) ? value : null;
+        Changed();
+    }
+
+    private void SetCoverage(Guid planId, string? tier)
+    {
+        Form.Coverage[planId] = Enum.TryParse(tier, out CoverageTier parsed) ? parsed : null;
+        Changed();
+    }
+
+    private void AddFund()
+    {
+        Guid? unused = Page.Funds.FirstOrDefault(f => Form.Funds.All(r => r.FundId != f.Id))?.Id;
+        if (unused is { } fund)
+        {
+            Form.Funds.Add(new PositionForm.FundRow { FundId = fund, Percent = Math.Max(0m, 100m - Form.FundTotal) });
+            Changed();
+        }
+    }
+
+    private void RemoveFund(PositionForm.FundRow row)
+    {
+        Form.Funds.Remove(row);
+        Changed();
+    }
+
+    private string Invalid(string field) => Errors.Any(e => e.PropertyName == field) ? "is-invalid" : "";
+
+    private RenderFragment FieldError(string field) => __builder =>
+    {
+        foreach (ValidationError e in Errors.Where(e => e.PropertyName == field))
+        {
+            <div class="invalid-feedback d-block">@e.Message</div>
+        }
+    };
+
+    private string AccountCode(Guid id) => Page.Accounts.FirstOrDefault(a => a.Id == id)?.Code ?? "";
+    private string AccountName(Guid id) => Page.Accounts.FirstOrDefault(a => a.Id == id)?.Display ?? "";
+    private string FundName(Guid id) => Page.Funds.FirstOrDefault(f => f.Id == id)?.Display ?? "";
+    private static string Capitalized(string text) => char.ToUpperInvariant(text[0]) + text[1..];
+}

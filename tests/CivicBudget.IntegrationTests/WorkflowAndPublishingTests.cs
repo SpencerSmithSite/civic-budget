@@ -171,12 +171,16 @@ public class WorkflowAndPublishingTests(SqlServerFixture fixture) : IAsyncLifeti
         BudgetWorkspaceDto prior = (await entry.GetWorkspaceAsync(_draft2027))!;
         BudgetWorkspaceDto next = (await entry.GetWorkspaceAsync(started.Value.VersionId))!;
         Assert.Equal(prior.Lines.Count, started.Value.LineCount);
-        BudgetLineDto priorSalaries = prior.Lines.First(l => l.AccountType == AccountType.Expenditure);
+        BudgetLineDto priorSalaries = prior.Lines.First(l => l.AccountType == AccountType.Expenditure && l.PositionCount is null);
         BudgetLineDto nextSalaries = next.Lines.Single(l => l.FundId == priorSalaries.FundId && l.DepartmentId == priorSalaries.DepartmentId && l.AccountId == priorSalaries.AccountId);
         Assert.Equal(priorSalaries.Amount, nextSalaries.CurrentYearBudget);
         Assert.Equal(Math.Round(priorSalaries.Amount * 1.03m, 0, MidpointRounding.AwayFromZero), nextSalaries.Amount);
         BudgetLineDto priorRevenue = prior.Lines.First(l => l.AccountType == AccountType.Revenue);
         Assert.Equal(Math.Round(priorRevenue.Amount, 0, MidpointRounding.AwayFromZero), next.Lines.Single(l => l.FundId == priorRevenue.FundId && l.AccountId == priorRevenue.AccountId && l.DepartmentId == priorRevenue.DepartmentId).Amount);
+
+        // Positions came across at the rates they end FY2027, and they price the new year's personnel lines.
+        Assert.Equal(16, started.Value.PositionsCarried);
+        Assert.Equal(9, next.Lines.Single(l => l.AccountNumber == "1000-110-5110").PositionCount);
 
         // Once a year has a budget, it is not started again; a closed year is not started at all.
         Assert.Contains("already has a budget", (await workflow.StartBudgetAsync(new StartBudgetRequest(fy2028, false))).Errors.Single().Message, StringComparison.Ordinal);
@@ -244,7 +248,7 @@ public class WorkflowAndPublishingTests(SqlServerFixture fixture) : IAsyncLifeti
 
         IBudgetEntryService entry = scope.ServiceProvider.GetRequiredService<IBudgetEntryService>();
         BudgetWorkspaceDto amended = (await entry.GetWorkspaceAsync(amendment.Value))!;
-        Assert.Equal(95, amended.Lines.Count);
+        Assert.Equal(99, amended.Lines.Count);
         Assert.Equal("Amendment 1", amended.Version.Label);
         Assert.True(amended.IsEditable);
 

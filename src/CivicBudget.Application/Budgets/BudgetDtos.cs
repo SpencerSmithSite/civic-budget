@@ -42,8 +42,13 @@ public sealed record BudgetLineDto(
     /// <summary>The current year's receipts or spending so far, from the ERP; null until the ERP has sent that year.</summary>
     decimal? YearToDate = null,
     /// <summary>Committed on this line in the current year and not yet spent, from the ERP.</summary>
-    decimal? Encumbered = null)
+    decimal? Encumbered = null,
+    /// <summary>How many of the department's positions the amount is calculated from; null for a typed line.</summary>
+    int? PositionCount = null)
 {
+    /// <summary>A calculated line's amount changes only through its positions; its note still follows <see cref="CanEdit"/>.</summary>
+    public bool CanEditAmount => CanEdit && PositionCount is null;
+
     public decimal DollarChange => Amount - CurrentYearBudget;
     public decimal? PercentChange => Domain.Common.Money.PercentChange(CurrentYearBudget, Amount);
 }

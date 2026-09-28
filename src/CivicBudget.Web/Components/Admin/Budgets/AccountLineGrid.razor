@@ -78,7 +78,7 @@
                     <td class="cb-num cb-col-wide">@Display.Amount(line.PriorYearActual)</td>
                     <td class="cb-num">@Display.Amount(line.CurrentYearBudget)</td>
                     <td class="cb-num">
-                        <AmountCell Value="line.Amount" CanEdit="line.CanEdit" Label="@($"Proposed amount for {line.AccountCode} {line.AccountName}, {line.DepartmentCode ?? line.FundCode}")"
+                        <AmountCell Value="line.Amount" CanEdit="line.CanEdit" Positions="line.PositionCount" PositionsHref="@PersonnelLinks.For(Workspace.Version.Id, line.DepartmentId)" Label="@($"Proposed amount for {line.AccountCode} {line.AccountName}, {line.DepartmentCode ?? line.FundCode}")"
                                     ValueChanged="amount => OnAmountChanged.InvokeAsync((line.Id, amount))" />
                     </td>
                     <td class="cb-num cb-col-wide @(line.DollarChange < 0 ? "cb-neg" : line.DollarChange > 0 ? "cb-pos" : "")">@Display.SignedChange(line.DollarChange)</td>
@@ -90,8 +90,11 @@
                             @if (line.CanEdit)
                             {
                                 <li><button type="button" class="dropdown-item" @onclick="() => editingNoteId = line.Id"><i class="bi bi-chat-left-text me-2" aria-hidden="true"></i>@(string.IsNullOrEmpty(line.Justification) ? "Add note" : "Edit note")</button></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><button type="button" class="dropdown-item text-danger" @onclick="() => OnRemove.InvokeAsync(line)"><i class="bi bi-trash me-2" aria-hidden="true"></i>Remove line</button></li>
+                                @if (line.CanEditAmount)
+                                {
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><button type="button" class="dropdown-item text-danger" @onclick="() => OnRemove.InvokeAsync(line)"><i class="bi bi-trash me-2" aria-hidden="true"></i>Remove line</button></li>
+                                }
                             }
                         </RowMenu>
                     </td>

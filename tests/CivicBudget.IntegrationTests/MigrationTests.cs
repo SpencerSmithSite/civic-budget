@@ -26,7 +26,7 @@ public class MigrationTests(SqlServerFixture fixture)
     }
 
     [Fact]
-    public async Task Every_decimal_column_is_decimal_18_2()
+    public async Task Every_decimal_column_is_money_or_a_named_rate()
     {
         TestDatabase database = await fixture.CreateDatabaseAsync("CivicBudget_Migrations");
         await using CivicBudgetDbContext db = database.CreateContext(tenant: null);
@@ -41,6 +41,13 @@ public class MigrationTests(SqlServerFixture fixture)
                 """)
             .ToListAsync();
 
-        Assert.Empty(offenders);
+        // Percentages and hours are not money: they keep four places (a BWC rate of 1.2345%) or two.
+        string[] rates =
+        [
+            "PersonnelSettings.StandardHours", "PersonnelSettings.MedicareRate", "PersonnelSettings.WorkersCompRate",
+            "RetirementPlans.EmployerRate", "RetirementPlans.EmployeeRate", "InsurancePlans.EmployeeSharePercent",
+            "ExtraPay.Multiplier", "Positions.AnnualHours", "Positions.RaisePercent", "PositionFundShares.Percent",
+        ];
+        Assert.Empty(offenders.Except(rates));
     }
 }

@@ -12,6 +12,7 @@ internal sealed class BudgetLineConfiguration : IEntityTypeConfiguration<BudgetL
         builder.Property(l => l.Justification).HasMaxLength(BudgetLine.JustificationMaxLength);
         builder.Ignore(l => l.DollarChange);
         builder.Ignore(l => l.PercentChange);
+        builder.Ignore(l => l.IsFromPersonnel);
 
         // One line per fund/department/account within a version. On SQL Server, EF Core gives a unique
         // index over a nullable column the filter "[DepartmentId] IS NOT NULL", so this one only covers

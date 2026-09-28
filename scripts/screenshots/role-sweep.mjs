@@ -40,6 +40,8 @@ for (const email of roles) {
     await p.goto(`${base}/admin/budgets/${versions[0]}/departments`, { waitUntil: 'networkidle' }); await p.waitForTimeout(1500);
     const depts = await p.evaluate(() => [...new Set([...document.querySelectorAll('a[href*="/departments/"]')].map(a => a.getAttribute('href')))]);
     depts.slice(0, 3).forEach(d => routes.add(d.startsWith('/') ? d : '/' + d));
+    // and each of those departments' personnel page
+    depts.slice(0, 3).forEach(d => routes.add((d.startsWith('/') ? d : '/' + d).replace('/departments/', '/personnel/')));
   }
   let i = 0;
   for (const r of routes) {

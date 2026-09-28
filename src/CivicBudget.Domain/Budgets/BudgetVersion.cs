@@ -2,6 +2,7 @@ using CivicBudget.Domain.Accounts;
 using CivicBudget.Domain.Common;
 using CivicBudget.Domain.Departments;
 using CivicBudget.Domain.Funds;
+using CivicBudget.Domain.Personnel;
 
 namespace CivicBudget.Domain.Budgets;
 
@@ -20,6 +21,7 @@ public sealed class BudgetVersion : Entity, ITenantOwned
     private readonly List<BudgetLine> _lines = [];
     private readonly List<FundBeginningBalance> _beginningBalances = [];
     private readonly List<DepartmentRequest> _departmentRequests = [];
+    private readonly List<Position> _positions = [];
 
     public Guid GovernmentId { get; private set; }
     public Guid FiscalYearId { get; private set; }
@@ -46,6 +48,9 @@ public sealed class BudgetVersion : Entity, ITenantOwned
 
     /// <summary>One per department that has written a narrative or submitted; departments without a row are simply in progress.</summary>
     public IReadOnlyCollection<DepartmentRequest> DepartmentRequests => _departmentRequests.AsReadOnly();
+
+    /// <summary>The budgeted positions of every department. Load them when a method needs them (amendments, personnel).</summary>
+    public IReadOnlyCollection<Position> Positions => _positions.AsReadOnly();
 
     public bool IsAmendment => VersionNumber > 1;
     public bool IsEditable => Status != BudgetStatus.Adopted;
@@ -171,6 +176,7 @@ public sealed class BudgetVersion : Entity, ITenantOwned
         amendment._lines.AddRange(_lines.Select(l => l.CopyTo(amendment.Id)));
         amendment._beginningBalances.AddRange(_beginningBalances.Select(b => b.CopyTo(amendment.Id)));
         amendment._departmentRequests.AddRange(_departmentRequests.Select(r => r.CopyTo(amendment.Id)));
+        amendment._positions.AddRange(_positions.Select(p => p.CopyTo(amendment.Id)));
         return amendment;
     }
 
@@ -220,7 +226,9 @@ public sealed class BudgetVersion : Entity, ITenantOwned
     {
         Touch();
         EnsureEditable();
-        FindLine(lineId).SetAmount(amount);
+        BudgetLine line = FindLine(lineId);
+        EnsureTyped(line);
+        line.SetAmount(amount);
     }
 
     public void UpdateLineComparatives(Guid lineId, decimal priorYearActual, decimal currentYearBudget)
@@ -241,7 +249,110 @@ public sealed class BudgetVersion : Entity, ITenantOwned
     {
         Touch();
         EnsureEditable();
-        _lines.Remove(FindLine(lineId));
+        BudgetLine line = FindLine(lineId);
+        EnsureTyped(line);
+        _lines.Remove(line);
+    }
+
+    // ---- Personnel -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Adds a position to a department and brings the department's personnel lines up to date, so the
+    /// budget never says something its positions do not. Returns the lines that changed.
+    /// </summary>
+    public (Position Position, IReadOnlyList<PersonnelLineChange> Changes) AddPosition(PersonnelChart chart, PositionDetails details, PayrollRules rules)
+    {
+        Touch();
+        EnsureEditable();
+        EnsureOwnDepartment(chart.Department);
+        var position = new Position(GovernmentId, Id, chart.Department.Id, details, rules);
+        _positions.Add(position);
+        return (position, ApplyPersonnel(chart, rules));
+    }
+
+    public IReadOnlyList<PersonnelLineChange> UpdatePosition(Guid positionId, PersonnelChart chart, PositionDetails details, PayrollRules rules)
+    {
+        Touch();
+        EnsureEditable();
+        FindPosition(positionId, chart.Department).Set(details, rules);
+        return ApplyPersonnel(chart, rules);
+    }
+
+    public IReadOnlyList<PersonnelLineChange> RemovePosition(Guid positionId, PersonnelChart chart, PayrollRules rules)
+    {
+        Touch();
+        EnsureEditable();
+        _positions.Remove(FindPosition(positionId, chart.Department));
+        return ApplyPersonnel(chart, rules);
+    }
+
+    /// <summary>
+    /// Sets each of the department's personnel lines to what its positions cost under the year's rules:
+    /// a line is created where a position costs into a fund and account the department has no line
+    /// for, a typed line that positions now cost into becomes calculated, and a calculated line no
+    /// position costs into any more goes back to a typed zero. Called after every position change and
+    /// when the year's personnel settings change.
+    /// </summary>
+    public IReadOnlyList<PersonnelLineChange> ApplyPersonnel(PersonnelChart chart, PayrollRules rules)
+    {
+        Touch();
+        EnsureEditable();
+        EnsureOwnDepartment(chart.Department);
+        Guid departmentId = chart.Department.Id;
+        IReadOnlyList<PersonnelLineCost> costs = PositionCostCalculator.SumByLine(
+            _positions.Where(p => p.DepartmentId == departmentId).Select(p => p.ToDetails()), rules);
+
+        var changes = new List<PersonnelLineChange>();
+        foreach (PersonnelLineCost cost in costs.OrderBy(c => c.FundId).ThenBy(c => c.AccountId))
+        {
+            BudgetLine? line = _lines.FirstOrDefault(l => l.FundId == cost.FundId && l.DepartmentId == departmentId && l.AccountId == cost.AccountId);
+            decimal? before = line?.Amount;
+            if (line is null)
+            {
+                Fund fund = chart.Funds.GetValueOrDefault(cost.FundId) ?? throw new DomainException("A position is paid from a fund that was not found.");
+                Account account = chart.Accounts.GetValueOrDefault(cost.AccountId) ?? throw new DomainException("A personnel cost lands on an account that was not found.");
+                Guard.Against(account.Type != AccountType.Expenditure, $"Account {account.Code} {account.Name} is not an expenditure account, so personnel costs cannot land on it. Change it in personnel settings.");
+                line = AddLine(fund, chart.Department, account, 0m);
+            }
+
+            bool wasCalculated = line.IsFromPersonnel;
+            int? positionsBefore = line.PositionCount;
+            line.SetFromPersonnel(cost.Amount, cost.PositionCount);
+            if (before != cost.Amount || !wasCalculated || positionsBefore != cost.PositionCount)
+            {
+                changes.Add(new PersonnelLineChange(line.Id, line.FundId, line.AccountId, before, line.Amount, cost.PositionCount));
+            }
+        }
+
+        foreach (BudgetLine released in _lines.Where(l => l.DepartmentId == departmentId && l.IsFromPersonnel
+                     && !costs.Any(c => c.FundId == l.FundId && c.AccountId == l.AccountId)).ToList())
+        {
+            decimal before = released.Amount;
+            released.ReleaseFromPersonnel();
+            changes.Add(new PersonnelLineChange(released.Id, released.FundId, released.AccountId, before, 0m, null));
+        }
+
+        return changes;
+    }
+
+    /// <summary>
+    /// Starts this (new, empty-of-positions) version's positions from last year's adopted budget, each
+    /// at the rate it ended that year with no raise planned yet (<see cref="Position.CarryForward"/>).
+    /// Positions in departments that have since been retired stay behind. Apply each department's
+    /// personnel afterwards, with this year's rules.
+    /// </summary>
+    public int CarryForwardPositions(BudgetVersion prior, PayrollRules priorRules, IReadOnlyDictionary<Guid, Guid> newIds, IReadOnlySet<Guid> activeDepartmentIds)
+    {
+        Touch();
+        EnsureEditable();
+        Guard.Against(prior.GovernmentId != GovernmentId, "That budget belongs to a different government.");
+        Guard.Against(_positions.Count > 0, "This budget already has positions.");
+        List<Position> carried = prior._positions
+            .Where(p => activeDepartmentIds.Contains(p.DepartmentId))
+            .Select(p => p.CarryForward(Id, priorRules, newIds))
+            .ToList();
+        _positions.AddRange(carried);
+        return carried.Count;
     }
 
     // ---- Beginning balances ----------------------------------------------------------------
@@ -337,6 +448,14 @@ public sealed class BudgetVersion : Entity, ITenantOwned
 
     private void EnsureEditable() =>
         Guard.Against(!IsEditable, $"Budget version {Label} is Adopted and cannot be changed; create an amendment instead.");
+
+    private static void EnsureTyped(BudgetLine line) =>
+        Guard.Against(line.IsFromPersonnel,
+            $"This line is calculated from {line.PositionCount} position{(line.PositionCount == 1 ? "" : "s")}; change the positions instead.");
+
+    private Position FindPosition(Guid positionId, Department department) =>
+        _positions.FirstOrDefault(p => p.Id == positionId && p.DepartmentId == department.Id)
+        ?? throw new DomainException("That position is not in this department's budget.");
 
     private BudgetLine FindLine(Guid lineId) =>
         _lines.FirstOrDefault(l => l.Id == lineId)

@@ -325,6 +325,33 @@ For a budget version of FY Y, compared with the ERP's FY Y actuals (§3.12):
 Department users run budget vs. actual and revenue vs. receipts for their own
 departments; the projection, trends, and measure cover whole funds and are for
 the Administrator, Fiscal Officer, and Viewers.
+
+### 3.16 Personnel budgeting
+A **position** is budgeted in a department of a budget version: its title, the
+employee (or vacant), hire date, pay (a yearly salary, or an hourly rate times
+hours; typed with a raise from a chosen month, or from a pay scale's grade and
+step with a step increase in a chosen month), the months it is paid, longevity,
+extra pay, retirement system (and whether the employer picks up the employee's
+share), insurance coverage by plan and tier, the funds that pay for it and their
+shares (adding to 100%), and optionally its own base pay account.
+
+A **year's personnel settings** hold: full-time hours; the base pay, Medicare,
+and workers' compensation accounts and rates; retirement systems (employer and
+employee rates, account); insurance plans (monthly premium per tier, employee
+share, account); kinds of extra pay (a yearly amount, hours at a multiple of the
+hourly rate, or a percentage of base pay; whether each counts toward retirement
+and toward Medicare and workers' compensation; account); longevity schedules
+(flat amounts by years, a percentage of pay by years, or an amount per year of
+service with a cap; counted on the first or last day of the year); and pay
+scales (a rate for each grade and step).
+
+Each position's cost is priced per month paid, split among its funds, and summed
+by fund and account into the department's **calculated lines**, which show "from
+N positions" and change only with positions or settings. Saving a year's settings
+reprices that year's open budgets. Amendments copy positions; a new year's budget
+carries them forward at the rate each ends the year. Who may change a position is
+who may change the department's lines (§4). Personnel detail is not published to
+the portal; the portal shows the lines.
 ---
 
 ## 4. Workflow
@@ -581,6 +608,7 @@ prove tenant isolation in the tests and in the demo.
 | §3.13 Sending the budget to the ERP | 23 | ADR-0035 |
 | §3.14 Certificate of estimated resources | 24 | ADR-0036 |
 | §3.15 Reports on the ERP's books, appropriation measure | 25 | ADR-0037 |
+| §3.16 Personnel budgeting | 26 | ADR-0038 |
 | §4 Workflow, §5 Validation | 4 | Block or Warn at the transition |
 | §6 Publishing | 4, 5, 18 | Denormalized snapshots (ADR-0005, 0019); read-only portal context (ADR-0006); cache evicted by tag (ADR-0021) |
 | §7.1 Admin | 2–4, 6, 9c, 9d, 10 | Two entry modes, live fund panel, audit trail, import, reports, department round, profile pictures |

@@ -44,6 +44,13 @@ Sign in as `finance@mapleridge.example`, then **Continue FY2027** on the overvie
   still entering.
 - Hover the ⓘ beside the title. "Explanations live behind these, so the screen stays a
   working screen."
+- Open **Police**: the salary and benefit lines say "from 9 positions". Click one. "Nobody
+  types these. Each position is priced: pay scale, step increase in its anniversary month,
+  longevity from the FOP contract, OP&F, Medicare, workers' comp, insurance by tier." Open
+  the vacant patrol officer and change its first month; the breakdown reprices as you type.
+  Save, and the department's lines move.
+- **Personnel settings** under Setup: "Settings belong to a year. Longevity reads back in
+  plain English, so it can be checked against the contract."
 
 ## 3. The police chief's view (1 minute)
 
