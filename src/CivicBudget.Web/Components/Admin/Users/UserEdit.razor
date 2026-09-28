@@ -31,12 +31,12 @@ else
             <EditForm EditContext="editContext" OnSubmit="SaveAsync">
                 <div class="mb-3">
                     <label class="form-label" for="email">Email (login)</label>
-                    <InputText id="email" class="form-control" @bind-Value="model.Email" disabled="@(!IsNew)" autocomplete="off" />
+                    <InputText id="email" aria-required="true" class="form-control" @bind-Value="model.Email" disabled="@(!IsNew)" autocomplete="off" />
                     <ValidationMessage For="() => model.Email" class="text-danger" />
                 </div>
                 <div class="mb-3">
                     <label class="form-label" for="displayName">Display name</label>
-                    <InputText id="displayName" class="form-control" @bind-Value="model.DisplayName" />
+                    <InputText id="displayName" aria-required="true" class="form-control" @bind-Value="model.DisplayName" />
                     <ValidationMessage For="() => model.DisplayName" class="text-danger" />
                 </div>
                 @if (IsNew)
@@ -56,9 +56,9 @@ else
                     {
                         <div class="mb-3">
                             <label class="form-label" for="password">Temporary password</label>
-                            <PasswordInput id="password" class="form-control" @bind-Value="model.Password" autocomplete="new-password" />
+                            <PasswordInput id="password" aria-describedby="password-hint" class="form-control" @bind-Value="model.Password" autocomplete="new-password" />
                             <ValidationMessage For="() => model.Password" class="text-danger" />
-                            <div class="form-text">At least 10 characters with upper, lower, digit, and symbol. Share it out of band; the user is asked to choose their own at first sign-in.</div>
+                            <div class="form-text" id="password-hint">At least 10 characters with upper, lower, digit, and symbol. Share it out of band; the user is asked to choose their own at first sign-in.</div>
                         </div>
                     }
                 }

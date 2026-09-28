@@ -26,7 +26,7 @@
                     <span>once an employee reaches:</span>
                 </div>
                 <table class="table table-sm cb-steps-table mb-2">
-                    <thead><tr><th scope="col">Years of service</th><th scope="col">@ValueHeading</th><th></th></tr></thead>
+                    <thead><tr><th scope="col">Years of service</th><th scope="col">@ValueHeading</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
                     <tbody>
                         @foreach (LongevityStepForm step in Schedule.Steps)
                         {
@@ -75,7 +75,7 @@
                 </div>
             </div>
 
-            <aside class="cb-plain-english" aria-live="polite">
+            <aside class="cb-plain-english" aria-label="@(string.IsNullOrWhiteSpace(Schedule.Name) ? "In plain English" : $"{Schedule.Name}, in plain English")" aria-live="polite">
                 <div class="cb-eyebrow mb-1">In plain English</div>
                 <ul class="mb-3">
                     @foreach (string line in Longevity.Describe(Schedule.ToRule()))

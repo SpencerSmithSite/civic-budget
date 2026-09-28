@@ -43,7 +43,8 @@
         </div>
         <div class="mb-1">
             <label class="form-label fw-semibold" for="add-amount">Proposed amount</label>
-            <input id="add-amount" type="text" inputmode="decimal" class="form-control text-end" @bind="amountText" />
+            <input id="add-amount" type="text" inputmode="decimal" class="form-control text-end @(amountInvalid ? "is-invalid" : "")" @bind="amountText"
+                   aria-invalid="@(amountInvalid ? "true" : null)" />
         </div>
     </Body>
 </ConfirmDialog>
@@ -55,6 +56,7 @@
     private string accountId = "";
     private string amountText = "0.00";
     private Result? result;
+    private bool amountInvalid;
 
     [Parameter, EditorRequired]
     public BudgetWorkspaceDto Workspace { get; set; } = default!;
@@ -81,9 +83,10 @@
             return false;
         }
 
-        if (!decimal.TryParse(amountText, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.GetCultureInfo("en-US"), out decimal amount))
+        amountInvalid = !decimal.TryParse(amountText, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.GetCultureInfo("en-US"), out decimal amount);
+        if (amountInvalid)
         {
-            result = Result.Failure("Enter a valid amount.");
+            result = Result.Failure("Enter a valid amount for the proposed amount, such as 1,250.00.");
             return false;
         }
 

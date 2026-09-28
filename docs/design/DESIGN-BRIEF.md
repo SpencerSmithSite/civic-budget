@@ -37,12 +37,12 @@ All colors meet WCAG AA (4.5:1) as text on white unless noted. Defined once as C
 | `--cb-navy-hover` | `#2B6CB0` | Hover and focus rings (5.4:1) |
 | `--cb-sidebar` | `#0F2A44` | Admin sidebar and portal footer background |
 | `--cb-teal` | `#0B7285` | Accent: drill-down links, active rule in the sidebar, chart secondary (5.6:1) |
-| `--cb-success` | `#1E7E4A` | Adopted, published, in balance |
+| `--cb-success` | `#1A7043` | Adopted, published, in balance (darkened in Phase 31 so pill text passes 4.5:1 on its tint) |
 | `--cb-warning` | `#9A5B00` (text) / `#FFF4E0` (bg) | Warn-mode limit, proposed |
 | `--cb-danger` | `#B42318` (text) / `#FDECEA` (bg) | Over limit, destructive actions, negatives |
 | `--cb-info` | `#175CD3` (text) / `#E8F0FC` (bg) | Unsaved value, informational badges |
 | `--cb-text` | `#1F2937` | Body text |
-| `--cb-muted` | `#5B6B7B` | Secondary text, eyebrow labels (4.6:1) |
+| `--cb-muted` | `#55606C` | Secondary text, eyebrow labels (4.9:1 or better on every tint the app uses; was `#5B6B7B` until Phase 31) |
 | `--cb-canvas` | `#F6F8FA` | Page background |
 | `--cb-surface` | `#FFFFFF` | Cards, grids |
 | `--cb-border` | `#E3E8EF` | Card and table rules |

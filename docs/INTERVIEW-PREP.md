@@ -1518,3 +1518,32 @@ case-sensitively before rewrites run, so a rewrite from any spelling onto the re
 catches the misses. I found it by testing against a production build rather than the dev server,
 which is where these rules apply.
 **Look at:** `next.config.mjs` in the site repository.
+
+## Phase 31: Accessibility self-scan
+
+### Q: How accessible is it, and how do you know?
+**A:** I ran axe-core on all 237 page loads, every page for every role plus the portal at phone
+width, then had the behavior reviewed by keyboard, because axe only sees a page as it loads. The
+report rates every WCAG 2.2 A and AA criterion. It is honest about the limits: no screen reader
+testing yet, and two partial passes I can name. After the fixes the sweep is clean, and a script
+re-checks each serious keyboard finding.
+**Look at:** `docs/accessibility/ACR.md`, `scripts/screenshots/a11y-sweep.mjs`.
+
+### Q: What did the automated scan miss that a person caught?
+**A:** Things that happen after a key press:
+- a dialog opened from a row menu dropped focus to the page when it closed;
+- the phone menu never took focus;
+- a refused amount only turned red;
+- the idle warning's countdown was in a live region, so a screen reader would be interrupted every
+  second.
+
+axe also could not tell that `aria-expanded="@open"` was wrong, because Blazor renders a true bool
+as an empty attribute. That is why `Aria.Bool` exists.
+**Look at:** `Aria`, `civicbudget.js` (`openModal`, `closeModal`), `session.js`.
+
+### Q: Why fix it in shared components rather than page by page?
+**A:** The same defect was on every form and every dialog. `ResultAlert` is on every admin form, so
+making it list all the errors, act as an alert, and take focus fixed them all, and any form added
+later gets it too. The same goes for the color tokens: most of 109 contrast failures were two CSS
+variables, one of them the link color Bootstrap reads from an `-rgb` triple the theme never set.
+**Look at:** `ResultAlert.razor`, `app.css` (`--cb-muted`, `--bs-link-color-rgb`).

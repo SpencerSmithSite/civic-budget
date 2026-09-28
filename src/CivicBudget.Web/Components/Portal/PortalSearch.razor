@@ -1,7 +1,7 @@
 @page "/transparency/{Slug}/{Year:int}/search"
 @inject ISnapshotQueryService Snapshots
 
-<PageTitle>Search the budget</PageTitle>
+<PageTitle>@(budget is null ? "Search the budget" : $"Search the FY{budget.FiscalYear} budget, {budget.GovernmentName}")</PageTitle>
 
 @if (loaded && budget is null)
 {

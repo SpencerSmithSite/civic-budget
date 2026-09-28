@@ -39,7 +39,7 @@
                 <TemplateColumn Title="Role" SortBy="GridSort<UserSummaryDto>.ByAscending(u => u.Role)">@Roles.DisplayName(context.Role)</TemplateColumn>
                 <TemplateColumn Title="Departments">@DepartmentChips(context)</TemplateColumn>
                 <TemplateColumn Title="Status">@StatusOf(context)</TemplateColumn>
-                <TemplateColumn Title="" Align="Align.End">@RowActions(context)</TemplateColumn>
+                <TemplateColumn Title="Actions" Align="Align.End"><HeaderTemplate Context="column"><span class="visually-hidden">Actions</span></HeaderTemplate><ChildContent>@RowActions(context)</ChildContent></TemplateColumn>
             </QuickGrid>
         </div>
         <div class="cb-cards d-md-none">

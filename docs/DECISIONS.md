@@ -1484,6 +1484,56 @@ through Formspree.
 
 ---
 
+## ADR-0043: Accessibility by self-scan: axe on every page, reviews of behavior, fixes in the shared components, and a conformance report
+**Date:** 2026-09-28 · **Status:** Accepted
+
+**Context.** Public agencies buy software that meets WCAG 2.1 or 2.2 AA (Section 508 for federal
+money, and more and more state and local policy), and procurement asks for a VPAT. I decided not to
+pay for an audit yet, and to do my own:
+- an automated scan of every page;
+- reviews of what a scan cannot see;
+- fixes;
+- an honest conformance report.
+
+**Decision.**
+- **axe-core on every page** each role can reach, the sign-in pages, and every portal page at
+  desktop and phone width (`scripts/screenshots/a11y-sweep.mjs`, 237 page loads), grouped by rule
+  so each fix is one change.
+- **Two reviews of behavior**, one for the portal and sign-in pages and one for the admin
+  application. They were done by subagents driving the pages by keyboard in Playwright: focus,
+  dialogs, live regions, errors, zoom, reflow. Their findings were fixed, then checked again with a
+  keyboard script.
+- **Fixes go into the shared pieces**, so pages written later get them for free:
+  - `ResultAlert` lists every error of a failed result as an alert and takes focus. It is on every
+    admin form.
+  - `FormErrors` does the same for the static sign-in pages, focused by `password-toggle.js` on load.
+  - `Aria.Bool` writes ARIA states as `"true"`/`"false"`, because Blazor renders a C# bool as an
+    empty or missing attribute.
+  - `civicBudget.openModal` / `closeModal` remember a dropdown's toggle (or the last focused
+    element) as the opener, fall back to the page heading, and can move focus in (the phone menu).
+  - Failure and warning toasts stay until dismissed.
+  - Page `h1`s hold the title alone.
+  - Skip links are in all three layouts.
+  - The color tokens pass 4.5:1 on every tint; form fields get a 3:1 border.
+- **The report** (`docs/accessibility/ACR.md`) follows the VPAT 2.5 WCAG edition. It rates every
+  WCAG 2.2 A and AA criterion, says plainly that no screen reader was used, and lists the known
+  partial passes.
+
+**Alternatives.**
+- A paid audit now: there is no customer yet, and a self-scan finds most of what an audit would.
+- axe alone: it passed pages whose dialogs lost focus and whose errors were silent; behavior needs
+  a person, or a person's checklist, pressing keys.
+- Fixing each page separately: the same defects would come back on the next page.
+- Bootstrap's tooltip and modal JavaScript: the app's own small helpers already handle focus, and
+  the portal has no script at all.
+
+**Consequences.**
+- Portal panels now use CSS `:has()`, so browsers older than 2023 show the first panel only.
+- Editable amount cells keep their borderless look at rest, a known partial pass on 1.4.11.
+- Any new page should pass the sweep before it merges.
+
+---
+
 ## Packages
 
 Every NuGet package and why it is here. A package is added to this table in the same change that

@@ -379,11 +379,11 @@ Decided with Spencer (2026-09-27): designed and built to achieve SOC 2 complianc
 - [x] Static site in the spencersmith.site repository at `public/CivicBudget`, served at spencersmith.site/CivicBudget (the Council pattern), mockups approved first
 - [x] Hero, features with screenshots, GIF and video demos recorded with Playwright, FAQ, a trust page, and a clear "Try the live demo" with the demo sign-in (security and the demo as sections of the one page, as approved)
 - [x] Contact form through Formspree, marked as CivicBudget in the subject
-- [ ] Reviewed and approved
+- [x] Reviewed and approved (2026-09-28, civic-budget PR #60 and spencersmith.site PR #19)
 
 ## Phase 31: Accessibility self-scan  `phase-31-accessibility`
 Decided with Spencer (2026-09-27): no official audit for now; our own scan near the end of the project.
 
-- [ ] Automated checks (axe) across every page and role, plus subagent reviews of the portal and admin
-- [ ] Fix what they find; write the accessibility conformance report (VPAT)
+- [x] Automated checks (axe) across every page and role, plus subagent reviews of the portal and admin
+- [x] Fix what they find; write the accessibility conformance report (VPAT)
 - [ ] Reviewed and approved

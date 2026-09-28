@@ -45,7 +45,7 @@
                 <TemplateColumn Title="Type" SortBy="GridSort<AccountDto>.ByAscending(a => a.Type)">@Display.Enum(context.Type)</TemplateColumn>
                 <TemplateColumn Title="Category" SortBy="GridSort<AccountDto>.ByAscending(a => a.Category)">@Display.Enum(context.Category)</TemplateColumn>
                 <TemplateColumn Title="Status">@StatusOf(context)</TemplateColumn>
-                <TemplateColumn Title="" Align="Align.End">@RowActions(context)</TemplateColumn>
+                <TemplateColumn Title="Actions" Align="Align.End"><HeaderTemplate Context="column"><span class="visually-hidden">Actions</span></HeaderTemplate><ChildContent>@RowActions(context)</ChildContent></TemplateColumn>
             </QuickGrid>
         </div>
         <div class="cb-cards d-md-none">

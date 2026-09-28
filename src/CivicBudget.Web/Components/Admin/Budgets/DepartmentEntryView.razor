@@ -26,7 +26,7 @@ else
                                     <th class="cb-num">@ProposedLabel proposed</th>
                                     <th class="cb-num cb-col-wide">Change $</th>
                                     <th class="cb-num cb-col-wide">Change %</th>
-                                    <th></th>
+                                    <th scope="col"><span class="visually-hidden">Actions</span></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -91,7 +91,7 @@ else
                     <div class="cb-grid-wrap">
                         <table class="cb-grid">
                             <caption class="caption-top px-3 pt-2 pb-1 fw-semibold small">Revenue and transfers recorded against this department <InfoTip Text="Revenue is the fund's estimated resource and a transfer out is the fund's other financing use, so neither is part of the department total." /></caption>
-                            <thead><tr><th>Account</th><th class="cb-num">@CurrentLabel budget</th><th class="cb-num">@ProposedLabel estimate</th><th></th></tr></thead>
+                            <thead><tr><th>Account</th><th class="cb-num">@CurrentLabel budget</th><th class="cb-num">@ProposedLabel estimate</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
                             <tbody>
                                 @foreach (BudgetLineDto line in outside)
                                 {

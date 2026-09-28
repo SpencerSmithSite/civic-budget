@@ -1,14 +1,16 @@
 @* Two sections side by side on a sliding track, one visible at a time, switched by a pair of
    radio buttons styled as tabs. No JavaScript: the :checked state moves the track and hides the
    other panel (visibility, so its links leave the tab order). Both panels are in the page, so
-   "find in page" and reader modes still see everything. *@
+   "find in page" and reader modes still see everything. The radios sit in a fieldset whose legend
+   names the choice, so a screen reader announces the group, not two loose radio buttons. *@
 <div class="pt-panels">
-    <input type="radio" name="@Name" id="@(Name)-1" class="pt-panels-radio" checked="@(!SecondFirst)" />
-    <input type="radio" name="@Name" id="@(Name)-2" class="pt-panels-radio" checked="@SecondFirst" />
-    <div class="pt-panels-tabs" role="group" aria-label="@Label">
+    <fieldset class="pt-panels-tabs">
+        <legend class="visually-hidden">@Label</legend>
+        <input type="radio" name="@Name" id="@(Name)-1" class="pt-panels-radio" checked="@(!SecondFirst)" />
+        <input type="radio" name="@Name" id="@(Name)-2" class="pt-panels-radio" checked="@SecondFirst" />
         <label for="@(Name)-1">@FirstTitle</label>
         <label for="@(Name)-2">@SecondTitle</label>
-    </div>
+    </fieldset>
     <div class="pt-panels-track">
         <div class="pt-panel">@First</div>
         <div class="pt-panel">@Second</div>

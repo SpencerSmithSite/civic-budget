@@ -11,19 +11,21 @@
    a "Users" link they cannot use (the pages are still protected server-side). Under 992px the
    sidebar slides in over the page from a hamburger button; above it the sidebar can collapse to
    an icon rail (the choice is kept in a cookie so the prerender already knows it). *@
+<a class="cb-skip" href="#main">Skip to content</a>
 <div class="cb-shell @(collapsed ? "collapsed" : "")">
-    <aside class="cb-sidebar @(menuOpen ? "open" : "")" id="admin-sidebar" @onkeydown="OnSidebarKeyDown">
+    <aside class="cb-sidebar @(menuOpen ? "open" : "")" id="admin-sidebar" @ref="sidebar" @onkeydown="OnSidebarKeyDown"
+           role="@(menuOpen ? "dialog" : null)" aria-modal="@(menuOpen ? "true" : null)" aria-label="@(menuOpen ? "Menu" : "Sidebar")">
         <div class="cb-sidebar-head">
             <a class="cb-brand" href="admin" aria-label="@($"{governmentName ?? "CivicBudget"} home")" title="@governmentName">
                 <Logo Size="36" />
                 <span class="cb-brand-gov">@(governmentName ?? "")</span>
             </a>
-            <button type="button" class="cb-collapse" @onclick="ToggleCollapsedAsync" aria-expanded="@(!collapsed)" aria-controls="admin-sidebar"
+            <button type="button" class="cb-collapse" @onclick="ToggleCollapsedAsync" aria-expanded="@Aria.Bool(!collapsed)" aria-controls="admin-sidebar"
                     title="@(collapsed ? "Expand menu" : "Collapse menu")" aria-label="@(collapsed ? "Expand menu" : "Collapse menu")">
                 <i class="bi @(collapsed ? "bi-chevron-double-right" : "bi-chevron-double-left")" aria-hidden="true"></i>
             </button>
             @* Under 992px the sidebar is a drawer; this closes it (the chevron above is hidden there). *@
-            <button type="button" class="cb-collapse cb-drawer-close" @onclick="CloseMenu" aria-controls="admin-sidebar" title="Close menu" aria-label="Close menu">
+            <button type="button" class="cb-collapse cb-drawer-close" @onclick="CloseMenuAsync" aria-controls="admin-sidebar" title="Close menu" aria-label="Close menu">
                 <i class="bi bi-x-lg" aria-hidden="true"></i>
             </button>
         </div>
@@ -32,40 +34,40 @@
             <div class="cb-navgroup">Budget</div>
             <nav class="nav cb-nav flex-column" aria-label="Budget">
                 <AuthorizeView Roles="@Roles.DepartmentHead" Context="member">
-                    <Authorized><NavLink class="nav-link" href="admin/my-department" @onclick="CloseMenu"><i class="bi bi-building" aria-hidden="true"></i>My department</NavLink></Authorized>
-                    <NotAuthorized><NavLink class="nav-link" href="admin" Match="NavLinkMatch.All" @onclick="CloseMenu"><i class="bi bi-grid-1x2" aria-hidden="true"></i>Overview</NavLink></NotAuthorized>
+                    <Authorized><NavLink class="nav-link" href="admin/my-department" @onclick="LeaveMenuAsync"><i class="bi bi-building" aria-hidden="true"></i>My department</NavLink></Authorized>
+                    <NotAuthorized><NavLink class="nav-link" href="admin" Match="NavLinkMatch.All" @onclick="LeaveMenuAsync"><i class="bi bi-grid-1x2" aria-hidden="true"></i>Overview</NavLink></NotAuthorized>
                 </AuthorizeView>
-                <NavLink class="nav-link" href="admin/budgets" @onclick="CloseMenu"><i class="bi bi-journal-text" aria-hidden="true"></i>Budget versions</NavLink>
-                <NavLink class="nav-link" href="admin/reports" @onclick="CloseMenu"><i class="bi bi-file-earmark-bar-graph" aria-hidden="true"></i>Reports</NavLink>
+                <NavLink class="nav-link" href="admin/budgets" @onclick="LeaveMenuAsync"><i class="bi bi-journal-text" aria-hidden="true"></i>Budget versions</NavLink>
+                <NavLink class="nav-link" href="admin/reports" @onclick="LeaveMenuAsync"><i class="bi bi-file-earmark-bar-graph" aria-hidden="true"></i>Reports</NavLink>
             </nav>
         </AuthorizeView>
         <AuthorizeView Policy="@Policies.CanMaintainSetup">
             <div class="cb-navgroup">Setup</div>
             <nav class="nav cb-nav flex-column" aria-label="Setup">
-                <NavLink class="nav-link" href="admin/getting-started" @onclick="CloseMenu"><i class="bi bi-signpost-2" aria-hidden="true"></i>Getting started</NavLink>
-                <NavLink class="nav-link" href="admin/funds" @onclick="CloseMenu"><i class="bi bi-bank" aria-hidden="true"></i>Funds</NavLink>
-                <NavLink class="nav-link" href="admin/departments" @onclick="CloseMenu"><i class="bi bi-diagram-3" aria-hidden="true"></i>Departments</NavLink>
-                <NavLink class="nav-link" href="admin/accounts" @onclick="CloseMenu"><i class="bi bi-list-columns" aria-hidden="true"></i>Chart of accounts</NavLink>
-                <NavLink class="nav-link" href="admin/fiscal-years" @onclick="CloseMenu"><i class="bi bi-calendar3" aria-hidden="true"></i>Fiscal years</NavLink>
-                <NavLink class="nav-link" href="admin/chart-sync" @onclick="CloseMenu"><i class="bi bi-cloud-download" aria-hidden="true"></i>Chart sync</NavLink>
-                <NavLink class="nav-link" href="admin/actuals-sync" @onclick="CloseMenu"><i class="bi bi-cash-stack" aria-hidden="true"></i>Actuals sync</NavLink>
-                <NavLink class="nav-link" href="admin/report-settings" @onclick="CloseMenu"><i class="bi bi-layout-three-columns" aria-hidden="true"></i>Report settings</NavLink>
-                <NavLink class="nav-link" href="admin/personnel-settings" @onclick="CloseMenu"><i class="bi bi-person-gear" aria-hidden="true"></i>Personnel settings</NavLink>
-                <NavLink class="nav-link" href="admin/personnel-sync" @onclick="CloseMenu"><i class="bi bi-person-down" aria-hidden="true"></i>Employees from the ERP</NavLink>
+                <NavLink class="nav-link" href="admin/getting-started" @onclick="LeaveMenuAsync"><i class="bi bi-signpost-2" aria-hidden="true"></i>Getting started</NavLink>
+                <NavLink class="nav-link" href="admin/funds" @onclick="LeaveMenuAsync"><i class="bi bi-bank" aria-hidden="true"></i>Funds</NavLink>
+                <NavLink class="nav-link" href="admin/departments" @onclick="LeaveMenuAsync"><i class="bi bi-diagram-3" aria-hidden="true"></i>Departments</NavLink>
+                <NavLink class="nav-link" href="admin/accounts" @onclick="LeaveMenuAsync"><i class="bi bi-list-columns" aria-hidden="true"></i>Chart of accounts</NavLink>
+                <NavLink class="nav-link" href="admin/fiscal-years" @onclick="LeaveMenuAsync"><i class="bi bi-calendar3" aria-hidden="true"></i>Fiscal years</NavLink>
+                <NavLink class="nav-link" href="admin/chart-sync" @onclick="LeaveMenuAsync"><i class="bi bi-cloud-download" aria-hidden="true"></i>Chart sync</NavLink>
+                <NavLink class="nav-link" href="admin/actuals-sync" @onclick="LeaveMenuAsync"><i class="bi bi-cash-stack" aria-hidden="true"></i>Actuals sync</NavLink>
+                <NavLink class="nav-link" href="admin/report-settings" @onclick="LeaveMenuAsync"><i class="bi bi-layout-three-columns" aria-hidden="true"></i>Report settings</NavLink>
+                <NavLink class="nav-link" href="admin/personnel-settings" @onclick="LeaveMenuAsync"><i class="bi bi-person-gear" aria-hidden="true"></i>Personnel settings</NavLink>
+                <NavLink class="nav-link" href="admin/personnel-sync" @onclick="LeaveMenuAsync"><i class="bi bi-person-down" aria-hidden="true"></i>Employees from the ERP</NavLink>
             </nav>
         </AuthorizeView>
         <AuthorizeView Policy="@Policies.CanManageUsers">
             <div class="cb-navgroup">Administration</div>
             <nav class="nav cb-nav flex-column" aria-label="Administration">
-                <NavLink class="nav-link" href="admin/users" @onclick="CloseMenu"><i class="bi bi-people" aria-hidden="true"></i>Users</NavLink>
-                <NavLink class="nav-link" href="admin/settings" @onclick="CloseMenu"><i class="bi bi-sliders" aria-hidden="true"></i>Government settings</NavLink>
-                <NavLink class="nav-link" href="admin/outbox" @onclick="CloseMenu"><i class="bi bi-envelope" aria-hidden="true"></i>Email outbox</NavLink>
-                <NavLink class="nav-link" href="admin/security-log" @onclick="CloseMenu"><i class="bi bi-shield-lock" aria-hidden="true"></i>Security log</NavLink>
+                <NavLink class="nav-link" href="admin/users" @onclick="LeaveMenuAsync"><i class="bi bi-people" aria-hidden="true"></i>Users</NavLink>
+                <NavLink class="nav-link" href="admin/settings" @onclick="LeaveMenuAsync"><i class="bi bi-sliders" aria-hidden="true"></i>Government settings</NavLink>
+                <NavLink class="nav-link" href="admin/outbox" @onclick="LeaveMenuAsync"><i class="bi bi-envelope" aria-hidden="true"></i>Email outbox</NavLink>
+                <NavLink class="nav-link" href="admin/security-log" @onclick="LeaveMenuAsync"><i class="bi bi-shield-lock" aria-hidden="true"></i>Security log</NavLink>
             </nav>
         </AuthorizeView>
         <div class="cb-navgroup">Public portal</div>
         <nav class="nav cb-nav flex-column" aria-label="Public portal">
-            <NavLink class="nav-link" href="admin/budgets#publishing" @onclick="CloseMenu"><i class="bi bi-megaphone" aria-hidden="true"></i>Publishing history</NavLink>
+            <NavLink class="nav-link" href="admin/budgets#publishing" @onclick="LeaveMenuAsync"><i class="bi bi-megaphone" aria-hidden="true"></i>Publishing history</NavLink>
             <a class="nav-link" href="transparency/@publicSlug" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>Open portal</a>
         </nav>
         <div class="cb-sidebar-foot">Ohio fund accounting · @fiscalYearNote</div>
@@ -73,12 +75,12 @@
 
     @if (menuOpen)
     {
-        <div class="cb-drawer-backdrop d-lg-none" @onclick="CloseMenu"></div>
+        <div class="cb-drawer-backdrop d-lg-none" @onclick="CloseMenuAsync"></div>
     }
 
     <div>
         <header class="cb-topbar">
-            <button type="button" class="btn btn-outline-primary btn-sm cb-menu-toggle" aria-controls="admin-sidebar" aria-expanded="@menuOpen" @onclick="() => menuOpen = !menuOpen">
+            <button type="button" class="btn btn-outline-primary btn-sm cb-menu-toggle" aria-controls="admin-sidebar" aria-expanded="@Aria.Bool(menuOpen)" @onclick="OpenMenu">
                 <i class="bi bi-list" aria-hidden="true"></i><span class="visually-hidden">Menu</span>
             </button>
             <ol class="cb-crumbs" aria-label="Breadcrumb">
@@ -112,7 +114,7 @@
                 </div>
             </AuthorizeView>
         </header>
-        <main class="cb-main">
+        <main class="cb-main" id="main">
             @* A failure in one page shows here instead of taking the whole connection down; the
                sidebar keeps working, and navigating elsewhere clears it (OnParametersSet). *@
             <ErrorBoundary @ref="errorBoundary">
@@ -177,14 +179,48 @@
 
     private void OnPageStateChanged() => InvokeAsync(StateHasChanged);
 
-    private void CloseMenu() => menuOpen = false;
+    private ElementReference sidebar;
+    private bool focusMenu;
+
+    // Under 992px the sidebar opens as a drawer over the page: a modal dialog that takes focus, keeps
+    // Tab inside, and gives focus back to the Menu button when it closes (civicBudget.openModal).
+    private void OpenMenu()
+    {
+        menuOpen = true;
+        focusMenu = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (focusMenu)
+        {
+            focusMenu = false;
+            await FocusJs.TryAsync(JS, "civicBudget.openModal", sidebar, true);
+        }
+    }
+
+    private async Task CloseMenuAsync() => await CloseMenuAsync(refocus: true);
+
+    // A link in the drawer navigates; the new page takes focus, so the Menu button does not.
+    private async Task LeaveMenuAsync() => await CloseMenuAsync(refocus: false);
+
+    private async Task CloseMenuAsync(bool refocus)
+    {
+        if (!menuOpen)
+        {
+            return;
+        }
+
+        menuOpen = false;
+        await FocusJs.TryAsync(JS, "civicBudget.closeModal", refocus);
+    }
 
     // Escape closes the phone drawer, like the other panels that open over the page.
-    private void OnSidebarKeyDown(KeyboardEventArgs e)
+    private async Task OnSidebarKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Escape")
         {
-            menuOpen = false;
+            await CloseMenuAsync(refocus: true);
         }
     }
 

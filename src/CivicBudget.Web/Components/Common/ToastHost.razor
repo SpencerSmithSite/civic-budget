@@ -1,9 +1,10 @@
 @implements IDisposable
 @inject ToastService Toasts
 
-@* Renders queued toasts top-right. Confirmations go after four seconds; a failure stays for twelve
-   and is announced as an alert, because "Save failed" is the one message nobody can afford to miss.
-   Lives once in AdminLayout. *@
+@* Renders queued toasts top-right. A confirmation goes after four seconds, since the page already
+   shows what was saved. A warning or a failure stays until dismissed, and a failure is announced as an
+   alert: "Save failed" is the one message nobody can afford to miss, and a message that disappears on
+   a timer is a time limit someone reading slowly can lose (WCAG 2.2.1). Lives once in AdminLayout. *@
 <div class="cb-toasts" aria-live="polite" aria-atomic="false">
     @foreach (ToastMessage toast in Toasts.Toasts)
     {
@@ -22,7 +23,7 @@
 
     private void OnChanged()
     {
-        foreach (ToastMessage toast in Toasts.Toasts.Where(t => !timers.ContainsKey(t.Id)))
+        foreach (ToastMessage toast in Toasts.Toasts.Where(t => t.Kind == ToastKind.Success && !timers.ContainsKey(t.Id)))
         {
             timers[toast.Id] = new Timer(_ => InvokeAsync(() =>
             {
@@ -31,7 +32,7 @@
                 {
                     timer.Dispose();
                 }
-            }), null, TimeSpan.FromSeconds(toast.Kind == ToastKind.Danger ? 12 : 4), Timeout.InfiniteTimeSpan);
+            }), null, TimeSpan.FromSeconds(4), Timeout.InfiniteTimeSpan);
         }
 
         InvokeAsync(StateHasChanged);

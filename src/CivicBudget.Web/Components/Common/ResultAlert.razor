@@ -1,21 +1,49 @@
-@* Shows the form-level errors of a failed Result (those not tied to a field) as a Bootstrap alert. *@
-@if (Result is { IsFailure: true })
+@* A failed Result as one error summary: every message, the field ones included (each also shows
+   beside its field). When a new failure arrives the summary takes focus, so a keyboard or screen
+   reader user lands on what went wrong instead of staying on the Save button (WCAG 3.3.1). *@
+@if (Result is { IsFailure: true } && Result.Errors.Count > 0)
 {
-    var general = Result.Errors.Where(e => string.IsNullOrEmpty(e.PropertyName)).ToList();
-    if (general.Count > 0)
-    {
-        <div class="alert alert-danger" role="alert">
+    <div class="alert alert-danger" role="alert" tabindex="-1" @ref="box">
+        @if (Result.Errors.Count == 1)
+        {
+            @Result.Errors[0].Message
+        }
+        else
+        {
             <ul class="mb-0">
-                @foreach (var error in general)
+                @foreach (var error in Result.Errors)
                 {
                     <li>@error.Message</li>
                 }
             </ul>
-        </div>
-    }
+        }
+    </div>
 }
 
 @code {
+    private ElementReference box;
+    private Result? shown;
+    private bool focusPending;
+
     [Parameter]
     public Result? Result { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        // Only a new failure moves focus; a re-render of the same one leaves the user where they are.
+        if (!ReferenceEquals(Result, shown))
+        {
+            shown = Result;
+            focusPending = Result is { IsFailure: true };
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (focusPending && Result is { IsFailure: true } && Result.Errors.Count > 0)
+        {
+            focusPending = false;
+            await box.FocusAsync();
+        }
+    }
 }

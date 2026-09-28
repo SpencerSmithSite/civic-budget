@@ -3,11 +3,16 @@ using CivicBudget.Domain.Budgets;
 using CivicBudget.Domain.Funds;
 using CivicBudget.Domain.Governments;
 using CivicBudget.Web.Components.Admin.Budgets;
+using CivicBudget.Web.Components.Common;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CivicBudget.Web.Tests.Budgets;
 
 public class FundBalancePanelTests : BunitContext
 {
+    // Amount cells announce a refused value through the toast service.
+    public FundBalancePanelTests() => Services.AddSingleton<ToastService>();
+
     private static FundBalanceDto Balance(string code, decimal beginning, decimal revenue, decimal expenditure, AppropriationLimitMode mode, bool canEdit = false)
     {
         var summary = new FundBalanceSummary(Guid.CreateVersion7(), beginning, revenue, 0m, expenditure, 0m);

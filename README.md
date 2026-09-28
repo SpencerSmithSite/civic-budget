@@ -94,7 +94,7 @@ The public portal needs no login: [Village of Maple Ridge](https://civicbudget-a
 | Admin app | Blazor Interactive Server, QuickGrid, Bootstrap 5 themed with CSS variables |
 | Portal | Blazor static server rendering, output caching, no JavaScript |
 | Data | EF Core on SQL Server 2022, ASP.NET Core Identity, FluentValidation, ClosedXML for Excel |
-| Tests | xUnit, bUnit, Testcontainers (a real SQL Server in Docker), CDK assertions; 899 tests |
+| Tests | xUnit, bUnit, Testcontainers (a real SQL Server in Docker), CDK assertions; 907 tests |
 | Delivery | Docker, GitHub Actions with OIDC sign-in; live on Azure (Bicep), deploy-ready on AWS (CDK in C#) |
 
 The code is four projects with dependencies pointing inward: `Domain` (entities and budget
@@ -126,6 +126,17 @@ to NIST CSF 2.0 and NIST 800-53 (the catalog GovRAMP uses). Among them:
 No auditor has issued a report yet. See [docs/security](docs/security/README.md) for the control
 matrix, the operator's policies, and the known gaps, and [SECURITY.md](SECURITY.md) to report a
 vulnerability.
+
+## Accessibility
+
+CivicBudget targets WCAG 2.2 AA. Every page for every role, and the public portal at phone width,
+is scanned with axe-core, and the keyboard behavior was reviewed and fixed:
+- focus moves into dialogs and the phone menu and comes back;
+- errors are gathered, announced, and focused;
+- nothing important depends on color or disappears on a timer.
+
+The [accessibility conformance report](docs/accessibility/ACR.md) (VPAT 2.5 format) rates every
+criterion. It is a self-evaluation, with no screen reader testing yet, and it says so.
 
 ## Problems worth reading about
 
@@ -279,8 +290,9 @@ deployed; it shows the production-shaped design. See [infra/README.md](infra/REA
    [26 Employees from the ERP](docs/walkthroughs/26-personnel-from-erp.md) ·
    [27 Email, two-step sign-in, onboarding](docs/walkthroughs/27-email-mfa-onboarding.md) ·
    [28 SOC 2 by design](docs/walkthroughs/28-soc2.md) ·
-   [29 The product site](docs/walkthroughs/29-product-site.md)
-4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 42 decision records, each
+   [29 The product site](docs/walkthroughs/29-product-site.md) ·
+   [30 The accessibility self-scan](docs/walkthroughs/30-accessibility.md)
+4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 43 decision records, each
    with the alternatives I turned down, and the table of every package and why it is there.
 5. Then the code, starting at `src/CivicBudget.Domain/Budgets/BudgetVersion.cs`, the heart of it.
 

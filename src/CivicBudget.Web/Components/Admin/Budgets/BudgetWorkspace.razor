@@ -28,8 +28,8 @@ else
             @if (!isDepartmentUser)
             {
                 <div class="btn-group btn-group-sm" role="group" aria-label="Entry mode">
-                    <button type="button" class="btn @(mode == Mode.ByDepartment ? "btn-primary" : "btn-outline-primary")" @onclick="() => mode = Mode.ByDepartment">By department</button>
-                    <button type="button" class="btn @(mode == Mode.ByAccount ? "btn-primary" : "btn-outline-primary")" @onclick="() => mode = Mode.ByAccount">By account line</button>
+                    <button type="button" class="btn @(mode == Mode.ByDepartment ? "btn-primary" : "btn-outline-primary")" aria-pressed="@Aria.Bool(mode == Mode.ByDepartment)" @onclick="() => mode = Mode.ByDepartment">By department</button>
+                    <button type="button" class="btn @(mode == Mode.ByAccount ? "btn-primary" : "btn-outline-primary")" aria-pressed="@Aria.Bool(mode == Mode.ByAccount)" @onclick="() => mode = Mode.ByAccount">By account line</button>
                 </div>
             }
             <div class="dropdown">
@@ -75,7 +75,7 @@ else
                 </div>
             }
         </div>
-        <aside>
+        <aside aria-label="Fund balances">
             <FundBalancePanel Balances="workspace.FundBalances" OnBeginningBalanceChanged="SetBeginningBalanceAsync" />
         </aside>
     </div>
@@ -216,19 +216,49 @@ else
 
     private async Task ApplyAsync(Func<Task<Result>> action, string successMessage)
     {
+        HashSet<string> overBefore = FundsOverLimit();
         Result result = await action();
+        await ReloadAfterEditAsync();
         if (result.IsSuccess)
         {
-            Toasts.Success(successMessage);
+            // The fund panel changes silently beside the grid, so the toast (a status message a screen
+            // reader hears) also says when an edit takes a fund over its limit or brings it back.
+            string change = LimitChange(overBefore);
+            if (FundsOverLimit().Except(overBefore).Any())
+            {
+                Toasts.Warning(successMessage + change);
+            }
+            else
+            {
+                Toasts.Success(successMessage + change);
+            }
         }
         else
         {
             Toasts.Danger(result.Errors[0].Message);
         }
 
-        await ReloadAfterEditAsync();
         // Dialog confirmations arrive through a Func, not an EventCallback, so the page must ask to re-render itself.
         StateHasChanged();
+    }
+
+    private HashSet<string> FundsOverLimit() =>
+        workspace?.FundBalances.Where(f => !f.Summary.IsWithinAppropriationLimit).Select(f => f.FundCode).ToHashSet() ?? [];
+
+    private string LimitChange(HashSet<string> overBefore)
+    {
+        if (workspace is null)
+        {
+            return "";
+        }
+
+        IEnumerable<string> nowOver = workspace.FundBalances
+            .Where(f => !f.Summary.IsWithinAppropriationLimit && !overBefore.Contains(f.FundCode))
+            .Select(f => $" Fund {f.FundCode} is now over its estimated resources by {Display.Money(f.Limit.AmountOverLimit)}.");
+        IEnumerable<string> backWithin = workspace.FundBalances
+            .Where(f => f.Summary.IsWithinAppropriationLimit && overBefore.Contains(f.FundCode))
+            .Select(f => $" Fund {f.FundCode} is back within its estimated resources.");
+        return string.Concat(nowOver.Concat(backWithin));
     }
 
     private void ShowHistory(BudgetLineDto line)

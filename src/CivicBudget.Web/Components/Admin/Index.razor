@@ -58,7 +58,7 @@ else
     <div class="row g-3">
         <div class="col-xxl-7 d-flex flex-column gap-3">
             <div class="card flex-grow-1">
-                <div class="card-header d-flex align-items-center">Budget versions <a class="ms-auto small fw-normal" href="admin/budgets">All versions ›</a></div>
+                <div class="card-header d-flex align-items-center"><h2 class="cb-card-title">Budget versions</h2> <a class="ms-auto small fw-normal" href="admin/budgets">All versions ›</a></div>
                 @if (versions.Count == 0)
                 {
                     <EmptyState Icon="bi-journal-plus" Title="No budget yet" Text="Add a fiscal year, then start its budget, empty or from a spreadsheet of last year's lines.">
@@ -78,7 +78,7 @@ else
                     </div>
                     <div class="cb-grid-wrap cb-grid-wrap-fill d-none d-md-block">
                         <table class="cb-grid cb-grid-tight">
-                            <thead><tr><th>Fiscal year</th><th>Version</th><th>Status</th><th>Resolution</th><th>Portal</th><th class="cb-num">Lines</th><th></th></tr></thead>
+                            <thead><tr><th>Fiscal year</th><th>Version</th><th>Status</th><th>Resolution</th><th>Portal</th><th class="cb-num">Lines</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
                             <tbody>
                                 @foreach (BudgetVersionSummaryDto version in versions.Take(6))
                                 {
@@ -98,7 +98,7 @@ else
                 }
             </div>
             <div class="card">
-                <div class="card-header">Government</div>
+                <div class="card-header"><h2 class="cb-card-title">Government</h2></div>
                 <dl class="row mb-0 p-3 small">
                     <dt class="col-5 fw-semibold">Type</dt><dd class="col-7">@Display.Enum(government.Type), @government.State</dd>
                     <dt class="col-5 fw-semibold">Fiscal year starts</dt><dd class="col-7">@System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(government.FiscalYearStartMonth)</dd>
@@ -109,7 +109,7 @@ else
         </div>
         <div class="col-xxl-5">
             <div class="card">
-                <div class="card-header">Recent activity</div>
+                <div class="card-header"><h2 class="cb-card-title">Recent activity</h2></div>
                 @if (activity is null || activity.Count == 0)
                 {
                     <EmptyState Icon="bi-clock-history" Title="No activity yet" Text="Changes to budget lines and workflow actions appear here." />

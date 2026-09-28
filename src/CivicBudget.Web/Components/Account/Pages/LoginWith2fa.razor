@@ -7,21 +7,22 @@
 @inject ILogger<LoginWith2fa> Logger
 
 @* The second step: the password was right, now the code from the authenticator app. *@
-<PageTitle>Two-step sign-in</PageTitle>
+<PageTitle>Two-step sign-in | CivicBudget</PageTitle>
 
 <div class="cb-login">
     <div class="cb-login-left">
-        <h1>Budgeting and public transparency for local governments.</h1>
+        <p class="cb-login-tagline">Budgeting and public transparency for local governments.</p>
         <SignInArt />
     </div>
     <div class="cb-login-right">
         <div class="card cb-login-card">
             <div class="card-body p-4">
-                <h2 class="h5 mb-1">Enter your code</h2>
+                <h1 class="h5 mb-1">Enter your code</h1>
                 <p class="text-secondary small mb-3">Open your authenticator app and type the six-digit code for CivicBudget.</p>
-                <StatusMessage Message="@message" />
+                <StatusMessage />
                 <EditForm Model="Input" FormName="login-with-2fa" OnValidSubmit="SignInAsync" method="post">
                     <DataAnnotationsValidator />
+                    <FormErrors Message="@message" />
                     <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
                     <input type="hidden" name="RememberMe" value="@RememberMe" />
                     <div class="mb-3">

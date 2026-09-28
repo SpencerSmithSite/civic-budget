@@ -99,7 +99,7 @@ else
         <div class="card mb-4">
             <div class="cb-grid-wrap">
                 <table class="table cb-grid cb-settings-table mb-0">
-                    <thead><tr><th scope="col">Name</th><th scope="col" class="cb-num">Employer</th><th scope="col" class="cb-num">Employee</th><th scope="col">Account</th><th></th></tr></thead>
+                    <thead><tr><th scope="col">Name</th><th scope="col" class="cb-num">Employer</th><th scope="col" class="cb-num">Employee</th><th scope="col">Account</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
                     <tbody>
                         @foreach (RetirementPlanForm plan in form.RetirementPlans)
                         {
@@ -123,7 +123,7 @@ else
         <div class="card mb-4">
             <div class="cb-grid-wrap">
                 <table class="table cb-grid cb-settings-table mb-0">
-                    <thead><tr><th scope="col">Name</th><th scope="col" class="cb-num">Single</th><th scope="col" class="cb-num">Employee and spouse</th><th scope="col" class="cb-num">Family</th><th scope="col" class="cb-num">Employee pays</th><th scope="col">Account</th><th></th></tr></thead>
+                    <thead><tr><th scope="col">Name</th><th scope="col" class="cb-num">Single</th><th scope="col" class="cb-num">Employee and spouse</th><th scope="col" class="cb-num">Family</th><th scope="col" class="cb-num">Employee pays</th><th scope="col">Account</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
                     <tbody>
                         @foreach (InsurancePlanForm plan in form.InsurancePlans)
                         {
@@ -166,7 +166,7 @@ else
                         <tr>
                             <th scope="col">Name</th><th scope="col">Figured as</th>
                             <th scope="col">Counts toward <InfoTip Text="Retirement: earnable salary for OPERS and OP&F. Medicare and workers' comp: taxable wages. A cash uniform allowance, for example, is taxable but not earnable salary." /></th>
-                            <th scope="col">Account</th><th></th>
+                            <th scope="col">Account</th><th scope="col"><span class="visually-hidden">Actions</span></th>
                         </tr>
                     </thead>
                     <tbody>

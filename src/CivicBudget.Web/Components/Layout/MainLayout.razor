@@ -1,13 +1,15 @@
 @inherits LayoutComponentBase
 
 @* Public shell for the home page and the Account pages: a navy header bar and a plain page. *@
+<a class="cb-skip" href="#main">Skip to content</a>
 <header class="cb-public-header">
     <nav class="navbar navbar-dark">
         <div class="container-fluid px-4">
-            <a class="navbar-brand" href="/"><Logo Size="28" /><span>CivicBudget</span></a>
-            <ul class="navbar-nav flex-row gap-3">
-                <AuthorizeView>
-                    <Authorized>
+            <a class="navbar-brand" href="/"><Logo Size="28" Label="" /><span>CivicBudget</span></a>
+            @* Signed out: nothing in the bar (not even an empty list). Every public page carries its own Sign in control. *@
+            <AuthorizeView>
+                <Authorized>
+                    <ul class="navbar-nav flex-row gap-3">
                         <li class="nav-item"><NavLink class="nav-link" href="admin">Admin</NavLink></li>
                         <li class="nav-item">
                             <form action="Account/Logout" method="post" class="d-inline">
@@ -16,17 +18,14 @@
                                 <button type="submit" class="btn btn-link nav-link">Log out</button>
                             </form>
                         </li>
-                    </Authorized>
-                    <NotAuthorized>
-                        @* Signed out: nothing in the bar. Every public page carries its own Sign in control. *@
-                    </NotAuthorized>
-                </AuthorizeView>
-            </ul>
+                    </ul>
+                </Authorized>
+            </AuthorizeView>
         </div>
     </nav>
 </header>
 
-<main>
+<main id="main">
     @Body
 </main>
 

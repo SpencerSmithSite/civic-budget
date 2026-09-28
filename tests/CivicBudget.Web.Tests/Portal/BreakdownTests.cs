@@ -38,7 +38,27 @@ public class BreakdownTests : BunitContext
         Assert.Equal(["$300.00", "75.0%", "+20.0%"], cells.Select(c => c.TextContent));
         Assert.Contains("$400.00", cut.Find("tfoot").TextContent);
         Assert.Equal("Fund", cut.Find("thead th").TextContent);
-        Assert.Contains("1000 General Fund $300.00", cut.Find(".pt-bars").GetAttribute("aria-label"));
+        // Linked bars are a list whose links already read each label and value, so the list is named
+        // by its title only, not by the values again.
+        Assert.Equal("list", cut.Find(".pt-bars").GetAttribute("role"));
+        Assert.Equal("Where does the money go?", cut.Find(".pt-bars").GetAttribute("aria-label"));
+    }
+
+    [Fact]
+    public void An_unlinked_chart_is_an_image_whose_label_says_when_it_names_only_the_largest_six()
+    {
+        BreakdownItemDto[] eight = [.. Enumerable.Range(1, 8).Select(i => new BreakdownItemDto($"{i}", $"Department {i}", null, 100m * (9 - i), 0m))];
+        IRenderedComponent<Breakdown> cut = Render<Breakdown>(p => p
+            .Add(x => x.Title, "By department")
+            .Add(x => x.Data, new BreakdownDto("By department", eight.Sum(i => i.Amount), eight))
+            .Add(x => x.ItemHeader, "Department")
+            .Add(x => x.PageHref, "/transparency/maple-ridge-oh/2026"));
+
+        string label = cut.Find(".pt-bars").GetAttribute("aria-label")!;
+        Assert.Equal("img", cut.Find(".pt-bars").GetAttribute("role"));
+        Assert.StartsWith("By department, 8 items, the largest six: Department 1 $800.00", label, StringComparison.Ordinal);
+        Assert.DoesNotContain("Department 7", label, StringComparison.Ordinal);
+        Assert.EndsWith("The table lists every amount.", label, StringComparison.Ordinal);
     }
 
     [Fact]

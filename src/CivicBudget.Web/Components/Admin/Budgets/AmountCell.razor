@@ -1,13 +1,16 @@
 @* One money value. Read-only lines print it; editable lines render an input that looks like the
    value until hovered or focused and saves on change. Typing is local: nothing crosses the circuit
    until the field loses focus or Enter is pressed. While the save round-trip runs the value shows
-   in "unsaved" blue (a convention from planning tools like Adaptive). *@
+   in "unsaved" blue (a convention from planning tools like Adaptive). A value that is not an amount
+   is refused out loud: the field is marked invalid and a toast (an alert) says what to type. *@
+@inject ToastService Toasts
 @if (CanEdit && Positions is null)
 {
     <input @key="resetKey" type="text" inputmode="decimal"
            class="cb-amount-input @(invalid ? "is-invalid" : "") @(saving ? "cb-saving" : "")"
            value="@Value.ToString("N2", Culture)"
            aria-label="@Label"
+           aria-invalid="@(invalid ? "true" : null)"
            @onchange="OnChangedAsync" />
 }
 else if (Positions is { } positions)
@@ -59,6 +62,7 @@ else
         if (!decimal.TryParse(text, System.Globalization.NumberStyles.Number, Culture, out decimal parsed) || parsed < 0 || !CivicBudget.Domain.Common.Money.IsStorable(parsed))
         {
             invalid = true;
+            Toasts.Danger($"Not saved: {Label} must be an amount of zero or more, such as 1,250.00.");
             return;
         }
 

@@ -1,0 +1,52 @@
+@* The errors of a form that was just posted, gathered in one box at the top of the form. The box
+   takes focus when the page loads (js/password-toggle.js), so a screen reader hears what went wrong
+   instead of starting again at the top of the page; each field's own message stays beside it too.
+   It sits inside the EditForm to read its validation messages. A message from the page (a wrong
+   password, an expired link) comes in as Message, without the "Error: " prefix the red box makes
+   unnecessary. *@
+@if (Messages.Count > 0)
+{
+    <div class="alert alert-danger small" id="form-errors" role="alert" tabindex="-1" data-focus-on-load>
+        @if (Messages.Count == 1)
+        {
+            @Messages[0]
+        }
+        else
+        {
+            <ul class="mb-0 ps-3">
+                @foreach (string message in Messages)
+                {
+                    <li>@message</li>
+                }
+            </ul>
+        }
+        @ChildContent
+    </div>
+}
+
+@code {
+    [CascadingParameter]
+    private EditContext? EditContext { get; set; }
+
+    [Parameter]
+    public string? Message { get; set; }
+
+    /// <summary>More after the message, such as a link to try again.</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private List<string> Messages
+    {
+        get
+        {
+            var messages = new List<string>();
+            if (!string.IsNullOrWhiteSpace(Message))
+            {
+                messages.Add(Message.StartsWith("Error: ", StringComparison.Ordinal) ? Message["Error: ".Length..] : Message);
+            }
+
+            messages.AddRange(EditContext?.GetValidationMessages() ?? []);
+            return messages;
+        }
+    }
+}
