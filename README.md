@@ -14,6 +14,9 @@ Auditor of State's chart of accounts, the app is meant to sit beside a governmen
 ERP rather than replace it, and every non-obvious decision is written down. All of the data is
 fictional (the Village of Maple Ridge and Pine Hollow Township do not exist).
 
+The product site is **[spencersmith.site/CivicBudget](https://spencersmith.site/CivicBudget/)**:
+what it does, three short clips of it working, the security summary, and the demo logins.
+
 It has two halves:
 
 - **The admin app**, for finance staff and department heads. The chart of accounts is kept
@@ -275,8 +278,9 @@ deployed; it shows the production-shaped design. See [infra/README.md](infra/REA
    [25 Personnel budgeting](docs/walkthroughs/25-personnel.md) ·
    [26 Employees from the ERP](docs/walkthroughs/26-personnel-from-erp.md) ·
    [27 Email, two-step sign-in, onboarding](docs/walkthroughs/27-email-mfa-onboarding.md) ·
-   [28 SOC 2 by design](docs/walkthroughs/28-soc2.md)
-4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 41 decision records, each
+   [28 SOC 2 by design](docs/walkthroughs/28-soc2.md) ·
+   [29 The product site](docs/walkthroughs/29-product-site.md)
+4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 42 decision records, each
    with the alternatives I turned down, and the table of every package and why it is there.
 5. Then the code, starting at `src/CivicBudget.Domain/Budgets/BudgetVersion.cs`, the heart of it.
 

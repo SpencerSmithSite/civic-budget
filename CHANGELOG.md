@@ -6,6 +6,19 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 
 ## [Unreleased]
 
+## Phase 30: 2026-09-28 (the product site)
+### Added
+- **spencersmith.site/CivicBudget**, in the spencersmith.site repository:
+  - a hero with the Ohio fund check;
+  - the budget year as the app's own stepper;
+  - department requests, the worksheet, and the portal, each with a silent clip;
+  - what moves between the ERP and CivicBudget;
+  - the security summary;
+  - the live demo with every login;
+  - FAQ, and a contact form through Formspree.
+- `scripts/screenshots/site-clips.mjs`: records the site's three clips from a freshly seeded app.
+- A CivicBudget card in the portfolio's projects list.
+
 ## Phase 29: 2026-09-28 (SOC 2 by design)
 ### Added
 - **Security log** under Administration: every sign-in, wrong password, lockout, second step, recovery code, sign-out, idle sign-out, password change, export, and refused request, with the address it came from. Kept apart from the audit trail.

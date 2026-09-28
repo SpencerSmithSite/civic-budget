@@ -376,9 +376,9 @@ Decided with Spencer (2026-09-27): designed and built to achieve SOC 2 complianc
 - [x] Reviewed and approved (2026-09-28, PR #52)
 
 ## Phase 30: Marketing website  `phase-30-marketing-site`
-- [ ] Static site in the spencersmith.site repository at `public/CivicBudget`, served at spencersmith.site/CivicBudget (the Council pattern), mockups approved first
-- [ ] Hero, features with screenshots, GIF and video demos recorded with Playwright, FAQ, a trust page, and a clear "Try the live demo" with the demo sign-in
-- [ ] Contact form through Formspree, marked as CivicBudget in the subject
+- [x] Static site in the spencersmith.site repository at `public/CivicBudget`, served at spencersmith.site/CivicBudget (the Council pattern), mockups approved first
+- [x] Hero, features with screenshots, GIF and video demos recorded with Playwright, FAQ, a trust page, and a clear "Try the live demo" with the demo sign-in (security and the demo as sections of the one page, as approved)
+- [x] Contact form through Formspree, marked as CivicBudget in the subject
 - [ ] Reviewed and approved
 
 ## Phase 31: Accessibility self-scan  `phase-31-accessibility`
