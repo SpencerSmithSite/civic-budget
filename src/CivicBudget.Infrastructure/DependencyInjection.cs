@@ -1,4 +1,5 @@
 using CivicBudget.Application.Export;
+using CivicBudget.Application.Notifications;
 using CivicBudget.Application.Persistence;
 using CivicBudget.Application.Portal;
 using CivicBudget.Application.Publishing;
@@ -9,6 +10,7 @@ using CivicBudget.Application.Tenancy;
 using CivicBudget.Application.Users;
 using CivicBudget.Infrastructure.Export;
 using CivicBudget.Infrastructure.Identity;
+using CivicBudget.Infrastructure.Notifications;
 using CivicBudget.Infrastructure.Persistence;
 using CivicBudget.Infrastructure.Persistence.Interceptors;
 using CivicBudget.Infrastructure.Portal;
@@ -17,6 +19,7 @@ using CivicBudget.Infrastructure.Security;
 using CivicBudget.Infrastructure.Seed;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -85,9 +88,34 @@ public static class DependencyInjection
             .AddClaimsPrincipalFactory<ApplicationUserClaimsPrincipalFactory>();
 
         services.AddScoped<IUserAdminService, UserAdminService>();
+        services.AddScoped<AccountEmailService>();
+        services.AddScoped<IAccountEmailService>(sp => sp.GetRequiredService<AccountEmailService>());
+        services.AddScoped<IGovernmentProvisioningService, GovernmentProvisioningService>();
+        services.AddScoped<IUserDirectory, UserDirectory>();
+        services.AddScoped<IdentityAudit>();
+        services.AddScoped<ISignInSecurityService, SignInSecurityService>();
         services.AddScoped<IUserAvatarService, UserAvatarService>();
         services.AddScoped<IGovernmentLogoService, GovernmentLogoService>();
         services.AddScoped<DevelopmentSeeder>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Email: the outbox always; SMTP delivery and its sender only when a mail server is configured.
+    /// Without one (the default, and the demo) every email is kept in the outbox for an administrator.
+    /// </summary>
+    public static IServiceCollection AddEmail(this IServiceCollection services, IConfiguration configuration)
+    {
+        IConfigurationSection section = configuration.GetSection(EmailOptions.SectionName);
+        services.Configure<EmailOptions>(section);
+        services.AddSingleton<EmailSignal>();
+        services.AddSingleton<IEmailOutbox, EmailOutbox>();
+        if (section.Get<EmailOptions>() is { Delivers: true })
+        {
+            services.AddSingleton<IEmailTransport, SmtpEmailTransport>();
+            services.AddHostedService<EmailDeliveryService>();
+        }
 
         return services;
     }

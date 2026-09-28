@@ -147,7 +147,17 @@ public sealed class TestDatabase
         services.AddSingleton<IErpActualsApi, SimulatedErpActualsApi>(); // as Program.cs does wherever the demo data is seeded
         services.AddSingleton<IErpBudgetApi, SimulatedErpBudgetApi>();
         services.AddSingleton<IErpEmployeesApi, SimulatedErpEmployeesApi>();
+        services.AddEmail(new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build()); // no mail server: the outbox keeps everything
+        services.AddScoped<Application.Notifications.IAppLinks, TestAppLinks>();
         _provider = services.BuildServiceProvider();
+    }
+
+    /// <summary>Emailed links in tests point at a fixed address; the web host takes it from the page.</summary>
+    public const string BaseUrl = "https://civicbudget.test/";
+
+    private sealed class TestAppLinks : Application.Notifications.IAppLinks
+    {
+        public string Absolute(string relativePath) => BaseUrl + relativePath.TrimStart('/');
     }
 
     public string ConnectionString { get; }

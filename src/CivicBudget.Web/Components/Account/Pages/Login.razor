@@ -35,9 +35,12 @@
                         <PasswordInput @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" />
                         <ValidationMessage For="() => Input.Password" class="text-danger" />
                     </div>
-                    <div class="form-check mb-3">
-                        <InputCheckbox @bind-Value="Input.RememberMe" id="Input.RememberMe" class="form-check-input" />
-                        <label for="Input.RememberMe" class="form-check-label">Remember me</label>
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="form-check mb-0">
+                            <InputCheckbox @bind-Value="Input.RememberMe" id="Input.RememberMe" class="form-check-input" />
+                            <label for="Input.RememberMe" class="form-check-label">Remember me</label>
+                        </div>
+                        <a class="ms-auto small" href="Account/ForgotPassword">Forgot your password?</a>
                     </div>
                     <button type="submit" class="w-100 btn btn-primary">Sign in</button>
                 </EditForm>
@@ -80,6 +83,11 @@
             Logger.LogInformation("User {Email} logged in.", Input.Email);
             // Straight into the app: the overview, or for a department user their department (the overview forwards them).
             RedirectManager.RedirectTo(ReturnUrl ?? "admin");
+        }
+        else if (result.RequiresTwoFactor)
+        {
+            // The password was right; the second step comes next, carrying where the user was going.
+            RedirectManager.RedirectTo("Account/LoginWith2fa", new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
         }
         else if (result.IsLockedOut)
         {

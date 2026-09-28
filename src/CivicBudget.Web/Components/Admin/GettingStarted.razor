@@ -1,0 +1,66 @@
+@page "/admin/getting-started"
+@attribute [Authorize(Policy = Policies.CanMaintainSetup)]
+@inject ISetupChecklistService Checklist
+
+@* What a government still has to do before its first budget, worked out from what is there. A
+   newly set-up government's Administrator lands here from the overview; a government already
+   running sees every required step done and the optional pieces it has not used yet. *@
+<PageTitle>Getting started</PageTitle>
+
+<PageHeader Title="Getting started" Eyebrow="Setup" Crumbs="@([new Crumb("Setup"), new Crumb("Getting started")])"
+            Tip="Each step is checked against what is already set up, so it is done the moment the thing it describes exists." />
+
+@if (list is null)
+{
+    <SkeletonRows Rows="6" Columns="2" />
+}
+else
+{
+    <div class="cb-kpis">
+        <KpiCard Label="Ready for a budget" Value="@($"{list.RequiredDone} of {list.RequiredTotal}")" Tone="@(list.IsReady ? "ok" : "warn")"
+                 Detail="@(list.IsReady ? $"{list.GovernmentName} has everything a budget needs" : "Required steps done")" />
+    </div>
+
+    <h2 class="h6 mt-2">To start budgeting</h2>
+    <ol class="cb-checklist">
+        @foreach (SetupStepDto step in list.Steps.Where(s => !s.Optional))
+        {
+            @Step(step)
+        }
+    </ol>
+
+    <h2 class="h6 mt-4">When you are ready</h2>
+    <ul class="cb-checklist">
+        @foreach (SetupStepDto step in list.Steps.Where(s => s.Optional))
+        {
+            @Step(step)
+        }
+    </ul>
+}
+
+@code {
+    private SetupChecklistDto? list;
+
+    protected override async Task OnInitializedAsync() => list = await Checklist.GetAsync();
+
+    private static RenderFragment Step(SetupStepDto step) => __builder =>
+    {
+        <li class="card cb-checklist-step @(step.Done ? "is-done" : "")">
+            <span class="cb-checklist-mark" aria-hidden="true"><i class="bi @(step.Done ? "bi-check-circle-fill" : "bi-circle")"></i></span>
+            <div class="cb-checklist-text">
+                <div class="fw-semibold">@step.Title <span class="visually-hidden">@(step.Done ? "(done)" : "(to do)")</span></div>
+                <div class="small text-secondary">@step.Description</div>
+                @if (step.Detail is not null)
+                {
+                    <div class="small mt-1">@step.Detail</div>
+                }
+            </div>
+            <div class="cb-checklist-action">
+                <AuthorizeView Policy="@(step.AdminOnly ? Policies.CanManageUsers : Policies.CanMaintainSetup)">
+                    <Authorized><a class="btn btn-sm @(step.Done ? "btn-outline-primary" : "btn-primary")" href="@step.Href">@(step.Done ? "Review" : step.ActionLabel)</a></Authorized>
+                    <NotAuthorized><span class="small text-secondary">An Administrator does this</span></NotAuthorized>
+                </AuthorizeView>
+            </div>
+        </li>
+    };
+}

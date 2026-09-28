@@ -42,6 +42,7 @@
         <AuthorizeView Policy="@Policies.CanMaintainSetup">
             <div class="cb-navgroup">Setup</div>
             <nav class="nav cb-nav flex-column" aria-label="Setup">
+                <NavLink class="nav-link" href="admin/getting-started" @onclick="CloseMenu"><i class="bi bi-signpost-2" aria-hidden="true"></i>Getting started</NavLink>
                 <NavLink class="nav-link" href="admin/funds" @onclick="CloseMenu"><i class="bi bi-bank" aria-hidden="true"></i>Funds</NavLink>
                 <NavLink class="nav-link" href="admin/departments" @onclick="CloseMenu"><i class="bi bi-diagram-3" aria-hidden="true"></i>Departments</NavLink>
                 <NavLink class="nav-link" href="admin/accounts" @onclick="CloseMenu"><i class="bi bi-list-columns" aria-hidden="true"></i>Chart of accounts</NavLink>
@@ -58,6 +59,7 @@
             <nav class="nav cb-nav flex-column" aria-label="Administration">
                 <NavLink class="nav-link" href="admin/users" @onclick="CloseMenu"><i class="bi bi-people" aria-hidden="true"></i>Users</NavLink>
                 <NavLink class="nav-link" href="admin/settings" @onclick="CloseMenu"><i class="bi bi-sliders" aria-hidden="true"></i>Government settings</NavLink>
+                <NavLink class="nav-link" href="admin/outbox" @onclick="CloseMenu"><i class="bi bi-envelope" aria-hidden="true"></i>Email outbox</NavLink>
             </nav>
         </AuthorizeView>
         <div class="cb-navgroup">Public portal</div>

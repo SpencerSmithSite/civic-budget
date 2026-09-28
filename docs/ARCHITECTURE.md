@@ -214,6 +214,13 @@ export or `IErpEmployeesApi` fills it, `EmployeeMatcher` is the pure match, and
 the idempotency key, so a send whose answer was lost is retried without posting twice. A
 filtered unique index allows one unfinished send per government and year.
 
+### 4.7 Email (ADR-0040)
+Email is a transactional outbox. Services add `OutboxEmail` rows through `IEmailOutbox` in their
+own unit of work and call `Notify()` after saving. Where a mail server is configured,
+`EmailDeliveryService` (a hosted service) wakes on that signal and sends through MailKit; nothing
+polls the database. Without one, emails stay held for the Email outbox page. `IAppLinks` gives
+services absolute links, from the page's address or `App:PublicUrl`.
+
 ### 4.6 Calculated lines (ADR-0038)
 Personnel lines are calculated, not typed. Positions are children of `BudgetVersion`; each
 change prices the department with the year's `PersonnelSettings` (as plain `PayrollRules`)

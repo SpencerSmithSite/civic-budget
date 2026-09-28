@@ -91,7 +91,7 @@ The public portal needs no login: [Village of Maple Ridge](https://civicbudget-a
 | Admin app | Blazor Interactive Server, QuickGrid, Bootstrap 5 themed with CSS variables |
 | Portal | Blazor static server rendering, output caching, no JavaScript |
 | Data | EF Core on SQL Server 2022, ASP.NET Core Identity, FluentValidation, ClosedXML for Excel |
-| Tests | xUnit, bUnit, Testcontainers (a real SQL Server in Docker), CDK assertions; 848 tests |
+| Tests | xUnit, bUnit, Testcontainers (a real SQL Server in Docker), CDK assertions; 875 tests |
 | Delivery | Docker, GitHub Actions with OIDC sign-in; live on Azure (Bicep), deploy-ready on AWS (CDK in C#) |
 
 The code is four projects with dependencies pointing inward: `Domain` (entities and budget
@@ -150,6 +150,10 @@ that would have been wrong.
   with a preview of every hire, raise, and departure and every line it moves. The ERP's facts are
   refreshed and the budget's plans kept. The roster, cost by fund, and benefits summary add up to
   the lines to the cent. ([ADR-0039](docs/DECISIONS.md#adr-0039-employees-come-from-the-erps-payroll-by-name-and-code-the-sync-refreshes-what-the-erp-owns-and-leaves-the-budgets-plans-alone), [Walkthrough 26](docs/walkthroughs/26-personnel-from-erp.md))
+- **Ready for a real customer.** Email goes through a transactional outbox (saved with the change
+  that caused it, delivered over SMTP, kept for review in the demo); passwords are never emailed;
+  two-step sign-in works with any authenticator app and can be required; a new government is set up
+  with one command and a checklist. ([ADR-0040](docs/DECISIONS.md#adr-0040-email-through-a-transactional-outbox-two-step-sign-in-with-authenticator-apps-governments-provisioned-from-the-command-line), [Walkthrough 27](docs/walkthroughs/27-email-mfa-onboarding.md))
 
 ## Run it locally
 
@@ -170,6 +174,22 @@ To start again from clean seed data: `docker compose down -v && docker compose u
 
 To run the app itself in a container too: `docker compose -f docker-compose.full.yml up --build`,
 then open http://localhost:8080.
+
+### Email and a new government
+
+Without a mail server the app keeps every email in **Administration, Email outbox**, where its links
+work; that is how the demo runs. To deliver, set `Email:Mode` to `Smtp` with any provider's
+`Email:SmtpHost`, `Email:SmtpPort`, `Email:SmtpUserName`, `Email:FromAddress`, and the password in
+user-secrets (`Email:SmtpPassword`).
+
+To set up a new government and its first Administrator:
+
+```bash
+dotnet run --project src/CivicBudget.Web -- --provision --name "Village of Cedar Falls" --type Village --slug cedar-falls-oh --admin-name "Jordan Ellis" --admin-email jordan@cedarfalls.example
+```
+
+The Administrator gets a link to choose a password (printed here when there is no mail server) and
+then follows **Setup, Getting started**.
 
 ```bash
 dotnet test                                 # everything; integration tests start their own SQL Server container, infra tests need Node.js
@@ -224,8 +244,9 @@ deployed; it shows the production-shaped design. See [infra/README.md](infra/REA
    [23 The certificate of estimated resources](docs/walkthroughs/23-certificate.md) ·
    [24 Reports on the ERP's books](docs/walkthroughs/24-actuals-reports.md) ·
    [25 Personnel budgeting](docs/walkthroughs/25-personnel.md) ·
-   [26 Employees from the ERP](docs/walkthroughs/26-personnel-from-erp.md)
-4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 39 decision records, each
+   [26 Employees from the ERP](docs/walkthroughs/26-personnel-from-erp.md) ·
+   [27 Email, two-step sign-in, onboarding](docs/walkthroughs/27-email-mfa-onboarding.md)
+4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 40 decision records, each
    with the alternatives I turned down, and the table of every package and why it is there.
 5. Then the code, starting at `src/CivicBudget.Domain/Budgets/BudgetVersion.cs`, the heart of it.
 

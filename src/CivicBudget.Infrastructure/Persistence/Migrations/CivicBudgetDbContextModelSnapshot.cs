@@ -841,6 +841,9 @@ namespace CivicBudget.Infrastructure.Persistence.Migrations
                         .HasMaxLength(60)
                         .HasColumnType("nvarchar(60)");
 
+                    b.Property<bool>("RequireMfa")
+                        .HasColumnType("bit");
+
                     b.Property<string>("State")
                         .IsRequired()
                         .HasMaxLength(2)
@@ -856,6 +859,62 @@ namespace CivicBudget.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Governments");
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Notifications.OutboxEmail", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("GovernmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTimeOffset?>("SentAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ToAddress")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("ToName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("GovernmentId", "CreatedAtUtc");
+
+                    b.ToTable("OutboxEmails");
                 });
 
             modelBuilder.Entity("CivicBudget.Domain.Personnel.ExtraPay", b =>
@@ -2334,6 +2393,15 @@ namespace CivicBudget.Infrastructure.Persistence.Migrations
                         });
 
                     b.Navigation("AccountNumberFormat")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CivicBudget.Domain.Notifications.OutboxEmail", b =>
+                {
+                    b.HasOne("CivicBudget.Domain.Governments.Government", null)
+                        .WithMany()
+                        .HasForeignKey("GovernmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 

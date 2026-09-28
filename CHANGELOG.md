@@ -6,6 +6,29 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 
 ## [Unreleased]
 
+## Phase 28: 2026-09-27 (email, two-step sign-in, and onboarding)
+### Added
+- **Email** through a transactional outbox, with each email saved together with the change that caused it:
+  - a department submitted (to Administrators and Fiscal Officers);
+  - a request returned (to the department);
+  - forgot password (a single-use reset link);
+  - a welcome link for new users to choose their own password.
+- **Delivery modes:**
+  - **Email outbox** under Administration: every email the government's users were sent, readable by its Administrators, with working links. Without a mail server (the demo) emails are kept here.
+  - With a mail server (`Email:Mode=Smtp`) a background sender delivers them through MailKit, woken by each save rather than a timer, and retries a refusal.
+- **Forgot your password?** on the sign-in page, and reset pages that answer the same way whether or not the address has an account.
+- **Two-step sign-in** with any authenticator app:
+  - set up from a QR code, with ten recovery codes;
+  - sign-in with a code (remember the browser for 14 days) or a recovery code.
+- **Administrator controls for two-step sign-in:** require it for the whole government (Government settings), or reset it for a user who lost their phone. Every change is an audit event.
+- **`--provision`**: set up a new government and its first Administrator from the command line; the Administrator is emailed a link to choose a password.
+- **Getting started** under Setup: what a government still needs before its first budget, worked out from what exists, with a banner on the Overview until it is done.
+- MailKit and QRCoder (both MIT).
+### Changed
+- Creating a user defaults to emailing them a link rather than typing a temporary password.
+- Links and redirects honour `X-Forwarded-Proto` behind the load balancer; `App:PublicUrl` can set the address outright.
+- The Overview shows an empty state for a government with no budget yet.
+
 ## Phase 27: 2026-09-27 (employees from the ERP, and personnel reports)
 ### Added
 - **Employees from the ERP** under Setup: bring the payroll into a budget being prepared, from the ERP's API (simulated in the demo) or a payroll export (CSV or XLSX, one row per employee). The preview shows each employee's step (new position, vacancy filled, updated with what changed, left vacant) and every budget line that would move before anything is written.

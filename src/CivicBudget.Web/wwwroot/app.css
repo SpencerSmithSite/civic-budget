@@ -3405,3 +3405,134 @@ table.pt-grid th[scope="row"] a {
 .cb-setup-card {
     max-width: 56rem;
 }
+
+/* ---- Email outbox ---------------------------------------------------------------------------- */
+
+.cb-outbox {
+    display: grid;
+    gap: 8px;
+}
+
+.cb-outbox-item > summary {
+    display: grid;
+    grid-template-columns: 11rem minmax(0, 1fr) auto;
+    grid-template-areas: "when subject status" "when to status";
+    gap: 2px 16px;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.cb-outbox-item > summary::-webkit-details-marker {
+    display: none;
+}
+
+.cb-outbox-when {
+    grid-area: when;
+    font-size: 0.8125rem;
+    color: var(--cb-muted);
+}
+
+.cb-outbox-subject {
+    grid-area: subject;
+    font-weight: 600;
+}
+
+.cb-outbox-to {
+    grid-area: to;
+    font-size: 0.8125rem;
+    color: var(--cb-muted);
+    overflow-wrap: anywhere;
+}
+
+.cb-outbox-item > summary .cb-pill {
+    grid-area: status;
+}
+
+.cb-outbox-body {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    padding: 12px 16px 16px;
+    border-top: 1px solid var(--cb-border);
+    font-size: 0.875rem;
+}
+
+@media (max-width: 575.98px) {
+    .cb-outbox-item > summary {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas: "subject status" "to to" "when when";
+    }
+}
+
+/* ---- Two-step sign-in ------------------------------------------------------------------------ */
+
+.cb-qr svg {
+    width: 200px;
+    height: 200px;
+    border: 1px solid var(--cb-border);
+    border-radius: var(--cb-radius);
+    background: #fff;
+}
+
+.cb-authenticator-key {
+    font-size: 0.9375rem;
+    letter-spacing: 0.04em;
+    overflow-wrap: anywhere;
+}
+
+.cb-setup-steps > li {
+    margin-bottom: 16px;
+}
+
+.cb-code-form {
+    max-width: 14rem;
+}
+
+.cb-recovery-codes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+    gap: 6px 16px;
+    padding: 12px 16px;
+    list-style: none;
+    background: var(--cb-subtotal);
+    border-radius: var(--cb-radius);
+    max-width: 32rem;
+}
+
+/* ---- Getting started ------------------------------------------------------------------------- */
+
+.cb-checklist {
+    display: grid;
+    gap: 8px;
+    padding: 0;
+    list-style: none;
+    max-width: 56rem;
+}
+
+.cb-checklist-step {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 12px 16px;
+    align-items: center;
+    padding: 14px 16px;
+}
+
+.cb-checklist-mark {
+    font-size: 1.25rem;
+    color: var(--cb-muted);
+}
+
+.cb-checklist-step.is-done .cb-checklist-mark {
+    color: var(--cb-success);
+}
+
+@media (max-width: 575.98px) {
+    .cb-checklist-step {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .cb-checklist-action {
+        grid-column: 2;
+    }
+}

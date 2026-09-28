@@ -16,4 +16,7 @@ public static class ClaimNames
 
     /// <summary>Present (value "1") while the user must replace a temporary password; the middleware keeps them on that page.</summary>
     public const string MustChangePassword = "pwd_change";
+
+    /// <summary>Present (value "1") while the user's government requires two-step sign-in and they have not set it up.</summary>
+    public const string MfaSetupRequired = "mfa_setup";
 }

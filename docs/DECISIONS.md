@@ -1269,6 +1269,75 @@ above it changes.
 
 ---
 
+## ADR-0040: Email through a transactional outbox; two-step sign-in with authenticator apps; governments provisioned from the command line
+**Date:** 2026-09-27 · **Status:** Accepted
+
+**Context.** A buyer asks three things before anything about budgets.
+- **Does it email people?** For example: a department submitted, a request was returned, or
+  someone forgot their password.
+- **Can we require MFA?**
+- **How does a new customer get set up without a developer?**
+
+Those constraints mattered for the answers:
+- There is no mail provider yet; spencersmith.site's Formspree only emails its owner.
+- Every demo address is fictional.
+- The free demo database must be able to sleep (ADR-0031).
+- Microsoft sign-in (Entra ID) is out for now.
+
+**Decision.**
+- **A transactional outbox.** Every email is an `OutboxEmail` row written in the same save as the
+  change that caused it. A submission and its notice are saved together or not at all, and a mail
+  server that is down delays a notice rather than failing the submission. The rows double as the
+  record of what was sent to whom.
+- **Two delivery modes** (`EmailOptions.Mode`). "Outbox", the default and the demo, keeps every
+  email for an Administrator to read on the Email outbox page, where its links work. "Smtp" delivers
+  through MailKit (any provider that speaks SMTP), with the password in the secret store.
+- **No polling.** `EmailDeliveryService` sleeps until a save calls `IEmailOutbox.Notify`, then sends
+  everything pending. A refusal is retried after a pause that grows with each attempt, and marked
+  failed after five. A timer checking the outbox would keep the serverless database awake.
+- **No password is ever emailed.**
+  - A forgotten password gets a single-use reset link: Identity's token, tied to the security
+    stamp, valid for a day. The page answers the same way whether the address has an account.
+  - A new user is emailed a link to choose their own password, instead of an administrator typing
+    a temporary one (still possible, for someone without email).
+- **Two-step sign-in with authenticator apps** (TOTP, Identity's built-in provider).
+  - Users set it up under Your account, from a QR code drawn as SVG on the server (QRCoder), so
+    the sign-in pages carry no third-party script.
+  - They get ten single-use recovery codes and can choose to remember a browser for 14 days.
+  - An Administrator can require it for the whole government: everyone without it is signed out,
+    and a claim sends them to set it up at the next sign-in (`RequireMfaMiddleware`, the same shape
+    as the temporary-password rule).
+  - An Administrator can also reset it for a user who lost their phone.
+  - Every change is an audit event.
+- **Provisioning is the vendor's operation.** `--provision` (like `--reseed`) creates a government
+  and its first Administrator, emails that person a link to choose a password, and prints the link
+  when there is no mail server. No page a government's users can reach creates governments.
+- **The getting-started checklist** (`SetupChecklistService`) tells the new Administrator what
+  remains:
+  - the chart (from the ERP or its file);
+  - a fiscal year;
+  - the first budget;
+  - their team;
+  - then the optional pieces.
+
+  Each step is worked out from what exists, so it is done the moment the thing exists.
+- **Forwarded headers.** Links and redirects use the scheme the load balancer saw
+  (`X-Forwarded-Proto`), and `App:PublicUrl` can fix the address outright.
+
+**Alternatives.**
+- Sending mail inline in the request: a slow or down server fails the user's action.
+- A hosted email API client: it ties the product to one provider, when SMTP works with all of them.
+- Formspree: it can only email its owner.
+- SMS codes: they need a paid provider, and SIM swapping makes them the weaker second factor.
+- A web sign-up page for new governments: anyone could create tenants on a public demo.
+
+**Consequences.** The outbox holds sign-in links, so only Administrators read it. A deployment with
+SMTP configured delivers pending mail on the next save after a restart, not at startup, which keeps
+startup free of database calls. `IAppLinks` gives services an absolute address; outside a page the
+command line needs `App:PublicUrl`.
+
+---
+
 ## Packages
 
 Every NuGet package and why it is here. A package is added to this table in the same change that
@@ -1284,6 +1353,8 @@ adds it.
 | Microsoft.AspNetCore.DataProtection.EntityFrameworkCore | Infrastructure | The Data Protection key ring in SQL Server, so cookies survive restarts | 0023 |
 | Microsoft.AspNetCore.Components.QuickGrid | Web | Admin grids | 0011 |
 | ClosedXML | Infrastructure | Reading and writing XLSX without Office or COM | 0021, 0022 |
+| MailKit | Infrastructure | Sends the outbox's email over SMTP; Microsoft's own documentation points to it instead of the old `SmtpClient`; MIT licensed | 0040 |
+| QRCoder | Web | Draws the QR code for setting up an authenticator app, as SVG on the server, so the sign-in pages stay free of third-party script; MIT licensed | 0040 |
 | PDFsharp-MigraDoc | Infrastructure | The certificate's PDF: MigraDoc lays out pages and tables, PDFsharp writes the file; MIT licensed, cross-platform | 0036 |
 | xunit, xunit.runner.visualstudio, Microsoft.NET.Test.Sdk, coverlet.collector | tests | Test framework and coverage (the template defaults) | |
 | bunit | Web.Tests | Blazor component tests | |

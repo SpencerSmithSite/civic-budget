@@ -1,0 +1,137 @@
+@page "/Account/Manage/EnableAuthenticator"
+
+@using System.ComponentModel.DataAnnotations
+@using System.Text
+
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IdentityRedirectManager RedirectManager
+@inject IdentityAudit Audit
+
+@* Sets up two-step sign-in with an authenticator app (Microsoft Authenticator, Google Authenticator,
+   1Password, and the like): scan the code, type the six digits it shows, and keep the recovery codes
+   somewhere safe. The codes are shown once, on this page, and never stored in readable form. *@
+<PageTitle>Set up two-step sign-in</PageTitle>
+
+@if (recoveryCodes is not null)
+{
+    <h2 class="h4">Two-step sign-in is on</h2>
+    <div class="alert alert-warning" role="alert">
+        <b>Save these recovery codes now.</b> Each one signs you in once if you lose your phone. This is the only time they are shown.
+    </div>
+    <ul class="cb-recovery-codes" aria-label="Recovery codes">
+        @foreach (string recoveryCode in recoveryCodes)
+        {
+            <li><code>@recoveryCode</code></li>
+        }
+    </ul>
+    <a class="btn btn-primary" href="admin">Continue</a>
+}
+else
+{
+    <h2 class="h4">Set up two-step sign-in</h2>
+    @if (Required)
+    {
+        <div class="alert alert-info" role="status"><i class="bi bi-shield-lock me-2" aria-hidden="true"></i>Your government requires a second step at sign-in. Set it up to continue; it takes a minute.</div>
+    }
+    <StatusMessage Message="@message" />
+    <ol class="cb-setup-steps">
+        <li>
+            <b>Open an authenticator app on your phone</b> (Microsoft Authenticator, Google Authenticator, 1Password, or any that supports standard six-digit codes).
+        </li>
+        <li>
+            <b>Scan this code</b>, or type the key by hand.
+            <div class="cb-qr my-2" role="img" aria-label="QR code for your authenticator app">@qr</div>
+            <div class="small">Key: <code class="cb-authenticator-key">@formattedKey</code></div>
+        </li>
+        <li>
+            <b>Type the six-digit code the app shows.</b>
+            <EditForm Model="Input" FormName="verify-authenticator" OnValidSubmit="VerifyAsync" method="post" class="mt-2 cb-code-form">
+                <DataAnnotationsValidator />
+                <label for="Input.Code" class="form-label visually-hidden">Verification code</label>
+                <InputText @bind-Value="Input.Code" id="Input.Code" class="form-control" autocomplete="one-time-code" inputmode="numeric" placeholder="123 456" aria-required="true" />
+                <ValidationMessage For="() => Input.Code" class="text-danger" />
+                <button type="submit" class="btn btn-primary mt-2">Turn on</button>
+            </EditForm>
+        </li>
+    </ol>
+}
+
+@code {
+    private const string Issuer = "CivicBudget";
+
+    private string? message;
+    private ApplicationUser user = default!;
+    private string formattedKey = "";
+    private MarkupString qr;
+    private IEnumerable<string>? recoveryCodes;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromQuery]
+    private bool Required { get; set; }
+
+    [SupplyParameterFromForm]
+    // Form posts can set this to null before OnInitialized runs, so it is initialized there, not here (BL0008).
+    private InputModel Input { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+        if (await UserManager.GetUserAsync(HttpContext.User) is not { } found)
+        {
+            RedirectManager.RedirectToInvalidUser(UserManager, HttpContext);
+            return;
+        }
+
+        user = found;
+        string? key = await UserManager.GetAuthenticatorKeyAsync(user);
+        if (string.IsNullOrEmpty(key))
+        {
+            await UserManager.ResetAuthenticatorKeyAsync(user);
+            key = await UserManager.GetAuthenticatorKeyAsync(user);
+        }
+
+        formattedKey = Format(key!);
+        string uri = $"otpauth://totp/{Uri.EscapeDataString(Issuer)}:{Uri.EscapeDataString(user.Email!)}?secret={key}&issuer={Uri.EscapeDataString(Issuer)}&digits=6";
+        qr = QrCodeSvg.For(uri);
+    }
+
+    private async Task VerifyAsync()
+    {
+        string code = Input.Code.Replace(" ", "", StringComparison.Ordinal).Replace("-", "", StringComparison.Ordinal);
+        bool valid = await UserManager.VerifyTwoFactorTokenAsync(user, UserManager.Options.Tokens.AuthenticatorTokenProvider, code);
+        if (!valid)
+        {
+            message = "Error: That code did not match. Check the time on your phone is set automatically, and type the newest code.";
+            return;
+        }
+
+        await UserManager.SetTwoFactorEnabledAsync(user, true);
+        recoveryCodes = await UserManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
+        await Audit.RecordAsync(user, $"{user.Email} turned on two-step sign-in");
+
+        // Reissues the cookie from fresh claims, so the "set it up" claim (if any) is gone.
+        await SignInManager.RefreshSignInAsync(user);
+    }
+
+    /// <summary>"abcd efgh ijkl ...": the key in groups of four, lowercase, as authenticator apps show it.</summary>
+    private static string Format(string key)
+    {
+        var result = new StringBuilder();
+        for (int i = 0; i < key.Length; i += 4)
+        {
+            result.Append(key.AsSpan(i, Math.Min(4, key.Length - i))).Append(' ');
+        }
+
+        return result.ToString().TrimEnd().ToLowerInvariant();
+    }
+
+    private sealed class InputModel
+    {
+        [Required(ErrorMessage = "Type the six-digit code from the app.")]
+        [StringLength(9, MinimumLength = 6, ErrorMessage = "The code is six digits.")]
+        public string Code { get; set; } = "";
+    }
+}
