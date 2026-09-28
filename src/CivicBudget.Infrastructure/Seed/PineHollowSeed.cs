@@ -70,4 +70,21 @@ internal static class PineHollowSeed
             [("2031", 2026)] = 27_000m,
             [("2031", 2027)] = 24_000m,
         };
+
+    /// <summary>
+    /// The township's payroll in the simulated ERP. Pine Hollow has no personnel settings in the seed,
+    /// so this is what a new government sees: set up the year from the defaults, then bring its
+    /// employees in from the ERP instead of typing them.
+    /// </summary>
+    public static IReadOnlyList<SeedEmployee> Payroll { get; } =
+    [
+        new("T201", "710", "Trustee", "Pat Keller", new(2016, 1, 1), Domain.Personnel.PayBasis.Salary, 11_900m, Retirement: "OPERS"),
+        new("T202", "710", "Trustee", "Lee Moreno", new(2020, 1, 1), Domain.Personnel.PayBasis.Salary, 11_900m, Retirement: "OPERS"),
+        new("T203", "710", "Trustee", "Drew Hartman", new(2024, 1, 1), Domain.Personnel.PayBasis.Salary, 11_900m, Retirement: "OPERS"),
+        new("T204", "710", "Fiscal Officer", "Sidney Albright", new(2017, 4, 1), Domain.Personnel.PayBasis.Salary, 16_500m, Retirement: "OPERS"),
+        new("T210", "610", "Road superintendent (part-time)", "Kelly Brandt", new(2012, 5, 7), Domain.Personnel.PayBasis.Hourly, 24.50m, Hours: 1_040m,
+            Retirement: "OPERS", Funds: [("2031", 100m)]),
+        new("T211", "610", "Road worker (seasonal)", "Jesse Lowe", new(2023, 4, 17), Domain.Personnel.PayBasis.Hourly, 20.75m, Hours: 600m,
+            Retirement: "OPERS", Funds: [("2031", 100m)]),
+    ];
 }

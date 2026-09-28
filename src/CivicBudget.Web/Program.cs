@@ -59,6 +59,7 @@ if (builder.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>(
 {
     builder.Services.AddSingleton<IErpActualsApi, SimulatedErpActualsApi>();
     builder.Services.AddSingleton<IErpBudgetApi, SimulatedErpBudgetApi>();
+    builder.Services.AddSingleton<IErpEmployeesApi, SimulatedErpEmployeesApi>();
 }
 
 // --- Authentication: Identity's cookie. ---------------------------------------------------------

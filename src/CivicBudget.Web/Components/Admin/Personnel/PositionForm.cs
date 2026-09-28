@@ -11,6 +11,9 @@ public sealed class PositionForm
 {
     public string Title { get; set; } = "";
     public string? EmployeeName { get; set; }
+
+    /// <summary>The ERP's employee number, kept as it came so next year's sync finds the position; not edited here.</summary>
+    public string? EmployeeId { get; set; }
     public bool IsVacant { get; set; }
     public DateOnly? HireDate { get; set; }
     public bool OnScale { get; set; }
@@ -59,6 +62,7 @@ public sealed class PositionForm
         {
             Title = d.Title,
             EmployeeName = d.EmployeeName,
+            EmployeeId = d.EmployeeId,
             IsVacant = d.IsVacant,
             HireDate = d.HireDate,
             OnScale = d.PayScaleId is not null,
@@ -96,6 +100,7 @@ public sealed class PositionForm
     {
         Title = Title.Trim(),
         EmployeeName = IsVacant ? null : EmployeeName?.Trim() ?? "",
+        EmployeeId = IsVacant ? null : EmployeeId,
         HireDate = HireDate,
         Basis = Basis,
         Rate = OnScale ? 0m : Rate ?? 0m,

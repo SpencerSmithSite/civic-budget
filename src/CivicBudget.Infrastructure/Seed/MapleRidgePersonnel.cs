@@ -40,146 +40,137 @@ internal static class MapleRidgePersonnel
         return settings;
     }
 
-    /// <summary>Each position by department code.</summary>
-    public static IReadOnlyList<(string Department, PositionDetails Details)> Positions(PayrollRules rules, Func<string, Guid> fund)
+    /// <summary>
+    /// The village's payroll as the ERP holds it when the FY2027 budget was started, plus what the
+    /// budget adds to each position (the planned raise or step increase, months, longevity, other pay).
+    /// A null employee number is a vacancy the budget carries and the payroll does not.
+    /// </summary>
+    public static IReadOnlyList<SeedEmployee> Roster { get; } =
+    [
+        // ---- 110 Police: eight sworn officers (one position vacant until April) and a part-time clerk.
+        new("E1001", "110", "Chief of Police", "Morgan Hale", new(2006, 4, 17), PayBasis.Salary, 88_500m, Retirement: "OP&F police", PickUp: true,
+            Benefits: Family, Raise: 3m, Longevity: NonUnion, Extra: [("Uniform allowance", 1_100m)]),
+        Officer("E1014", "Sergeant", "Alex Rivera", new(2011, 8, 8), "SGT", 3, null, CoverageTier.Family, 60m),
+        Officer("E1022", "Sergeant", "Taylor Brooks", new(2015, 3, 2), "SGT", 2, 9, CoverageTier.EmployeeSpouse, 60m),
+        Officer("E1017", "Patrol officer", "Riley Chen", new(2013, 6, 3), "PO", 5, null, CoverageTier.Family, 70m),
+        Officer("E1031", "Patrol officer", "Quinn Murphy", new(2018, 10, 15), "PO", 4, 10, CoverageTier.EmployeeOnly, 70m),
+        Officer("E1036", "Patrol officer", "Jordan Price", new(2021, 1, 11), "PO", 3, 7, CoverageTier.EmployeeSpouse, 70m),
+        Officer("E1042", "Patrol officer", "Avery Santos", new(2024, 5, 20), "PO", 2, 5, CoverageTier.EmployeeOnly, 70m),
+        Officer(null, "Patrol officer", null, null, "PO", 1, null, CoverageTier.Family, 40m) with { FirstMonth = 4 },
+        new("E1029", "110", "Records clerk (part-time)", "Pat Donnelly", new(2020, 2, 3), PayBasis.Hourly, 19.25m, Hours: 1_040m,
+            Retirement: "OPERS", Benefits: [], Raise: 3m),
+
+        // ---- 725 Finance: the fiscal officer and a part-time payroll clerk.
+        new("E1008", "725", "Fiscal Officer", "Dana Whitfield", new(2011, 3, 1), PayBasis.Salary, 64_800m, Retirement: "OPERS",
+            Benefits: Family, Raise: 3m, Longevity: NonUnion),
+        new("E1033", "725", "Payroll and accounts payable clerk", "Casey Lin", new(2019, 6, 10), PayBasis.Hourly, 23.10m, Hours: 1_560m,
+            Retirement: "OPERS", Benefits: [], Raise: 3m),
+
+        // ---- 620 Streets & Service: the director and crew, shared between the General Fund and the Street fund.
+        new("E1011", "620", "Service Director", "Sam Okafor", new(2010, 5, 3), PayBasis.Salary, 71_500m, Retirement: "OPERS",
+            Funds: [("1000", 50m), ("2011", 50m)], Benefits: Family, Raise: 3m, Longevity: NonUnion, Extra: [("Phone or vehicle stipend", 1_200m)]),
+        StreetWorker("E1005", "Chris Hollis", new(2008, 7, 14), 24.80m, CoverageTier.Family, 25m),
+        StreetWorker("E1026", "Rowan Ruiz", new(2016, 4, 4), 23.10m, CoverageTier.EmployeeSpouse, 40m),
+        StreetWorker("E1039", "Devon Walsh", new(2022, 9, 12), 21.40m, CoverageTier.EmployeeOnly, 40m),
+        new SeedEmployee(null, "620", "Seasonal laborer (summer paving)", null, null, PayBasis.Hourly, 16m, Retirement: "OPERS",
+            Funds: [("2011", 100m)], Benefits: []) with { FirstMonth = 6, LastMonth = 8 },
+    ];
+
+    /// <summary>
+    /// What the simulated ERP's payroll says today: the roster, moved on a little since the budget was
+    /// started, so the sync has something to show. A patrol officer was hired into the vacancy, Casey
+    /// Lin had a merit increase, and Rowan Ruiz retired.
+    /// </summary>
+    public static IReadOnlyList<SeedEmployee> Payroll { get; } =
+    [
+        .. Roster.Where(e => e.Id is not null && e.Id != "E1026").Select(e => e.Id == "E1033" ? e with { Rate = 23.60m } : e),
+        Officer("E1047", "Patrol officer", "Jamie Ortiz", new(2026, 9, 8), "PO", 1, null, CoverageTier.Family, 40m),
+    ];
+
+    /// <summary>Each budgeted position, by department code, in the terms of the year's settings.</summary>
+    public static IReadOnlyList<(string Department, PositionDetails Details)> Positions(PayrollRules rules, Func<string, Guid> fund) =>
+        Roster.Select(e => (e.Department, e.ToDetails(rules, fund))).ToList();
+
+    private const string NonUnion = "Non-union personnel policy";
+
+    private static (string Plan, CoverageTier Tier)[] Family =>
+        [("Medical (PPO)", CoverageTier.Family), ("Dental", CoverageTier.Family), ("Life ($25,000)", CoverageTier.EmployeeOnly)];
+
+    private static (string, CoverageTier)[] Covered(CoverageTier tier) =>
+        [("Medical (PPO)", tier), ("Dental", tier), ("Life ($25,000)", CoverageTier.EmployeeOnly)];
+
+    private static SeedEmployee Officer(string? id, string title, string? name, DateOnly? hired, string grade, int step, int? stepMonth, CoverageTier tier, decimal overtimeHours) =>
+        new(id, "110", title, name, hired, PayBasis.Hourly, 0m, Grade: grade, Step: step, Retirement: "OP&F police", Benefits: Covered(tier),
+            StepMonth: stepMonth, Longevity: hired is null ? null : "FOP Lodge 112 contract",
+            Extra: [("Overtime", overtimeHours), ("Holiday pay", 88m), ("Uniform allowance", 1_100m)]);
+
+    private static SeedEmployee StreetWorker(string id, string name, DateOnly hired, decimal rate, CoverageTier tier, decimal generalShare) =>
+        new(id, "620", "Maintenance worker", name, hired, PayBasis.Hourly, rate, Retirement: "OPERS",
+            Funds: [("1000", generalShare), ("2011", 100m - generalShare)], Benefits: Covered(tier), Raise: 2.5m,
+            Longevity: "AFSCME Local 3301 contract", Extra: [("Overtime", 80m), ("Uniform allowance", 400m)]);
+}
+
+/// <summary>
+/// One employee (or vacancy) in the demo: the ERP's side (number, name, pay, plans, funds, by name and
+/// code, the way a payroll export has them) and the budget's side (raise, months, longevity, other pay).
+/// </summary>
+internal sealed record SeedEmployee(
+    string? Id,
+    string Department,
+    string Title,
+    string? Name,
+    DateOnly? Hired,
+    PayBasis Basis,
+    decimal Rate,
+    decimal? Hours = null,
+    string? Grade = null,
+    int? Step = null,
+    string? Retirement = null,
+    bool PickUp = false,
+    (string Fund, decimal Percent)[]? Funds = null,
+    (string Plan, CoverageTier Tier)[]? Benefits = null,
+    decimal Raise = 0m,
+    int? StepMonth = null,
+    string? Longevity = null,
+    (string Item, decimal Value)[]? Extra = null)
+{
+    public int FirstMonth { get; init; } = 1;
+    public int LastMonth { get; init; } = 12;
+
+    private (string Fund, decimal Percent)[] FundShares => Funds ?? [("1000", 100m)];
+
+    /// <summary>The employee as the ERP's payroll lists them.</summary>
+    public Application.Erp.ErpEmployee ToErp() => new(
+        Id!, Name!, Title, Department, Basis, Rate, Hours, Hired, Grade, Step, Retirement, PickUp,
+        FundShares.Select(f => new Application.Erp.ErpFundShare(f.Fund, f.Percent)).ToList(),
+        (Benefits ?? []).Select(b => new Application.Erp.ErpBenefit(b.Plan, b.Tier)).ToList());
+
+    /// <summary>The budgeted position, with plan names resolved against the year's settings.</summary>
+    public PositionDetails ToDetails(PayrollRules rules, Func<string, Guid> fund)
     {
-        Guid Plan(string name) => rules.RetirementPlans.Single(p => p.Name == name).Id;
-        Guid Insurance(string name) => rules.InsurancePlans.Single(p => p.Name == name).Id;
-        Guid Extra(string name) => rules.ExtraPay.Single(p => p.Name == name).Id;
-        Guid Longevity(string name) => rules.Longevity.Single(p => p.Name == name).Id;
-        Guid fop = rules.PayScales.Single().Id;
-
-        Coverage[] Covered(CoverageTier tier) =>
-            [new(Insurance("Medical (PPO)"), tier), new(Insurance("Dental"), tier), new(Insurance("Life ($25,000)"), CoverageTier.EmployeeOnly)];
-        FundShare[] General() => [new(fund("1000"), 100m)];
-
-        PositionDetails Officer(string title, string? name, DateOnly? hired, string grade, int step, int? stepMonth, CoverageTier tier, decimal overtimeHours) => new()
+        PayScaleRule? scale = Grade is null ? null : rules.PayScales.First(s => s.Rate(Grade, Step!.Value) is not null);
+        return new PositionDetails
         {
-            Title = title,
-            EmployeeName = name,
-            HireDate = hired,
-            PayScaleId = fop,
-            Grade = grade,
-            Step = step,
-            StepIncreaseMonth = stepMonth,
-            LongevityScheduleId = hired is null ? null : Longevity("FOP Lodge 112 contract"),
-            RetirementPlanId = Plan("OP&F police"),
-            Funds = General(),
-            Coverages = Covered(tier),
-            ExtraPay =
-            [
-                new(Extra("Overtime"), overtimeHours),
-                new(Extra("Holiday pay"), 88m),
-                new(Extra("Uniform allowance"), 1_100m),
-            ],
+            Title = Title,
+            EmployeeName = Name,
+            EmployeeId = Id,
+            HireDate = Hired,
+            Basis = scale?.Basis ?? Basis,
+            Rate = Rate,
+            AnnualHours = Hours ?? rules.StandardHours,
+            PayScaleId = scale?.Id,
+            Grade = Grade,
+            Step = Step,
+            StepIncreaseMonth = StepMonth,
+            RaisePercent = Raise,
+            FirstMonth = FirstMonth,
+            LastMonth = LastMonth,
+            LongevityScheduleId = Longevity is null ? null : rules.Longevity.Single(l => l.Name == Longevity).Id,
+            RetirementPlanId = Retirement is null ? null : rules.RetirementPlans.Single(p => p.Name == Retirement).Id,
+            PicksUpEmployeeShare = PickUp,
+            Funds = FundShares.Select(f => new FundShare(fund(f.Fund), f.Percent)).ToList(),
+            Coverages = (Benefits ?? []).Select(b => new Coverage(rules.InsurancePlans.Single(p => p.Name == b.Plan).Id, b.Tier)).ToList(),
+            ExtraPay = (Extra ?? []).Select(x => new ExtraPayAmount(rules.ExtraPay.Single(p => p.Name == x.Item).Id, x.Value)).ToList(),
         };
-
-        PositionDetails StreetWorker(string name, DateOnly hired, decimal rate, CoverageTier tier, decimal generalShare) => new()
-        {
-            Title = "Maintenance worker",
-            EmployeeName = name,
-            HireDate = hired,
-            Basis = PayBasis.Hourly,
-            Rate = rate,
-            RaisePercent = 2.5m,
-            RaiseMonth = 1,
-            LongevityScheduleId = Longevity("AFSCME Local 3301 contract"),
-            RetirementPlanId = Plan("OPERS"),
-            Funds = [new(fund("1000"), generalShare), new(fund("2011"), 100m - generalShare)],
-            Coverages = Covered(tier),
-            ExtraPay = [new(Extra("Overtime"), 80m), new(Extra("Uniform allowance"), 400m)],
-        };
-
-        return
-        [
-            // ---- 110 Police: eight sworn officers (one position vacant until April) and a part-time clerk.
-            ("110", new PositionDetails
-            {
-                Title = "Chief of Police",
-                EmployeeName = "Morgan Hale",
-                HireDate = new DateOnly(2006, 4, 17),
-                Rate = 88_500m,
-                RaisePercent = 3m,
-                LongevityScheduleId = Longevity("Non-union personnel policy"),
-                RetirementPlanId = Plan("OP&F police"),
-                PicksUpEmployeeShare = true,
-                Funds = General(),
-                Coverages = Covered(CoverageTier.Family),
-                ExtraPay = [new(Extra("Uniform allowance"), 1_100m)],
-            }),
-            ("110", Officer("Sergeant", "Alex Rivera", new DateOnly(2011, 8, 8), "SGT", 3, null, CoverageTier.Family, 60m)),
-            ("110", Officer("Sergeant", "Taylor Brooks", new DateOnly(2015, 3, 2), "SGT", 2, 9, CoverageTier.EmployeeSpouse, 60m)),
-            ("110", Officer("Patrol officer", "Riley Chen", new DateOnly(2013, 6, 3), "PO", 5, null, CoverageTier.Family, 70m)),
-            ("110", Officer("Patrol officer", "Quinn Murphy", new DateOnly(2018, 10, 15), "PO", 4, 10, CoverageTier.EmployeeOnly, 70m)),
-            ("110", Officer("Patrol officer", "Jordan Price", new DateOnly(2021, 1, 11), "PO", 3, 7, CoverageTier.EmployeeSpouse, 70m)),
-            ("110", Officer("Patrol officer", "Avery Santos", new DateOnly(2024, 5, 20), "PO", 2, 5, CoverageTier.EmployeeOnly, 70m)),
-            ("110", Officer("Patrol officer", null, null, "PO", 1, null, CoverageTier.Family, 40m) with { FirstMonth = 4 }),
-            ("110", new PositionDetails
-            {
-                Title = "Records clerk (part-time)",
-                EmployeeName = "Pat Donnelly",
-                HireDate = new DateOnly(2020, 2, 3),
-                Basis = PayBasis.Hourly,
-                Rate = 19.25m,
-                AnnualHours = 1_040m,
-                RaisePercent = 3m,
-                RetirementPlanId = Plan("OPERS"),
-                Funds = General(),
-            }),
-
-            // ---- 725 Finance: the fiscal officer and a part-time payroll clerk.
-            ("725", new PositionDetails
-            {
-                Title = "Fiscal Officer",
-                EmployeeName = "Dana Whitfield",
-                HireDate = new DateOnly(2011, 3, 1),
-                Rate = 64_800m,
-                RaisePercent = 3m,
-                LongevityScheduleId = Longevity("Non-union personnel policy"),
-                RetirementPlanId = Plan("OPERS"),
-                Funds = General(),
-                Coverages = Covered(CoverageTier.Family),
-            }),
-            ("725", new PositionDetails
-            {
-                Title = "Payroll and accounts payable clerk",
-                EmployeeName = "Casey Lin",
-                HireDate = new DateOnly(2019, 6, 10),
-                Basis = PayBasis.Hourly,
-                Rate = 23.10m,
-                AnnualHours = 1_560m,
-                RaisePercent = 3m,
-                RetirementPlanId = Plan("OPERS"),
-                Funds = General(),
-            }),
-
-            // ---- 620 Streets & Service: the director and crew, shared between the General Fund and the Street fund.
-            ("620", new PositionDetails
-            {
-                Title = "Service Director",
-                EmployeeName = "Sam Okafor",
-                HireDate = new DateOnly(2010, 5, 3),
-                Rate = 71_500m,
-                RaisePercent = 3m,
-                LongevityScheduleId = Longevity("Non-union personnel policy"),
-                RetirementPlanId = Plan("OPERS"),
-                Funds = [new(fund("1000"), 50m), new(fund("2011"), 50m)],
-                Coverages = Covered(CoverageTier.Family),
-                ExtraPay = [new(Extra("Phone or vehicle stipend"), 1_200m)],
-            }),
-            ("620", StreetWorker("Chris Hollis", new DateOnly(2008, 7, 14), 24.80m, CoverageTier.Family, 25m)),
-            ("620", StreetWorker("Rowan Ruiz", new DateOnly(2016, 4, 4), 23.10m, CoverageTier.EmployeeSpouse, 40m)),
-            ("620", StreetWorker("Devon Walsh", new DateOnly(2022, 9, 12), 21.40m, CoverageTier.EmployeeOnly, 40m)),
-            ("620", new PositionDetails
-            {
-                Title = "Seasonal laborer (summer paving)",
-                Basis = PayBasis.Hourly,
-                Rate = 16m,
-                FirstMonth = 6,
-                LastMonth = 8,
-                RetirementPlanId = Plan("OPERS"),
-                Funds = [new(fund("2011"), 100m)],
-            }),
-        ];
     }
 }

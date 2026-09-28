@@ -95,6 +95,38 @@ public static class ReportTables
                 .Append(new object?[] { f.FundCode, f.FundName, "Transfers out" }.Concat(report.ColumnLabels.Select(_ => (object?)null)).Concat([f.TransfersOut, f.TransfersOut]).ToArray()))
             .Append(MeasureRow("", "", report.DepartmentsTotal)).ToList());
 
+    public static ExportTable PositionRoster(PositionRosterDto report) => new(
+        "Position roster",
+        ["Department", "Title", "Employee", "ERP employee number", "Hire date", "Years of service", "Pay rate", "Months", "Funds", "Pay", "Benefits", "Total"],
+        report.Departments.SelectMany(d => d.Positions.Select(p => new object?[]
+            {
+                $"{d.DepartmentCode} {d.DepartmentName}", p.Title, p.EmployeeName ?? "Vacant", p.EmployeeId,
+                p.HireDate?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), p.YearsOfService, p.PayText, p.Months, p.Funds, p.Pay, p.Benefits, p.Total,
+            })
+            .Append([$"{d.DepartmentCode} {d.DepartmentName}", $"Total, {d.Positions.Count} positions", null, null, null, null, null, null, null, d.Pay, d.Benefits, d.Total]))
+            .Append(["All departments", $"{report.Positions} positions, {report.Vacant} vacant", null, null, null, null, null, null, null, report.Pay, report.Benefits, report.Total])
+            .ToList());
+
+    public static ExportTable PersonnelCost(PersonnelCostDto report) => new(
+        "Personnel cost by fund",
+        ["Fund", "Name", "Department", "Pay", "Retirement", "Medicare", "Workers' compensation", "Insurance", "Total"],
+        report.Funds.SelectMany(f => f.Departments.Select(d => CostRow(f.FundCode, f.FundName, d)).Append(CostRow(f.FundCode, f.FundName, f.Subtotal)))
+            .Append(CostRow("", "", report.Total)).ToList());
+
+    public static ExportTable BenefitsSummary(BenefitsSummaryDto report) => new(
+        "Benefits summary",
+        ["Benefit", "Coverage or rate", "Positions", "Monthly premium", "Pay it is charged on", "Employer cost", "Employee share or pick-up"],
+        report.Retirement.Select(r => new object?[] { r.System, $"{r.EmployerRate}%", r.Members, null, r.PensionablePay, r.EmployerShare, r.PickedUp })
+            .Concat(report.Insurance.SelectMany(i => i.Tiers.Where(t => t.Positions > 0)
+                .Select(t => new object?[] { i.Plan, Domain.Personnel.PositionCostCalculator.TierName(t.Tier), t.Positions, t.MonthlyPremium, null, t.EmployerCost, t.EmployeeShare })))
+            .Append(["Medicare", $"{report.MedicareRate}%", report.Positions, null, report.TaxablePay, report.Medicare, null])
+            .Append(["Workers' compensation", $"{report.WorkersCompRate}%", report.Positions, null, report.TaxablePay, report.WorkersComp, null])
+            .Append(["Total", null, null, null, null, report.Total, null])
+            .ToList());
+
+    private static object?[] CostRow(string fundCode, string fundName, PersonnelCostRowDto r) =>
+        [fundCode, fundName, r.Label, r.Pay, r.Retirement, r.Medicare, r.WorkersComp, r.Insurance, r.Total];
+
     private static object?[] ActualRow(string fund, string department, BudgetActualRowDto r) =>
         [fund, department, r.AccountNumber, r.Label, r.Budget, r.Actual, r.Encumbered, r.Remaining, r.Used * 100m, r.LastYearAtThisPoint];
 

@@ -69,6 +69,14 @@ internal static class AdminExportEndpoints
         group.MapGet("/reports/{versionId:guid}/appropriation-measure.xlsx", async (Guid versionId, [FromServices] IActualsReportService reports, [FromServices] ISpreadsheetExporter exporter, CancellationToken ct) =>
             await reports.AppropriationMeasureAsync(versionId, ct) is { } r ? File(exporter, ReportTables.AppropriationMeasure(r), $"appropriation-measure-{Slug(r.Header.Title)}") : Results.NotFound());
 
+        // Personnel: the roster follows the department user's view; cost and benefits are whole-government.
+        group.MapGet("/reports/{versionId:guid}/position-roster.xlsx", async (Guid versionId, [FromServices] IPersonnelReportService reports, [FromServices] ISpreadsheetExporter exporter, CancellationToken ct) =>
+            await reports.RosterAsync(versionId, ct) is { } r ? File(exporter, ReportTables.PositionRoster(r), $"position-roster-{Slug(r.Header.Title)}") : Results.NotFound());
+        group.MapGet("/reports/{versionId:guid}/personnel-cost.xlsx", async (Guid versionId, [FromServices] IPersonnelReportService reports, [FromServices] ISpreadsheetExporter exporter, CancellationToken ct) =>
+            await reports.CostByFundAsync(versionId, ct) is { } r ? File(exporter, ReportTables.PersonnelCost(r), $"personnel-cost-{Slug(r.Header.Title)}") : Results.NotFound());
+        group.MapGet("/reports/{versionId:guid}/benefits-summary.xlsx", async (Guid versionId, [FromServices] IPersonnelReportService reports, [FromServices] ISpreadsheetExporter exporter, CancellationToken ct) =>
+            await reports.BenefitsAsync(versionId, ct) is { } r ? File(exporter, ReportTables.BenefitsSummary(r), $"benefits-summary-{Slug(r.Header.Title)}") : Results.NotFound());
+
         // The ERP's import file for a budget journal: CSV, because that is what an ERP import reads.
         group.MapGet("/erp-journals/{transmissionId:guid}.csv", async (Guid transmissionId, [FromServices] IBudgetTransmissionService sends, CancellationToken ct) =>
             await sends.FileAsync(transmissionId, ct) is { } file

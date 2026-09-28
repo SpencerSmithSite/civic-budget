@@ -22,6 +22,7 @@ public sealed class Position : Entity, ITenantOwned
 
     public string Title { get; private set; } = null!;
     public string? EmployeeName { get; private set; }
+    public string? EmployeeId { get; private set; }
     public DateOnly? HireDate { get; private set; }
     public PayBasis Basis { get; private set; }
     public decimal Rate { get; private set; }
@@ -64,6 +65,7 @@ public sealed class Position : Entity, ITenantOwned
         bool onScale = details.PayScaleId is not null;
         Title = details.Title.Trim();
         EmployeeName = details.EmployeeName?.Trim();
+        EmployeeId = details.EmployeeId?.Trim();
         HireDate = details.HireDate;
         Basis = onScale ? rules.PayScale(details.PayScaleId!.Value)!.Basis : details.Basis;
         Rate = onScale ? 0m : Money.Round(details.Rate);
@@ -93,6 +95,7 @@ public sealed class Position : Entity, ITenantOwned
     {
         Title = Title,
         EmployeeName = EmployeeName,
+        EmployeeId = EmployeeId,
         HireDate = HireDate,
         Basis = Basis,
         Rate = Rate,
@@ -173,7 +176,7 @@ public sealed class Position : Entity, ITenantOwned
     /// <summary>Stores details without checking them against rules: used for copies of positions that were already checked.</summary>
     private void CopyFields(PositionDetails d)
     {
-        (Title, EmployeeName, HireDate, Basis, Rate, AnnualHours) = (d.Title, d.EmployeeName, d.HireDate, d.Basis, d.Rate, d.AnnualHours);
+        (Title, EmployeeName, EmployeeId, HireDate, Basis, Rate, AnnualHours) = (d.Title, d.EmployeeName, d.EmployeeId, d.HireDate, d.Basis, d.Rate, d.AnnualHours);
         (PayScaleId, Grade, Step, StepIncreaseMonth, RaisePercent, RaiseMonth) = (d.PayScaleId, d.Grade, d.Step, d.StepIncreaseMonth, d.RaisePercent, d.RaiseMonth);
         (FirstMonth, LastMonth, LongevityScheduleId, RetirementPlanId, PicksUpEmployeeShare, PayAccountId) = (d.FirstMonth, d.LastMonth, d.LongevityScheduleId, d.RetirementPlanId, d.PicksUpEmployeeShare, d.PayAccountId);
         _funds.AddRange(d.Funds.Select(f => new PositionFundShare(GovernmentId, Id, f.FundId, f.Percent)));

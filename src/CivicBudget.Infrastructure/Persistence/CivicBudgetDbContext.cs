@@ -62,6 +62,7 @@ public sealed class CivicBudgetDbContext(DbContextOptions<CivicBudgetDbContext> 
     public DbSet<CertificateFundAdjustment> CertificateFundAdjustments => Set<CertificateFundAdjustment>();
     public DbSet<PersonnelSettings> PersonnelSettings => Set<PersonnelSettings>();
     public DbSet<Position> Positions => Set<Position>();
+    public DbSet<PersonnelSync> PersonnelSyncs => Set<PersonnelSync>();
     public DbSet<UserDepartment> UserDepartments => Set<UserDepartment>();
     public DbSet<UserAvatar> UserAvatars => Set<UserAvatar>();
     public DbSet<GovernmentLogo> GovernmentLogos => Set<GovernmentLogo>();

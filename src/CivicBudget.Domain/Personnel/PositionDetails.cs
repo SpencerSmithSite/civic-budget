@@ -10,6 +10,7 @@ public sealed record PositionDetails
     public const int TitleMaxLength = 100;
     public const int NameMaxLength = 100;
     public const int GradeMaxLength = 10;
+    public const int EmployeeIdMaxLength = 20;
     public const decimal MaxHours = 8784m;
     public const decimal MaxRaisePercent = 100m;
 
@@ -17,6 +18,13 @@ public sealed record PositionDetails
 
     /// <summary>Null for a vacancy: the position is budgeted, nobody holds it yet.</summary>
     public string? EmployeeName { get; init; }
+
+    /// <summary>
+    /// The employee's number in the ERP's payroll, when the position came from (or was matched to) the
+    /// ERP's employee list. It is how next year's sync finds this position again; null for a vacancy
+    /// or a position entered here.
+    /// </summary>
+    public string? EmployeeId { get; init; }
 
     /// <summary>For longevity; null when the position earns none (a vacancy, a part-time seasonal).</summary>
     public DateOnly? HireDate { get; init; }
@@ -88,6 +96,11 @@ public sealed record PositionDetails
         if (EmployeeName is { } name && (string.IsNullOrWhiteSpace(name) || name.Trim().Length > NameMaxLength))
         {
             Add(nameof(EmployeeName), $"Enter the employee's name ({NameMaxLength} characters or fewer), or mark the position vacant.");
+        }
+
+        if (EmployeeId is { } employeeId && (EmployeeName is null || string.IsNullOrWhiteSpace(employeeId) || employeeId.Trim().Length > EmployeeIdMaxLength))
+        {
+            Add(nameof(EmployeeId), $"An ERP employee number is up to {EmployeeIdMaxLength} characters and belongs to a filled position.");
         }
 
         if (HireDate is { } hired && hired > rules.YearEnd)
