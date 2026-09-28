@@ -6,6 +6,24 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 
 ## [Unreleased]
 
+## Phase 29: 2026-09-28 (SOC 2 by design)
+### Added
+- **Security log** under Administration: every sign-in, wrong password, lockout, second step, recovery code, sign-out, idle sign-out, password change, export, and refused request, with the address it came from. Kept apart from the audit trail.
+- **Idle sign-out**:
+  - a session ends after 30 minutes without activity, with a two-minute warning and "Stay signed in";
+  - "Remember me" keeps a device signed in for 14 days;
+  - deactivations and role changes reach open sessions within 5 minutes.
+- **Rate limits** on sign-in, two-step, and password-reset forms (per address) and exports (per user), with a plain "Too many attempts" page.
+- **Security headers** on every response: a Content Security Policy that allows only this site's scripts plus a per-request nonce, no framing, nosniff, a strict referrer policy.
+- **Download everything** (Government settings): every table of the government's data as CSV files in a ZIP, without passwords, two-step keys, or images.
+- **`--offboard`**: export, then delete, a government that leaves. **`--maintenance`**: the daily retention job (security events and finished emails after a year).
+- **CI:** NuGet audit on every restore (any known vulnerability fails the build); a `security` workflow with CodeQL and the package check on every change and weekly; Dependabot for the npm scripts.
+- **`docs/security`**: a trust overview ("designed and built to achieve SOC 2 compliance"), a control matrix mapped to NIST CSF 2.0 and NIST 800-53 (GovRAMP), and nine operator policies. `SECURITY.md` for reporting vulnerabilities.
+### Changed
+- Sessions follow the idle and remember-me rules above, not a fixed 8 hours.
+- The browser helpers moved from an inline script to `js/civicbudget.js`.
+- The client address is taken from `X-Forwarded-For` behind the load balancer.
+
 ## Phase 28: 2026-09-27 (email, two-step sign-in, and onboarding)
 ### Added
 - **Email** through a transactional outbox, with each email saved together with the change that caused it:

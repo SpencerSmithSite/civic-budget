@@ -369,10 +369,10 @@ Decided with Spencer (2026-09-27): no Microsoft sign-in (Entra ID) for now. App 
 ## Phase 29: SOC 2 by design  `phase-29-soc2`
 Decided with Spencer (2026-09-27): designed and built to achieve SOC 2 compliance, without going through certification; cover similar frameworks buyers ask about (GovRAMP, NIST CSF 2.0). Sessions (2026-09-28): signed out after 30 idle minutes; "Remember me" keeps a trusted device signed in for up to 14 days.
 
-- [ ] Security event log (sign-ins, failures, role and MFA changes, exports), session timeout, lockout, security headers
-- [ ] Dependency and code scanning in CI
-- [ ] Export all of a government's data; off-board a government
-- [ ] docs/security: policies, backup and recovery targets, a control matrix (SOC 2 criteria, GovRAMP/NIST where they overlap) with evidence
+- [x] Security event log (sign-ins, failures, role and MFA changes, exports), session timeout, lockout, security headers
+- [x] Dependency and code scanning in CI
+- [x] Export all of a government's data; off-board a government
+- [x] docs/security: policies, backup and recovery targets, a control matrix (SOC 2 criteria, GovRAMP/NIST where they overlap) with evidence
 - [ ] Reviewed and approved
 
 ## Phase 30: Marketing website  `phase-30-marketing-site`
