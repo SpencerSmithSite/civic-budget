@@ -21,7 +21,9 @@ public sealed class SecurityEventLog(
     public async Task RecordAsync(SecurityEventKind kind, Guid? governmentId, string? userId, string? email, string? detail = null, CancellationToken ct = default)
     {
         string? address = http.HttpContext?.Connection.RemoteIpAddress?.ToString();
-        logger.LogInformation("Security event {Kind} for {Email} from {Address}: {Detail}", kind, email, address, detail);
+        // The platform log names the account by its opaque id, never its address: the address belongs
+        // in the security log table, where retention and access rules apply, not in log storage.
+        logger.LogInformation("Security event {Kind} for user {UserId} from {Address}: {Detail}", kind, userId, address, detail);
         try
         {
             await using CivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
@@ -30,7 +32,7 @@ public sealed class SecurityEventLog(
         }
         catch (Exception ex) when (ex is DbUpdateException or InvalidOperationException or TimeoutException or Microsoft.Data.SqlClient.SqlException or Microsoft.EntityFrameworkCore.Storage.RetryLimitExceededException)
         {
-            logger.LogError(ex, "Could not record security event {Kind} for {Email}.", kind, email);
+            logger.LogError(ex, "Could not record security event {Kind} for user {UserId}.", kind, userId);
         }
     }
 }
