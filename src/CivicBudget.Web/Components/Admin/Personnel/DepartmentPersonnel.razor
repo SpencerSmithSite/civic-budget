@@ -260,7 +260,7 @@ else
 
     private void Duplicate(PositionDto position)
     {
-        form = PositionForm.From(position.Details with { EmployeeName = null, HireDate = null });
+        form = PositionForm.From(position.Details with { EmployeeName = null, EmployeeId = null, HireDate = null });
         form.IsVacant = true;
         editingId = null;
         errors = [];

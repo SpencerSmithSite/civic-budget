@@ -20,6 +20,10 @@
                         <input id="pos-vacant" class="form-check-input" type="checkbox" @bind="Form.IsVacant" @bind:after="Changed" />
                         <label class="form-check-label small" for="pos-vacant">Vacant: budgeted, not yet filled</label>
                     </div>
+                    @if (Form.EmployeeId is { } employeeId && !Form.IsVacant)
+                    {
+                        <div class="form-text">ERP employee @employeeId: pay, plans, and funds are refreshed from the ERP's payroll.</div>
+                    }
                     @FieldError(nameof(PositionDetails.EmployeeName))
                 </div>
                 <div>

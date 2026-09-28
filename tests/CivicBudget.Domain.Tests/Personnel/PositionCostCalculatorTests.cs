@@ -252,6 +252,14 @@ public class PositionCostCalculatorTests
     }
 
     [Fact]
+    public void An_erp_employee_number_belongs_to_a_filled_position()
+    {
+        Assert.DoesNotContain(data.Clerk().Problems(data.Rules), p => p.Field == nameof(PositionDetails.EmployeeId));
+        Assert.Empty((data.Clerk() with { EmployeeId = "E1033" }).Problems(data.Rules));
+        Assert.Contains((data.Clerk() with { EmployeeId = "E1033", EmployeeName = null }).Problems(data.Rules), p => p.Field == nameof(PositionDetails.EmployeeId));
+    }
+
+    [Fact]
     public void Missing_title_and_rate_are_problems_with_their_fields()
     {
         PositionDetails blank = data.Clerk() with { Title = " ", Rate = 0m };

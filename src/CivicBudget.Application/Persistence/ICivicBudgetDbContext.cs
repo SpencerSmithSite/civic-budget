@@ -43,6 +43,7 @@ public interface ICivicBudgetDbContext : IAsyncDisposable, IDisposable
     DbSet<CertificateFundAdjustment> CertificateFundAdjustments { get; }
     DbSet<PersonnelSettings> PersonnelSettings { get; }
     DbSet<Position> Positions { get; }
+    DbSet<PersonnelSync> PersonnelSyncs { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

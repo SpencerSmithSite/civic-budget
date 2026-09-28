@@ -91,7 +91,7 @@ The public portal needs no login: [Village of Maple Ridge](https://civicbudget-a
 | Admin app | Blazor Interactive Server, QuickGrid, Bootstrap 5 themed with CSS variables |
 | Portal | Blazor static server rendering, output caching, no JavaScript |
 | Data | EF Core on SQL Server 2022, ASP.NET Core Identity, FluentValidation, ClosedXML for Excel |
-| Tests | xUnit, bUnit, Testcontainers (a real SQL Server in Docker), CDK assertions; 810 tests |
+| Tests | xUnit, bUnit, Testcontainers (a real SQL Server in Docker), CDK assertions; 848 tests |
 | Delivery | Docker, GitHub Actions with OIDC sign-in; live on Azure (Bicep), deploy-ready on AWS (CDK in C#) |
 
 The code is four projects with dependencies pointing inward: `Domain` (entities and budget
@@ -146,6 +146,10 @@ that would have been wrong.
   comp, insurance by tier), split across its funds, and summed into lines that say "from 9
   positions" and refuse a typed amount. Longevity reads back in plain English so it can be checked
   against the contract. ([ADR-0038](docs/DECISIONS.md#adr-0038-personnel-budgeting-positions-live-on-the-budget-version-settings-belong-to-a-year-and-lines-are-calculated), [Walkthrough 25](docs/walkthroughs/25-personnel.md))
+- **The roster comes from the payroll.** Employees come in from the ERP by API or payroll export,
+  with a preview of every hire, raise, and departure and every line it moves. The ERP's facts are
+  refreshed and the budget's plans kept. The roster, cost by fund, and benefits summary add up to
+  the lines to the cent. ([ADR-0039](docs/DECISIONS.md#adr-0039-employees-come-from-the-erps-payroll-by-name-and-code-the-sync-refreshes-what-the-erp-owns-and-leaves-the-budgets-plans-alone), [Walkthrough 26](docs/walkthroughs/26-personnel-from-erp.md))
 
 ## Run it locally
 
@@ -219,8 +223,9 @@ deployed; it shows the production-shaped design. See [infra/README.md](infra/REA
    [22 Send the budget to VIP](docs/walkthroughs/22-send-to-erp.md) ·
    [23 The certificate of estimated resources](docs/walkthroughs/23-certificate.md) ·
    [24 Reports on the ERP's books](docs/walkthroughs/24-actuals-reports.md) ·
-   [25 Personnel budgeting](docs/walkthroughs/25-personnel.md)
-4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 38 decision records, each
+   [25 Personnel budgeting](docs/walkthroughs/25-personnel.md) ·
+   [26 Employees from the ERP](docs/walkthroughs/26-personnel-from-erp.md)
+4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 39 decision records, each
    with the alternatives I turned down, and the table of every package and why it is there.
 5. Then the code, starting at `src/CivicBudget.Domain/Budgets/BudgetVersion.cs`, the heart of it.
 

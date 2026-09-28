@@ -1,0 +1,88 @@
+@page "/admin/reports/{VersionId:guid}/personnel-cost"
+@attribute [Authorize(Policy = Policies.CanViewBudget)]
+@using CivicBudget.Application.Reports
+@inject IPersonnelReportService Reports
+
+@* What each fund pays for people, by department and by kind of cost. A position split between the
+   General Fund and the Street fund appears in both, at its share; the totals equal the personnel
+   lines in the budget. *@
+<PageTitle>Personnel Cost by Fund</PageTitle>
+
+@if (notFound)
+{
+    <PageHeader Title="Personnel Cost by Fund" Eyebrow="Reports" Crumbs="@([new Crumb("Budget"), new Crumb("Reports", "admin/reports"), new Crumb("Personnel Cost by Fund")])" />
+    <EmptyState Icon="bi-shield-lock" Title="Not available" Text="Personnel cost covers whole funds, so it is run by the Fiscal Officer, an Administrator, or a Viewer; or the budget version was not found.">
+        <a class="btn btn-primary" href="admin/reports">Reports</a>
+    </EmptyState>
+}
+else if (report is null)
+{
+    <PageHeader Title="Personnel Cost by Fund" Eyebrow="Reports" Crumbs="@([new Crumb("Budget"), new Crumb("Reports", "admin/reports"), new Crumb("Personnel Cost by Fund")])" />
+    <SkeletonRows Rows="6" Columns="7" />
+}
+else
+{
+    <ReportShell Title="Personnel Cost by Fund" Header="report.Header" ExportHref="@($"admin/export/reports/{VersionId}/personnel-cost.xlsx")"
+                 Description="What each fund pays for people, by department: pay, retirement, Medicare, workers' compensation, and insurance."
+                 FootNote="@($"From the positions in FY{report.Header.FiscalYear} {report.Header.VersionLabel}, each split among its funds. Pay is base pay, longevity, and other pay; insurance is the employer's share.")">
+        @if (report.Funds.Count == 0)
+        {
+            <EmptyState Icon="bi-people" Title="No positions to cost" Text="@(report.HasSettings ? "This budget has no positions yet." : $"FY{report.Header.FiscalYear} has no personnel settings.")" />
+        }
+        else
+        {
+            <div class="cb-grid-wrap">
+                <table class="cb-grid table cb-report-table" aria-label="Personnel cost by fund">
+                    <thead>
+                        <tr>
+                            <th scope="col">Department</th>
+                            <th scope="col" class="cb-num">Pay</th>
+                            <th scope="col" class="cb-num cb-col-wide">Retirement</th>
+                            <th scope="col" class="cb-num cb-col-wide">Medicare</th>
+                            <th scope="col" class="cb-num cb-col-wide">Workers' comp</th>
+                            <th scope="col" class="cb-num cb-col-wide">Insurance</th>
+                            <th scope="col" class="cb-num cb-col-strong">Total</th>
+                        </tr>
+                    </thead>
+                    @foreach (PersonnelCostFundDto fund in report.Funds)
+                    {
+                        <tbody>
+                            <tr class="cb-group"><td colspan="7"><span class="cb-code">@fund.FundCode</span> @fund.FundName</td></tr>
+                            @foreach (PersonnelCostRowDto d in fund.Departments)
+                            {
+                                <tr>@Cells(d, strong: false)</tr>
+                            }
+                            <tr class="cb-subtotal">@Cells(fund.Subtotal, strong: true)</tr>
+                        </tbody>
+                    }
+                    <tfoot><tr>@Cells(report.Total, strong: true)</tr></tfoot>
+                </table>
+            </div>
+        }
+    </ReportShell>
+}
+
+@code {
+    [Parameter]
+    public Guid VersionId { get; set; }
+
+    private PersonnelCostDto? report;
+    private bool notFound;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        report = await Reports.CostByFundAsync(VersionId);
+        notFound = report is null;
+    }
+
+    private static RenderFragment Cells(PersonnelCostRowDto r, bool strong) => __builder =>
+    {
+        <th scope="row" class="@(strong ? "cb-wrap" : "fw-normal cb-wrap")">@r.Label</th>
+        <td class="cb-num">@Display.Amount(r.Pay)</td>
+        <td class="cb-num cb-col-wide">@Display.Amount(r.Retirement)</td>
+        <td class="cb-num cb-col-wide">@Display.Amount(r.Medicare)</td>
+        <td class="cb-num cb-col-wide">@Display.Amount(r.WorkersComp)</td>
+        <td class="cb-num cb-col-wide">@Display.Amount(r.Insurance)</td>
+        <td class="cb-num cb-col-strong">@Display.Amount(r.Total)</td>
+    };
+}

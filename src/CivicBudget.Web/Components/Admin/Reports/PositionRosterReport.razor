@@ -1,0 +1,113 @@
+@page "/admin/reports/{VersionId:guid}/position-roster"
+@attribute [Authorize(Policy = Policies.CanViewBudget)]
+@using CivicBudget.Application.Reports
+@inject IPersonnelReportService Reports
+
+@* Every budgeted position by department, the way a council member asks for it at a budget hearing:
+   who, since when, at what pay, and what the position costs with its benefits. A department user
+   sees their own departments. *@
+<PageTitle>Position Roster</PageTitle>
+
+@if (notFound)
+{
+    <EmptyState Icon="bi-journal-x" Title="Budget version not found" Text="It may have been removed, or the link is wrong."><a class="btn btn-primary" href="admin/reports">Reports</a></EmptyState>
+}
+else if (report is null)
+{
+    <PageHeader Title="Position Roster" Eyebrow="Reports" Crumbs="@([new Crumb("Budget"), new Crumb("Reports", "admin/reports"), new Crumb("Position Roster")])" />
+    <SkeletonRows Rows="8" Columns="7" />
+}
+else
+{
+    <ReportShell Title="Position Roster" Header="report.Header" ExportHref="@($"admin/export/reports/{VersionId}/position-roster.xlsx")"
+                 Description="Every budgeted position by department, filled and vacant, with pay, benefits, and total cost."
+                 FootNote="@($"Priced with FY{report.Header.FiscalYear}'s personnel settings. Years of service are counted at the start of the budget year. Benefits are retirement, Medicare, workers' compensation, and the employer's share of insurance.")">
+        @if (!report.HasSettings)
+        {
+            <EmptyState Icon="bi-sliders" Title="@($"FY{report.Header.FiscalYear} has no personnel settings")" Text="Positions cannot be priced until the year is set up in Personnel settings." />
+        }
+        else if (report.Positions == 0)
+        {
+            <EmptyState Icon="bi-people" Title="No positions in this budget" Text="Add them on each department's personnel page, or bring them in from the ERP." />
+        }
+        else
+        {
+            <div class="cb-cert-doc">@report.Positions positions, @report.Vacant vacant.</div>
+            <div class="cb-grid-wrap">
+                <table class="cb-grid table cb-report-table" aria-label="Position roster">
+                    <thead>
+                        <tr>
+                            <th scope="col">Position</th>
+                            <th scope="col" class="cb-col-wide">Hired</th>
+                            <th scope="col" class="cb-col-wide">Pay rate</th>
+                            <th scope="col" class="cb-col-wide">Funds</th>
+                            <th scope="col" class="cb-num">Pay</th>
+                            <th scope="col" class="cb-num cb-col-wide">Benefits</th>
+                            <th scope="col" class="cb-num cb-col-strong">Total</th>
+                        </tr>
+                    </thead>
+                    @foreach (RosterDepartmentDto department in report.Departments)
+                    {
+                        <tbody>
+                            <tr class="cb-group"><td colspan="7"><span class="cb-code">@department.DepartmentCode</span> @department.DepartmentName</td></tr>
+                            @foreach (RosterRowDto p in department.Positions)
+                            {
+                                <tr>
+                                    <th scope="row" class="fw-normal cb-wrap">
+                                        @p.Title
+                                        <div class="small">
+                                            @if (p.IsVacant)
+                                            {
+                                                <StatusPill Tone="warning" Label="Vacant" />
+                                            }
+                                            else
+                                            {
+                                                @p.EmployeeName
+                                            }
+                                        </div>
+                                    </th>
+                                    <td class="cb-col-wide small">@(p.HireDate is { } hired ? Display.Date(hired) : "")@(p.YearsOfService is { } y ? $" · {y} yr" : "")</td>
+                                    <td class="cb-col-wide small cb-wrap">@p.PayText@(p.Months == "All year" ? "" : $" · {p.Months}")</td>
+                                    <td class="cb-col-wide small">@p.Funds</td>
+                                    <td class="cb-num">@Display.Amount(p.Pay)</td>
+                                    <td class="cb-num cb-col-wide">@Display.Amount(p.Benefits)</td>
+                                    <td class="cb-num cb-col-strong">@Display.Amount(p.Total)</td>
+                                </tr>
+                            }
+                            <tr class="cb-subtotal">
+                                <th scope="row" class="cb-wrap">Total, @department.DepartmentName</th>
+                                <td class="cb-col-wide"></td><td class="cb-col-wide"></td><td class="cb-col-wide"></td>
+                                <td class="cb-num">@Display.Amount(department.Pay)</td>
+                                <td class="cb-num cb-col-wide">@Display.Amount(department.Benefits)</td>
+                                <td class="cb-num cb-col-strong">@Display.Amount(department.Total)</td>
+                            </tr>
+                        </tbody>
+                    }
+                    <tfoot>
+                        <tr>
+                            <th scope="row">All departments</th>
+                            <td class="cb-col-wide"></td><td class="cb-col-wide"></td><td class="cb-col-wide"></td>
+                            <td class="cb-num">@Display.Amount(report.Pay)</td>
+                            <td class="cb-num cb-col-wide">@Display.Amount(report.Benefits)</td>
+                            <td class="cb-num cb-col-strong">@Display.Amount(report.Total)</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        }
+    </ReportShell>
+}
+
+@code {
+    [Parameter]
+    public Guid VersionId { get; set; }
+
+    private PositionRosterDto? report;
+    private bool notFound;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        report = await Reports.RosterAsync(VersionId);
+        notFound = report is null;
+    }
+}

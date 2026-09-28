@@ -146,6 +146,7 @@ public sealed class TestDatabase
         services.Configure<SeedOptions>(o => o.DemoPassword = DemoPassword);
         services.AddSingleton<IErpActualsApi, SimulatedErpActualsApi>(); // as Program.cs does wherever the demo data is seeded
         services.AddSingleton<IErpBudgetApi, SimulatedErpBudgetApi>();
+        services.AddSingleton<IErpEmployeesApi, SimulatedErpEmployeesApi>();
         _provider = services.BuildServiceProvider();
     }
 

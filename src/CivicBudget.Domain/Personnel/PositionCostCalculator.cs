@@ -20,6 +20,9 @@ public sealed record CostPart(CostKind Kind, string Label, Guid AccountId, decim
 /// <summary>What one fund pays on one account for a position (or, summed, for a department).</summary>
 public sealed record FundAccountCost(Guid FundId, Guid AccountId, decimal Amount);
 
+/// <summary>What one fund pays of one kind of cost for a position: the personnel reports' unit.</summary>
+public sealed record FundKindCost(Guid FundId, CostKind Kind, decimal Amount);
+
 /// <summary>A priced position: its rates, its years of service, every piece of its cost, and each fund's part.</summary>
 public sealed record PositionCost(
     PayBasis Basis,
@@ -28,7 +31,12 @@ public sealed record PositionCost(
     decimal HourlyRate,
     int? YearsOfService,
     IReadOnlyList<CostPart> Parts,
-    IReadOnlyList<FundAccountCost> ByFund)
+    IReadOnlyList<FundAccountCost> ByFund,
+    IReadOnlyList<FundKindCost> ByFundAndKind,
+    /// <summary>Earnable salary for the retirement systems: what retirement was charged on.</summary>
+    decimal PensionablePay,
+    /// <summary>Taxable wages: what Medicare and workers' compensation were charged on.</summary>
+    decimal TaxablePay)
 {
     public decimal Total => Parts.Sum(p => p.Amount);
     public decimal Pay => Parts.Where(p => p.Kind is CostKind.BasePay or CostKind.Longevity or CostKind.ExtraPay).Sum(p => p.Amount);
@@ -145,7 +153,11 @@ public static class PositionCostCalculator
                 $"{Dollars(premium)} a month less {Number(plan.EmployeeSharePercent)}% employee share, {position.MonthsPaid} months"));
         }
 
-        return new PositionCost(basis, startRate, endRate, averageHourly, years, parts, SplitAmongFunds(parts, position.Funds));
+        List<(Guid FundId, CostPart Part, decimal Amount)> split = SplitAmongFunds(parts, position.Funds);
+        return new PositionCost(basis, startRate, endRate, averageHourly, years, parts,
+            split.GroupBy(s => (s.FundId, s.Part.AccountId)).Select(g => new FundAccountCost(g.Key.FundId, g.Key.AccountId, g.Sum(s => s.Amount))).ToList(),
+            split.GroupBy(s => (s.FundId, s.Part.Kind)).Select(g => new FundKindCost(g.Key.FundId, g.Key.Kind, g.Sum(s => s.Amount))).ToList(),
+            pensionable, taxable);
     }
 
     /// <summary>
@@ -236,10 +248,10 @@ public static class PositionCostCalculator
     /// cent is lost or invented, and the same position always splits the same way however its funds
     /// happen to be listed; the database returns them in no particular order.
     /// </summary>
-    private static List<FundAccountCost> SplitAmongFunds(IEnumerable<CostPart> parts, IReadOnlyList<FundShare> funds)
+    private static List<(Guid FundId, CostPart Part, decimal Amount)> SplitAmongFunds(IEnumerable<CostPart> parts, IReadOnlyList<FundShare> funds)
     {
         List<FundShare> ordered = funds.OrderByDescending(f => f.Percent).ThenBy(f => f.FundId).ToList();
-        var totals = new Dictionary<(Guid Fund, Guid Account), decimal>();
+        var split = new List<(Guid, CostPart, decimal)>();
         foreach (CostPart part in parts)
         {
             decimal others = 0m;
@@ -247,15 +259,13 @@ public static class PositionCostCalculator
             {
                 decimal share = Money.Round(part.Amount * ordered[i].Percent / 100m);
                 others += share;
-                Add(ordered[i].FundId, part.AccountId, share);
+                split.Add((ordered[i].FundId, part, share));
             }
 
-            Add(ordered[0].FundId, part.AccountId, part.Amount - others);
+            split.Add((ordered[0].FundId, part, part.Amount - others));
         }
 
-        return totals.Select(t => new FundAccountCost(t.Key.Fund, t.Key.Account, t.Value)).ToList();
-
-        void Add(Guid fund, Guid account, decimal amount) => totals[(fund, account)] = totals.GetValueOrDefault((fund, account)) + amount;
+        return split;
     }
 }
 

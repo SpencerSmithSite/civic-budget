@@ -1,0 +1,108 @@
+@page "/admin/reports/{VersionId:guid}/benefits-summary"
+@attribute [Authorize(Policy = Policies.CanViewBudget)]
+@using CivicBudget.Application.Reports
+@using CivicBudget.Domain.Personnel
+@inject IPersonnelReportService Reports
+
+@* The benefits the budget pays for, the way the insurance committee and the auditor look at them:
+   who is in each retirement system and what it costs, who is enrolled in each plan at each tier,
+   and the payroll taxes. *@
+<PageTitle>Benefits Summary</PageTitle>
+
+@if (notFound)
+{
+    <PageHeader Title="Benefits Summary" Eyebrow="Reports" Crumbs="@([new Crumb("Budget"), new Crumb("Reports", "admin/reports"), new Crumb("Benefits Summary")])" />
+    <EmptyState Icon="bi-shield-lock" Title="Not available" Text="The benefits summary covers the whole payroll, so it is run by the Fiscal Officer, an Administrator, or a Viewer; or the budget version was not found.">
+        <a class="btn btn-primary" href="admin/reports">Reports</a>
+    </EmptyState>
+}
+else if (report is null)
+{
+    <PageHeader Title="Benefits Summary" Eyebrow="Reports" Crumbs="@([new Crumb("Budget"), new Crumb("Reports", "admin/reports"), new Crumb("Benefits Summary")])" />
+    <SkeletonRows Rows="6" Columns="6" />
+}
+else
+{
+    <ReportShell Title="Benefits Summary" Header="report.Header" ExportHref="@($"admin/export/reports/{VersionId}/benefits-summary.xlsx")"
+                 Description="Retirement systems, insurance enrollment by plan and coverage, and payroll taxes, with the employer's cost of each."
+                 FootNote="@($"From the positions in FY{report.Header.FiscalYear} {report.Header.VersionLabel}. Premiums are monthly; annual figures count each position's months paid.")">
+        @if (report.Positions == 0)
+        {
+            <EmptyState Icon="bi-people" Title="No positions" Text="@(report.HasSettings ? "This budget has no positions yet." : $"FY{report.Header.FiscalYear} has no personnel settings.")" />
+        }
+        else
+        {
+            <h3 class="h6 mt-2">Retirement</h3>
+            <div class="cb-grid-wrap mb-4">
+                <table class="cb-grid table cb-report-table" aria-label="Retirement systems">
+                    <thead><tr><th scope="col">System</th><th scope="col" class="cb-num">Members</th><th scope="col" class="cb-num cb-col-wide">Pensionable pay</th><th scope="col" class="cb-num">Employer share</th><th scope="col" class="cb-num cb-col-wide">Picked up</th><th scope="col" class="cb-num cb-col-strong">Cost</th></tr></thead>
+                    <tbody>
+                        @foreach (RetirementSummaryDto r in report.Retirement)
+                        {
+                            <tr>
+                                <th scope="row" class="fw-normal cb-wrap">@r.System <span class="small text-secondary">@PositionCostCalculator.Number(r.EmployerRate)%</span></th>
+                                <td class="cb-num">@r.Members</td>
+                                <td class="cb-num cb-col-wide">@Display.Amount(r.PensionablePay)</td>
+                                <td class="cb-num">@Display.Amount(r.EmployerShare)</td>
+                                <td class="cb-num cb-col-wide">@(r.PickedUp == 0m ? "" : Display.Amount(r.PickedUp))</td>
+                                <td class="cb-num cb-col-strong">@Display.Amount(r.Total)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="h6">Insurance</h3>
+            <div class="cb-grid-wrap mb-4">
+                <table class="cb-grid table cb-report-table" aria-label="Insurance enrollment">
+                    <thead><tr><th scope="col">Plan and coverage</th><th scope="col" class="cb-num">Positions</th><th scope="col" class="cb-num cb-col-wide">Monthly premium</th><th scope="col" class="cb-num cb-col-wide">Employees pay</th><th scope="col" class="cb-num cb-col-strong">Employer cost</th></tr></thead>
+                    @foreach (InsuranceSummaryDto plan in report.Insurance)
+                    {
+                        <tbody>
+                            <tr class="cb-group"><td colspan="5">@plan.Plan <span class="small text-secondary">· employees pay @PositionCostCalculator.Number(plan.EmployeeSharePercent)%</span></td></tr>
+                            @foreach (BenefitTierDto tier in plan.Tiers.Where(t => t.Positions > 0))
+                            {
+                                <tr>
+                                    <th scope="row" class="fw-normal">@Capitalized(PositionCostCalculator.TierName(tier.Tier))</th>
+                                    <td class="cb-num">@tier.Positions</td>
+                                    <td class="cb-num cb-col-wide">@Display.Amount(tier.MonthlyPremium)</td>
+                                    <td class="cb-num cb-col-wide">@Display.Amount(tier.EmployeeShare)</td>
+                                    <td class="cb-num cb-col-strong">@Display.Amount(tier.EmployerCost)</td>
+                                </tr>
+                            }
+                            <tr class="cb-subtotal"><th scope="row">Total, @plan.Plan</th><td class="cb-num">@plan.Positions</td><td class="cb-col-wide"></td><td class="cb-num cb-col-wide">@Display.Amount(plan.EmployeeShare)</td><td class="cb-num cb-col-strong">@Display.Amount(plan.EmployerCost)</td></tr>
+                        </tbody>
+                    }
+                </table>
+            </div>
+
+            <h3 class="h6">Payroll taxes</h3>
+            <div class="cb-grid-wrap">
+                <table class="cb-grid table cb-report-table" aria-label="Payroll taxes">
+                    <thead><tr><th scope="col">Charge</th><th scope="col" class="cb-num">Rate</th><th scope="col" class="cb-num cb-col-wide">Taxable pay</th><th scope="col" class="cb-num cb-col-strong">Cost</th></tr></thead>
+                    <tbody>
+                        <tr><th scope="row" class="fw-normal">Medicare</th><td class="cb-num">@PositionCostCalculator.Number(report.MedicareRate)%</td><td class="cb-num cb-col-wide">@Display.Amount(report.TaxablePay)</td><td class="cb-num cb-col-strong">@Display.Amount(report.Medicare)</td></tr>
+                        <tr><th scope="row" class="fw-normal">Workers' compensation</th><td class="cb-num">@PositionCostCalculator.Number(report.WorkersCompRate)%</td><td class="cb-num cb-col-wide">@Display.Amount(report.TaxablePay)</td><td class="cb-num cb-col-strong">@Display.Amount(report.WorkersComp)</td></tr>
+                    </tbody>
+                    <tfoot><tr><th scope="row" colspan="3">All benefits</th><td class="cb-num cb-col-strong">@Display.Amount(report.Total)</td></tr></tfoot>
+                </table>
+            </div>
+        }
+    </ReportShell>
+}
+
+@code {
+    [Parameter]
+    public Guid VersionId { get; set; }
+
+    private BenefitsSummaryDto? report;
+    private bool notFound;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        report = await Reports.BenefitsAsync(VersionId);
+        notFound = report is null;
+    }
+
+    private static string Capitalized(string text) => char.ToUpperInvariant(text[0]) + text[1..];
+}

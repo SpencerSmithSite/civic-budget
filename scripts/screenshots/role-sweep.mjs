@@ -33,7 +33,7 @@ for (const email of roles) {
   const routes = new Set(['/', '/admin', ...navs.filter(h => h && !h.startsWith('http') && !h.startsWith('#')).map(h => h.startsWith('/') ? h : '/' + h), '/admin/profile-picture', '/Account/Manage', '/Account/Manage/ChangePassword']);
   for (const v of versions) {
     for (const s of ['', '/departments', '/import']) routes.add(`/admin/budgets/${v}${s}`);
-    for (const s of ['fund-summary', 'department-detail', 'category']) routes.add(`/admin/reports/${v}/${s}`);
+    for (const s of ['fund-summary', 'department-detail', 'category', 'position-roster', 'personnel-cost', 'benefits-summary']) routes.add(`/admin/reports/${v}/${s}`);
   }
   // department pages of the first version
   if (versions[0]) {

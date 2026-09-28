@@ -1,0 +1,354 @@
+@page "/admin/personnel-sync"
+@attribute [Authorize(Policy = Policies.CanMaintainSetup)]
+@using CivicBudget.Application.Personnel
+@inject IPersonnelSyncService Sync
+@inject ToastService Toasts
+
+@* Bring the ERP's employees into a budget being prepared: from its API when one is connected, or
+   from a payroll export. The preview says, employee by employee, what will happen and which budget
+   lines will move, before anything is written. Usually done once, when next year's budget starts. *@
+<PageTitle>Employees from the ERP</PageTitle>
+
+<PageHeader Title="Bring employees in from the ERP" Eyebrow="Setup" Crumbs="@([new Crumb("Setup"), new Crumb("Employees from the ERP")])"
+            Tip="The ERP's payroll knows who works here, at what pay, in which retirement system and insurance plans, and charged to which funds. This brings that into a budget's positions. The budget's own plans (raises, step increases, months, longevity, overtime) stay as they are." />
+
+@if (status is null)
+{
+    <SkeletonRows Rows="3" Columns="4" />
+}
+else if (status.Versions.Count == 0)
+{
+    <EmptyState Icon="bi-journal-x" Title="No budget being prepared" Text="Employees go into a budget that is still being prepared. Start next year's budget, or an amendment, first.">
+        <a class="btn btn-primary" href="admin/fiscal-years">Fiscal years</a>
+    </EmptyState>
+}
+else
+{
+    <div class="card mb-3">
+        <div class="card-body cb-report-pick">
+            <label class="form-label fw-semibold mb-0" for="syncVersion">Into</label>
+            <select id="syncVersion" class="form-select" @bind="versionId" @bind:after="Reset" disabled="@busy">
+                @foreach (SyncableVersionDto v in status.Versions)
+                {
+                    <option value="@v.Id">@v.Display@(v.HasSettings ? "" : " (no personnel settings yet)")</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    @if (Selected is { HasSettings: false } missing)
+    {
+        <div class="alert alert-info small" role="status">
+            <i class="bi bi-info-circle me-2" aria-hidden="true"></i>FY@(missing.FiscalYear) has no personnel settings, so the employees' retirement systems and plans have nothing to match.
+            <a href="admin/personnel-settings?year=@missing.FiscalYear">Set up FY@(missing.FiscalYear)</a> first.
+        </div>
+    }
+
+    <div class="cb-sync-sources mb-4">
+        @if (status.ApiName is not null)
+        {
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="h6 mb-1"><i class="bi bi-plug me-2" aria-hidden="true"></i>Fetch from @status.ApiName</h2>
+                    <p class="small text-secondary mb-3">Asks the ERP's payroll for its current employees.</p>
+                    <button type="button" class="btn btn-primary btn-sm" @onclick="FetchAsync" disabled="@(busy || Selected is not { HasSettings: true })">
+                        <i class="bi bi-cloud-download me-1" aria-hidden="true"></i>Fetch employees
+                    </button>
+                </div>
+            </div>
+        }
+        <div class="card">
+            <div class="card-body">
+                <h2 class="h6 mb-1"><i class="bi bi-file-earmark-spreadsheet me-2" aria-hidden="true"></i>Upload a payroll export</h2>
+                <label class="small text-secondary mb-2 d-block" for="employeesFile">One row per employee, CSV or XLSX.</label>
+                <InputFile id="employeesFile" class="form-control form-control-sm" accept=".csv,.xlsx" OnChange="OnFileChosenAsync" disabled="@(busy || Selected is not { HasSettings: true })" />
+                <div class="form-text">
+                    Columns: <code>Employee ID</code>, <code>Name</code>, <code>Title</code>, <code>Department</code>, <code>Pay Type</code> (Salary or Hourly), <code>Rate</code>,
+                    <code>Annual Hours</code>, <code>Hire Date</code>, <code>Grade</code> and <code>Step</code> (for a pay scale), <code>Retirement</code>, <code>Pick Up</code> (Yes or No),
+                    <code>Funds</code> ("1000 50%; 2011 50%"), and <code>Benefits</code> ("Medical (PPO): Family; Dental: Single").
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (busy)
+    {
+        <div class="text-secondary small mb-3" role="status"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Reading the ERP's employees…</div>
+    }
+}
+
+@if (errors is not null)
+{
+    <div class="alert alert-danger" role="alert">
+        <div class="fw-semibold mb-1">The employees could not be read.</div>
+        <ul class="mb-0">@foreach (string e in errors) { <li>@e</li> }</ul>
+    </div>
+}
+
+@if (preview is not null)
+{
+    <div class="card mb-4">
+        <div class="cb-toolbar">
+            <div class="grow">
+                <span class="fw-semibold">@preview.Employees employees from @(preview.FileName ?? preview.SourceName) into @preview.Version</span>
+                <StatusPill Tone="info" Label="@($"As of {Display.Date(preview.AsOf)}")" />
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" @onclick="() => confirmDialog.Show()" disabled="@(busy || !preview.CanCommit)">
+                <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>Apply
+            </button>
+        </div>
+        <div class="card-body pb-0">
+            <div class="cb-kpis">
+                <KpiCard Label="New positions" Value="@Count(SyncAction.Add)" Detail="No vacancy to fill" />
+                <KpiCard Label="Vacancies filled" Value="@Count(SyncAction.Fill)" Detail="Hired into a budgeted opening" />
+                <KpiCard Label="Updated" Value="@Count(SyncAction.Update)" Detail="@($"{Count(SyncAction.Unchanged)} unchanged")" />
+                <KpiCard Label="Left vacant" Value="@Count(SyncAction.Vacate)" Detail="No longer on the payroll" Tone="@(preview.Count(SyncAction.Vacate) > 0 ? "warn" : "")" />
+            </div>
+            @if (preview.Errors.Count > 0)
+            {
+                <div class="alert alert-danger small">
+                    <div class="fw-semibold mb-1">@preview.Errors.Count employee@(preview.Errors.Count == 1 ? "" : "s") cannot be matched, so nothing can be applied yet.</div>
+                    <ul class="mb-1">@foreach (string e in preview.Errors) { <li>@e</li> }</ul>
+                    <div>Fix the code or name in the ERP, or add the plan to <a href="admin/personnel-settings">personnel settings</a>, then read the employees again.</div>
+                </div>
+            }
+            else if (!preview.HasChanges)
+            {
+                <div class="alert alert-success small"><i class="bi bi-check2-circle me-2" aria-hidden="true"></i>Every employee already matches the budget.</div>
+            }
+        </div>
+
+        @if (preview.Steps.Any(s => s.Action != SyncAction.Unchanged))
+        {
+            <div class="cb-grid-wrap">
+                <table class="cb-grid table" aria-label="What happens to each position">
+                    <thead><tr><th scope="col">Employee</th><th scope="col">What happens</th><th scope="col" class="cb-col-wide">Department</th><th scope="col" class="cb-num">Cost now</th><th scope="col" class="cb-num">Cost after</th></tr></thead>
+                    <tbody>
+                        @foreach (SyncStepDto s in preview.Steps.Where(s => s.Action != SyncAction.Unchanged))
+                        {
+                            <tr>
+                                <td class="cb-wrap">@s.Who</td>
+                                <td class="cb-wrap">
+                                    <StatusPill Tone="@Tone(s.Action)" Label="@Label(s.Action)" />
+                                    @foreach (string c in s.Changes)
+                                    {
+                                        <div class="small text-secondary">@c</div>
+                                    }
+                                </td>
+                                <td class="cb-col-wide small">@s.DepartmentCode @s.DepartmentName</td>
+                                <td class="cb-num text-secondary">@(s.CostBefore is { } before ? Display.Amount(before) : "")</td>
+                                <td class="cb-num">@Display.Amount(s.CostAfter)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        @if (preview.Lines.Count > 0)
+        {
+            <div class="px-3 pt-3 pb-1 fw-semibold small">Budget lines this changes (@preview.Lines.Count)</div>
+            <div class="cb-grid-wrap">
+                <table class="cb-grid table" aria-label="Budget lines this changes">
+                    <thead><tr><th scope="col">Account</th><th scope="col" class="cb-num">Now</th><th scope="col" class="cb-num">After</th><th scope="col" class="cb-num cb-col-wide">Change</th></tr></thead>
+                    <tbody>
+                        @foreach (SyncLineChangeDto l in preview.Lines)
+                        {
+                            decimal change = l.After - (l.Before ?? 0m);
+                            <tr>
+                                <td class="cb-wrap"><span class="cb-code">@l.AccountNumber</span> @l.AccountName</td>
+                                <td class="cb-num text-secondary">@(l.Before is { } b ? Display.Amount(b) : "new line")</td>
+                                <td class="cb-num">@Display.Amount(l.After)</td>
+                                <td class="cb-num cb-col-wide @(change < 0 ? "cb-neg" : change > 0 ? "cb-pos" : "")">@Display.SignedChange(change)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+}
+
+<h2 class="h6 mb-2">History</h2>
+@if (status is null)
+{
+    <SkeletonRows Rows="3" Columns="5" />
+}
+else if (status.History.Count == 0)
+{
+    <div class="card"><EmptyState Icon="bi-people" Title="No employees brought in yet" Text="Fetch them from the ERP or upload a payroll export above." /></div>
+}
+else
+{
+    <div class="card">
+        <div class="cb-cards d-md-none">
+            @foreach (PersonnelSyncDto s in status.History)
+            {
+                <ListCard Title="@s.Version">
+                    <Summary>@Display.Timestamp(s.SyncedAtUtc) · @s.UserName</Summary>
+                    <ChildContent><div class="cb-list-card-meta">@Summary(s)</div></ChildContent>
+                </ListCard>
+            }
+        </div>
+        <div class="cb-grid-wrap d-none d-md-block">
+            <table class="cb-grid table" aria-label="History">
+                <thead><tr><th scope="col">When</th><th scope="col">By</th><th scope="col">Into</th><th scope="col">From</th><th scope="col">What changed</th><th scope="col" class="cb-num">Lines</th></tr></thead>
+                <tbody>
+                    @foreach (PersonnelSyncDto s in status.History)
+                    {
+                        <tr>
+                            <td>@Display.Timestamp(s.SyncedAtUtc)</td>
+                            <td>@s.UserName</td>
+                            <td>@s.Version</td>
+                            <td class="cb-wrap">@(s.FileName ?? s.SourceName)</td>
+                            <td class="cb-wrap small">@Summary(s)</td>
+                            <td class="cb-num">@s.LinesChanged</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<ConfirmDialog @ref="confirmDialog" Title="Apply these changes?" ConfirmText="Apply" OnConfirm="CommitAsync">
+    <Body>
+        @if (preview is not null)
+        {
+            <p>@preview.Version's positions are brought up to date with the ERP's @preview.Employees employees, and @preview.Lines.Count budget line@(preview.Lines.Count == 1 ? "" : "s") recalculated.</p>
+            <p class="mb-0 text-secondary small">Each position and line change is recorded in the audit trail. Positions entered here without an ERP employee number, such as planned vacancies, are left as they are.</p>
+        }
+    </Body>
+</ConfirmDialog>
+
+@code {
+    private const int MaxFileMb = 20;
+
+    private PersonnelSyncStatusDto? status;
+    private PersonnelSyncPreviewDto? preview;
+    private IReadOnlyList<string>? errors;
+    private Guid versionId;
+    private byte[]? fileBytes;
+    private string? fileName;
+    private bool busy;
+    private ConfirmDialog confirmDialog = null!;
+
+    private SyncableVersionDto? Selected => status?.Versions.FirstOrDefault(v => v.Id == versionId);
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        status = await Sync.StatusAsync();
+        if (status.Versions.All(v => v.Id != versionId))
+        {
+            versionId = (status.Versions.FirstOrDefault(v => v.HasSettings) ?? status.Versions.FirstOrDefault())?.Id ?? Guid.Empty;
+        }
+    }
+
+    private void Reset()
+    {
+        preview = null;
+        errors = null;
+        fileBytes = null;
+        fileName = null;
+    }
+
+    private async Task FetchAsync()
+    {
+        fileBytes = null;
+        fileName = null;
+        await RunPreviewAsync(() => Sync.PreviewFromErpAsync(versionId));
+    }
+
+    private async Task OnFileChosenAsync(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            await using Stream stream = e.File.OpenReadStream(MaxFileMb * 1024 * 1024);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            fileBytes = buffer.ToArray();
+            fileName = e.File.Name;
+        }
+        catch (IOException)
+        {
+            errors = [$"The file is larger than {MaxFileMb} MB."];
+            preview = null;
+            return;
+        }
+
+        byte[] bytes = fileBytes;
+        string name = fileName;
+        await RunPreviewAsync(() => Sync.PreviewFileAsync(versionId, name, new MemoryStream(bytes)));
+    }
+
+    private async Task RunPreviewAsync(Func<Task<Result<PersonnelSyncPreviewDto>>> read)
+    {
+        errors = null;
+        preview = null;
+        busy = true;
+        try
+        {
+            Result<PersonnelSyncPreviewDto> result = await read();
+            if (result.IsSuccess)
+            {
+                preview = result.Value;
+            }
+            else
+            {
+                errors = result.Errors.Select(x => x.Message).ToList();
+            }
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task<bool> CommitAsync()
+    {
+        if (preview is null)
+        {
+            return true;
+        }
+
+        // The same source the preview read: the file's bytes, or the ERP again.
+        Result<PersonnelSyncDto> result = fileBytes is not null && fileName is not null
+            ? await Sync.CommitFileAsync(versionId, fileName, new MemoryStream(fileBytes))
+            : await Sync.CommitFromErpAsync(versionId);
+        if (result.IsFailure)
+        {
+            Toasts.Danger(string.Join(" ", result.Errors.Select(x => x.Message)));
+            return true;
+        }
+
+        Toasts.Success($"Employees brought in: {Summary(result.Value)}; {result.Value.LinesChanged} budget lines recalculated.");
+        Reset();
+        await LoadAsync();
+        StateHasChanged(); // the confirm runs inside the dialog's event, so the page must ask for its own re-render
+        return true;
+    }
+
+    private string Count(SyncAction action) => preview!.Count(action).ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    private static string Summary(PersonnelSyncDto s) =>
+        $"{s.Added} added, {s.Filled} filled, {s.Updated} updated, {s.Vacated} left vacant";
+
+    private static string Label(SyncAction action) => action switch
+    {
+        SyncAction.Add => "New position",
+        SyncAction.Fill => "Fills a vacancy",
+        SyncAction.Update => "Updated",
+        SyncAction.Vacate => "Left vacant",
+        _ => "Unchanged",
+    };
+
+    private static string Tone(SyncAction action) => action switch
+    {
+        SyncAction.Add or SyncAction.Fill => "success",
+        SyncAction.Update => "info",
+        SyncAction.Vacate => "warning",
+        _ => "",
+    };
+}

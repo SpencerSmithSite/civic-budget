@@ -1,5 +1,6 @@
 using CivicBudget.Domain.Accounts;
 using CivicBudget.Domain.Departments;
+using CivicBudget.Domain.Erp;
 using CivicBudget.Domain.Funds;
 using CivicBudget.Domain.Governments;
 using CivicBudget.Domain.Personnel;
@@ -128,6 +129,7 @@ internal sealed class PositionConfiguration : IEntityTypeConfiguration<Position>
     {
         builder.Property(p => p.Title).HasMaxLength(PositionDetails.TitleMaxLength);
         builder.Property(p => p.EmployeeName).HasMaxLength(PositionDetails.NameMaxLength);
+        builder.Property(p => p.EmployeeId).HasMaxLength(PositionDetails.EmployeeIdMaxLength);
         builder.Property(p => p.Grade).HasMaxLength(PositionDetails.GradeMaxLength);
         builder.Property(p => p.AnnualHours).HasPrecision(9, 2);
         builder.Property(p => p.RaisePercent).HasPrecision(9, 4);
@@ -180,5 +182,19 @@ internal sealed class PositionExtraPayConfiguration : IEntityTypeConfiguration<P
         builder.HasIndex(e => new { e.PositionId, e.ExtraPayId }).IsUnique();
         builder.HasOne<ExtraPay>().WithMany().HasForeignKey(e => e.ExtraPayId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Government>().WithMany().HasForeignKey(e => e.GovernmentId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+internal sealed class PersonnelSyncConfiguration : IEntityTypeConfiguration<PersonnelSync>
+{
+    public void Configure(EntityTypeBuilder<PersonnelSync> builder)
+    {
+        builder.Property(s => s.SourceName).HasMaxLength(PersonnelSync.SourceMaxLength);
+        builder.Property(s => s.FileName).HasMaxLength(PersonnelSync.FileNameMaxLength);
+        builder.Property(s => s.UserId).HasMaxLength(450); // matches ASP.NET Core Identity's key length
+        builder.Property(s => s.UserName).HasMaxLength(256);
+        builder.HasIndex(s => new { s.GovernmentId, s.SyncedAtUtc });
+        builder.HasOne<Domain.Budgets.BudgetVersion>().WithMany().HasForeignKey(s => s.BudgetVersionId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<Government>().WithMany().HasForeignKey(s => s.GovernmentId).OnDelete(DeleteBehavior.Restrict);
     }
 }

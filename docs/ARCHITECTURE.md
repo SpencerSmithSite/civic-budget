@@ -206,6 +206,10 @@ is audited and concurrency-checked like any other edit.
 
 Data also goes the other way (ADR-0035). An adopted budget is sent back as a budget journal
 of changes (`BudgetJournalBuilder`, pure), through `IErpBudgetApi` or as an import file.
+Employees come in the same way (ADR-0039): `ErpEmployees` is the contract, a payroll
+export or `IErpEmployeesApi` fills it, `EmployeeMatcher` is the pure match, and
+`PersonnelSyncService` previews by running the real apply and discarding it.
+
 `BudgetTransmission` records each send, is saved before the ERP is called, and doubles as
 the idempotency key, so a send whose answer was lost is retried without posting twice. A
 filtered unique index allows one unfinished send per government and year.
