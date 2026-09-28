@@ -60,6 +60,7 @@ public class AdminPagePolicyTests
         ["/admin/users/{Id}"] = Policies.CanManageUsers,
         ["/admin/settings"] = Policies.CanManageUsers,
         ["/admin/outbox"] = Policies.CanManageUsers,
+        ["/admin/security-log"] = Policies.CanManageUsers,
     };
 
     public static TheoryData<string, string> AdminPages()

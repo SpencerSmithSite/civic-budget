@@ -1,3 +1,6 @@
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Identity
+@using CivicBudget.Web.Security
 <!DOCTYPE html>
 <html lang="en">
 
@@ -10,12 +13,17 @@
     <link rel="stylesheet" href="@Assets["lib/bootstrap-icons/bootstrap-icons.min.css"]" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["CivicBudget.Web.styles.css"]" />
-    <ImportMap />
+    @* Only interactive pages load modules. The import map is an inline script, so it carries this
+       request's nonce to pass the Content-Security-Policy (SecurityHeadersMiddleware). *@
+    @if (PageRenderMode is not null)
+    {
+        <ImportMap nonce="@SecurityHeadersMiddleware.Nonce(HttpContext)" />
+    }
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <HeadOutlet @rendermode="PageRenderMode" />
 </head>
 
-<body>
+<body data-idle-minutes="@IdleMinutes">
     @* Interactive Server for the whole admin app, layout included: with per-page render modes the
        layout stays static, so nothing in the sidebar or the toast host could react to anything.
        The portal and the account pages opt out with [ExcludeFromInteractiveRouting]; for those
@@ -30,44 +38,18 @@
     {
         <script src="@Assets["js/password-toggle.js"]"></script>
     }
+    @* The idle clock on the account pages too, which are static; the admin app loads it below. *@
+    @if (PageRenderMode is null && IdleMinutes is not null && HttpContext.Request.Path.StartsWithSegments("/Account/Manage", StringComparison.OrdinalIgnoreCase))
+    {
+        <script src="@Assets["js/session.js"]"></script>
+    }
     @if (PageRenderMode is not null)
     {
         <ReconnectModal />
         <script src="@Assets["_framework/blazor.web.js"]"></script>
         <script src="@Assets["lib/bootstrap/js/bootstrap.bundle.min.js"]"></script>
-        <script>
-            // The admin app's own JavaScript, all of it. setCookie remembers a UI preference (the collapsed
-            // menu) so the server can prerender the page the way the user left it.
-            window.civicBudget = {
-                setCookie: (name, value) => { document.cookie = `${name}=${value};path=/;max-age=31536000;SameSite=Lax`; },
-                // Dialogs and drawers: while one is open, Tab and Shift+Tab cycle inside it (aria-modal says
-                // the page behind is out of reach, so the keyboard must agree); when it closes, focus goes
-                // back to the button that opened it. A stack, because a confirm dialog can open over the drawer.
-                modals: [],
-                openModal: (box) => {
-                    const cb = window.civicBudget;
-                    cb.modals.push({ box, opener: document.activeElement });
-                    if (!cb.onTab) {
-                        cb.onTab = (e) => {
-                            const top = cb.modals[cb.modals.length - 1];
-                            if (e.key !== "Tab" || !top || !top.box.isConnected) { return; }
-                            const items = [...top.box.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
-                                .filter(el => el.offsetParent !== null);
-                            if (items.length === 0) { e.preventDefault(); top.box.focus(); return; }
-                            const first = items[0], last = items[items.length - 1], inside = top.box.contains(document.activeElement);
-                            if (e.shiftKey && (!inside || document.activeElement === first)) { e.preventDefault(); last.focus(); }
-                            else if (!e.shiftKey && (!inside || document.activeElement === last)) { e.preventDefault(); first.focus(); }
-                        };
-                        document.addEventListener("keydown", cb.onTab, true);
-                    }
-                },
-                closeModal: () => {
-                    const closed = window.civicBudget.modals.pop();
-                    const el = closed && closed.opener;
-                    if (el && el.isConnected && typeof el.focus === "function") { el.focus(); }
-                }
-            };
-        </script>
+        <script src="@Assets["js/civicbudget.js"]"></script>
+        <script src="@Assets["js/session.js"]"></script>
     }
 </body>
 
@@ -76,6 +58,21 @@
 @code {
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
+
+    /// <summary>
+    /// Minutes of inactivity before the browser signs this session out: set for a signed-in session
+    /// that is not remembered on this device, null otherwise (no idle clock runs).
+    /// </summary>
+    private int? IdleMinutes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (HttpContext.User.Identity?.IsAuthenticated == true)
+        {
+            AuthenticateResult session = await HttpContext.AuthenticateAsync(IdentityConstants.ApplicationScheme);
+            IdleMinutes = session.Properties?.IsPersistent == true ? null : (int)SessionPolicy.IdleTimeout.TotalMinutes;
+        }
+    }
 
     /// <summary>Interactive Server unless the routed page carries [ExcludeFromInteractiveRouting].</summary>
     private IComponentRenderMode? PageRenderMode =>

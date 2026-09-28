@@ -23,6 +23,7 @@ public static class DependencyInjection
         services.AddScoped<IFiscalYearService, FiscalYearService>();
         services.AddScoped<IGovernmentSettingsService, GovernmentSettingsService>();
         services.AddScoped<ISetupChecklistService, SetupChecklistService>();
+        services.AddScoped<Security.ISecurityLogService, Security.SecurityLogService>();
         services.AddScoped<IBudgetEntryService, BudgetEntryService>();
         services.AddScoped<IAuditQueryService, AuditQueryService>();
         services.AddScoped<IBudgetWorkflowService, BudgetWorkflowService>();

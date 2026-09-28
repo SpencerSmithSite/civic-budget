@@ -1423,3 +1423,70 @@ nightly reset runs. A sign-up page would let anyone create tenants on a public d
 Administrator is emailed a link and then follows a checklist that is computed from what exists, so it
 cannot be out of date.
 **Look at:** `ProvisionCommand`, `GovernmentProvisioningService`, `SetupChecklistService`.
+
+## Phase 29: SOC 2 by design
+
+### Q: Is CivicBudget SOC 2 compliant?
+**A:** It is designed and built to achieve it, and I say exactly that. A SOC 2 report is an
+independent CPA's opinion, and I have not hired one. What I did is build the controls the audit
+examines and map each one to its evidence in a control matrix:
+- access;
+- logging;
+- change control;
+- encryption;
+- backups;
+- disposal;
+- incident response.
+
+I also wrote the policies an operator would follow. An operator running it that way could get a
+Type 1 report straight away and a Type 2 after its first observation period.
+**Look at:** `docs/security/README.md`, `docs/security/control-matrix.md`.
+
+### Q: Why a security log when you already have an audit trail?
+**A:** They answer different questions. The audit trail is the budget's history: this line went
+from 40,000 to 42,500, and who did it. The security log is who got in, who tried to, from where,
+and what left the building. Mixing them would bury a budget change under hundreds of sign-ins.
+The log is written by overriding Identity's `SignInManager`, so a sign-in path added later is
+covered without anyone remembering, and one filter on the export group logs every download.
+**Look at:** `AuditingSignInManager`, `AdminExportEndpoints`, `SecurityTests.Every_sign_in_outcome_is_a_security_event`.
+
+### Q: How does an idle timeout work in Blazor Server, where the page never makes a request?
+**A:** It can't be done with the cookie alone. Once the page is open, it talks over the circuit's
+WebSocket and never sends the cookie again, so the server sees the same silence from a busy tab
+and an idle one. The browser keeps the clock instead:
+- activity in any tab counts, shared through localStorage;
+- a keep-alive request slides the cookie while someone works;
+- a banner warns at 28 minutes;
+- at 30 it sends the page to an endpoint that signs out and logs "Signed out, idle".
+
+The server still enforces 30 minutes on the cookie for everything else.
+**Look at:** `wwwroot/js/session.js`, `SessionPolicy`, `IdentityEndpoints` (`KeepAlive`, `SessionExpired`).
+
+### Q: How does a strict Content Security Policy work with Blazor?
+**A:** Scripts may come only from this site. Blazor needs one inline script, its import map, so each
+request gets a random nonce that goes on that tag and in the header. I moved my own small inline
+helpers into a file. Two catches: Blazor adds its own `frame-ancestors` header, which would have won
+over mine, so I switched it off; and the report bars set widths inline, so inline styles stay
+allowed. Script is where the risk is.
+**Look at:** `SecurityHeadersMiddleware`, `App.razor` (`ImportMap nonce`), `Program.cs` (`ContentSecurityFrameAncestorsPolicy`).
+
+### Q: How do you know the export and the deletion don't miss a table?
+**A:** They don't use a list. `GovernmentDataStore` reads the EF model: every table with a
+`GovernmentId` column, the government's own row, and tables that point at one of those, like a
+user's roles. A test compares that with every table in the model and fails on a new table no
+government reaches. Deletion goes in one transaction, and each table is removed only after
+everything that points at it, because SQL Server refuses to cascade down more than one path. The
+deletion test counts rows from the database's own catalog, not from my code, and checks the other
+government is untouched.
+**Look at:** `GovernmentDataStore.ScopedTables`, `DeletionOrder`, `SecurityTests.Removing_a_government_deletes_every_row_it_had_and_nothing_else`.
+
+### Q: What stops password spraying?
+**A:** Three layers:
+- **Lockout**: five wrong passwords lock one account for 15 minutes.
+- **Rate limits**: one address trying many accounts gets 20 sign-in posts per 5 minutes, and the
+  reset form 5 per 15 minutes. After that it gets a 429, which is logged.
+- **Two-step sign-in**: a government can require it.
+
+The limiter's partition key is the client address from `X-Forwarded-For`, trusting only the entry
+the load balancer added, so a client cannot choose its own bucket.
+**Look at:** `RateLimits.PolicyFor`, `SecurityControlsTests.Limits_only_the_requests_an_attacker_would_repeat`.

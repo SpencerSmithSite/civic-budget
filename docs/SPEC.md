@@ -393,6 +393,26 @@ over SMTP where a mail server is configured, and only kept where one is not (the
 - The Administrator chooses a password from the emailed link, then follows the getting-started
   checklist: the chart, a fiscal year, the first budget, and the team, then personnel, actuals,
   two-step sign-in, and the portal.
+
+### 3.19 Security, sessions, and a government's data
+**Sessions.** A session ends after 30 minutes without activity, with a warning two minutes before.
+"Remember me" keeps a device signed in for up to 14 days. Deactivating a user, changing a role, or
+resetting a password reaches that person's open sessions within 5 minutes.
+
+**The security log.** Every sign-in, wrong password, lockout, second step, recovery code,
+sign-out, idle sign-out, password change, export, and refused request is recorded with the time,
+the person, and the address it came from. A government's Administrators read its log; attempts
+for addresses with no account are the operator's alone.
+
+**Limits.** Sign-in, second-step, and password-reset forms, and exports, are limited per address
+(per user for exports). A refusal is logged and says to wait a few minutes.
+
+**A government's data.**
+- An Administrator can download everything the government has, one CSV file per table in a ZIP,
+  without passwords, two-step keys, or images.
+- When a government leaves, the operator exports it one last time and removes every row it has.
+- Security events and finished emails are removed after a year.
+
 ---
 
 ## 4. Workflow
@@ -572,6 +592,9 @@ phone width without sideways scrolling.
 - Tests: xUnit, bUnit for components, Testcontainers (SQL Server) for
   integration tests. Every domain rule and every authorization rule has a test.
 - CI on every pull request; deployments sign in with OIDC (no long-lived keys).
+- Designed and built to achieve SOC 2 compliance (Security, Availability, Confidentiality):
+  security headers with a strict script policy, rate limits, code and dependency scanning in CI,
+  and the controls, policies, and evidence in `docs/security`.
 
 ---
 
@@ -652,6 +675,7 @@ prove tenant isolation in the tests and in the demo.
 | §3.16 Personnel budgeting | 26 | ADR-0038 |
 | §3.17 Employees from the ERP, personnel reports | 27 | ADR-0039; simulated payroll in the demo |
 | §3.18 Email, two-step sign-in, onboarding | 28 | ADR-0040; the demo keeps email in its outbox |
+| §3.19 Security, sessions, a government's data | 29 | ADR-0041; controls mapped in `docs/security` |
 | §4 Workflow, §5 Validation | 4 | Block or Warn at the transition |
 | §6 Publishing | 4, 5, 18 | Denormalized snapshots (ADR-0005, 0019); read-only portal context (ADR-0006); cache evicted by tag (ADR-0021) |
 | §7.1 Admin | 2–4, 6, 9c, 9d, 10 | Two entry modes, live fund panel, audit trail, import, reports, department round, profile pictures |

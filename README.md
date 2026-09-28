@@ -91,13 +91,38 @@ The public portal needs no login: [Village of Maple Ridge](https://civicbudget-a
 | Admin app | Blazor Interactive Server, QuickGrid, Bootstrap 5 themed with CSS variables |
 | Portal | Blazor static server rendering, output caching, no JavaScript |
 | Data | EF Core on SQL Server 2022, ASP.NET Core Identity, FluentValidation, ClosedXML for Excel |
-| Tests | xUnit, bUnit, Testcontainers (a real SQL Server in Docker), CDK assertions; 875 tests |
+| Tests | xUnit, bUnit, Testcontainers (a real SQL Server in Docker), CDK assertions; 899 tests |
 | Delivery | Docker, GitHub Actions with OIDC sign-in; live on Azure (Bicep), deploy-ready on AWS (CDK in C#) |
 
 The code is four projects with dependencies pointing inward: `Domain` (entities and budget
 rules, no framework), `Application` (use cases and the interfaces they need), `Infrastructure`
 (EF Core, Identity, Excel), and `Web` (Blazor and the composition root). A test fails the build
 if a dependency points the wrong way.
+
+## Security
+
+CivicBudget is **designed and built to achieve SOC 2 compliance** (Security, Availability, and
+Confidentiality). The controls an auditor examines are built in, each mapped to its evidence and
+to NIST CSF 2.0 and NIST 800-53 (the catalog GovRAMP uses). Among them:
+
+- **Separation.** Every government's data is kept apart by a query filter on every table, proven
+  by tests.
+- **Roles** are checked by the services themselves, not just by hiding buttons.
+- **Sign-in:**
+  - two-step sign-in, which a government can require for everyone;
+  - lockout, and rate limits on sign-in and password reset;
+  - sign-out after 30 idle minutes.
+- **Records:**
+  - an audit trail of every budget change;
+  - a security log of every sign-in, failure, and export.
+- **The browser** gets a strict Content Security Policy.
+- **A government's data** can be downloaded whole, and removed completely when the government
+  leaves.
+- **CI** runs code scanning (CodeQL) and fails on any package with a known vulnerability.
+
+No auditor has issued a report yet. See [docs/security](docs/security/README.md) for the control
+matrix, the operator's policies, and the known gaps, and [SECURITY.md](SECURITY.md) to report a
+vulnerability.
 
 ## Problems worth reading about
 
@@ -154,6 +179,10 @@ that would have been wrong.
   that caused it, delivered over SMTP, kept for review in the demo); passwords are never emailed;
   two-step sign-in works with any authenticator app and can be required; a new government is set up
   with one command and a checklist. ([ADR-0040](docs/DECISIONS.md#adr-0040-email-through-a-transactional-outbox-two-step-sign-in-with-authenticator-apps-governments-provisioned-from-the-command-line), [Walkthrough 27](docs/walkthroughs/27-email-mfa-onboarding.md))
+- **SOC 2 by design.** A security log kept apart from the audit trail and written by the sign-in
+  manager itself; an idle timeout that works on Blazor pages that never send the cookie; a strict
+  script policy with a per-request nonce; and a government's data found from the EF model, so the
+  full export and the removal cannot miss a table added later. ([ADR-0041](docs/DECISIONS.md#adr-0041-soc-2-by-design-a-security-log-apart-from-the-audit-trail-sessions-that-end-a-governments-data-found-from-the-model-and-scanning-in-ci), [Walkthrough 28](docs/walkthroughs/28-soc2.md))
 
 ## Run it locally
 
@@ -245,8 +274,9 @@ deployed; it shows the production-shaped design. See [infra/README.md](infra/REA
    [24 Reports on the ERP's books](docs/walkthroughs/24-actuals-reports.md) ·
    [25 Personnel budgeting](docs/walkthroughs/25-personnel.md) ·
    [26 Employees from the ERP](docs/walkthroughs/26-personnel-from-erp.md) ·
-   [27 Email, two-step sign-in, onboarding](docs/walkthroughs/27-email-mfa-onboarding.md)
-4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 40 decision records, each
+   [27 Email, two-step sign-in, onboarding](docs/walkthroughs/27-email-mfa-onboarding.md) ·
+   [28 SOC 2 by design](docs/walkthroughs/28-soc2.md)
+4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 41 decision records, each
    with the alternatives I turned down, and the table of every package and why it is there.
 5. Then the code, starting at `src/CivicBudget.Domain/Budgets/BudgetVersion.cs`, the heart of it.
 

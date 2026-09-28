@@ -30,6 +30,7 @@ public sealed class AccountEmailService(
     IEmailOutbox outbox,
     IAppLinks links,
     IOptions<DataProtectionTokenProviderOptions> tokenOptions,
+    ISecurityEventLog securityLog,
     TimeProvider clock,
     ILogger<AccountEmailService> logger) : IAccountEmailService
 {
@@ -74,6 +75,7 @@ public sealed class AccountEmailService(
         await userManager.UpdateAsync(user);
         await userManager.ResetAccessFailedCountAsync(user);
 
+        await securityLog.RecordAsync(Domain.Security.SecurityEventKind.PasswordChanged, user.GovernmentId, user.Id, user.Email, "From an emailed link", ct);
         context.SetTenant(user.GovernmentId);
         await using CivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
         db.AuditEntries.Add(AuditEntry.Event(user.GovernmentId, "User", UserKey(user), $"{user.Email} set a new password from an emailed link",

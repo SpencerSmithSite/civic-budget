@@ -8,8 +8,8 @@ using Microsoft.Extensions.Options;
 namespace CivicBudget.Web.Components.Account;
 
 /// <summary>
-/// Server-side AuthenticationStateProvider that re-checks the user's security stamp every 30 minutes
-/// while a circuit is connected. A circuit can outlive the cookie's validity (the tab stays open for
+/// Server-side AuthenticationStateProvider that re-checks the user's security stamp every
+/// <see cref="Security.SessionPolicy.RecheckEvery"/> while a circuit is connected. A circuit can outlive the cookie's validity (the tab stays open for
 /// hours), so this is what makes "lock this user out" or a role change take effect on open sessions.
 /// Adapted from the ASP.NET Core Identity template.
 /// </summary>
@@ -19,7 +19,7 @@ internal sealed class IdentityRevalidatingAuthenticationStateProvider(
         IOptions<IdentityOptions> options)
     : RevalidatingServerAuthenticationStateProvider(loggerFactory)
 {
-    protected override TimeSpan RevalidationInterval => TimeSpan.FromMinutes(30);
+    protected override TimeSpan RevalidationInterval => Security.SessionPolicy.RecheckEvery;
 
     protected override async Task<bool> ValidateAuthenticationStateAsync(
         AuthenticationState authenticationState, CancellationToken cancellationToken)

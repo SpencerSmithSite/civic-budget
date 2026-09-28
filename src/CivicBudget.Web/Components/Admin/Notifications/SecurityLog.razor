@@ -1,0 +1,124 @@
+@page "/admin/security-log"
+@attribute [Authorize(Policy = Policies.CanManageUsers)]
+@using CivicBudget.Domain.Security
+@inject ISecurityLogService Log
+
+@* Who got in, who tried to and from where, lockouts, second steps, and every file that was taken
+   away. Kept apart from the audit trail, which records changes to the budget and its setup. *@
+<PageTitle>Security log</PageTitle>
+
+<PageHeader Title="Security log" Eyebrow="Administration" Crumbs="@([new Crumb("Administration"), new Crumb("Security log")])"
+            Tip="Sign-ins and failed attempts, lockouts, two-step sign-in, password changes, and exports, newest first. Kept for a year." />
+
+<div class="card mb-3">
+    <div class="card-body cb-report-pick">
+        <label class="form-label fw-semibold mb-0" for="logKind">Show</label>
+        <select id="logKind" class="form-select" @bind="kind" @bind:after="ReloadAsync">
+            <option value="">Everything</option>
+            @foreach (SecurityEventKind k in Kinds)
+            {
+                <option value="@k">@Label(k)</option>
+            }
+        </select>
+    </div>
+</div>
+
+@if (view is null)
+{
+    <SkeletonRows Rows="8" Columns="4" />
+}
+else if (events.Count == 0)
+{
+    <div class="card"><EmptyState Icon="bi-shield-check" Title="Nothing recorded" Text="Events appear here as people sign in, fail to, and take exports." /></div>
+}
+else
+{
+    <div class="cb-cards d-md-none">
+        @foreach (SecurityEventDto e in events)
+        {
+            <ListCard @key="e.Id" Title="@(e.Email ?? Label(e.Kind))">
+                <Summary>@Display.Timestamp(e.OccurredAtUtc)@(e.Detail is null ? "" : $" · {e.Detail}")</Summary>
+                <Aside>@Pill(e.Kind)</Aside>
+            </ListCard>
+        }
+    </div>
+    <div class="card d-none d-md-block">
+        <div class="cb-grid-wrap">
+            <table class="cb-grid table" aria-label="Security events">
+                <thead><tr><th scope="col">When</th><th scope="col">What</th><th scope="col">Who</th><th scope="col" class="cb-col-wide">From</th><th scope="col">Detail</th></tr></thead>
+                <tbody>
+                    @foreach (SecurityEventDto e in events)
+                    {
+                        <tr @key="e.Id">
+                            <td class="text-nowrap small">@Display.Timestamp(e.OccurredAtUtc)</td>
+                            <td>@Pill(e.Kind)</td>
+                            <td class="cb-wrap small">@e.Email</td>
+                            <td class="cb-col-wide small cb-code">@e.IpAddress</td>
+                            <td class="cb-wrap small text-secondary">@e.Detail</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @if (events.Count < view.Total)
+    {
+        <button type="button" class="btn btn-outline-primary btn-sm mt-3" @onclick="MoreAsync">Show older events</button>
+    }
+}
+
+@code {
+    private const int PageSize = 50;
+    // The kinds a government's own log can hold; the rest belong to no government (an unknown address,
+    // the retention job) or to one that no longer exists, and only the operator sees them.
+    private static readonly SecurityEventKind[] Kinds = Enum.GetValues<SecurityEventKind>()
+        .Where(k => k is not (SecurityEventKind.UnknownAccount or SecurityEventKind.GovernmentRemoved or SecurityEventKind.RetentionPurge)).ToArray();
+    private SecurityLogPageDto? view;
+    private readonly List<SecurityEventDto> events = [];
+    private SecurityEventKind? kind;
+
+    protected override Task OnInitializedAsync() => MoreAsync();
+
+    private async Task ReloadAsync()
+    {
+        events.Clear();
+        await MoreAsync();
+    }
+
+    private async Task MoreAsync()
+    {
+        view = await Log.ListAsync(kind, events.Count, PageSize);
+        events.AddRange(view?.Events ?? []);
+    }
+
+    public static string Label(SecurityEventKind kind) => kind switch
+    {
+        SecurityEventKind.SignedIn => "Signed in",
+        SecurityEventKind.SignInFailed => "Wrong password",
+        SecurityEventKind.UnknownAccount => "Unknown account",
+        SecurityEventKind.LockedOut => "Locked out",
+        SecurityEventKind.TwoStepRequired => "Asked for a code",
+        SecurityEventKind.TwoStepFailed => "Wrong code",
+        SecurityEventKind.RecoveryCodeUsed => "Recovery code used",
+        SecurityEventKind.SignedOut => "Signed out",
+        SecurityEventKind.SessionExpired => "Signed out, idle",
+        SecurityEventKind.PasswordChanged => "Password changed",
+        SecurityEventKind.DataExported => "Exported",
+        SecurityEventKind.RateLimited => "Too many attempts",
+        SecurityEventKind.GovernmentRemoved => "Government removed",
+        SecurityEventKind.RetentionPurge => "Old records removed",
+        _ => kind.ToString(),
+    };
+
+    // One helper for the grid and the phone card, so the two always agree.
+    private static RenderFragment Pill(SecurityEventKind kind) => @<StatusPill Tone="@Tone(kind)" Label="@Label(kind)" />;
+
+    private static string Tone(SecurityEventKind kind) => kind switch
+    {
+        SecurityEventKind.SignedIn or SecurityEventKind.PasswordChanged => "success",
+        SecurityEventKind.SignInFailed or SecurityEventKind.TwoStepFailed or SecurityEventKind.RateLimited => "warning",
+        SecurityEventKind.LockedOut or SecurityEventKind.RecoveryCodeUsed => "danger",
+        SecurityEventKind.DataExported => "info",
+        _ => "",
+    };
+}

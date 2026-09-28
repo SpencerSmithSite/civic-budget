@@ -1323,6 +1323,8 @@ Those constraints mattered for the answers:
   Each step is worked out from what exists, so it is done the moment the thing exists.
 - **Forwarded headers.** Links and redirects use the scheme the load balancer saw
   (`X-Forwarded-Proto`), and `App:PublicUrl` can fix the address outright.
+  *Amended 2026-09-28 (ADR-0041):* the app also takes the client address from `X-Forwarded-For`
+  (only the one the load balancer added), for the security log and the rate limits.
 
 **Alternatives.**
 - Sending mail inline in the request: a slow or down server fails the user's action.
@@ -1335,6 +1337,103 @@ Those constraints mattered for the answers:
 SMTP configured delivers pending mail on the next save after a restart, not at startup, which keeps
 startup free of database calls. `IAppLinks` gives services an absolute address; outside a page the
 command line needs `App:PublicUrl`.
+
+---
+
+## ADR-0041: SOC 2 by design: a security log apart from the audit trail, sessions that end, a government's data found from the model, and scanning in CI
+**Date:** 2026-09-28 · **Status:** Accepted
+
+**Context.** A government or an ERP vendor buying CivicBudget will ask for a SOC 2 report, and a
+state buyer may ask about GovRAMP. I decided not to pay for an audit for a portfolio project, but
+to build what an auditor would examine, and to say plainly "designed and built to achieve SOC 2
+compliance". Most of an audit tests five things:
+- who can get in;
+- what they did;
+- how changes reach production;
+- how data is kept and disposed of;
+- how problems are found and handled.
+
+Several pieces were missing:
+- sign-ins were not recorded;
+- a session lasted 8 hours whatever the person did;
+- there were no rate limits, security headers, or code scanning;
+- a government could not take its data with it, and leaving had no procedure.
+
+**Decision.**
+- **A security log, separate from the audit trail.** `SecurityEvent` rows record every sign-in
+  outcome, sign-out, idle sign-out, password change, export, and refused request, with the client
+  address.
+  - The audit trail answers "what changed in the budget"; the security log answers "who got in,
+    who tried to, and what left the building". Mixing them would bury one in the other.
+  - The log is written by overriding Identity's `SignInManager` (`AuditingSignInManager`), so a
+    sign-in path added later is logged without anyone remembering to.
+  - Every export is logged by one endpoint filter on the export group.
+  - Events for an unknown address belong to no government and are not tenant-filtered; the
+    Administrators' page scopes by government explicitly, like the Identity services.
+  - Writing a row never fails the thing it records.
+- **Sessions that end.** 30 idle minutes, or 14 days for "Remember me" (`SessionPolicy`).
+  - An open Blazor page talks over its circuit rather than making requests, so the cookie's
+    sliding expiry alone would sign out someone typing into the worksheet. `js/session.js` keeps
+    an idle clock in the browser, shared across tabs through localStorage. It renews the cookie
+    while someone works, warns two minutes before the end, and signs out at the limit.
+  - The security stamp is re-checked every 5 minutes by the cookie and by each open page, so a
+    deactivated user loses access that quickly.
+- **Rate limits** (ASP.NET Core's built-in limiter, no package), partitioned by client address:
+  - sign-in forms: 20 per 5 minutes;
+  - password reset: 5 per 15 minutes;
+  - exports: 60 per minute per user.
+
+  Everything else is unlimited. `RateLimits.PolicyFor` is a pure function, so the rules are
+  tested without a server. The real client address comes from `X-Forwarded-For`, taking only the
+  address the load balancer itself added.
+- **Security headers on every response** (`SecurityHeadersMiddleware`): a Content-Security-Policy
+  that allows scripts from this site only, plus a per-request nonce for Blazor's one inline import
+  map. Also no framing, nosniff, a strict referrer policy, and a permissions policy. The inline
+  `window.civicBudget` helpers moved to `js/civicbudget.js` so no other inline script is needed.
+  Blazor's own `frame-ancestors` header is switched off in favor of the full policy.
+- **A government's data is found from the EF model** (`GovernmentDataStore`), not from a list.
+  Its scope:
+  - every table with a `GovernmentId` column;
+  - the Governments row;
+  - tables that reach one of those through a foreign key (a user's roles and departments).
+
+  Two jobs use it:
+  - **"Download everything"**: one CSV per table in a ZIP. It withholds password hashes, stamps,
+    and two-step keys, and guards text against spreadsheet formulas.
+  - **`--offboard`**: after writing that export to a file, it deletes every row in one transaction,
+    ordered so each table goes after everything that points at it.
+
+  A test fails if a new table is reached from no government, so the export and the removal
+  cannot silently miss it.
+- **Retention by a scheduled command** (`--maintenance`): security events and finished emails are
+  removed after a year. A timer inside the app would keep the serverless demo database awake.
+- **Scanning in CI.**
+  - NuGet audit on every restore (all packages, any severity, an error because warnings are).
+  - A `security.yml` workflow with CodeQL (`security-extended`, C# and JavaScript) and the
+    package check, on every change and weekly.
+  - Dependabot for npm too.
+- **Policies and a control matrix** in `docs/security`, written for the operator: each SOC 2
+  criterion, what meets it, where it lives, the evidence, and the NIST CSF 2.0 and 800-53
+  (GovRAMP) references.
+
+**Alternatives.**
+- One log for everything: auditors and administrators ask different questions of each.
+- The session cookie alone: it cannot see activity on an open Blazor page, so it either signs out
+  active people or never signs out idle ones.
+- A web application firewall for rate limits: it costs money on both clouds, and the app's own
+  limiter goes wherever the app goes.
+- A hand-kept list of tables for export and removal: a table added later would be missed. The
+  model, and a test, are harder to forget.
+- A tenant `IsDeleted` flag instead of deletion: it keeps data the customer asked to remove.
+- Paying for an audit now: there is no operator and no customer yet.
+
+**Consequences.**
+- The CSP allows inline styles (`style-src 'unsafe-inline'`), because the report bars and a few
+  layouts set widths inline. Scripts, where the risk is, stay strict.
+- The security log survives `--offboard` for the rest of its year, as the operator's evidence.
+- Backups still hold a removed government's data until they age out, and the retention policy
+  says so.
+- Two gaps are named in `docs/security/README.md`: breached-password checks and single sign-on.
 
 ---
 

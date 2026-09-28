@@ -13,3 +13,8 @@ updates:
     directory: /
     schedule:
       interval: weekly
+  # The screenshot and sweep scripts (Playwright); not shipped, but they run on this machine.
+  - package-ecosystem: npm
+    directory: /scripts/screenshots
+    schedule:
+      interval: weekly

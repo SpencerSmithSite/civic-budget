@@ -10,6 +10,12 @@
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <RootNamespace>$(MSBuildProjectName)</RootNamespace>
+    <!-- Restore checks every package, including those pulled in by others, against the GitHub
+         advisory database; with warnings as errors, a known vulnerability of any severity fails the
+         build. An accepted risk is a NuGetAuditSuppress item with its reason (docs/security/vulnerability-management.md). -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
   </PropertyGroup>
 
   <!-- Test projects are recognized by name so they get test-only defaults. -->

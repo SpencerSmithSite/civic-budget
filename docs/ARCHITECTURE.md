@@ -262,7 +262,9 @@ graph TD
 - Identity's tables are outside the filter, because sign-in has to find a user before
   anyone knows their government. `UserAdminService` scopes every query explicitly.
 - Application code never calls `IgnoreQueryFilters()`; only tests do, to check what
-  the filters hide.
+  the filters hide. The operator's jobs that work for every government at once (the
+  email sender, retention, and `GovernmentDataStore`'s full export and removal) are the
+  exception, each in Infrastructure with a comment, scoping every statement by id.
 
 ---
 
@@ -313,8 +315,9 @@ other cannot leave the portal choosing between two budgets.
   `MustChangePassword`; `UserDepartments` holds a department user's assignments. At
   sign-in the claims factory adds `government_id`, `display_name`, and one
   `department_id` per assignment, so later requests need no database call to know
-  who and where the user is. There is no self-registration, external login, or 2FA:
-  administrators create accounts.
+  who and where the user is. There is no self-registration or external login:
+  administrators create accounts. Two-step sign-in is Identity's authenticator provider
+  (ADR-0040), and a government can require it (`RequireMfaMiddleware`).
 - **Roles:** Administrator, Fiscal Officer, Department User, Viewer. (The stored
   names are the older `Admin`, `FinanceDirector`, `DepartmentHead`, `Viewer`; only the
   labels changed.) The Administrator can do everything the Fiscal Officer can.
@@ -332,8 +335,20 @@ other cannot leave the portal choosing between two budgets.
 - **Temporary passwords.** A password an administrator sets is temporary; a claim
   marks it and `MustChangePasswordMiddleware` keeps the user on the change-password page.
 - **Open sessions.** A circuit can outlive a change to the user, so the authentication
-  state is revalidated against the security stamp every 30 minutes, and role changes
-  and lockouts update the stamp.
+  state is revalidated against the security stamp every 5 minutes
+  (`SessionPolicy.RecheckEvery`, the cookie too), and role changes and lockouts update
+  the stamp.
+- **Session length (ADR-0041).** 30 idle minutes, or 14 days for "Remember me". The
+  cookie slides on requests; an open page keeps its own idle clock in the browser
+  (`js/session.js`), because a circuit never sends the cookie.
+- **The security log (ADR-0041).** `AuditingSignInManager` records every sign-in outcome,
+  and a filter on the export group records every download, as `SecurityEvent` rows kept
+  apart from the audit trail. They are outside the tenant filter (an unknown address has
+  no government), so `SecurityLogService` scopes explicitly, like the Identity services.
+- **At the edge (ADR-0041).** `SecurityHeadersMiddleware` sets the Content Security Policy
+  (scripts from this site plus a per-request nonce for the import map) and the other
+  headers, early enough to cover output cache hits. `RateLimits` limits sign-in,
+  password reset, and exports per client address, taken from `X-Forwarded-For`.
 
 ---
 

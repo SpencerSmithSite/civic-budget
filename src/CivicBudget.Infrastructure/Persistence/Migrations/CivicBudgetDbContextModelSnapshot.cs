@@ -1784,6 +1784,45 @@ namespace CivicBudget.Infrastructure.Persistence.Migrations
                     b.ToTable("ReportAccountGroupAccounts", (string)null);
                 });
 
+            modelBuilder.Entity("CivicBudget.Domain.Security.SecurityEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Detail")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid?>("GovernmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("OccurredAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OccurredAtUtc");
+
+                    b.HasIndex("GovernmentId", "OccurredAtUtc");
+
+                    b.ToTable("SecurityEvents");
+                });
+
             modelBuilder.Entity("CivicBudget.Infrastructure.Identity.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")

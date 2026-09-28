@@ -4,7 +4,6 @@
 @using Microsoft.AspNetCore.Authentication
 
 @inject SignInManager<ApplicationUser> SignInManager
-@inject ILogger<Login> Logger
 @inject IdentityRedirectManager RedirectManager
 
 <PageTitle>Sign in</PageTitle>
@@ -19,6 +18,10 @@
             <div class="card-body p-4">
                 <h2 class="h5 mb-1">Sign in</h2>
                 <p class="text-secondary small mb-3">Use the account your administrator created.</p>
+                @if (Expired && errorMessage is null)
+                {
+                    <div class="alert alert-info small" role="status"><i class="bi bi-clock-history me-2" aria-hidden="true"></i>You were signed out after 30 minutes without activity. Sign in again to continue.</div>
+                }
                 <StatusMessage Message="@errorMessage" />
                 @* A plain HTML form post (method="post"): this page is statically rendered so the sign-in
                    cookie can be set on the response. The DataAnnotationsValidator here only checks the
@@ -62,6 +65,9 @@
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
+    [SupplyParameterFromQuery]
+    private bool Expired { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         Input ??= new();
@@ -76,11 +82,11 @@
     public async Task LoginUser()
     {
         // lockoutOnFailure: true means five bad passwords lock the account for 15 minutes (IdentityOptions in Infrastructure).
+        // Every outcome goes to the security log from the sign-in manager itself (AuditingSignInManager).
         SignInResult result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: true);
 
         if (result.Succeeded)
         {
-            Logger.LogInformation("User {Email} logged in.", Input.Email);
             // Straight into the app: the overview, or for a department user their department (the overview forwards them).
             RedirectManager.RedirectTo(ReturnUrl ?? "admin");
         }
@@ -91,7 +97,6 @@
         }
         else if (result.IsLockedOut)
         {
-            Logger.LogWarning("User {Email} is locked out.", Input.Email);
             RedirectManager.RedirectTo("Account/Lockout");
         }
         else
