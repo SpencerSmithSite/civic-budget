@@ -1153,6 +1153,68 @@ as the budget screens (`ActualsByLine`), so a figure cannot differ between a scr
 
 ---
 
+## ADR-0038: Personnel budgeting: positions live on the budget version, settings belong to a year, and lines are calculated
+**Date:** 2026-09-27 · **Status:** Accepted
+
+**Context.** In an Ohio village, salaries and the benefits that follow them are most of the General
+Fund, and nobody types those lines: the fiscal officer builds them from a spreadsheet of positions,
+each with a salary or hourly rate, a raise, longevity, overtime, a retirement system (OPERS or
+OP&F), Medicare, workers' compensation, and insurance by coverage tier, split across the funds that
+pay for the position. A budget tool an ERP vendor would buy has to do that spreadsheet's job, and do
+it without breaking the rule that the budget lines are the budget: every screen, report, the
+certificate, the portal, and the journal sent to the ERP read lines.
+
+**Decision.**
+- **Positions belong to the budget version**, as children of `BudgetVersion` like its lines, so
+  everything the aggregate already guarantees applies to them: an adopted budget's positions are
+  fixed, an amendment copies them, the `Revision` concurrency token covers them, and department
+  users may change them exactly when they may change their department's lines.
+- **A line is typed or calculated, never both.** `BudgetLine.PositionCount` is null for a typed
+  line and says "from 9 positions" for a calculated one. Every position change prices the
+  department again (`BudgetVersion.ApplyPersonnel`): a line is created where a position newly
+  costs into a fund and account, a typed line becomes calculated when positions cost into it, and a
+  calculated line no position reaches any more returns to a typed zero. The domain refuses typing
+  over or removing a calculated line, and the import refuses to change one.
+- **Settings belong to a fiscal year** (`PersonnelSettings`, one per government and year): next
+  year's health premiums are entered while this year's amendment is open and must not reach it,
+  and an adopted budget keeps what it was priced with. Saving a year's settings reprices that
+  year's open budgets and refuses any change that would leave a position of the year unpriceable
+  (a plan someone is on, a tier someone has), naming the positions. A new year starts as a copy of
+  the last; starting next year's budget carries each position forward at the rate it ends the year,
+  its plans mapped to the new year's copies.
+- **One pure calculator** (`PositionCostCalculator`) prices a position from plain values
+  (`PositionDetails`, `PayrollRules`), so the editor's live breakdown and the save cannot disagree.
+  Base pay is a twelfth of the year's pay per month paid at that month's rate (a raise or step
+  increase in month 7 counts for six months, a vacancy filled in month 4 for nine). Retirement is
+  charged on pensionable pay (earnable salary), Medicare and workers' compensation on taxable pay,
+  and each extra pay item says which it is. Each piece rounds to cents and is divided among the
+  funds with the largest share taking the leftover cent, so a split is the same however the funds
+  are listed.
+- **Longevity supports every common method** (a step table of flat amounts, a percentage of pay,
+  an amount per year of service with an optional cap), counted on the first or last day of the
+  budget year per schedule, and the settings page reads each schedule back as sentences
+  (`Longevity.Describe`) with a worked example beside it.
+- **Defaults are Ohio's**: OPERS 14% employer and 10% employee, OPERS law enforcement 18.1%, OP&F
+  police 19.5% and fire 24% (12.25% employee), Social Security 6.2% for anyone outside a state
+  system, Medicare 1.45%; workers' compensation starts at zero because every public employer has its
+  own BWC rate. Insurance is a monthly premium per tier (single, employee and spouse, family) less
+  an employee share.
+
+**Alternatives.** Positions as their own aggregate beside the version (the lines and positions could
+then disagree between two saves, and amendments would need a second copy step); one set of settings
+for all years (a mid-year amendment would pick up next year's premiums); letting a user type over a
+calculated line and keeping both numbers (the budget would say one thing and the positions another,
+with no rule for which wins); a per-line "personnel worksheet" rather than positions (a position
+split across funds and accounts would be entered several times).
+
+**Consequences.** A version now loads its positions where a method needs them (amendments, starting
+a year, personnel pages); `PersonnelData.VersionsWithPositions` is the one include list. Changing an
+adopted year's settings does not move its lines, so its personnel page says when the positions no
+longer price to the adopted amounts. Percentages and hours are the only decimals that are not
+money: they keep four places (`decimal(9,4)`), and the migration test names them.
+
+---
+
 ## Packages
 
 Every NuGet package and why it is here. A package is added to this table in the same change that

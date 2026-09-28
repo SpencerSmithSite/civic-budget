@@ -210,6 +210,15 @@ of changes (`BudgetJournalBuilder`, pure), through `IErpBudgetApi` or as an impo
 the idempotency key, so a send whose answer was lost is retried without posting twice. A
 filtered unique index allows one unfinished send per government and year.
 
+### 4.6 Calculated lines (ADR-0038)
+Personnel lines are calculated, not typed. Positions are children of `BudgetVersion`; each
+change prices the department with the year's `PersonnelSettings` (as plain `PayrollRules`)
+through the pure `PositionCostCalculator`, and `BudgetVersion.ApplyPersonnel` sets the
+department's lines to the result, marking each with how many positions it comes from.
+Everything that reads lines (balances, reports, the certificate, the ERP journal, the portal)
+is unchanged. `PersonnelData.VersionsWithPositions` is the one include list for loading a
+version with its positions.
+
 ---
 
 ## 5. Tenancy (ADR-0004, ADR-0013, ADR-0015)

@@ -6,6 +6,31 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 
 ## [Unreleased]
 
+## Phase 26: 2026-09-27 (personnel budgeting)
+### Added
+- **Positions** for each department in a budget version, filled or vacant:
+  - pay as a salary or an hourly rate (typed with a raise from a chosen month, or from a pay scale's grade and step with a step increase);
+  - the months paid;
+  - longevity and other pay;
+  - retirement (with an optional employer pick-up of the employee's share);
+  - insurance by plan and tier;
+  - the funds that pay for it.
+- A personnel page per department: positions, a live cost breakdown as a position is edited, and the budget lines the positions add up to.
+- **Calculated lines**: salary and benefit lines are the sum of their positions, show "from N positions", and cannot be typed over, removed, or changed by an import.
+- **Personnel settings** per fiscal year under Setup:
+  - retirement systems (OPERS, OPERS law enforcement, OP&F police and fire, Social Security);
+  - Medicare and the BWC workers' compensation rate;
+  - insurance premiums by tier less the employee share;
+  - kinds of extra pay (amount, hours at a multiple of the rate, or a percent of base pay; pensionable and taxable flags);
+  - longevity (step table, percentage of pay, or amount per year of service, read back in plain English with a worked example);
+  - pay scales.
+- Saving a year's settings reprices that year's open budgets; a change that would leave a position unpriceable is refused with the positions named.
+- Amendments copy positions; starting next year's budget carries them forward at the rate each ends the year.
+- Demo: 16 positions in Maple Ridge's FY2027 draft (Police, Finance, Streets & Service split between two funds).
+### Changed
+- `BudgetLine.PositionCount`; the migration test allows the named percentage and hours columns (`decimal(9,4)`).
+- The role sweep opens the personnel pages too.
+
 ## Phase 25: 2026-09-27 (reports the ERP cannot produce alone)
 ### Added
 - **Budget vs. Actual**: each appropriation against the ERP's spending and encumbrances, what is left, a bar with a tick for the year's pace, and last year at the same point.

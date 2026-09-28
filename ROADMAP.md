@@ -325,10 +325,27 @@ journal, repeated on every line), and `Date` (the journal's posting date, repeat
 - [x] Reviewed and approved (2026-09-27)
 
 ## Phase 26: Personnel budgeting  `phase-26-personnel`
-- [ ] Any line can be calculated from personnel; typing an amount keeps working everywhere
-- [ ] One screen per department: each position with name, title, pay (salary, or rate times hours), raise, longevity, benefits, and its split across funds; vacancies allowed
-- [ ] Benefit rates set once in settings: OPERS and OP&F employer shares, Medicare, workers' compensation, health, dental, vision, and life by tier, and anything else the research turns up; each cost lands on its own object code
-- [ ] Save, and the line shows the total with "from 12 positions"
+Decided with Spencer (2026-09-27):
+- Longevity supports every method: flat per year, percent after N years, step table, set up in plain English.
+- Rates: OPERS 14%, OP&F police 19.5% and fire 24%, Medicare 1.45%, workers' comp as the BWC percent of payroll.
+- Insurance is a monthly premium per tier less an employee share.
+- Other pay per employee: uniform allowance, overtime, holiday pay, step and grade, and other likely items.
+- Confirmed: years counted on the first or last day of the year; uniform allowance taxable but not pensionable; leave conversion and cash in lieu not pensionable; overtime at the average hourly rate.
+
+- [x] Any line can be calculated from personnel; typing an amount keeps working everywhere else (`BudgetLine.PositionCount`)
+- [x] One screen per department: each position with name, title, pay (salary, or rate times hours, or a pay scale step), raise or step increase, months paid, longevity, other pay, benefits, and its split across funds; vacancies allowed
+- [x] Settings per fiscal year:
+  - retirement systems;
+  - Medicare and the BWC rate;
+  - insurance by tier;
+  - extra pay (overtime, holiday, uniform, stipends, certification, leave conversion, cash in lieu, 457 match);
+  - longevity (three methods, in plain English);
+  - pay scales.
+  Each cost lands on its own object code.
+- [x] Save, and the line shows the total with "from 9 positions"; settings changes reprice the year's open budgets
+- [x] Amendments copy positions; next year carries them forward
+- [x] Tests: calculator, longevity, settings, version rules (unit); services, permissions, repricing, import (integration); pages (bUnit); ADR-0038, walkthrough 25
+- [ ] Reviewed and approved
 
 ## Phase 27: Personnel from VIP and personnel reports  `phase-27-personnel-seed`
 - [ ] Once a year, start personnel from VIP's employee list and pay
