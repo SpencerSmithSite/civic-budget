@@ -592,6 +592,8 @@ phone width without sideways scrolling.
 - Tests: xUnit, bUnit for components, Testcontainers (SQL Server) for
   integration tests. Every domain rule and every authorization rule has a test.
 - CI on every pull request; deployments sign in with OIDC (no long-lived keys).
+- WCAG 2.2 AA: every page scanned with axe-core and reviewed by keyboard; conformance reported in
+  `docs/accessibility/ACR.md`.
 - Designed and built to achieve SOC 2 compliance (Security, Availability, Confidentiality):
   security headers with a strict script policy, rate limits, code and dependency scanning in CI,
   and the controls, policies, and evidence in `docs/security`.

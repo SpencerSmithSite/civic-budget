@@ -384,6 +384,6 @@ Decided with Spencer (2026-09-27): designed and built to achieve SOC 2 complianc
 ## Phase 31: Accessibility self-scan  `phase-31-accessibility`
 Decided with Spencer (2026-09-27): no official audit for now; our own scan near the end of the project.
 
-- [ ] Automated checks (axe) across every page and role, plus subagent reviews of the portal and admin
-- [ ] Fix what they find; write the accessibility conformance report (VPAT)
+- [x] Automated checks (axe) across every page and role, plus subagent reviews of the portal and admin
+- [x] Fix what they find; write the accessibility conformance report (VPAT)
 - [ ] Reviewed and approved

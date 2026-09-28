@@ -6,6 +6,45 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 
 ## [Unreleased]
 
+## Phase 31: 2026-09-28 (accessibility self-scan)
+### Added
+- `scripts/screenshots/a11y-sweep.mjs`: axe-core (WCAG 2.2 A and AA plus best practices) on every page for every role, the sign-in pages, and the portal at desktop and phone width.
+- **`docs/accessibility/ACR.md`**: the accessibility conformance report in the VPAT 2.5 WCAG format.
+- **Skip to content** links on every page.
+- An error summary that takes focus on every form, admin and sign-in.
+- `Aria.Bool` for ARIA states.
+### Fixed
+- **Contrast:**
+  - secondary text, green status pills, and links passing 4.5:1 on every tint (links had fallen back to Bootstrap's blue);
+  - form fields now have a 3:1 border;
+  - focus rings are visible on the navy bars and the sidebar.
+- **Focus:**
+  - the phone menu is a dialog that takes and returns focus;
+  - dialogs opened from row menus give focus back to the menu;
+  - focus no longer drops when a button disables itself (narrative save, pager, a refused dialog);
+  - after a note, focus returns to its row.
+- **Announcements:**
+  - a refused amount is marked invalid and announced;
+  - an edit that takes a fund over its limit, or back within it, says so;
+  - the filter count is a status;
+  - the idle warning is read once, not every second, and gives focus back.
+- **States:** toggles and disclosure buttons now expose real `aria-expanded` and `aria-pressed` values.
+- **Tips and messages:**
+  - info tips can be hovered and dismissed with Escape;
+  - failure and warning toasts stay until dismissed.
+- **Structure:**
+  - headings hold the title alone, and card titles are headings;
+  - empty action headers are named;
+  - the sidebar, fund panel, and narrative are named landmarks;
+  - portal tables that scroll can be reached by keyboard;
+  - portal panel radios are a named group;
+  - the portal nav marks the current page.
+- **Sign-in pages:**
+  - the card title is the page's heading;
+  - the illustration stops after two plays;
+  - the password toggle keeps one name with a pressed state.
+- The workflow stepper fits at 320 pixels.
+
 ## Phase 30: 2026-09-28 (the product site)
 ### Added
 - **spencersmith.site/CivicBudget**, in the spencersmith.site repository:
