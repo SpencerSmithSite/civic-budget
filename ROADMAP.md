@@ -373,7 +373,7 @@ Decided with Spencer (2026-09-27): designed and built to achieve SOC 2 complianc
 - [x] Dependency and code scanning in CI
 - [x] Export all of a government's data; off-board a government
 - [x] docs/security: policies, backup and recovery targets, a control matrix (SOC 2 criteria, GovRAMP/NIST where they overlap) with evidence
-- [ ] Reviewed and approved
+- [x] Reviewed and approved (2026-09-28, PR #52)
 
 ## Phase 30: Marketing website  `phase-30-marketing-site`
 - [ ] Static site in the spencersmith.site repository at `public/CivicBudget`, served at spencersmith.site/CivicBudget (the Council pattern), mockups approved first
