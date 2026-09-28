@@ -1346,3 +1346,41 @@ the database returns a position's funds in no fixed order. Now the fund with the
 it, with ties broken by id, and two tests pin it down: a split is the same in either order, and an
 unchanged save moves no line.
 **Look at:** `PositionCostCalculator.SplitAmongFunds`, `Saving_settings_touches_only_the_lines_the_change_reaches`.
+
+## Phase 27: Employees from the ERP, and personnel reports
+
+### Q: You didn't know the ERP's export format. How did you build the import?
+**A:** The same way as the chart and actuals syncs: a contract (`ErpEmployees`) that says what CivicBudget
+needs, with adapters that fill it. I wrote down a reasonable layout for a payroll export (one row per
+employee, the labor distribution and benefits in a cell each) and built the file reader and the simulated
+API against it. Plans travel by name and departments and funds by code, so the only code that will ever
+know VIP's own codes is its adapter. When the real layout is known, I write that adapter and nothing
+else changes.
+**Look at:** `ErpEmployees`, `ErpEmployeeFileSource`, `SimulatedErpEmployeesApi`.
+
+### Q: What happens to a planned raise when the payroll is brought in again?
+**A:** It stays. A position has the ERP's facts (name, pay, retirement, insurance, funds) and the budget's
+plans (raise, step increase, months, longevity, overtime). A sync refreshes the first and keeps the second.
+The matcher does that with one `with` expression, and a test proves the 3% raise from July survives a pay
+change in the ERP.
+**Look at:** `EmployeeMatcher.Apply`, `A_raise_in_the_erp_updates_the_rate_and_keeps_the_budgets_planned_raise`.
+
+### Q: Why leave a leaver's position vacant rather than delete it?
+**A:** Because in a budget a position is a slot, not a person. When someone retires, the department almost
+always means to fill the job, and the budget should still carry it. Deleting is one click on the personnel
+page, but undoing a wrong delete means re-entering the position. New hires use the same idea from the
+other side: they fill a vacancy with the same title before a new position is created.
+**Look at:** `SyncAction.Vacate`, `A_new_hire_fills_the_vacancy_with_the_same_title`.
+
+### Q: How do you know the preview shows what Apply will do?
+**A:** It runs the same code. The service loads the budget, matches, and applies the plan through the
+aggregate's real methods, then compares the lines before and after. A preview throws the context away;
+a commit saves it. There is no second "estimate" path that could drift from the real one.
+**Look at:** `PersonnelSyncService.RunAsync`.
+
+### Q: How do the personnel reports stay consistent with the budget?
+**A:** They add up the calculator's pieces, the same ones the lines are made of. I added a split by fund and
+kind to the cost, so "retirement paid by the Street fund" is a sum, not a new formula. An integration test
+asserts the roster's total equals the personnel lines, and the cost report's Street fund equals that fund's
+lines.
+**Look at:** `PositionCost.ByFundAndKind`, `The_personnel_reports_add_up_to_the_personnel_lines`.

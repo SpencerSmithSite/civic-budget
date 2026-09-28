@@ -1215,6 +1215,60 @@ money: they keep four places (`decimal(9,4)`), and the migration test names them
 
 ---
 
+## ADR-0039: Employees come from the ERP's payroll by name and code; the sync refreshes what the ERP owns and leaves the budget's plans alone
+**Date:** 2026-09-27 · **Status:** Accepted
+
+**Context.** Typing a roster of positions every year is the work personnel budgeting was supposed to
+remove. The ERP's payroll already knows who is employed, where, at what pay, in which retirement
+system and plans, and charged to which funds. Its export layout is not known yet, so the contract has
+to be a reasonable guess that a real adapter can translate into, and the sync has to work from a file
+as well as an API.
+
+**Decision.**
+- **A contract, adapters, a pure matcher, and a preview-then-apply service**, the same shape as the
+  chart and actuals syncs. `ErpEmployees` is the contract. `ErpEmployeeFileSource` (a CSV or XLSX
+  with one row per employee) and `IErpEmployeesApi` are its adapters. `EmployeeMatcher` is the pure
+  match, and `PersonnelSyncService` previews and applies.
+- **Plans are matched by name, departments and funds by code.** The contract carries retirement
+  systems and insurance plans by the names the year's personnel settings give them, so the only code
+  that knows an ERP's own codes ("OPF-P") is its adapter.
+- **What the ERP owns versus what the budget owns.**
+  - The ERP owns name, title, hire date, pay (rate and hours, or grade and step), retirement and
+    pick-up, insurance, and the fund split.
+  - The budget owns the planned raise or step increase, the months paid, longevity, other pay, and
+    the base pay account.
+  - A sync refreshes the ERP's side and keeps the budget's side.
+- **Positions keep the ERP's employee number** (`Position.EmployeeId`), so next year's sync finds
+  them again.
+  - A new employee fills a vacant position with the same title in their department. If there is
+    none, they get a new position that copies the budget's choices from a colleague with that title.
+  - Someone no longer on the payroll leaves their position vacant rather than removed.
+  - A transfer vacates the old position and places the employee in the new department.
+  - Positions entered here without a number are never touched.
+- **One unmatched employee refuses the whole sync**, the same rule as the actuals sync. The preview
+  lists every problem, so they can be fixed in the ERP or in the settings and read again.
+- **The preview runs the real apply** on the loaded budget and throws the context away, so its line
+  figures are exactly what a commit writes.
+- **Three personnel reports:**
+  - a position roster, which department users get for their own departments;
+  - personnel cost by fund;
+  - a benefits summary.
+
+  The last two are whole-government and not shown to department users. All three add up the same
+  cost pieces as the lines, split by kind (`PositionCost.ByFundAndKind`).
+
+**Alternatives.**
+- Matching by name alone: two employees can share a name, and a name changes on marriage.
+- Replacing the budget's positions with the payroll wholesale: it would lose every planned raise,
+  vacancy, and longevity choice.
+- Skipping employees that do not match: every personnel line would be quietly understated.
+
+**Consequences.** The assumed file layout is written down on the page and in the reader's comment.
+When the real VIP export is known, a VIP adapter translates it into `ErpEmployees` and nothing
+above it changes.
+
+---
+
 ## Packages
 
 Every NuGet package and why it is here. A package is added to this table in the same change that

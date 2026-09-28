@@ -348,8 +348,14 @@ Decided with Spencer (2026-09-27):
 - [x] Reviewed and approved (2026-09-27)
 
 ## Phase 27: Personnel from VIP and personnel reports  `phase-27-personnel-seed`
-- [ ] Once a year, start personnel from VIP's employee list and pay
-- [ ] Position roster, cost by fund, benefits summary
+Decided with Spencer (2026-09-27): VIP's employee export is not known yet. Seed with fields a payroll export can reasonably be assumed to have, and take them by API or file.
+
+- [x] Start personnel from the ERP's employee list and pay, by API or payroll export, with a preview (`ErpEmployees`, `EmployeeMatcher`, `PersonnelSyncService`)
+- [x] Positions keep the ERP employee number; the ERP's side is refreshed and the budget's plans kept; hires fill vacancies; leavers leave vacancies
+- [x] Position roster, personnel cost by fund, benefits summary, each with XLSX export
+- [x] Tests: file reader, matcher, report builder (unit); preview, apply, file, refusals, a new government, reports (integration); pages (bUnit); ADR-0039, walkthrough 26
+- [ ] Confirm the assumed export fields with VIP's real layout
+- [ ] Reviewed and approved
 
 ## Phase 28: What a buyer will ask about  `phase-28-market-readiness`
 - [ ] Set up a new government without the seed

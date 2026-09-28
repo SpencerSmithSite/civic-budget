@@ -352,6 +352,26 @@ reprices that year's open budgets. Amendments copy positions; a new year's budge
 carries them forward at the rate each ends the year. Who may change a position is
 who may change the department's lines (§4). Personnel detail is not published to
 the portal; the portal shows the lines.
+
+### 3.17 Employees from the ERP, and personnel reports
+A budget being prepared takes the ERP's employee list, from its API or a payroll
+export with one row per employee: employee number, name, title, department code,
+pay type and rate (or grade and step), annual hours, hire date, retirement system,
+pick-up, funds with shares, and insurance plans with tiers. Plans are matched to
+the year's personnel settings by name; departments and funds by code. The preview
+shows, per employee, whether a position is added, a vacancy filled, a position
+updated (with what changed), or left vacant, and every budget line that would move;
+any employee that cannot be matched refuses the sync. The ERP's side of a position
+is refreshed; the budget's planned raise, step increase, months, longevity, and
+other pay are kept. Administrator or Fiscal Officer; each sync is logged.
+
+Reports: the **position roster** (every position by department, filled and vacant,
+with hire date, years of service, pay rate, funds, pay, benefits, and total), the
+**personnel cost by fund** (pay, retirement, Medicare, workers' compensation, and
+insurance by fund and department), and the **benefits summary** (retirement members,
+pensionable pay, employer share and pick-up; insurance enrollment by plan and tier
+with employer and employee shares; Medicare and workers' compensation). The roster
+follows a department user's departments; the other two are whole-government.
 ---
 
 ## 4. Workflow
@@ -609,6 +629,7 @@ prove tenant isolation in the tests and in the demo.
 | §3.14 Certificate of estimated resources | 24 | ADR-0036 |
 | §3.15 Reports on the ERP's books, appropriation measure | 25 | ADR-0037 |
 | §3.16 Personnel budgeting | 26 | ADR-0038 |
+| §3.17 Employees from the ERP, personnel reports | 27 | ADR-0039; simulated payroll in the demo |
 | §4 Workflow, §5 Validation | 4 | Block or Warn at the transition |
 | §6 Publishing | 4, 5, 18 | Denormalized snapshots (ADR-0005, 0019); read-only portal context (ADR-0006); cache evicted by tag (ADR-0021) |
 | §7.1 Admin | 2–4, 6, 9c, 9d, 10 | Two entry modes, live fund panel, audit trail, import, reports, department round, profile pictures |

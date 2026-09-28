@@ -6,6 +6,16 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 
 ## [Unreleased]
 
+## Phase 27: 2026-09-27 (employees from the ERP, and personnel reports)
+### Added
+- **Employees from the ERP** under Setup: bring the payroll into a budget being prepared, from the ERP's API (simulated in the demo) or a payroll export (CSV or XLSX, one row per employee). The preview shows each employee's step (new position, vacancy filled, updated with what changed, left vacant) and every budget line that would move before anything is written.
+- Positions keep the ERP's employee number; a sync refreshes what the ERP owns (pay, plans, funds) and keeps the budget's plans (raise, step increase, months, longevity, other pay). One unmatched employee refuses the whole sync. Each sync is logged and audited.
+- **Position Roster**, **Personnel Cost by Fund**, and **Benefits Summary** reports, each exported to XLSX.
+- Demo: the simulated ERP's payroll has moved on since the FY2027 budget started (a hire into the police vacancy, a raise, a retirement); Pine Hollow's payroll is ready for a government that sets up personnel from scratch.
+### Changed
+- The seed's positions and the simulated payroll come from one roster (`MapleRidgePersonnel.Roster`).
+- `PositionCost` carries each fund's cost by kind and the pensionable and taxable pay behind it.
+
 ## Phase 26: 2026-09-27 (personnel budgeting)
 ### Added
 - **Positions** for each department in a budget version, filled or vacant:

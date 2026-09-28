@@ -51,6 +51,11 @@ Sign in as `finance@mapleridge.example`, then **Continue FY2027** on the overvie
   Save, and the department's lines move.
 - **Personnel settings** under Setup: "Settings belong to a year. Longevity reads back in
   plain English, so it can be checked against the contract."
+- **Employees from the ERP**, **Fetch employees**: "Nobody types the roster either. The
+  payroll has moved on since the budget started: a hire fills the police vacancy, a clerk
+  had a raise, a street worker retired. Here is every line that moves." Apply.
+- **Reports**, Personnel: the roster, cost by fund, and the benefits summary. "The roster's
+  total is the personnel lines to the cent."
 
 ## 3. The police chief's view (1 minute)
 
