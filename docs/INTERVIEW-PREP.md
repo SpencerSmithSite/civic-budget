@@ -1490,3 +1490,31 @@ government is untouched.
 The limiter's partition key is the client address from `X-Forwarded-For`, trusting only the entry
 the load balancer added, so a client cannot choose its own bucket.
 **Look at:** `RateLimits.PolicyFor`, `SecurityControlsTests.Limits_only_the_requests_an_attacker_would_repeat`.
+
+## Phase 30: The product site
+
+### Q: Why is the marketing site a static page and not part of the app?
+**A:** Three reasons:
+- **Availability.** The demo sleeps on free tiers and resets every night, and the page that sells
+  it should load instantly whatever the demo is doing.
+- **Scope.** A single page needs no framework. It is plain HTML and CSS in my portfolio's
+  repository, next to another project's site, and the same Formspree form handles contact.
+- **Cost.** Nothing to deploy or pay for beyond what I already run.
+
+**Look at:** `docs/walkthroughs/29-product-site.md`, ADR-0042.
+
+### Q: How did you make the demo clips?
+**A:** Playwright records a video of each scripted session against a freshly seeded app. Headless
+recordings have no cursor, so the script injects one that follows the mouse. Then ffmpeg trims the
+page load, crops the sidebar, and encodes H.264. Each clip is under a megabyte, where a GIF would
+be several. On the page they play only while visible, never under reduced motion, and they have a
+pause button, because WCAG requires one for motion over five seconds.
+**Look at:** `scripts/screenshots/site-clips.mjs`, `public/CivicBudget/assets/js/site.js` in the site repository.
+
+### Q: Why didn't a redirect from the lowercase address work?
+**A:** Next matches redirect sources without regard to case, so the redirect from `/civicbudget/`
+to `/CivicBudget/` also matched `/CivicBudget/` and looped. Next serves public files
+case-sensitively before rewrites run, so a rewrite from any spelling onto the real folder only
+catches the misses. I found it by testing against a production build rather than the dev server,
+which is where these rules apply.
+**Look at:** `next.config.mjs` in the site repository.

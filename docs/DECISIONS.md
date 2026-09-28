@@ -1437,6 +1437,53 @@ Several pieces were missing:
 
 ---
 
+## ADR-0042: The product site is one static page in the portfolio repository, with clips recorded from the app
+**Date:** 2026-09-28 · **Status:** Accepted
+
+**Context.** An ERP vendor or a government deciding whether to look further needs one page that
+says what CivicBudget is, shows it working, and offers the demo and a way to get in touch. I already
+run spencersmith.site (Next.js on Vercel), which hosts Council's static site and has a contact form
+through Formspree.
+
+**Decision.**
+- **One static page** at spencersmith.site/CivicBudget, in that repository's `public/CivicBudget`,
+  following the Council pattern: plain HTML and CSS, a little JavaScript, no build step. The
+  security story and the demo logins are sections of the page, not pages of their own.
+- **The app's own design tokens**, so the site and the product look like one thing:
+  - the sidebar's navy;
+  - the logo's teal;
+  - the over-limit red, used once, on the thing Ohio law cares about.
+
+  Public Sans (the U.S. government's typeface) and IBM Plex Mono are **self-hosted**: a page
+  selling security should not send its visitors to a font host.
+- **Clips, not GIFs.** Three silent H.264 clips (200 to 800 KB each), recorded by Playwright from a
+  freshly seeded app (`scripts/screenshots/site-clips.mjs`):
+  - a department moving a line and submitting;
+  - the fiscal officer bringing the Street fund within its limit;
+  - the portal on a phone.
+
+  They play only on screen, never under reduced motion, and each has a pause button (WCAG 2.2.2)
+  and a caption.
+- **The contact form** posts to the portfolio's Formspree endpoint with a hidden subject of
+  "CivicBudget inquiry", and works without JavaScript.
+- **The address keeps its capitals** (`/CivicBudget/`), and any other spelling is rewritten onto
+  it, because a redirect loops (Next matches redirect sources without regard to case).
+
+**Alternatives.**
+- A page inside the app: it would share the demo's cold start, and the demo resets nightly.
+- A separate domain: another thing to pay for and renew, when the portfolio already has one.
+- Separate security and demo pages: the page is short enough that one scroll answers everything.
+- Animated GIFs: ten times the size and worse to look at.
+- Google Fonts by link: a third-party request on every visit.
+
+**Consequences.**
+- The screenshots and clips go stale when the UI changes; the script regenerates them.
+- The hero's fund panel repeats its screenshot's figures by hand, and the site's doc says to
+  update both together.
+- The site lives in another repository, so it merges and deploys separately.
+
+---
+
 ## Packages
 
 Every NuGet package and why it is here. A package is added to this table in the same change that
