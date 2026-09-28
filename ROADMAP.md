@@ -364,10 +364,10 @@ Decided with Spencer (2026-09-27): no Microsoft sign-in (Entra ID) for now. App 
 - [x] Email: department submitted or returned, forgot password, welcome for a new user; a transactional outbox, SMTP delivery, and the demo outbox page
 - [x] MFA with an authenticator app, recovery codes, a "require MFA" setting per government, and an Administrator reset
 - [x] Tests: outbox and templates (unit); notices, reset and welcome links, delivery and retries, MFA, provisioning and the checklist (integration); pages and middleware (bUnit); ADR-0040, walkthrough 27
-- [ ] Reviewed and approved
+- [x] Reviewed and approved (2026-09-28)
 
 ## Phase 29: SOC 2 by design  `phase-29-soc2`
-Decided with Spencer (2026-09-27): designed and built to achieve SOC 2 compliance, without going through certification; cover similar frameworks buyers ask about (GovRAMP, NIST CSF 2.0).
+Decided with Spencer (2026-09-27): designed and built to achieve SOC 2 compliance, without going through certification; cover similar frameworks buyers ask about (GovRAMP, NIST CSF 2.0). Sessions (2026-09-28): signed out after 30 idle minutes; "Remember me" keeps a trusted device signed in for up to 14 days.
 
 - [ ] Security event log (sign-ins, failures, role and MFA changes, exports), session timeout, lockout, security headers
 - [ ] Dependency and code scanning in CI
