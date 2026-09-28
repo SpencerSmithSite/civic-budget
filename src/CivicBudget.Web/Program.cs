@@ -1,5 +1,6 @@
 using CivicBudget.Application;
 using CivicBudget.Application.Erp;
+using CivicBudget.Application.Notifications;
 using CivicBudget.Application.Publishing;
 using CivicBudget.Infrastructure;
 using CivicBudget.Infrastructure.Erp;
@@ -18,6 +19,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -51,6 +53,18 @@ builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection(Dat
 // Composition root: the only place that knows about every layer.
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(connectionString);
+builder.Services.AddEmail(builder.Configuration);
+builder.Services.AddScoped<IAppLinks, AppLinks>();
+
+// Azure Container Apps and AWS load balancers end TLS in front of the app and say so in
+// X-Forwarded-Proto. Honoring it keeps the scheme right in redirects and in emailed links. Only the
+// scheme is taken, and the proxies are the only way in, so the known-proxy list is cleared.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 builder.Services.Configure<SeedOptions>(builder.Configuration.GetSection(SeedOptions.SectionName));
 
 // The simulated ERP keeps only the demo governments' books and chart, so it is connected exactly where
@@ -129,6 +143,14 @@ if (args.Contains("--reseed", StringComparer.Ordinal))
     return;
 }
 
+// `dotnet CivicBudget.Web.dll --provision ...`: set up a new government and its first
+// Administrator, then exit. See ProvisionCommand for the arguments.
+if (args.Contains(ProvisionCommand.Flag, StringComparer.Ordinal))
+{
+    Environment.ExitCode = await ProvisionCommand.RunAsync(app.Services, args);
+    return;
+}
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
@@ -136,6 +158,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 // Before the status-code pages: the waiting screen is a 503 with a body of its own.
+app.UseForwardedHeaders();
 app.UseMiddleware<WakingUpMiddleware>();
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
@@ -154,6 +177,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<CurrentUserMiddleware>();
 app.UseMiddleware<MustChangePasswordMiddleware>();
+app.UseMiddleware<RequireMfaMiddleware>();
 app.UseMiddleware<PortalResponseMiddleware>();
 app.UseOutputCache();
 app.UseAntiforgery();

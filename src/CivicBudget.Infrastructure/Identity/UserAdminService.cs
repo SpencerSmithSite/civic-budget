@@ -24,6 +24,7 @@ public sealed class UserAdminService(
     IValidator<CreateUserRequest> createValidator,
     IValidator<UpdateUserRequest> updateValidator,
     IValidator<ResetPasswordRequest> resetValidator,
+    IAccountEmailService accountEmail,
     TimeProvider clock) : IUserAdminService
 {
     public async Task<IReadOnlyList<UserSummaryDto>> ListAsync(CancellationToken ct = default)
@@ -59,21 +60,25 @@ public sealed class UserAdminService(
             return Result.Failure<string>(nameof(request.Email), "A user with that email already exists.");
         }
 
+        // Either the administrator types a temporary password to share, which the user must change
+        // at first sign-in, or the user is emailed a link to choose their own and nobody else ever
+        // knows it. Following that link is what confirms the address.
+        bool withLink = string.IsNullOrEmpty(request.Password);
         var user = new ApplicationUser
         {
             UserName = request.Email,
             Email = request.Email,
-            EmailConfirmed = true, // no email flow in this app; admins create accounts directly
+            EmailConfirmed = !withLink,
             DisplayName = request.DisplayName.Trim(),
             GovernmentId = governmentId,
-            MustChangePassword = true, // the administrator's password is temporary
+            MustChangePassword = !withLink,
         };
         foreach (Guid departmentId in request.DepartmentIds.Distinct())
         {
             user.Departments.Add(new UserDepartment { DepartmentId = departmentId });
         }
 
-        IdentityResult created = await userManager.CreateAsync(user, request.Password);
+        IdentityResult created = withLink ? await userManager.CreateAsync(user) : await userManager.CreateAsync(user, request.Password!);
         if (!created.Succeeded)
         {
             return Result.Failure<string>(ToErrors(created, nameof(request.Password)));
@@ -86,6 +91,11 @@ public sealed class UserAdminService(
         }
 
         await AuditAsync(user, $"Created user {user.Email} as {Roles.DisplayName(request.Role)}{DepartmentsNote(request.DepartmentIds)}", ct);
+        if (withLink && await accountEmail.SendWelcomeAsync(user.Id, ct) is { IsFailure: true } notSent)
+        {
+            return Result.Failure<string>(notSent.Errors);
+        }
+
         return Result.Success(user.Id);
     }
 
@@ -242,7 +252,8 @@ public sealed class UserAdminService(
             (from ud in db.UserDepartments where ud.UserId == user.Id select ud.DepartmentId).ToList(),
             (from ud in db.UserDepartments join d in db.Departments on ud.DepartmentId equals d.Id where ud.UserId == user.Id orderby d.Code select d.Code).ToList(),
             user.LockoutEnd != null && user.LockoutEnd > DateTimeOffset.UtcNow,
-            user.AvatarUpdatedAtUtc == null ? null : user.AvatarUpdatedAtUtc.Value.UtcTicks);
+            user.AvatarUpdatedAtUtc == null ? null : user.AvatarUpdatedAtUtc.Value.UtcTicks,
+            user.TwoFactorEnabled);
 
     private async Task<ApplicationUser?> FindInTenantAsync(string id, CancellationToken ct)
     {

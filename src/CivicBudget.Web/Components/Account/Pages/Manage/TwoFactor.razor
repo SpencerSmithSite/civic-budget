@@ -1,0 +1,123 @@
+@page "/Account/Manage/TwoFactor"
+
+@using CivicBudget.Application.Users
+
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IdentityRedirectManager RedirectManager
+@inject IdentityAudit Audit
+@inject ISignInSecurityService SignInSecurity
+
+@* Two-step sign-in: whether it is on, how many recovery codes are left, and the ways to change it. *@
+<PageTitle>Two-step sign-in</PageTitle>
+
+<h2 class="h4">Two-step sign-in</h2>
+<StatusMessage Message="@message" />
+
+@if (newCodes is not null)
+{
+    <div class="alert alert-warning" role="alert"><b>Save these new recovery codes now.</b> The old ones no longer work. This is the only time these are shown.</div>
+    <ul class="cb-recovery-codes" aria-label="Recovery codes">
+        @foreach (string recoveryCode in newCodes)
+        {
+            <li><code>@recoveryCode</code></li>
+        }
+    </ul>
+}
+
+@if (!enabled)
+{
+    <p>After your password, sign-in asks for a six-digit code from an app on your phone, so a stolen password alone is not enough to get in.</p>
+    <a class="btn btn-primary" href="Account/Manage/EnableAuthenticator">Set up an authenticator app</a>
+}
+else
+{
+    <p><StatusPill Tone="success" Label="On" /> Sign-in asks for a code from your authenticator app.</p>
+    <p class="small @(recoveryLeft <= 2 ? "text-danger" : "text-secondary")">@recoveryLeft recovery code@(recoveryLeft == 1 ? "" : "s") left.</p>
+    <div class="d-flex flex-wrap gap-2">
+        <form method="post" @formname="new-codes" @onsubmit="NewCodesAsync">
+            <AntiforgeryToken />
+            <button type="submit" class="btn btn-outline-primary btn-sm">Get new recovery codes</button>
+        </form>
+        <a class="btn btn-outline-primary btn-sm" href="Account/Manage/EnableAuthenticator">Move to a new phone</a>
+        @if (rememberedHere)
+        {
+            <form method="post" @formname="forget-browser" @onsubmit="ForgetBrowserAsync">
+                <AntiforgeryToken />
+                <button type="submit" class="btn btn-outline-secondary btn-sm">Ask for a code on this browser again</button>
+            </form>
+        }
+        @if (!required)
+        {
+            <form method="post" @formname="turn-off" @onsubmit="TurnOffAsync">
+                <AntiforgeryToken />
+                <button type="submit" class="btn btn-outline-danger btn-sm">Turn off</button>
+            </form>
+        }
+    </div>
+    @if (required)
+    {
+        <p class="small text-secondary mt-3 mb-0">Your government requires two-step sign-in, so it cannot be turned off here.</p>
+    }
+}
+
+@code {
+    private string? message;
+    private ApplicationUser user = default!;
+    private bool enabled;
+    private bool required;
+    private bool rememberedHere;
+    private int recoveryLeft;
+    private IEnumerable<string>? newCodes;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (await UserManager.GetUserAsync(HttpContext.User) is not { } found)
+        {
+            RedirectManager.RedirectToInvalidUser(UserManager, HttpContext);
+            return;
+        }
+
+        user = found;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        enabled = await UserManager.GetTwoFactorEnabledAsync(user);
+        recoveryLeft = await UserManager.CountRecoveryCodesAsync(user);
+        rememberedHere = await SignInManager.IsTwoFactorClientRememberedAsync(user);
+        required = (await SignInSecurity.GetAsync()).RequireMfa;
+    }
+
+    private async Task NewCodesAsync()
+    {
+        newCodes = await UserManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
+        await Audit.RecordAsync(user, $"{user.Email} made new recovery codes");
+        await LoadAsync();
+    }
+
+    private async Task ForgetBrowserAsync()
+    {
+        await SignInManager.ForgetTwoFactorClientAsync();
+        RedirectManager.RedirectToCurrentPageWithStatus("This browser will ask for a code at your next sign-in.", HttpContext);
+    }
+
+    private async Task TurnOffAsync()
+    {
+        if ((await SignInSecurity.GetAsync()).RequireMfa)
+        {
+            message = "Error: Your government requires two-step sign-in.";
+            return;
+        }
+
+        await UserManager.SetTwoFactorEnabledAsync(user, false);
+        await UserManager.ResetAuthenticatorKeyAsync(user);
+        await Audit.RecordAsync(user, $"{user.Email} turned off two-step sign-in");
+        await SignInManager.RefreshSignInAsync(user);
+        RedirectManager.RedirectToCurrentPageWithStatus("Two-step sign-in is off.", HttpContext);
+    }
+}

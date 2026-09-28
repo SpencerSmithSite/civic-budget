@@ -1,10 +1,12 @@
 using CivicBudget.Application.Common;
+using CivicBudget.Application.Notifications;
 using CivicBudget.Application.Persistence;
 using CivicBudget.Application.Security;
 using CivicBudget.Domain.Auditing;
 using CivicBudget.Domain.Budgets;
 using CivicBudget.Domain.Common;
 using CivicBudget.Domain.Departments;
+using CivicBudget.Domain.Notifications;
 using Microsoft.EntityFrameworkCore;
 
 namespace CivicBudget.Application.Budgets;
@@ -12,6 +14,9 @@ namespace CivicBudget.Application.Budgets;
 public sealed class DepartmentRequestService(
     ICivicBudgetDbContextFactory dbFactory,
     ICurrentUser currentUser,
+    IEmailOutbox outbox,
+    IUserDirectory users,
+    IAppLinks links,
     TimeProvider clock) : IDepartmentRequestService
 {
     public async Task<Result> SaveNarrativeAsync(Guid versionId, Guid departmentId, string? narrative, CancellationToken ct = default)
@@ -70,11 +75,23 @@ public sealed class DepartmentRequestService(
         }
 
         db.AuditEntries.Add(Event(version, $"{department.Name} submitted its budget request"));
+
+        // The fiscal officer hears about it, in the same save: no submission without its notice. An
+        // officer who submits on a department's behalf is not told about their own action.
+        (string government, string budget) = await NamesAsync(db, version, ct);
+        EmailContent notice = EmailTemplates.DepartmentSubmitted(government, department.Name, budget, currentUser.DisplayName ?? "A department user",
+            links.Absolute($"admin/budgets/{version.Id}/departments/{department.Id}"));
+        foreach (EmailRecipient officer in (await users.FiscalAuthorityAsync(version.GovernmentId, ct)).Where(r => r.UserId != currentUser.UserId))
+        {
+            outbox.Add(db, version.GovernmentId, EmailKind.DepartmentSubmitted, officer, notice);
+        }
+
         if (await db.TrySaveAsync(ct) is { } conflict)
         {
             return conflict;
         }
 
+        outbox.Notify();
         return Result.Success();
     }
 
@@ -108,11 +125,21 @@ public sealed class DepartmentRequestService(
         }
 
         db.AuditEntries.Add(Event(version, $"Returned {department.Name}'s budget request: {note.Trim()}"));
+
+        (string government, string budget) = await NamesAsync(db, version, ct);
+        EmailContent notice = EmailTemplates.DepartmentReturned(government, department.Name, budget, note.Trim(),
+            links.Absolute($"admin/budgets/{version.Id}/departments/{department.Id}"));
+        foreach (EmailRecipient member in await users.DepartmentUsersAsync(version.GovernmentId, department.Id, ct))
+        {
+            outbox.Add(db, version.GovernmentId, EmailKind.DepartmentReturned, member, notice);
+        }
+
         if (await db.TrySaveAsync(ct) is { } conflict)
         {
             return conflict;
         }
 
+        outbox.Notify();
         return Result.Success();
     }
 
@@ -125,6 +152,13 @@ public sealed class DepartmentRequestService(
             .FirstOrDefaultAsync(v => v.Id == versionId, ct);
         Department? department = await db.Departments.FirstOrDefaultAsync(d => d.Id == departmentId, ct);
         return (version, department);
+    }
+
+    private static async Task<(string Government, string Budget)> NamesAsync(ICivicBudgetDbContext db, BudgetVersion version, CancellationToken ct)
+    {
+        string government = await db.Governments.Where(g => g.Id == version.GovernmentId).Select(g => g.Name).SingleAsync(ct);
+        int year = await db.FiscalYears.Where(f => f.Id == version.FiscalYearId).Select(f => f.Year).SingleAsync(ct);
+        return (government, $"FY{year} {version.Label}");
     }
 
     private AuditEntry Event(BudgetVersion version, string description) =>

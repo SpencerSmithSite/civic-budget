@@ -22,6 +22,7 @@ public static class DependencyInjection
         services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<IFiscalYearService, FiscalYearService>();
         services.AddScoped<IGovernmentSettingsService, GovernmentSettingsService>();
+        services.AddScoped<ISetupChecklistService, SetupChecklistService>();
         services.AddScoped<IBudgetEntryService, BudgetEntryService>();
         services.AddScoped<IAuditQueryService, AuditQueryService>();
         services.AddScoped<IBudgetWorkflowService, BudgetWorkflowService>();
@@ -42,6 +43,7 @@ public static class DependencyInjection
         services.AddScoped<IErpEmployeeFileSource, ErpEmployeeFileSource>();
         services.AddScoped<IPersonnelSyncService, PersonnelSyncService>();
         services.AddScoped<IPersonnelReportService, PersonnelReportService>();
+        services.AddScoped<Notifications.IOutboxService, Notifications.OutboxService>();
 
         // Validators are found by convention (any class implementing IValidator<T>) so adding one
         // is a single file, not a file plus a registration line.

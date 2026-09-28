@@ -1,0 +1,96 @@
+@page "/Account/LoginWith2fa"
+
+@using System.ComponentModel.DataAnnotations
+
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IdentityRedirectManager RedirectManager
+@inject ILogger<LoginWith2fa> Logger
+
+@* The second step: the password was right, now the code from the authenticator app. *@
+<PageTitle>Two-step sign-in</PageTitle>
+
+<div class="cb-login">
+    <div class="cb-login-left">
+        <h1>Budgeting and public transparency for local governments.</h1>
+        <SignInArt />
+    </div>
+    <div class="cb-login-right">
+        <div class="card cb-login-card">
+            <div class="card-body p-4">
+                <h2 class="h5 mb-1">Enter your code</h2>
+                <p class="text-secondary small mb-3">Open your authenticator app and type the six-digit code for CivicBudget.</p>
+                <StatusMessage Message="@message" />
+                <EditForm Model="Input" FormName="login-with-2fa" OnValidSubmit="SignInAsync" method="post">
+                    <DataAnnotationsValidator />
+                    <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
+                    <input type="hidden" name="RememberMe" value="@RememberMe" />
+                    <div class="mb-3">
+                        <label for="Input.Code" class="form-label fw-semibold">Code</label>
+                        <InputText @bind-Value="Input.Code" id="Input.Code" class="form-control" autocomplete="one-time-code" inputmode="numeric" aria-required="true" placeholder="123 456" />
+                        <ValidationMessage For="() => Input.Code" class="text-danger" />
+                    </div>
+                    <div class="form-check mb-3">
+                        <InputCheckbox @bind-Value="Input.RememberMachine" id="Input.RememberMachine" class="form-check-input" />
+                        <label for="Input.RememberMachine" class="form-check-label">Don't ask again on this computer for 14 days</label>
+                    </div>
+                    <button type="submit" class="w-100 btn btn-primary">Sign in</button>
+                </EditForm>
+                <div class="mt-3 small">Lost your phone? <a href="@RecoveryLink">Use a recovery code</a>, or ask your administrator to reset two-step sign-in.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string? message;
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromQuery]
+    private bool RememberMe { get; set; }
+
+    [SupplyParameterFromForm]
+    // Form posts can set this to null before OnInitialized runs, so it is initialized there, not here (BL0008).
+    private InputModel Input { get; set; } = default!;
+
+    private string RecoveryLink => $"Account/LoginWithRecoveryCode?returnUrl={Uri.EscapeDataString(ReturnUrl ?? "")}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+        // Only someone who has just passed the password step has a pending two-step user.
+        if (await SignInManager.GetTwoFactorAuthenticationUserAsync() is null)
+        {
+            RedirectManager.RedirectTo("Account/Login");
+        }
+    }
+
+    private async Task SignInAsync()
+    {
+        string code = Input.Code.Replace(" ", "", StringComparison.Ordinal).Replace("-", "", StringComparison.Ordinal);
+        SignInResult result = await SignInManager.TwoFactorAuthenticatorSignInAsync(code, RememberMe, Input.RememberMachine);
+        if (result.Succeeded)
+        {
+            RedirectManager.RedirectTo(LocalUrl.IsLocal(ReturnUrl) ? ReturnUrl : "admin");
+        }
+        else if (result.IsLockedOut)
+        {
+            Logger.LogWarning("Account locked out at the two-step code.");
+            RedirectManager.RedirectTo("Account/Lockout");
+        }
+        else
+        {
+            message = "Error: That code did not match. Type the newest code from your app.";
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required(ErrorMessage = "Type the six-digit code from your app.")]
+        [StringLength(9, MinimumLength = 6, ErrorMessage = "The code is six digits.")]
+        public string Code { get; set; } = "";
+
+        public bool RememberMachine { get; set; }
+    }
+}

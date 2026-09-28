@@ -25,7 +25,8 @@ public sealed class MustChangePasswordMiddleware(RequestDelegate next)
         return next(context);
     }
 
-    private static bool IsExempt(PathString path) =>
+    /// <summary>Account pages, sign-out, the portal, and static files: what a user held on an account page may still reach.</summary>
+    public static bool IsExempt(PathString path) =>
         path.StartsWithSegments("/Account", StringComparison.OrdinalIgnoreCase)
         || path.StartsWithSegments("/_framework", StringComparison.OrdinalIgnoreCase)
         || path.StartsWithSegments("/_blazor", StringComparison.OrdinalIgnoreCase)

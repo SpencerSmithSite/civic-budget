@@ -32,6 +32,13 @@ public sealed class ApplicationUserClaimsPrincipalFactory(
         }
 
         await using CivicBudgetDbContext db = await dbFactory.CreateDbContextAsync();
+        // Governments are not tenant-filtered (sign-in happens before a tenant is known), so this read needs none.
+        bool requiresMfa = await db.Governments.Where(g => g.Id == user.GovernmentId).Select(g => g.RequireMfa).SingleAsync();
+        if (requiresMfa && !user.TwoFactorEnabled)
+        {
+            identity.AddClaim(new Claim(ClaimNames.MfaSetupRequired, "1"));
+        }
+
         List<Guid> departmentIds = await db.UserDepartments
             .Where(ud => ud.UserId == user.Id)
             .Select(ud => ud.DepartmentId)

@@ -38,6 +38,7 @@ public class AdminPagePolicyTests
         ["/admin/reports/{VersionId:guid}/position-roster"] = Policies.CanViewBudget,
         ["/admin/reports/{VersionId:guid}/personnel-cost"] = Policies.CanViewBudget,
         ["/admin/reports/{VersionId:guid}/benefits-summary"] = Policies.CanViewBudget,
+        ["/admin/getting-started"] = Policies.CanMaintainSetup,
         ["/admin/funds"] = Policies.CanMaintainSetup,
         ["/admin/funds/new"] = Policies.CanMaintainSetup,
         ["/admin/funds/{Id:guid}"] = Policies.CanMaintainSetup,
@@ -58,6 +59,7 @@ public class AdminPagePolicyTests
         ["/admin/users/new"] = Policies.CanManageUsers,
         ["/admin/users/{Id}"] = Policies.CanManageUsers,
         ["/admin/settings"] = Policies.CanManageUsers,
+        ["/admin/outbox"] = Policies.CanManageUsers,
     };
 
     public static TheoryData<string, string> AdminPages()

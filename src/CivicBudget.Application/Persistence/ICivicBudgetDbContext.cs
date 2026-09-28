@@ -44,6 +44,7 @@ public interface ICivicBudgetDbContext : IAsyncDisposable, IDisposable
     DbSet<PersonnelSettings> PersonnelSettings { get; }
     DbSet<Position> Positions { get; }
     DbSet<PersonnelSync> PersonnelSyncs { get; }
+    DbSet<Domain.Notifications.OutboxEmail> OutboxEmails { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

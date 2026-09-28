@@ -1,0 +1,102 @@
+@page "/admin/outbox"
+@attribute [Authorize(Policy = Policies.CanManageUsers)]
+@using System.Text.RegularExpressions
+@using CivicBudget.Application.Notifications
+@using CivicBudget.Domain.Notifications
+@inject IOutboxService OutboxService
+
+@* Every email the application wrote for this government: department notices, sign-in links, and
+   password resets. Where no mail server is set up (this demo) this is the only place they appear,
+   and their links work from here. Administrators only, since the links let someone sign in. *@
+<PageTitle>Email outbox</PageTitle>
+
+<PageHeader Title="Email outbox" Eyebrow="Administration" Crumbs="@([new Crumb("Administration"), new Crumb("Email outbox")])"
+            Tip="Every email CivicBudget wrote for your government, newest first, and whether it was delivered." />
+
+@if (view is null)
+{
+    <SkeletonRows Rows="5" Columns="3" />
+}
+else
+{
+    @if (!view.Delivers)
+    {
+        <div class="alert alert-info small" role="status">
+            <i class="bi bi-envelope-paper me-2" aria-hidden="true"></i>This deployment has no mail server, so emails are kept here instead of sent. In the demo that is on purpose: every address is fictional. Links in them work from this page.
+        </div>
+    }
+
+    @if (emails.Count == 0)
+    {
+        <div class="card"><EmptyState Icon="bi-envelope" Title="No emails yet" Text="Emails appear here when a department submits or is returned, a user is invited, or someone asks to reset a password." /></div>
+    }
+    else
+    {
+        <div class="cb-outbox">
+            @foreach (OutboxEmailDto e in emails)
+            {
+                <details class="card cb-outbox-item" @key="e.Id">
+                    <summary>
+                        <span class="cb-outbox-when">@Display.Timestamp(e.CreatedAtUtc)</span>
+                        <span class="cb-outbox-subject">@e.Subject</span>
+                        <span class="cb-outbox-to">To @e.ToName &lt;@e.ToAddress&gt;</span>
+                        <StatusPill Tone="@Tone(e.Status)" Label="@Label(e)" />
+                    </summary>
+                    <div class="cb-outbox-body">@Linked(e.Body)</div>
+                    @if (e.LastError is { } error)
+                    {
+                        <div class="small text-danger px-3 pb-3">Last attempt: @error</div>
+                    }
+                </details>
+            }
+        </div>
+        @if (emails.Count < view.Total)
+        {
+            <button type="button" class="btn btn-outline-primary btn-sm mt-3" @onclick="MoreAsync">Show older emails</button>
+        }
+    }
+}
+
+@code {
+    private const int PageSize = 25;
+    private OutboxPageDto? view;
+    private readonly List<OutboxEmailDto> emails = [];
+
+    protected override async Task OnInitializedAsync() => await MoreAsync();
+
+    private async Task MoreAsync()
+    {
+        view = await OutboxService.ListAsync(emails.Count, PageSize);
+        emails.AddRange(view?.Emails ?? []);
+    }
+
+    private static string Tone(EmailStatus status) => status switch
+    {
+        EmailStatus.Sent => "success",
+        EmailStatus.Failed => "danger",
+        EmailStatus.Pending => "warning",
+        _ => "info",
+    };
+
+    private static string Label(OutboxEmailDto e) => e.Status switch
+    {
+        EmailStatus.Sent => "Sent",
+        EmailStatus.Failed => $"Failed after {e.Attempts} tries",
+        EmailStatus.Pending => e.Attempts == 0 ? "Sending" : $"Retrying ({e.Attempts})",
+        _ => "Kept here",
+    };
+
+    /// <summary>The body as written, with its links made clickable. Everything else is text, so nothing in an email can inject markup.</summary>
+    private static RenderFragment Linked(string body) => __builder =>
+    {
+        int at = 0;
+        foreach (Match m in Regex.Matches(body, @"https?://\S+", RegexOptions.None, TimeSpan.FromSeconds(1)))
+        {
+            @body[at..m.Index]
+            <a href="@m.Value" rel="noopener">@m.Value</a>
+            at = m.Index + m.Length;
+        }
+
+        @body[at..]
+    };
+}

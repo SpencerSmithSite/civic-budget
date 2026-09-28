@@ -78,6 +78,14 @@ public sealed partial class Government : Entity
 
     public void SetChartSource(ChartSource source) => ChartSource = source;
 
+    /// <summary>
+    /// When set, every user of this government must sign in with a second step (an authenticator
+    /// app code, or a recovery code) and is sent to set one up before seeing anything else.
+    /// </summary>
+    public bool RequireMfa { get; private set; }
+
+    public void SetRequireMfa(bool require) => RequireMfa = require;
+
     private static string ValidateState(string state)
     {
         string value = Guard.NotNullOrWhiteSpace(state, nameof(state)).ToUpperInvariant();

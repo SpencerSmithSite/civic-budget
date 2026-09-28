@@ -1,0 +1,85 @@
+@page "/Account/LoginWithRecoveryCode"
+
+@using System.ComponentModel.DataAnnotations
+
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@inject IdentityRedirectManager RedirectManager
+@inject IdentityAudit Audit
+
+@* For a lost phone: one of the recovery codes saved when two-step sign-in was set up. Each works once. *@
+<PageTitle>Use a recovery code</PageTitle>
+
+<div class="cb-login">
+    <div class="cb-login-left">
+        <h1>Budgeting and public transparency for local governments.</h1>
+        <SignInArt />
+    </div>
+    <div class="cb-login-right">
+        <div class="card cb-login-card">
+            <div class="card-body p-4">
+                <h2 class="h5 mb-1">Use a recovery code</h2>
+                <p class="text-secondary small mb-3">One of the codes you saved when you set up two-step sign-in. Each works once.</p>
+                <StatusMessage Message="@message" />
+                <EditForm Model="Input" FormName="login-with-recovery-code" OnValidSubmit="SignInAsync" method="post">
+                    <DataAnnotationsValidator />
+                    <div class="mb-3">
+                        <label for="Input.RecoveryCode" class="form-label fw-semibold">Recovery code</label>
+                        <InputText @bind-Value="Input.RecoveryCode" id="Input.RecoveryCode" class="form-control" autocomplete="off" aria-required="true" />
+                        <ValidationMessage For="() => Input.RecoveryCode" class="text-danger" />
+                    </div>
+                    <button type="submit" class="w-100 btn btn-primary">Sign in</button>
+                </EditForm>
+                <div class="mt-3 small">Then set up your new phone under Your account, Two-step sign-in.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string? message;
+    private ApplicationUser? user;
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromForm]
+    // Form posts can set this to null before OnInitialized runs, so it is initialized there, not here (BL0008).
+    private InputModel Input { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+        user = await SignInManager.GetTwoFactorAuthenticationUserAsync();
+        if (user is null)
+        {
+            RedirectManager.RedirectTo("Account/Login");
+        }
+    }
+
+    private async Task SignInAsync()
+    {
+        string code = Input.RecoveryCode.Replace(" ", "", StringComparison.Ordinal);
+        SignInResult result = await SignInManager.TwoFactorRecoveryCodeSignInAsync(code);
+        if (result.Succeeded)
+        {
+            int left = await UserManager.CountRecoveryCodesAsync(user!);
+            await Audit.RecordAsync(user!, $"{user!.Email} signed in with a recovery code ({left} left)");
+            RedirectManager.RedirectTo(LocalUrl.IsLocal(ReturnUrl) ? ReturnUrl : "Account/Manage/TwoFactor");
+        }
+        else if (result.IsLockedOut)
+        {
+            RedirectManager.RedirectTo("Account/Lockout");
+        }
+        else
+        {
+            message = "Error: That recovery code did not match, or it has been used.";
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required(ErrorMessage = "Type one of your recovery codes.")]
+        public string RecoveryCode { get; set; } = "";
+    }
+}

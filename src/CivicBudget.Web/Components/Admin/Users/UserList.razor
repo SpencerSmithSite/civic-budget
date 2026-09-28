@@ -80,7 +80,7 @@
 
     private static RenderFragment StatusOf(UserSummaryDto user) => user.IsLockedOut
         ? @<StatusPill Tone="danger" Label="Locked" />
-        : @<StatusPill Tone="success" Label="Active" />;
+        : @<text><StatusPill Tone="success" Label="Active" />@if (user.TwoFactorEnabled) { <span class="cb-pill no-dot ms-1" title="Signs in with a code from an authenticator app">Two-step</span> }</text>;
 
     private RenderFragment RowActions(UserSummaryDto user) => @<RowMenu Label="@($"Actions for {user.DisplayName}")">
         <li><a class="dropdown-item" href="admin/users/@user.Id"><i class="bi bi-pencil me-2" aria-hidden="true"></i>Edit</a></li>
