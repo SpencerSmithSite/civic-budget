@@ -10,8 +10,8 @@ internal static class IdentityEndpoints
 {
     /// <summary>
     /// Logout is a POST endpoint rather than a page so it is protected by the antiforgery token and
-    /// cannot be triggered by a link in an email. The Account pages need nothing else: there is no
-    /// self-registration, external login, or two-factor flow in this application.
+    /// cannot be triggered by a link in an email. The idle sign-out is a GET, because the browser's
+    /// idle clock navigates to it; the worst a forged link can do is sign someone out early.
     /// </summary>
     public static IEndpointConventionBuilder MapIdentityEndpoints(this IEndpointRouteBuilder endpoints)
     {
@@ -24,6 +24,21 @@ internal static class IdentityEndpoints
         {
             await signInManager.SignOutAsync();
             return TypedResults.LocalRedirect($"~/{returnUrl}");
+        });
+
+        // The browser's idle clock renews the session while someone works on an open page (a circuit
+        // makes no requests of its own) and ends it after the idle timeout. Neither returns content.
+        accountGroup.MapGet("/KeepAlive", () => TypedResults.NoContent()).RequireAuthorization();
+
+        accountGroup.MapGet("/SessionExpired", async (HttpContext context, [FromServices] SignInManager<ApplicationUser> signInManager) =>
+        {
+            if (context.User.Identity?.IsAuthenticated == true)
+            {
+                context.Items[AuditingSignInManager.IdleSignOutItem] = true;
+                await signInManager.SignOutAsync();
+            }
+
+            return TypedResults.LocalRedirect("~/Account/Login?expired=true");
         });
 
         // Profile pictures. Authenticated only, and the service refuses users of another government.

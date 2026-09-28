@@ -22,6 +22,22 @@ internal static class AdminExportEndpoints
     {
         RouteGroupBuilder group = endpoints.MapGroup("/admin/export").RequireAuthorization(Policies.CanViewBudget);
 
+        // Every file that leaves is a security event: who took which export, and from where. One
+        // filter on the group, so an export added later is logged without anyone remembering to.
+        group.AddEndpointFilter(async (context, next) =>
+        {
+            object? result = await next(context);
+            if (result is not Microsoft.AspNetCore.Http.HttpResults.NotFound)
+            {
+                ICurrentUser user = context.HttpContext.RequestServices.GetRequiredService<ICurrentUser>();
+                await context.HttpContext.RequestServices.GetRequiredService<ISecurityEventLog>().RecordAsync(
+                    Domain.Security.SecurityEventKind.DataExported, user.GovernmentId, user.UserId, context.HttpContext.User.Identity?.Name,
+                    context.HttpContext.Request.Path.Value);
+            }
+
+            return result;
+        });
+
         group.MapGet("/budgets/{versionId:guid}/lines.xlsx", async (Guid versionId, [FromServices] IBudgetEntryService entry, [FromServices] ISpreadsheetExporter exporter, CancellationToken ct) =>
         {
             BudgetWorkspaceDto? workspace = await entry.GetWorkspaceAsync(versionId, ct);
@@ -97,6 +113,12 @@ internal static class AdminExportEndpoints
         setup.MapGet("/accounts.xlsx", async ([FromServices] IAccountService accounts, [FromServices] ISpreadsheetExporter exporter, CancellationToken ct) =>
             File(exporter, new ExportTable("Chart of accounts", ["Code", "Name", "Type", "Category", "Active"],
                 (await accounts.ListAsync(includeInactive: true, ct)).Select(a => new object?[] { a.Code, a.Name, a.Type.ToString(), a.Category.ToString(), a.IsActive ? "Yes" : "No" }).ToList()), "chart-of-accounts"));
+
+        // Everything the government has, one CSV file per table in a ZIP, for an Administrator. It is
+        // under the export group, so it is logged and rate limited like every other file.
+        group.MapGet("/government/all-data.zip", async ([FromServices] IGovernmentExportService export, CancellationToken ct) =>
+                await export.ExportAsync(ct) is { } file ? Results.File(file.Content, "application/zip", file.FileName) : Results.NotFound())
+            .RequireAuthorization(Policies.CanManageUsers);
 
         return group;
     }

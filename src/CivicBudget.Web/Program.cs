@@ -55,13 +55,16 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(connectionString);
 builder.Services.AddEmail(builder.Configuration);
 builder.Services.AddScoped<IAppLinks, AppLinks>();
+builder.Services.AddCivicBudgetRateLimits();
 
 // Azure Container Apps and AWS load balancers end TLS in front of the app and say so in
-// X-Forwarded-Proto. Honoring it keeps the scheme right in redirects and in emailed links. Only the
-// scheme is taken, and the proxies are the only way in, so the known-proxy list is cleared.
+// X-Forwarded-Proto, and pass the client's address in X-Forwarded-For. Honoring them keeps the
+// scheme right in redirects and emailed links, and puts the real address in the security log and
+// under the rate limits. The proxies are the only way in, so the known-proxy list is cleared; only
+// the last address (the one the proxy itself added) is taken, so a client cannot choose its own.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
-    options.ForwardedHeaders = ForwardedHeaders.XForwardedProto;
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor;
     options.KnownIPNetworks.Clear();
     options.KnownProxies.Clear();
 });
@@ -87,9 +90,9 @@ builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/Account/Login";
     options.AccessDeniedPath = "/Account/AccessDenied";
-    options.ExpireTimeSpan = TimeSpan.FromHours(8);
-    options.SlidingExpiration = true;
+    SessionPolicy.Apply(options);
 });
+builder.Services.Configure<SecurityStampValidatorOptions>(SessionPolicy.Apply);
 
 // --- Authorization: named policies + the resource-based budget line handler. --------------------
 builder.Services.AddAuthorizationBuilder().AddCivicBudgetPolicies();
@@ -151,6 +154,21 @@ if (args.Contains(ProvisionCommand.Flag, StringComparer.Ordinal))
     return;
 }
 
+// `dotnet CivicBudget.Web.dll --offboard ...`: export, then delete, a government that has left.
+// See OffboardCommand for the arguments and the safety checks.
+if (args.Contains(OffboardCommand.Flag, StringComparer.Ordinal))
+{
+    Environment.ExitCode = await OffboardCommand.RunAsync(app.Services, args);
+    return;
+}
+
+// `dotnet CivicBudget.Web.dll --maintenance`: the daily retention job, scheduled by the platform.
+if (args.Contains(MaintenanceCommand.Flag, StringComparer.Ordinal))
+{
+    Environment.ExitCode = await MaintenanceCommand.RunAsync(app.Services);
+    return;
+}
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
@@ -159,6 +177,7 @@ if (!app.Environment.IsDevelopment())
 
 // Before the status-code pages: the waiting screen is a 503 with a body of its own.
 app.UseForwardedHeaders();
+app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseMiddleware<WakingUpMiddleware>();
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
@@ -178,6 +197,7 @@ app.UseAuthorization();
 app.UseMiddleware<CurrentUserMiddleware>();
 app.UseMiddleware<MustChangePasswordMiddleware>();
 app.UseMiddleware<RequireMfaMiddleware>();
+app.UseRateLimiter();
 app.UseMiddleware<PortalResponseMiddleware>();
 app.UseOutputCache();
 app.UseAntiforgery();
@@ -191,8 +211,10 @@ app.MapHealthChecks("/health", new() { Predicate = _ => false });
 app.MapHealthChecks("/health/startup", new() { Predicate = check => check.Tags.Contains("startup") });
 
 app.MapStaticAssets();
+// Blazor adds its own "frame-ancestors 'self'" policy header; SecurityHeadersMiddleware sets the
+// full policy (with frame-ancestors 'none'), so Blazor's is switched off rather than left to win.
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode(options => options.ContentSecurityFrameAncestorsPolicy = null);
 app.MapIdentityEndpoints();
 app.MapPortalEndpoints();
 app.MapAdminExportEndpoints();

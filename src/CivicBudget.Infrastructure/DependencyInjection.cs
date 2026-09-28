@@ -83,7 +83,7 @@ public static class DependencyInjection
             })
             .AddRoles<IdentityRole>()
             .AddEntityFrameworkStores<CivicBudgetDbContext>()
-            .AddSignInManager()
+            .AddSignInManager<AuditingSignInManager>()
             .AddDefaultTokenProviders()
             .AddClaimsPrincipalFactory<ApplicationUserClaimsPrincipalFactory>();
 
@@ -93,6 +93,11 @@ public static class DependencyInjection
         services.AddScoped<IGovernmentProvisioningService, GovernmentProvisioningService>();
         services.AddScoped<IUserDirectory, UserDirectory>();
         services.AddScoped<IdentityAudit>();
+        services.AddHttpContextAccessor();
+        services.AddScoped<ISecurityEventLog, SecurityEventLog>();
+        services.AddScoped<GovernmentDataStore>();
+        services.AddScoped<IGovernmentExportService, GovernmentExportService>();
+        services.AddScoped<RetentionService>();
         services.AddScoped<ISignInSecurityService, SignInSecurityService>();
         services.AddScoped<IUserAvatarService, UserAvatarService>();
         services.AddScoped<IGovernmentLogoService, GovernmentLogoService>();

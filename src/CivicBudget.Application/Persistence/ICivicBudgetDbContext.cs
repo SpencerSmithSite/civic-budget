@@ -46,6 +46,9 @@ public interface ICivicBudgetDbContext : IAsyncDisposable, IDisposable
     DbSet<PersonnelSync> PersonnelSyncs { get; }
     DbSet<Domain.Notifications.OutboxEmail> OutboxEmails { get; }
 
+    /// <summary>Not tenant-filtered: some events come before a government is known. Readers scope by government themselves.</summary>
+    DbSet<Domain.Security.SecurityEvent> SecurityEvents { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
 
