@@ -2,7 +2,7 @@
     <div class="cb-eyebrow">@Label</div>
     <div class="pt-kpi-v">@Value</div>
     @if (Text is not null) { <p>@Text</p> }
-    @if (Href is not null) { <a href="@Href">@LinkText ›</a> }
+    @if (Href is not null) { <a href="@Href">@LinkText <span aria-hidden="true">›</span></a> }
 </div>
 
 @code {

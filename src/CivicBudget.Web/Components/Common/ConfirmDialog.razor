@@ -69,6 +69,13 @@
             await modal.FocusAsync();
             wasOpen = true;
         }
+        else if (refocusPending && isOpen)
+        {
+            refocusPending = false;
+            // An error summary in the body may already have taken focus; only a focus that fell out of
+            // the dialog is brought back.
+            await FocusJs.TryAsync(JS, "civicBudget.focusInside", modal);
+        }
         else if (wasOpen && !isOpen)
         {
             wasOpen = false;
@@ -77,6 +84,7 @@
     }
 
     private bool wasOpen;
+    private bool refocusPending;
 
     public void Hide()
     {
@@ -101,6 +109,12 @@
             if (close)
             {
                 isOpen = false;
+            }
+            else
+            {
+                // Refused: the buttons were disabled while it ran, which dropped focus to the page body,
+                // so focus comes back to the dialog, whose message says what went wrong.
+                refocusPending = true;
             }
         }
         finally

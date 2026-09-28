@@ -27,16 +27,16 @@ else
         </div>
         <div class="row mb-3">
             <div class="col">
-                <label class="form-label">Type</label>
-                <input class="form-control" value="@Display.Enum(current.Type)" disabled />
+                <label class="form-label" for="gov-type">Type</label>
+                <input class="form-control" id="gov-type" value="@Display.Enum(current.Type)" disabled />
             </div>
             <div class="col">
-                <label class="form-label">State</label>
-                <input class="form-control" value="@current.State" disabled />
+                <label class="form-label" for="gov-state">State</label>
+                <input class="form-control" id="gov-state" value="@current.State" disabled />
             </div>
             <div class="col">
-                <label class="form-label">Fiscal year starts</label>
-                <input class="form-control" value="@System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(current.FiscalYearStartMonth)" disabled />
+                <label class="form-label" for="gov-fy-start">Fiscal year starts</label>
+                <input class="form-control" id="gov-fy-start" value="@System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(current.FiscalYearStartMonth)" disabled />
             </div>
             <div class="form-text">Type, state, and fiscal year start are fixed once fiscal years exist, because existing years' dates depend on them.</div>
         </div>

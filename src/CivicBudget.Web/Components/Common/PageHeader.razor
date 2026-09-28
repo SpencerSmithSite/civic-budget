@@ -8,7 +8,13 @@
         {
             <div class="cb-eyebrow">@Eyebrow</div>
         }
-        <h1>@Title @TitleAddon @if (Tip is not null) { <InfoTip Text="@Tip" /> }</h1>
+        @* The pill and tip sit beside the h1, not in it: each navigation focuses the h1, and a heading
+           that contained them would be read as the title plus a status plus a paragraph of help. *@
+        <div class="cb-page-title">
+            <h1>@Title</h1>
+            @TitleAddon
+            @if (Tip is not null) { <InfoTip Text="@Tip" /> }
+        </div>
         @if (Subtitle is not null)
         {
             <div class="cb-sub">@Subtitle</div>

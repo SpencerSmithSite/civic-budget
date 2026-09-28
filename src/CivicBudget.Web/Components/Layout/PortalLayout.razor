@@ -8,6 +8,7 @@
    navigation, the page, and a one-line footer (which budget, downloads, glossary, accessibility).
    Static SSR: rendered once per request, then cached. *@
 <div class="cb-portal">
+    <a class="cb-skip" href="#main">Skip to content</a>
     <header class="pt-bar">
         <div class="pt-in pt-bar-in">
             <a class="pt-brand" href="@(route?.Root ?? "/transparency")" aria-label="@($"{budget?.GovernmentName ?? "CivicBudget"} budget transparency portal home")">
@@ -24,12 +25,12 @@
             @if (budget is not null && route is not null)
             {
                 <nav class="pt-nav" aria-label="Portal">
-                    <a href="@Root" class="@Active("")">Overview</a>
-                    <a href="@Root/spending" class="@Active("spending")">Where it goes</a>
-                    <a href="@Root/revenue" class="@Active("revenue")">Where it comes from</a>
-                    <a href="@Root/funds" class="@Active("funds")">Funds</a>
-                    <a href="@Root/years" class="@Active("years")">Year over year</a>
-                    <a href="@Root/search" class="@Active("search")">Search</a>
+                    <a href="@Root" class="@Active("")" aria-current="@Current("")">Overview</a>
+                    <a href="@Root/spending" class="@Active("spending")" aria-current="@Current("spending")">Where it goes</a>
+                    <a href="@Root/revenue" class="@Active("revenue")" aria-current="@Current("revenue")">Where it comes from</a>
+                    <a href="@Root/funds" class="@Active("funds")" aria-current="@Current("funds")">Funds</a>
+                    <a href="@Root/years" class="@Active("years")" aria-current="@Current("years")">Year over year</a>
+                    <a href="@Root/search" class="@Active("search")" aria-current="@Current("search")">Search</a>
                 </nav>
             }
         </div>
@@ -75,5 +76,8 @@
         string current = segments.Length >= 4 ? segments[3] : "";
         return current.Equals(section, StringComparison.OrdinalIgnoreCase) ? "active" : "";
     }
+
+    // The class shows the current section; aria-current tells a screen reader the same thing.
+    private string? Current(string section) => Active(section) == "active" ? "page" : null;
 
 }

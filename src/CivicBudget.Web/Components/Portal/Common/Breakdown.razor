@@ -20,7 +20,7 @@
     {
         @* An image role hides its children from assistive technology, so it is only used when the bars
            have no links; linked bars stay a list people can tab through and hear. *@
-        <div class="pt-bars @Tone" role="@(LinkFor is null ? "img" : "list")" aria-label="@AriaSummary">
+        <div class="pt-bars @Tone" role="@(LinkFor is null ? "img" : "list")" aria-label="@(LinkFor is null ? AriaSummary : Title)">
             @foreach (BreakdownItemDto item in Data.Items)
             {
                 decimal share = Data.ShareOf(item);
@@ -44,7 +44,8 @@
         </div>
         <details class="pt-table" open="@Open">
             <summary>Show as a table</summary>
-            <div class="cb-grid-wrap">
+            @* Focusable so a keyboard user can scroll a table wider than the screen. *@
+            <div class="cb-grid-wrap" tabindex="0" role="region" aria-label="@($"Table: {Title}")">
                 <table class="cb-grid pt-grid">
                     <caption class="visually-hidden">@Title</caption>
                     <thead>
@@ -115,5 +116,9 @@
     // PageHref may already carry a query (the overview's ?view=revenue), so the toggle appends rather than assumes.
     private string ToggleHref(bool percent) => percent ? $"{PageHref}{(PageHref.Contains('?') ? "&" : "?")}show=pct#{headingId}" : $"{PageHref}#{headingId}";
 
-    private string AriaSummary => $"{Title}: " + string.Join("; ", Data.Items.Take(6).Select(i => $"{i.Label} {Display.Money(i.Amount)}"));
+    // A chart's text: every item when there are few, else the largest six and a count, so the label
+    // never implies a short list is the whole one. The table beside it has every amount.
+    private string AriaSummary => Data.Items.Count <= 6
+        ? $"{Title}: " + string.Join("; ", Data.Items.Select(i => $"{i.Label} {Display.Money(i.Amount)}"))
+        : $"{Title}, {Data.Items.Count} items, the largest six: " + string.Join("; ", Data.Items.Take(6).Select(i => $"{i.Label} {Display.Money(i.Amount)}")) + ". The table lists every amount.";
 }

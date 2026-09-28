@@ -1,11 +1,16 @@
 using CivicBudget.Application.Budgets;
 using CivicBudget.Domain.Accounts;
 using CivicBudget.Web.Components.Admin.Budgets;
+using CivicBudget.Web.Components.Common;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CivicBudget.Web.Tests.Budgets;
 
 public class DepartmentEntryViewTests : BunitContext
 {
+    // Amount cells announce a refused value through the toast service.
+    public DepartmentEntryViewTests() => Services.AddSingleton<ToastService>();
+
     private static readonly Guid General = Guid.CreateVersion7();
     private static readonly Guid Police = Guid.CreateVersion7();
 

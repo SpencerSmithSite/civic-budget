@@ -1,7 +1,7 @@
 @page "/transparency/{Slug}/{Year:int}/years"
 @inject ISnapshotQueryService Snapshots
 
-<PageTitle>Year over year</PageTitle>
+<PageTitle>@(budget is null ? "Year over year" : $"Year over year, {budget.GovernmentName}")</PageTitle>
 
 @if (loaded && years is null)
 {
@@ -32,7 +32,7 @@ else if (years is not null)
                     </div>
                 }
             </div>
-            <div class="cb-grid-wrap">
+            <div class="cb-grid-wrap" tabindex="0" role="region" aria-label="Table of revenues, expenditures, and ending balance by fiscal year">
                 <table class="cb-grid pt-grid">
                     <caption class="visually-hidden">Revenues, expenditures, and ending balance by fiscal year</caption>
                     <thead><tr><th scope="col">Fiscal year</th><th scope="col">Version</th><th scope="col" class="cb-num">Revenues</th><th scope="col" class="cb-num">Expenditures</th><th scope="col" class="cb-num">Projected ending balance</th><th scope="col" class="cb-num">Expenditure change</th></tr></thead>
@@ -62,6 +62,7 @@ else if (years is not null)
     [Parameter] public int Year { get; set; }
 
     private IReadOnlyList<YearTotalsDto>? years;
+    private PortalBudgetDto? budget;
     private bool loaded;
 
     private string Root => $"/transparency/{Slug}/{Year}";
@@ -71,6 +72,7 @@ else if (years is not null)
     protected override async Task OnInitializedAsync()
     {
         IReadOnlyList<YearTotalsDto> all = await Snapshots.YearOverYearAsync(Slug);
+        budget = await Snapshots.GetBudgetAsync(Slug, Year); // for the title; the layout has loaded it already this request
         // The page hangs off one year's budget (the crumb links back to it), so that year must be published.
         years = all.Any(y => y.FiscalYear == Year) ? all : null;
         loaded = true;

@@ -38,8 +38,8 @@ else
                  FootNote="@($"Balances {(report.CarryoverFromErp ? $"at {Display.Date(report.CarryoverAsOf)} from the ERP's closed year" : "are the budget's estimated beginning balances")}; revenue is the FY{report.Header.FiscalYear} {report.Header.VersionLabel} budget.")">
         <Filters>
             <div class="btn-group btn-group-sm d-print-none" role="group" aria-label="Certificate view">
-                <button type="button" class="btn @(detailed ? "btn-outline-primary" : "btn-primary")" aria-pressed="@(!detailed)" @onclick="() => detailed = false">As issued</button>
-                <button type="button" class="btn @(detailed ? "btn-primary" : "btn-outline-primary")" aria-pressed="@detailed" @onclick="() => detailed = true">Detailed schedule</button>
+                <button type="button" class="btn @(detailed ? "btn-outline-primary" : "btn-primary")" aria-pressed="@Aria.Bool(!detailed)" @onclick="() => detailed = false">As issued</button>
+                <button type="button" class="btn @(detailed ? "btn-primary" : "btn-outline-primary")" aria-pressed="@Aria.Bool(detailed)" @onclick="() => detailed = true">Detailed schedule</button>
             </div>
             <AuthorizeView Policy="@Policies.CanMaintainSetup" Context="setup">
                 <button type="button" class="btn btn-outline-primary btn-sm d-print-none" @onclick="OpenAdjustmentsAsync"><i class="bi bi-sliders me-1" aria-hidden="true"></i>Reserves and advances</button>

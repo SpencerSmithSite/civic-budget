@@ -8,21 +8,22 @@
 @inject IdentityAudit Audit
 
 @* For a lost phone: one of the recovery codes saved when two-step sign-in was set up. Each works once. *@
-<PageTitle>Use a recovery code</PageTitle>
+<PageTitle>Use a recovery code | CivicBudget</PageTitle>
 
 <div class="cb-login">
     <div class="cb-login-left">
-        <h1>Budgeting and public transparency for local governments.</h1>
+        <p class="cb-login-tagline">Budgeting and public transparency for local governments.</p>
         <SignInArt />
     </div>
     <div class="cb-login-right">
         <div class="card cb-login-card">
             <div class="card-body p-4">
-                <h2 class="h5 mb-1">Use a recovery code</h2>
+                <h1 class="h5 mb-1">Use a recovery code</h1>
                 <p class="text-secondary small mb-3">One of the codes you saved when you set up two-step sign-in. Each works once.</p>
-                <StatusMessage Message="@message" />
+                <StatusMessage />
                 <EditForm Model="Input" FormName="login-with-recovery-code" OnValidSubmit="SignInAsync" method="post">
                     <DataAnnotationsValidator />
+                    <FormErrors Message="@message" />
                     <div class="mb-3">
                         <label for="Input.RecoveryCode" class="form-label fw-semibold">Recovery code</label>
                         <InputText @bind-Value="Input.RecoveryCode" id="Input.RecoveryCode" class="form-control" autocomplete="off" aria-required="true" />

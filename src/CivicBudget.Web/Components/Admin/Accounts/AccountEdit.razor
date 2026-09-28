@@ -21,12 +21,12 @@ else
     <EditForm EditContext="editContext" OnSubmit="SaveAsync">
         <div class="mb-3">
             <label class="form-label" for="code">Code</label>
-            <InputText id="code" class="form-control" @bind-Value="model.Code" />
+            <InputText id="code" aria-required="true" class="form-control" @bind-Value="model.Code" />
             <ValidationMessage For="() => model.Code" class="text-danger" />
         </div>
         <div class="mb-3">
             <label class="form-label" for="name">Name</label>
-            <InputText id="name" class="form-control" @bind-Value="model.Name" />
+            <InputText id="name" aria-required="true" class="form-control" @bind-Value="model.Name" />
             <ValidationMessage For="() => model.Name" class="text-danger" />
         </div>
         <div class="mb-3">

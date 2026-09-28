@@ -11,7 +11,7 @@
         <nav aria-label="@($"{Noun} pages")">
             <button type="button" @onclick="() => GoAsync(0)" disabled="@(State.CurrentPageIndex == 0)" aria-label="First page"><i class="bi bi-chevron-bar-left" aria-hidden="true"></i></button>
             <button type="button" @onclick="() => GoAsync(State.CurrentPageIndex - 1)" disabled="@(State.CurrentPageIndex == 0)" aria-label="Previous page"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
-            <span aria-live="polite">Page <strong>@(State.CurrentPageIndex + 1)</strong> of <strong>@(State.LastPageIndex + 1)</strong></span>
+            <span aria-live="polite" tabindex="-1" @ref="status">Page <strong>@(State.CurrentPageIndex + 1)</strong> of <strong>@(State.LastPageIndex + 1)</strong></span>
             <button type="button" @onclick="() => GoAsync(State.CurrentPageIndex + 1)" disabled="@(State.CurrentPageIndex >= State.LastPageIndex)" aria-label="Next page"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
             <button type="button" @onclick="() => GoAsync(State.LastPageIndex ?? 0)" disabled="@(State.CurrentPageIndex >= State.LastPageIndex)" aria-label="Last page"><i class="bi bi-chevron-bar-right" aria-hidden="true"></i></button>
         </nav>
@@ -46,6 +46,21 @@
     {
         await State.SetCurrentPageIndexAsync(pageIndex);
         await PageChanged.InvokeAsync();
+        // Reaching the first or last page disables the button just pressed, which drops focus; the
+        // page status takes it instead.
+        focusStatus = pageIndex == 0 || pageIndex >= (State.LastPageIndex ?? 0);
+    }
+
+    private ElementReference status;
+    private bool focusStatus;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (focusStatus)
+        {
+            focusStatus = false;
+            await status.FocusAsync();
+        }
     }
 
     private void OnTotalChanged(object? sender, int? total) => _ = InvokeAsync(async () =>

@@ -1,4 +1,5 @@
 @using CivicBudget.Domain.Accounts
+@inject IJSRuntime JS
 @* By-account-line mode: the whole version in one sortable, filterable worksheet with inline
    editing. Group rows per fund and department come from the sorted order, so the grid reads like a
    printed budget without a tree control. *@
@@ -48,7 +49,7 @@
                 <th class="cb-num">@ProposedLabel proposed</th>
                 <th class="cb-num cb-col-wide">Change $</th>
                 <th class="cb-num cb-col-wide">Change %</th>
-                <th></th>
+                <th scope="col"><span class="visually-hidden">Actions</span></th>
             </tr>
         </thead>
         <tbody>
@@ -63,18 +64,18 @@
                 }
                 @* Keyed so a cell's own state (a red "invalid" border, the saving tint) stays with its line when the filters reorder rows. *@
                 <tr @key="line.Id">
-                    <td class="cb-wrap" title="@Display.Enum(line.Category)">
+                    <th scope="row" class="cb-wrap fw-normal" title="@Display.Enum(line.Category)">
                         <span class="cb-code">@line.AccountNumber</span> @line.AccountName
                         @if (editingNoteId == line.Id)
                         {
-                            <input @ref="noteInput" type="text" class="form-control form-control-sm mt-1" value="@line.Justification" aria-label="@($"Justification for {line.AccountCode}")"
+                            <input @ref="noteInput" type="text" class="form-control form-control-sm mt-1" value="@line.Justification" aria-label="@($"Justification for {line.AccountCode}")" @onkeydown="e => OnNoteKey(e, line.Id)"
                                    @onchange="e => SaveNoteAsync(line.Id, e.Value?.ToString())" @onblur="() => editingNoteId = null" />
                         }
                         else if (!string.IsNullOrEmpty(line.Justification))
                         {
                             <div class="small text-secondary fst-italic text-wrap"><i class="bi bi-chat-left-text me-1" aria-hidden="true"></i>@line.Justification</div>
                         }
-                    </td>
+                    </th>
                     <td class="cb-num cb-col-wide">@Display.Amount(line.PriorYearActual)</td>
                     <td class="cb-num">@Display.Amount(line.CurrentYearBudget)</td>
                     <td class="cb-num">
@@ -85,7 +86,7 @@
                     <td class="cb-num cb-col-wide @(line.PercentChange < 0 ? "cb-neg" : "")">@Display.Percent(line.PercentChange)</td>
                     <td class="text-end">
                         <button type="button" class="cb-row-open" @onclick="() => OnShowHistory.InvokeAsync(line)" aria-label="@($"Details for {line.AccountNumber}")"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
-                        <RowMenu Label="@($"Actions for {line.AccountCode}")">
+                        <RowMenu Id="@($"row-menu-{line.Id}")" Label="@($"Actions for {line.AccountCode}")">
                             <li><button type="button" class="dropdown-item" @onclick="() => OnShowHistory.InvokeAsync(line)"><i class="bi bi-clock-history me-2" aria-hidden="true"></i>History</button></li>
                             @if (line.CanEdit)
                             {
@@ -108,7 +109,7 @@
     </table>
 </div>
 <div class="cb-grid-foot">
-    <span>@visible.Count of @Workspace.Lines.Count lines</span>
+    <span role="status">@visible.Count of @Workspace.Lines.Count lines</span>
 </div>
 
 @code {
@@ -149,6 +150,13 @@
     // "autofocus" only works on the first page load, not on an input Blazor inserts later.
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // A note finished with Enter or Escape removes its input; focus goes back to the row's menu.
+        if (noteDoneFor is { } done)
+        {
+            noteDoneFor = null;
+            await FocusJs.TryAsync(JS, "civicBudget.focusId", $"row-menu-{done}");
+        }
+
         if (editingNoteId is { } id && focusedNoteId != id)
         {
             focusedNoteId = id;
@@ -157,6 +165,22 @@
         else if (editingNoteId is null)
         {
             focusedNoteId = null;
+        }
+    }
+
+    private Guid? noteDoneFor;
+
+    // Enter saves (the change event follows); Escape leaves the note as it was.
+    private void OnNoteKey(KeyboardEventArgs e, Guid lineId)
+    {
+        if (e.Key is "Enter" or "Escape")
+        {
+            noteDoneFor = lineId;
+        }
+
+        if (e.Key == "Escape")
+        {
+            editingNoteId = null;
         }
     }
 

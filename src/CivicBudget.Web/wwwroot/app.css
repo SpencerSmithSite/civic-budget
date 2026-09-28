@@ -12,7 +12,7 @@
     --cb-teal: #0B7285;
 
     /* Semantic (text on white is AA; the -bg values are soft fills for pills) */
-    --cb-success: #1E7E4A;
+    --cb-success: #1A7043; /* dark enough to pass 4.5:1 as pill text on its own tint */
     --cb-success-bg: #E6F4EC;
     --cb-warning: #9A5B00;
     --cb-warning-bg: #FFF4E0;
@@ -23,7 +23,7 @@
 
     /* Neutrals */
     --cb-text: #1F2937;
-    --cb-muted: #5B6B7B;
+    --cb-muted: #55606C; /* 4.5:1 or better on every tinted background the app uses, alerts included */
     --cb-canvas: #F6F8FA;
     --cb-surface: #FFFFFF;
     --cb-border: #E3E8EF;
@@ -55,9 +55,14 @@
     --bs-border-radius: var(--cb-radius);
     --bs-link-color: var(--cb-teal);
     --bs-link-hover-color: #095c6b;
+    /* Bootstrap colors links and .text-secondary from these rgb triples, not the hex values above,
+       so both are set or plain links fall back to Bootstrap's own blue. */
+    --bs-link-color-rgb: 11, 114, 133;
+    --bs-link-hover-color-rgb: 9, 92, 107;
+    --bs-secondary-rgb: 85, 96, 108;
     --bs-primary: var(--cb-action);
     --bs-primary-rgb: 21, 101, 192;
-    --bs-success-rgb: 30, 126, 74;
+    --bs-success-rgb: 26, 112, 67;
     --bs-danger-rgb: 180, 35, 24;
     --bs-focus-ring-color: rgba(43, 108, 176, 0.35);
 }
@@ -66,6 +71,10 @@ body {
     background: var(--cb-canvas);
     color: var(--cb-text);
 }
+
+/* Teal falls just short of 4.5:1 on the green and red alert tints, so links inside any alert take
+   the darker teal. */
+.alert a:not(.btn) { color: #095c6b; }
 
 h1, h2, h3, h4 {
     text-wrap: balance;
@@ -124,6 +133,52 @@ h1, h2, h3, h4 {
     border-color: var(--cb-navy-hover);
     box-shadow: 0 0 0 0.2rem var(--bs-focus-ring-color);
 }
+
+/* A field's edge is how people find where to type, so it needs 3:1 against the page (WCAG 1.4.11);
+   the light --cb-border that separates cards and rows is only 1.2:1. Focus and error states,
+   being more specific, still recolor it. */
+.form-control, .form-select, .form-check-input {
+    border-color: #848F9B;
+}
+
+/* Bootstrap's focus halo is a pale 35% ring, too faint on a filled button to be the only cue. */
+.btn:focus-visible {
+    outline: 2px solid var(--cb-navy-hover);
+    outline-offset: 2px;
+}
+
+/* Bootstrap's nav-link focus is a faint shadow with no outline, invisible on the navy sidebar. */
+.cb-nav .nav-link:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: -2px;
+    box-shadow: none;
+}
+
+/* The navy bars (portal header, sign-in header, admin sidebar) need a light ring to be seen. */
+.pt-bar :focus-visible,
+.cb-public-header :focus-visible,
+.cb-sidebar :focus-visible {
+    outline-color: #fff;
+}
+
+/* First thing a keyboard reaches on every page; hidden until focused. */
+.cb-skip {
+    position: absolute;
+    left: 8px;
+    top: -48px;
+    z-index: 2000;
+    padding: 8px 14px;
+    border-radius: var(--cb-radius);
+    background: #fff;
+    color: var(--cb-navy);
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.2);
+}
+
+.cb-skip:focus {
+    top: 8px;
+}
+
 
 :focus-visible {
     outline: 2px solid var(--cb-navy-hover);
@@ -520,14 +575,27 @@ h1, h2, h3, h4 {
     margin-bottom: 24px;
 }
 
-.cb-page-header h1 {
-    font-size: 1.375rem;
-    font-weight: 600;
+/* A card's title is a real heading for screen readers and keeps the look of the text around it. */
+.cb-card-title {
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    color: inherit;
+    margin: 0;
+}
+
+.cb-page-title {
     margin: 2px 0 0;
     display: flex;
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
+}
+
+.cb-page-header h1 {
+    font-size: 1.375rem;
+    font-weight: 600;
+    margin: 0;
 }
 
 .cb-page-header .cb-sub:empty {
@@ -588,7 +656,7 @@ h1, h2, h3, h4 {
 
 .cb-stepper {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 6px;
     margin: 0 0 24px;
     padding: 0;
@@ -625,6 +693,11 @@ h1, h2, h3, h4 {
 .cb-step.done .n { background: rgba(255, 255, 255, 0.3); color: #fff; }
 .cb-step.current { background: var(--cb-navy); color: #fff; }
 .cb-step.current .n { background: rgba(255, 255, 255, 0.25); color: #fff; }
+
+/* At the narrowest phones the step names alone fill the width; the number circles give way. */
+@media (max-width: 380px) {
+    .cb-step .n { display: none; }
+}
 
 @media (max-width: 575.98px) {
     .cb-step { font-size: 0.625rem; letter-spacing: 0.03em; gap: 4px; }
@@ -1547,7 +1620,7 @@ table.cb-grid-tight > thead > tr > th {
     overflow: hidden;
 }
 
-.cb-login-left h1 {
+.cb-login-left .cb-login-tagline {
     font-size: 1.875rem;
     font-weight: 600;
     letter-spacing: -0.01em;
@@ -1639,7 +1712,9 @@ table.cb-grid-tight > thead > tr > th {
     height: 100%;
     border-radius: 4px;
     width: 0;
-    animation: 9s ease-in-out infinite both;
+    /* Twice, then it holds: motion that runs on its own for more than five seconds must stop
+       (WCAG 2.2.2), and the page has no control to stop it. */
+    animation: 9s ease-in-out 2 both;
 }
 
 .cb-art-bar.r i, .cb-art-legend i.r { background: #5EC2D3; }
@@ -1671,7 +1746,7 @@ table.cb-grid-tight > thead > tr > th {
 .cb-art-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .cb-art-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
 
-/* The workflow, lighting up one step at a time and resting on Adopted before it starts over. */
+/* The workflow, lighting up one step at a time; like the bars it plays twice, then rests with every step lit. */
 .cb-art-steps {
     display: flex;
     justify-content: space-between;
@@ -1701,17 +1776,17 @@ table.cb-grid-tight > thead > tr > th {
     height: 2px;
     background: #5EC2D3;
     width: 0;
-    animation: cb-steps 9s ease-in-out infinite both;
+    animation: cb-steps 9s ease-in-out 2 both;
 }
 
-.cb-art-steps span { animation: cb-step-on 9s infinite both; }
+.cb-art-steps span { animation: cb-step-on 9s 2 both; }
 .cb-art-steps span:nth-child(1) { animation-delay: 0s; }
 .cb-art-steps span:nth-child(2) { animation-delay: 1.4s; }
 .cb-art-steps span:nth-child(3) { animation-delay: 2.8s; }
 .cb-art-steps span:nth-child(4) { animation-delay: 4.2s; }
 
 @keyframes cb-steps { 0% { width: 0; } 50%, 85% { width: 100%; } 100% { width: 100%; } }
-@keyframes cb-step-on { 0%, 8% { color: rgba(255, 255, 255, 0.35); } 12%, 90% { color: #fff; } 100% { color: rgba(255, 255, 255, 0.35); } }
+@keyframes cb-step-on { 0%, 8% { color: rgba(255, 255, 255, 0.35); } 12%, 100% { color: #fff; } }
 
 @keyframes cb-art-rise {
     from { opacity: 0; transform: translateY(14px); }
@@ -1747,7 +1822,7 @@ table.cb-grid-tight > thead > tr > th {
         gap: 24px;
     }
 
-    .cb-login-left h1 {
+    .cb-login-left .cb-login-tagline {
         font-size: 1.5rem;
     }
 
@@ -1871,7 +1946,17 @@ h1:focus {
        the whole page out to fit a tooltip nobody could see. */
     display: none;
     z-index: 30;
-    pointer-events: none;
+}
+
+/* The pointer can move from the icon onto the text without the tip closing (WCAG 1.4.13): this
+   invisible strip bridges the 8px gap between them. */
+.cb-tip-text::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    height: 10px;
 }
 
 .cb-tip-text::after {
@@ -1887,6 +1972,11 @@ h1:focus {
 /* :focus too, not only :focus-visible: a tap on a phone focuses the tip without counting as "visible" focus. */
 .cb-tip:hover .cb-tip-text, .cb-tip:focus .cb-tip-text, .cb-tip:focus-visible .cb-tip-text {
     display: block;
+}
+
+/* Escape hides an open tip until the pointer or focus leaves it (civicbudget.js). */
+.cb-tip.cb-tip-dismissed .cb-tip-text {
+    display: none;
 }
 
 /* Inside a table header the tip sits after the column name and must not inherit the caps. */
@@ -2811,6 +2901,17 @@ table.cb-grid > tfoot > tr > th {
     color: #fff;
 }
 
+/* The toggle clips its corners, which would cut an outside focus ring to a sliver, so the ring is
+   drawn inside each segment: navy on the white one, white on the navy one. */
+.pt-toggle a:focus-visible {
+    outline: 2px solid var(--cb-navy);
+    outline-offset: -4px;
+}
+
+.pt-toggle a.on:focus-visible {
+    outline-color: #fff;
+}
+
 .pt-bars {
     display: grid;
     grid-template-columns: minmax(180px, 260px) 1fr minmax(90px, auto);
@@ -3087,7 +3188,8 @@ table.pt-grid th[scope="row"] a {
     border-radius: 10px;
     background: var(--cb-canvas);
     border: 1px solid var(--cb-border);
-    margin-bottom: 10px;
+    margin: 0 0 10px;
+    min-width: 0; /* a fieldset is otherwise at least as wide as its content */
 }
 
 .pt-panels-tabs label {
@@ -3103,15 +3205,15 @@ table.pt-grid th[scope="row"] a {
 
 .pt-panels-tabs label:hover { color: var(--cb-text); }
 
-.pt-panels-radio:nth-of-type(1):checked ~ .pt-panels-tabs label:nth-child(1),
-.pt-panels-radio:nth-of-type(2):checked ~ .pt-panels-tabs label:nth-child(2) {
+.pt-panels-radio:nth-of-type(1):checked ~ label:nth-of-type(1),
+.pt-panels-radio:nth-of-type(2):checked ~ label:nth-of-type(2) {
     background: var(--cb-surface);
     color: var(--cb-navy);
     box-shadow: 0 1px 2px rgba(15, 42, 68, 0.12);
 }
 
-.pt-panels-radio:nth-of-type(1):focus-visible ~ .pt-panels-tabs label:nth-child(1),
-.pt-panels-radio:nth-of-type(2):focus-visible ~ .pt-panels-tabs label:nth-child(2) {
+.pt-panels-radio:nth-of-type(1):focus-visible ~ label:nth-of-type(1),
+.pt-panels-radio:nth-of-type(2):focus-visible ~ label:nth-of-type(2) {
     outline: 2px solid var(--cb-action);
     outline-offset: 2px;
 }
@@ -3137,9 +3239,10 @@ table.pt-grid th[scope="row"] a {
 
 .pt-panel .pt-section { margin-top: 0; }
 
-.pt-panels-radio:nth-of-type(2):checked ~ .pt-panels-track { transform: translateX(-50%); } /* the track is two panels wide */
-.pt-panels-radio:nth-of-type(1):checked ~ .pt-panels-track .pt-panel:nth-child(2),
-.pt-panels-radio:nth-of-type(2):checked ~ .pt-panels-track .pt-panel:nth-child(1) { visibility: hidden; max-height: 0; }
+/* The radios live in the fieldset, so the track is reached through :has on the wrapper. */
+.pt-panels:has(> .pt-panels-tabs > .pt-panels-radio:nth-of-type(2):checked) > .pt-panels-track { transform: translateX(-50%); } /* the track is two panels wide */
+.pt-panels:has(> .pt-panels-tabs > .pt-panels-radio:nth-of-type(1):checked) > .pt-panels-track > .pt-panel:nth-child(2),
+.pt-panels:has(> .pt-panels-tabs > .pt-panels-radio:nth-of-type(2):checked) > .pt-panels-track > .pt-panel:nth-child(1) { visibility: hidden; max-height: 0; }
 
 @media (prefers-reduced-motion: reduce) {
     .pt-panels-track, .pt-panel, .pt-panels-tabs label { transition: none; }

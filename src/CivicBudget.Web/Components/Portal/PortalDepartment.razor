@@ -31,7 +31,7 @@ else if (department is not null)
 
     <section class="pt-section" aria-labelledby="accts">
         <h2 id="accts" class="pt-q">Every account</h2>
-        <div class="cb-grid-wrap">
+        <div class="cb-grid-wrap" tabindex="0" role="region" aria-label="Table of every account">
             <table class="cb-grid pt-grid">
                 <caption class="visually-hidden">Accounts for @department.Name in @department.FundName, fiscal year @Year</caption>
                 <thead><tr><th scope="col">Account</th><th scope="col">Category</th><th scope="col" class="cb-num">FY@(Year) budget</th><th scope="col" class="cb-num">FY@(Year - 1) budget</th><th scope="col" class="cb-num">FY@(Year - 2) actual</th><th scope="col" class="cb-num">Change</th></tr></thead>

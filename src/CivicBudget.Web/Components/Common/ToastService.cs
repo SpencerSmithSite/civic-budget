@@ -11,8 +11,9 @@ public sealed record ToastMessage(Guid Id, ToastKind Kind, string Text);
 
 /// <summary>
 /// Success and error feedback that does not push the page around. Scoped per circuit; the
-/// <c>ToastHost</c> in the admin layout renders whatever is queued and removes each toast after a
-/// few seconds. Validation errors stay inline next to their fields; this is for outcomes.
+/// <c>ToastHost</c> in the admin layout renders whatever is queued, removes a success after a few
+/// seconds, and keeps a warning or a failure until it is dismissed. Validation errors stay inline
+/// next to their fields; this is for outcomes.
 /// </summary>
 public sealed class ToastService
 {
