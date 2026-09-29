@@ -9,7 +9,7 @@
 | Microsoft Azure *or* Amazon Web Services | Hosting: database, containers, secrets, logs | All of it, encrypted at rest | SOC 1, SOC 2 Type 2, ISO 27001, FedRAMP; reports downloaded from the provider's trust portal |
 | GitHub | Source code, CI, code scanning, Dependabot | Source only; no customer data | SOC 2 Type 2 |
 | The mail provider (any SMTP service the operator chooses) | Delivers notices and sign-in links | Recipients' names and addresses, message text | Its SOC 2 report, or an equivalent, before use |
-| The AI model provider (Anthropic or Ollama, as the operator configures) | Answers the assistant's questions | Only for governments whose Administrator turned the assistant on: the question, the conversation so far, and the figures the assistant looked up to answer it. Never passwords, keys, or anything the user's account cannot see | Its SOC 2 Type 2 report and its terms on retention and training, reviewed before a key is issued |
+| The AI model provider (Anthropic or Ollama, as the operator configures) | Answers the assistant's questions | Only for governments whose Administrator turned the assistant on: the question, the conversation so far, and the figures the assistant looked up to answer it. Never passwords, keys, or anything the user's account cannot see. For governments that turned on questions from the public: a resident's question and figures from the published budget, which is already public | Its SOC 2 Type 2 report and its terms on retention and training, reviewed before a key is issued |
 | NuGet and npm packages | Libraries built into the app | None directly | The dependency checks in [vulnerability management](vulnerability-management.md) |
 
 ## Rules

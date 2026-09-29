@@ -6,6 +6,17 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 
 ## [Unreleased]
 
+## Phase 38: 2026-09-29 (questions from the public)
+### Added
+- **"Ask a question"** on the transparency portal: a resident asks about the published budget in their own words and gets a short answer with a link to the page that shows it. Answers come only from the published snapshot of that government, through nine read-only tools; drafts, actual spending, and anything about people are not there to find, and it says so.
+- **Works without JavaScript**: a plain form post, no cookies.
+- **Limits**: 10 questions per address per hour (refused before anything reads the database), 500 characters per question, and a monthly ceiling per government (`Assistant:PortalQuestionsPerMonth`, 1,000 by default) counted in one atomic update.
+- **A second switch** in Government settings for the Administrator, separate from the staff assistant, audited; changing it refreshes the portal's cached pages.
+- **Evaluation set** for the public bot: published figures, "not published" for actuals and drafts, the glossary, and a question that tries to change its rules.
+### Changed
+- A question posted to the portal with no model connected is refused before any database read, so the free demo keeps ADR-0031's rule (amended).
+- The assistant's settings card no longer says it "cannot change anything" (it proposes changes since Phase 37).
+
 ## Phase 37: 2026-09-29 (the assistant proposes, you confirm)
 ### Added
 - **Actions** in the assistant: set the multi-year plan, change lines in bulk, fix a fund over its limit, start next year's budget, bring in actuals from the ERP, and write the budget message or a department narrative. Each is shown as a card with the change before and after, and only the card's button makes it.
