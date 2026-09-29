@@ -177,6 +177,63 @@ public sealed class BudgetEntryService(
         return Result.Success();
     }
 
+    public async Task<Result> UpdateLineAmountsAsync(Guid versionId, IReadOnlyList<LineAmountChange> changes, CancellationToken ct = default)
+    {
+        if (changes.Count == 0)
+        {
+            return Result.Failure("There are no changes to make.");
+        }
+
+        if (changes.FirstOrDefault(c => c.Amount < 0m || !Money.IsStorable(c.Amount)) is { } bad)
+        {
+            return Result.Failure(bad.Amount < 0m ? "Budgeted amounts cannot be negative." : Money.TooLargeMessage);
+        }
+
+        await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
+        BudgetVersion? version = await LoadVersionAsync(db, versionId, ct);
+        if (version is null)
+        {
+            return Result.Failure("Budget version was not found.");
+        }
+
+        var problems = new List<string>();
+        foreach (LineAmountChange change in changes)
+        {
+            BudgetLine? line = version.Lines.FirstOrDefault(l => l.Id == change.LineId);
+            if (line is null)
+            {
+                problems.Add("A line in the change is no longer in this budget.");
+            }
+            else if (!CanEdit(version, line))
+            {
+                problems.Add($"{LineName(line)}: {NotAllowed}");
+            }
+            else if (line.Amount != change.Expected)
+            {
+                problems.Add(string.Create(UsCulture, $"{LineName(line)} changed since the change was worked out ({change.Expected:C2} then, {line.Amount:C2} now)."));
+            }
+        }
+
+        if (problems.Count > 0)
+        {
+            return Result.Failure([.. problems.Distinct().Select(p => new ValidationError("", p))]);
+        }
+
+        try
+        {
+            foreach (LineAmountChange change in changes)
+            {
+                version.UpdateLineAmount(change.LineId, change.Amount);
+            }
+        }
+        catch (DomainException ex)
+        {
+            return Result.Failure(ex.Message);
+        }
+
+        return await db.TrySaveAsync(ct) ?? Result.Success();
+    }
+
     public async Task<Result> UpdateLineJustificationAsync(Guid versionId, Guid lineId, string? justification, CancellationToken ct = default)
     {
         await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
@@ -319,6 +376,11 @@ public sealed class BudgetEntryService(
     // ---- helpers ------------------------------------------------------------------------------
 
     /// <summary>The whole aggregate with the navigations the domain methods and DTOs need.</summary>
+    private static readonly System.Globalization.CultureInfo UsCulture = System.Globalization.CultureInfo.GetCultureInfo("en-US");
+
+    // Names a line in a message about several: the same account appears once per department.
+    private static string LineName(BudgetLine line) => $"{line.Account.Code} {line.Account.Name} ({line.Department?.Name ?? line.Fund.Name})";
+
     private static Task<BudgetVersion?> LoadVersionAsync(ICivicBudgetDbContext db, Guid versionId, CancellationToken ct) =>
         db.BudgetVersions
             .Include(v => v.Lines).ThenInclude(l => l.Fund)

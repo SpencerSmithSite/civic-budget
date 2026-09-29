@@ -4,6 +4,7 @@
 @inject IGovernmentSettingsService SettingsService
 @inject IJSRuntime JS
 @inject PersistentComponentState ApplicationState
+@inject CivicBudget.Web.Components.Assistant.AssistantPanelState AssistantState
 @using CivicBudget.Application.Setup
 
 @* The admin shell: a dark sidebar of module groups, a white top bar with the page's breadcrumb
@@ -118,7 +119,9 @@
         <main class="cb-main" id="main">
             @* A failure in one page shows here instead of taking the whole connection down; the
                sidebar keeps working, and navigating elsewhere clears it (OnParametersSet). *@
-            <ErrorBoundary @ref="errorBoundary">
+            @* Keyed on the assistant's count of confirmed changes: a change made from the panel rebuilds
+               the page beneath it, so the page shows the change rather than what it loaded before. *@
+            <ErrorBoundary @ref="errorBoundary" @key="AssistantState.PageGeneration">
                 <ChildContent>@Body</ChildContent>
                 <ErrorContent>
                     <div class="card">
@@ -158,6 +161,7 @@
     protected override async Task OnInitializedAsync()
     {
         PageState.Changed += OnPageStateChanged;
+        AssistantState.Changed += OnPageStateChanged;
         // During prerender the request is available and the cookie says whether the user collapsed the
         // menu last time. The interactive circuit has no request, so the value is handed over through
         // persistent component state; without that hand-off the rail would flash open on every page.
@@ -235,6 +239,7 @@
     public void Dispose()
     {
         PageState.Changed -= OnPageStateChanged;
+        AssistantState.Changed -= OnPageStateChanged;
         persisting.Dispose();
     }
 }

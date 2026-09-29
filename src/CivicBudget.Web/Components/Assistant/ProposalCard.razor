@@ -1,0 +1,121 @@
+@using CivicBudget.Application.Assistant
+@inject IAssistantService Assistant
+@inject AssistantPanelState State
+
+@* A change the assistant proposed, shown in full before anything happens. Only the button here
+   commits it: the model has no tool that can. The result replaces the buttons and is announced. *@
+<section class="cb-proposal" aria-labelledby="proposal-@P.Id">
+    <h3 id="proposal-@P.Id" class="cb-proposal-title"><i class="bi bi-pencil-square me-2" aria-hidden="true"></i>@P.Title</h3>
+
+    @if (P.Rows.Count > 0)
+    {
+        bool hasBefore = P.Rows.Any(r => r.Before is not null);
+        <div class="cb-proposal-rows" tabindex="0" role="region" aria-label="Proposed change">
+            <table class="table table-sm mb-0" aria-label="Proposed change">
+                <thead>
+                    <tr>
+                        <th scope="col">Item</th>
+                        @if (hasBefore)
+                        {
+                            <th scope="col" class="text-end">Now</th>
+                        }
+                        <th scope="col" class="text-end">Proposed</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (ProposalRow row in P.Rows)
+                    {
+                        <tr>
+                            <th scope="row">@row.Label</th>
+                            @if (hasBefore)
+                            {
+                                <td class="text-end">@(row.Before ?? "(none)")</td>
+                            }
+                            <td class="text-end">@row.After</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (P.MoreRows > 0)
+        {
+            <p class="cb-proposal-note">And @P.MoreRows more, all changed the same way.</p>
+        }
+    }
+
+    @if (P.Text is not null)
+    {
+        <div class="cb-proposal-text">@P.Text</div>
+    }
+
+    @if (P.Note is not null)
+    {
+        <p class="cb-proposal-note">@P.Note</p>
+    }
+
+    <div role="status" class="cb-proposal-status">
+        @switch (View.Stage)
+        {
+            case ProposalStage.Waiting:
+                <div class="cb-proposal-actions">
+                    <button type="button" class="btn btn-primary btn-sm" @onclick="ConfirmAsync">@P.ConfirmLabel</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="Cancel">Cancel</button>
+                    <span class="cb-proposal-note">Nothing changes until you confirm.</span>
+                </div>
+                break;
+            case ProposalStage.Working:
+                <span><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Saving…</span>
+                break;
+            case ProposalStage.Done:
+                <span class="text-success"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>@View.Message</span>
+                @if (View.Link is { } link)
+                {
+                    <a class="ms-2" href="@link.TrimStart('/')">Open it</a>
+                }
+                break;
+            case ProposalStage.Failed:
+                <span class="text-danger"><i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>Nothing changed. @View.Message</span>
+                break;
+            case ProposalStage.Cancelled:
+                <span class="text-secondary">Cancelled. Nothing changed.</span>
+                break;
+        }
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public ProposalView View { get; set; } = null!;
+
+    private AssistantProposalDto P => View.Proposal;
+
+    private async Task ConfirmAsync()
+    {
+        if (View.Stage != ProposalStage.Waiting)
+        {
+            return;
+        }
+
+        View.Stage = ProposalStage.Working;
+        StateHasChanged();
+        Result<ProposalOutcome> outcome = await Assistant.ConfirmAsync(P.Id);
+        if (outcome.IsSuccess)
+        {
+            View.Stage = ProposalStage.Done;
+            View.Message = outcome.Value.Message;
+            View.Link = outcome.Value.Link;
+            State.ReloadPage();
+        }
+        else
+        {
+            View.Stage = ProposalStage.Failed;
+            View.Message = string.Join(" ", outcome.Errors.Select(e => e.Message));
+        }
+    }
+
+    private void Cancel()
+    {
+        Assistant.Discard(P.Id);
+        View.Stage = ProposalStage.Cancelled;
+    }
+}

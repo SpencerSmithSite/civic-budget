@@ -22,13 +22,27 @@ public class ToolSchemaTests
         ["search_budget_lines"] = ["text"],
         ["multi_year_plan"] = [],
         ["certificate"] = [],
+        ["check_budget"] = [],
+        ["download_file"] = ["file"],
+        ["propose_multi_year_plan"] = ["years", "revenuePercent", "expenditurePercent"],
+        ["propose_line_changes"] = [],
+        ["propose_fund_fix"] = ["fundCode"],
+        ["propose_start_budget"] = ["fiscalYear"],
+        ["propose_fetch_actuals"] = [],
+        ["propose_budget_message"] = ["body"],
+        ["propose_department_narrative"] = ["departmentCode", "narrative"],
     };
 
     [Fact]
     public void Only_what_a_tool_cannot_do_without_is_required()
     {
         // Building the tools reads no service, so the dependencies can be left out.
-        var tools = new BudgetTools(null!, null!, null!, null!, null!, null!, null!, TimeProvider.System).Tools(new AssistantTurn(null)).ToList();
+        var turn = new AssistantTurn(null);
+        List<AIFunction> tools =
+        [
+            .. new BudgetTools(null!, null!, null!, null!, null!, null!).Tools(turn),
+            .. new ActionTools(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!).Tools(turn),
+        ];
 
         Assert.Equal(Required.Keys.Order(), tools.Select(t => t.Name).Order());
         foreach (AIFunction tool in tools)

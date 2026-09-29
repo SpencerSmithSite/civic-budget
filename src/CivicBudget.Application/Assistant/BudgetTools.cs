@@ -19,14 +19,12 @@ namespace CivicBudget.Application.Assistant;
 /// without one the tool layer marks it required, and a model that leaves it out gets an error.
 /// </summary>
 public sealed class BudgetTools(
-    ICivicBudgetDbContextFactory dbFactory,
-    ICurrentUser currentUser,
+    VersionResolver resolver,
     IBudgetEntryService entry,
     IReportService reports,
     IActualsReportService actuals,
     IBudgetPlanService plans,
-    ICertificateService certificates,
-    TimeProvider clock) : IAssistantToolProvider
+    ICertificateService certificates) : IAssistantToolProvider
 {
     private const string VersionHelp = "The budget version's id from list_budget_versions. Leave empty for the budget on the user's page, or else the current fiscal year's adopted budget.";
 
@@ -79,9 +77,77 @@ public sealed class BudgetTools(
             async ([Description(VersionHelp)] string? versionId = null, CancellationToken ct = default) => await CertificateAsync(turn, versionId, ct),
             "certificate",
             "The certificate of estimated resources (or the amended certificate, for an amendment): each fund's total available against its appropriations, and the reconciliation checks.");
+        yield return AIFunctionFactory.Create(
+            async ([Description("The budget version's id from list_budget_versions. Leave empty for the open (draft or proposed) budget.")] string? versionId = null, CancellationToken ct = default) => await CheckAsync(turn, versionId, ct),
+            "check_budget",
+            "Reviews a budget the way a fiscal officer would before taking it to council: funds over the Ohio limit, department requests not submitted, missing narratives, large changes with no justification, failing certificate checks, and later plan years that overspend.");
+
+        yield return AIFunctionFactory.Create(
+            async ([Description("Which file: budget_book (PDF), certificate (PDF), certificate_xlsx, lines (the worksheet), plan, fund_summary, department_detail, revenue_expenditure, budget_vs_actual, revenue_vs_receipts, fund_projection, trends, or appropriation_measure.")] string file,
+                   [Description(VersionHelp)] string? versionId = null, CancellationToken ct = default) => await DownloadAsync(turn, file, versionId, ct),
+            "download_file",
+            "The download link for a report's PDF or spreadsheet, for when the user wants to run a report and keep the file (\"run the amended certificate\" gives the certificate PDF). For an amendment the certificate is the amended certificate.");
     }
 
     // ---- the tools ----------------------------------------------------------------------------
+
+    private async Task<object> CheckAsync(AssistantTurn turn, string? versionId, CancellationToken ct)
+    {
+        // "Check my budget before I propose it" means the budget still being built, not last year's adopted one.
+        if ((await resolver.ResolveOpenAsync(turn, versionId, ct) ?? await ResolveAsync(turn, versionId, ct)) is not { } v)
+        {
+            return NoVersion;
+        }
+
+        if (await entry.GetWorkspaceAsync(v.Id, ct) is not { } workspace)
+        {
+            return NotShown;
+        }
+
+        IReadOnlyList<ReviewFinding> findings = BudgetReview.Check(workspace, await plans.GetAsync(v.Id, ct), await certificates.GetAsync(v.Id, ct));
+        turn.Steps.Add(new AssistantStep($"Checked {Name(v)}"));
+        return new
+        {
+            version = Name(v),
+            mustFix = findings.Where(f => f.MustFix).Select(f => new { f.Finding, page = f.Page }),
+            worthALook = findings.Where(f => !f.MustFix).Select(f => new { f.Finding, page = f.Page }),
+            allClear = findings.Count == 0,
+        };
+    }
+
+    private static readonly Dictionary<string, (string Path, string Name)> Downloads = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["budget_book"] = ("budgets/{0}/book.pdf", "the budget book (PDF)"),
+        ["certificate"] = ("reports/{0}/certificate.pdf", "the certificate (PDF)"),
+        ["certificate_xlsx"] = ("reports/{0}/certificate.xlsx", "the certificate (Excel)"),
+        ["lines"] = ("budgets/{0}/lines.xlsx", "the worksheet lines (Excel)"),
+        ["plan"] = ("budgets/{0}/plan.xlsx", "the multi-year plan (Excel)"),
+        ["fund_summary"] = ("reports/{0}/fund-summary.xlsx", "the fund summary (Excel)"),
+        ["department_detail"] = ("reports/{0}/department-detail.xlsx", "department detail (Excel)"),
+        ["revenue_expenditure"] = ("reports/{0}/category.xlsx", "revenue vs. expenditure (Excel)"),
+        ["budget_vs_actual"] = ("reports/{0}/budget-vs-actual.xlsx", "budget vs. actual (Excel)"),
+        ["revenue_vs_receipts"] = ("reports/{0}/revenue-vs-receipts.xlsx", "revenue vs. receipts (Excel)"),
+        ["fund_projection"] = ("reports/{0}/fund-projection.xlsx", "projected fund balances (Excel)"),
+        ["trends"] = ("reports/{0}/trends.xlsx", "multi-year trends (Excel)"),
+        ["appropriation_measure"] = ("reports/{0}/appropriation-measure.xlsx", "the appropriation measure (Excel)"),
+    };
+
+    private async Task<object> DownloadAsync(AssistantTurn turn, string file, string? versionId, CancellationToken ct)
+    {
+        if (!Downloads.TryGetValue(file.Trim().Replace(' ', '_').Replace('-', '_'), out var download))
+        {
+            return new { problem = $"No file called {file}. Choose one of: {string.Join(", ", Downloads.Keys)}." };
+        }
+
+        bool actuals = file.Contains("actual", StringComparison.OrdinalIgnoreCase) || file.Contains("receipt", StringComparison.OrdinalIgnoreCase) || file.Contains("projection", StringComparison.OrdinalIgnoreCase);
+        if (await ResolveAsync(turn, versionId, ct, forActuals: actuals) is not { } v)
+        {
+            return NoVersion;
+        }
+
+        turn.Steps.Add(new AssistantStep($"Found the download for {download.Name}, {Name(v)}"));
+        return new { version = Name(v), file = download.Name, download = "/admin/export/" + string.Format(System.Globalization.CultureInfo.InvariantCulture, download.Path, v.Id) };
+    }
 
     private async Task<object> ListVersionsAsync(AssistantTurn turn, CancellationToken ct)
     {
@@ -414,39 +480,10 @@ public sealed class BudgetTools(
     // A service returns null when this user may not see the whole of what it shows.
     private static readonly object NotShown = new { problem = "This report covers every fund, so it is not available to this user's account." };
 
-    private static string Name(BudgetVersionSummaryDto v) => $"FY{v.Year} {v.Label} ({v.Status})";
+    private static string Name(BudgetVersionSummaryDto v) => VersionResolver.Name(v);
 
     private static decimal? Percent(decimal? share) => share is { } s ? Math.Round(s * 100m, 1) : null;
 
-    /// <summary>
-    /// The version a tool is about: the one named, else the one on the user's page, else the current
-    /// fiscal year's latest adopted version, else the newest adopted, else the newest of all. For the
-    /// actuals reports the page's version counts only if it is this year's: on next year's draft,
-    /// "how are we doing" is about the year under way, which is the only one with books.
-    /// </summary>
-    private async Task<BudgetVersionSummaryDto?> ResolveAsync(AssistantTurn turn, string? versionId, CancellationToken ct, bool forActuals = false)
-    {
-        IReadOnlyList<BudgetVersionSummaryDto> versions = await entry.ListVersionsAsync(ct);
-        if (versionId is { Length: > 0 })
-        {
-            return Guid.TryParse(versionId, out Guid id) ? versions.FirstOrDefault(v => v.Id == id) : null;
-        }
-
-        int currentYear = await CurrentFiscalYearAsync(ct);
-        if (turn.PageVersionId is { } onPage && versions.FirstOrDefault(v => v.Id == onPage) is { } shown && (!forActuals || shown.Year == currentYear))
-        {
-            return shown;
-        }
-
-        IEnumerable<BudgetVersionSummaryDto> adopted = versions.Where(v => v.Status == BudgetStatus.Adopted).OrderByDescending(v => v.Year).ThenByDescending(v => v.VersionNumber);
-        return adopted.FirstOrDefault(v => v.Year == currentYear) ?? adopted.FirstOrDefault() ?? versions.OrderByDescending(v => v.Year).ThenByDescending(v => v.VersionNumber).FirstOrDefault();
-    }
-
-    private async Task<int> CurrentFiscalYearAsync(CancellationToken ct)
-    {
-        await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
-        int startMonth = await db.Governments.Where(g => g.Id == currentUser.GovernmentId).Select(g => g.FiscalYearStartMonth).SingleAsync(ct);
-        DateOnly today = Common.OhioTime.DateOf(clock.GetUtcNow());
-        return startMonth == 1 || today.Month < startMonth ? today.Year : today.Year + 1;
-    }
+    private Task<BudgetVersionSummaryDto?> ResolveAsync(AssistantTurn turn, string? versionId, CancellationToken ct, bool forActuals = false) =>
+        resolver.ResolveAsync(turn, versionId, ct, forActuals);
 }

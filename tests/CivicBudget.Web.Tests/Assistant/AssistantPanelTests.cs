@@ -53,7 +53,7 @@ public class AssistantPanelTests : BunitContext
     public void A_suggestion_is_asked_and_the_answer_shows_what_it_looked_at()
     {
         _assistant.Reply = new AssistantReply("Spending is at **71%** of the budget. See [Budget vs. Actual](/admin/reports/1/budget-vs-actual).",
-            [new AssistantStep("Budget against actual, FY2026 Amendment 1 (Adopted)")], null);
+            [new AssistantStep("Budget against actual, FY2026 Amendment 1 (Adopted)")], null, []);
         IRenderedComponent<AssistantPanel> panel = OpenPanel();
 
         panel.FindAll(".cb-assistant-suggestions button")[0].Click();
@@ -68,7 +68,7 @@ public class AssistantPanelTests : BunitContext
     [Fact]
     public void The_conversation_goes_back_with_the_next_question_and_a_requested_page_opens()
     {
-        _assistant.Reply = new AssistantReply("Opening the budget book.", [], "/admin/budgets/1/book");
+        _assistant.Reply = new AssistantReply("Opening the budget book.", [], "/admin/budgets/1/book", []);
         IRenderedComponent<AssistantPanel> panel = OpenPanel();
 
         panel.Find("textarea").Input("First question");
@@ -95,6 +95,65 @@ public class AssistantPanelTests : BunitContext
         Assert.Equal([true], _assistant.Asked!.History.Select(m => m.FromUser)); // the error is left out
     }
 
+    [Fact]
+    public void A_proposal_shows_the_change_and_only_the_click_confirms_it()
+    {
+        var proposal = new AssistantProposalDto(Guid.NewGuid(), "Change 2 lines in FY2027 Original: utilities +5%",
+            [new ProposalRow("1000-110-5320 Utilities", "$1,000.00", "$1,050.00"), new ProposalRow("1000-620-5320 Utilities", "$2,000.00", "$2,100.00")],
+            0, null, "Change 2 lines", "Total $3,000.00 becomes $3,150.00 (+$150.00).");
+        _assistant.Reply = new AssistantReply("I can raise both utilities lines 5%. Confirm on the card below.", [], null, [proposal]);
+        _assistant.Outcome = Result.Success(new ProposalOutcome("2 lines are updated.", "/admin/budgets/1"));
+        IRenderedComponent<AssistantPanel> panel = OpenPanel();
+        int generation = _state.PageGeneration;
+
+        panel.Find("textarea").Input("Raise utilities 5%");
+        panel.Find("form").Submit();
+
+        Assert.Contains("$1,050.00", panel.Find(".cb-proposal table").TextContent);
+        Assert.Null(_assistant.Confirmed);
+        panel.Find(".cb-proposal-actions .btn-primary").Click();
+
+        Assert.Equal(proposal.Id, _assistant.Confirmed);
+        panel.WaitForAssertion(() => Assert.Contains("2 lines are updated.", panel.Find(".cb-proposal-status").TextContent));
+        Assert.Empty(panel.FindAll(".cb-proposal-actions"));
+        Assert.Equal(generation + 1, _state.PageGeneration); // the page beneath reloads to show the change
+    }
+
+    [Fact]
+    public void A_cancelled_proposal_is_dropped_and_the_model_hears_what_happened()
+    {
+        var proposal = new AssistantProposalDto(Guid.NewGuid(), "Plan FY2027 Original for 5 years", [], 0, null, "Save the plan", null);
+        _assistant.Reply = new AssistantReply("Confirm below.", [], null, [proposal]);
+        IRenderedComponent<AssistantPanel> panel = OpenPanel();
+        panel.Find("textarea").Input("Five years at 4%");
+        panel.Find("form").Submit();
+
+        panel.Find(".cb-proposal-actions .btn-outline-secondary").Click();
+        panel.Find("textarea").Input("Never mind");
+        panel.Find("form").Submit();
+
+        Assert.Equal(proposal.Id, _assistant.Discarded);
+        Assert.Contains("Cancelled. Nothing changed.", panel.Find(".cb-proposal-status").TextContent);
+        Assert.Contains("The user cancelled", _assistant.Asked!.History[1].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_refused_confirmation_says_nothing_changed()
+    {
+        var proposal = new AssistantProposalDto(Guid.NewGuid(), "Change 1 line", [new ProposalRow("Utilities", "$1.00", "$2.00")], 0, null, "Change 1 line", null);
+        _assistant.Reply = new AssistantReply("Confirm below.", [], null, [proposal]);
+        _assistant.Outcome = Result.Failure<ProposalOutcome>("5320 Utilities (Police) changed since the change was worked out.");
+        IRenderedComponent<AssistantPanel> panel = OpenPanel();
+        int generation = _state.PageGeneration;
+        panel.Find("textarea").Input("Raise it");
+        panel.Find("form").Submit();
+
+        panel.Find(".cb-proposal-actions .btn-primary").Click();
+
+        panel.WaitForAssertion(() => Assert.Contains("Nothing changed. 5320 Utilities (Police) changed since", panel.Find(".cb-proposal-status").TextContent));
+        Assert.Equal(generation, _state.PageGeneration);
+    }
+
     private IRenderedComponent<AssistantPanel> OpenPanel()
     {
         _assistant.Status = new AssistantStatus(Configured: true, Enabled: true);
@@ -108,7 +167,7 @@ public class AssistantPanelTests : BunitContext
     private sealed class FakeAssistant : IAssistantService
     {
         public AssistantStatus Status { get; set; } = new(true, true);
-        public AssistantReply Reply { get; set; } = new("An answer.", [], null);
+        public AssistantReply Reply { get; set; } = new("An answer.", [], null, []);
         public string? Refusal { get; set; }
         public AssistantRequest? Asked { get; private set; }
 
@@ -123,5 +182,17 @@ public class AssistantPanelTests : BunitContext
         public Task<AssistantSettingsDto> GetSettingsAsync(CancellationToken ct = default) => Task.FromResult(new AssistantSettingsDto(Status.Configured, Status.Enabled));
 
         public Task<Result> SetEnabledAsync(bool enabled, CancellationToken ct = default) => Task.FromResult(Result.Success());
+
+        public Result<ProposalOutcome> Outcome { get; set; } = Result.Success(new ProposalOutcome("Done.", null));
+        public Guid? Confirmed { get; private set; }
+        public Guid? Discarded { get; private set; }
+
+        public Task<Result<ProposalOutcome>> ConfirmAsync(Guid proposalId, CancellationToken ct = default)
+        {
+            Confirmed = proposalId;
+            return Task.FromResult(Outcome);
+        }
+
+        public void Discard(Guid proposalId) => Discarded = proposalId;
     }
 }

@@ -28,7 +28,7 @@
             <div class="cb-assistant-body" role="log" aria-live="polite" aria-label="Conversation with the assistant">
                 @if (State.Conversation.Count == 0)
                 {
-                    <p class="small text-secondary">Ask about your budget and actuals, or how to do something in CivicBudget. I answer from what your account can see, and I cannot change anything.</p>
+                    <p class="small text-secondary">Ask about your budget and actuals, or how to do something in CivicBudget. I answer from what your account can see. When you ask for a change, I show it to you first, and only your click makes it.</p>
                     <div class="cb-assistant-suggestions">
                         @foreach (string suggestion in Suggestions)
                         {
@@ -54,6 +54,10 @@
                             else
                             {
                                 @((MarkupString)AssistantMarkdown.ToHtml(entry.Text))
+                            }
+                            @foreach (ProposalView proposal in entry.Proposals)
+                            {
+                                <ProposalCard @key="proposal.Proposal.Id" View="proposal" />
                             }
                             @if (entry.Steps.Count > 0)
                             {
@@ -126,7 +130,7 @@
             return;
         }
 
-        List<AssistantMessage> history = [.. State.Conversation.Where(e => !e.IsError).Select(e => new AssistantMessage(e.FromUser, e.Text))];
+        List<AssistantMessage> history = [.. State.Conversation.Where(e => !e.IsError).Select(e => new AssistantMessage(e.FromUser, e.HistoryText))];
         State.Conversation.Add(new AssistantEntry(true, text.Trim(), []));
         question = null;
         busy = true;
@@ -136,7 +140,10 @@
             Result<AssistantReply> reply = await Assistant.AskAsync(new AssistantRequest(history, text, CurrentPath));
             if (reply.IsSuccess)
             {
-                State.Conversation.Add(new AssistantEntry(false, reply.Value.Text, reply.Value.Steps));
+                State.Conversation.Add(new AssistantEntry(false, reply.Value.Text, reply.Value.Steps)
+                {
+                    Proposals = [.. reply.Value.Proposals.Select(p => new ProposalView(p))],
+                });
                 if (reply.Value.NavigateTo is { } path)
                 {
                     Navigation.NavigateTo(path.TrimStart('/'));
@@ -156,6 +163,11 @@
 
     private void StartOver()
     {
+        foreach (ProposalView waiting in State.Conversation.SelectMany(e => e.Proposals).Where(p => p.Stage == ProposalStage.Waiting))
+        {
+            Assistant.Discard(waiting.Proposal.Id);
+        }
+
         State.Conversation.Clear();
         focusQuestion = true;
     }

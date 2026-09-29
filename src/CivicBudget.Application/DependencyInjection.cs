@@ -36,6 +36,9 @@ public static class DependencyInjection
         services.AddScoped<IBudgetBookService, BudgetBookService>();
         services.AddScoped<Assistant.IAssistantService, Assistant.AssistantService>();
         services.AddScoped<Assistant.IAssistantToolProvider, Assistant.BudgetTools>();
+        services.AddScoped<Assistant.VersionResolver>();
+        services.AddScoped<Assistant.IAssistantToolProvider, Assistant.ActionTools>();
+        services.AddScoped<Assistant.AssistantProposals>();
         services.AddSingleton<Assistant.AssistantUsageLimiter>();
         services.AddScoped<IMeasureColumnService, MeasureColumnService>();
         services.AddScoped<IActualsReportService, ActualsReportService>();

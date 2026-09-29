@@ -109,6 +109,13 @@ public class HelpCatalogTests
         Assert.DoesNotContain("<script", html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void A_file_link_downloads_instead_of_routing()
+    {
+        Assert.Contains("href=\"/admin/export/budgets/1/book.pdf\" download=\"\"", AssistantMarkdown.ToHtml("[the budget book](/admin/export/budgets/1/book.pdf)"), StringComparison.Ordinal);
+        Assert.DoesNotContain("download", AssistantMarkdown.ToHtml("[the book page](/admin/budgets/1/book)"), StringComparison.Ordinal);
+    }
+
     private static (NavigationTools Tools, AssistantTurn Turn) Tools(string role)
     {
         var services = new ServiceCollection();
