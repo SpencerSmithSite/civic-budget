@@ -58,7 +58,7 @@ public sealed class AssistantServiceTests(SqlServerFixture fixture) : IAsyncLife
         scope.ServiceProvider.GetServices<IAssistantToolProvider>(),
         limiter ?? new AssistantUsageLimiter(TimeProvider.System),
         scope.ServiceProvider.GetRequiredService<AssistantProposals>(),
-        scope.ServiceProvider.GetRequiredService<ISecurityEventLog>(),
+        scope.ServiceProvider.GetRequiredService<ISecurityEventLog>(), scope.ServiceProvider.GetRequiredService<Application.Publishing.IPublishedSnapshotCacheInvalidator>(),
         TimeProvider.System,
         NullLogger<AssistantService>.Instance);
 

@@ -52,4 +52,30 @@ public class ToolSchemaTests
             Assert.False(string.IsNullOrWhiteSpace(tool.Description), tool.Name);
         }
     }
+
+    private static readonly Dictionary<string, string[]> PortalRequired = new()
+    {
+        ["budget_overview"] = [],
+        ["spending_breakdown"] = [],
+        ["revenue_breakdown"] = [],
+        ["fund"] = ["fundCode"],
+        ["department"] = ["departmentCode"],
+        ["search"] = ["text"],
+        ["outlook"] = [],
+        ["year_over_year"] = [],
+        ["glossary"] = ["term"],
+    };
+
+    [Fact]
+    public void The_portal_tools_require_only_what_they_cannot_do_without()
+    {
+        List<AIFunction> tools = [.. new PortalTools(null!, null!).Tools()];
+
+        Assert.Equal(PortalRequired.Keys.Order(), tools.Select(t => t.Name).Order());
+        foreach (AIFunction tool in tools)
+        {
+            string[] required = tool.JsonSchema.TryGetProperty("required", out JsonElement r) ? [.. r.EnumerateArray().Select(x => x.GetString()!)] : [];
+            Assert.True(PortalRequired[tool.Name].SequenceEqual(required), $"{tool.Name} requires [{string.Join(", ", required)}]");
+        }
+    }
 }

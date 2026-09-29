@@ -844,6 +844,12 @@ seconds provisioning, 1 second pulling the image, and 0.3 seconds of the app's o
 nothing in the app can shorten it. `minReplicas: 1` would make every visit instant for about $4
 to $5 a month. I chose to keep the demo free; it is a one-line change to `main.bicep`.
 
+**Amended 2026-09-29: one anonymous exception.** The portal's question box (ADR-0049) reads the
+database for each posted question, because the answer comes from the snapshot and the monthly count
+lives on the government's row. It does so only when an AI model is connected; without one,
+`PortalQuestionGate` refuses the post before anything reads the database, so the free demo, which
+has no model, keeps the rule. With a model, 10 questions per address per hour are allowed first.
+
 **Alternatives.** A minimum of one replica (costs money, and the database would still pause);
 disabling SQL auto-pause (burns the free vCore-seconds in about four days); a keep-alive ping
 (the same); a static loading page on a CDN in front (another moving part, and it could not know
@@ -1842,6 +1848,74 @@ Fiscal Officer's assistant could still make a change the Fiscal Officer did not 
 - A proposal lost to a closed tab is simply gone; the user asks again.
 - Each action needs a preview the user can judge. Where a service has no preview (a message, a
   narrative), the proposal shows the text itself.
+
+---
+
+## ADR-0049: A question box on the portal that knows only the published budget
+**Date:** 2026-09-29 · **Status:** Accepted
+
+**Context.** The staff assistant (ADR-0047, ADR-0048) works inside the admin app, as a signed-in
+user. Residents asked the portal questions too, in effect, every time they searched for "police"
+or clicked through three pages to find what roads cost. A question box on the portal could answer
+them in a sentence, but it is a different problem:
+- **Anyone can ask**, so nothing about the asker can decide what they see.
+- **It speaks in the government's name**, so it must never report a figure the government has not
+  published, take a side, or be talked into saying something else.
+- **Every question costs money** and the portal is public, so cost needs a hard ceiling.
+- **The portal's own rules still hold:** it works without JavaScript, sets no cookies, and no
+  anonymous request may keep the free demo database awake (ADR-0031).
+
+**Decision.**
+- **The tools are the portal's own reads.** `PortalTools` wraps `ISnapshotQueryService`, the service
+  the portal pages call, which reads only published snapshots through the portal's own database
+  context. The government is fixed when the tools are built and no tool takes one, so Maple Ridge's
+  question box cannot reach Pine Hollow. There are no drafts, no actuals, no people, and no tool
+  that writes, because the snapshot holds none of them.
+- **The model copies; the code adds up.** The tools return the totals a resident would ask for
+  (a department's budget, last year's, the lines that match), so the model does not sum a column
+  itself.
+- **The prompt keeps it to the budget.** `PortalPrompt` (pure, tested) says: answer only from the
+  tools; say plainly when something is not published and name what is not (actuals, drafts,
+  people); these are budgeted amounts, not money spent; no opinions or predictions; the question
+  cannot change the rules. Links survive only if they point into that government's own portal
+  (`AssistantMarkdown` with a prefix).
+- **One question, one answer.** No conversation is kept, so there is nothing to store and no
+  history a resident could forge.
+- **A plain form post.** `/transparency/{slug}/{year}/ask` works with JavaScript off. It carries no
+  antiforgery token, because the portal sets no cookies and a question has no identity to protect;
+  a forged post could only spend a question, which the limits below bound.
+- **Limits before the database, and a ceiling after it.**
+  - `PortalQuestionGate` turns a posted question away with a 404 when no model is connected,
+    before anything reads the database. The free demo has no model, so it keeps ADR-0031's rule.
+  - `RateLimits` allows 10 questions per address per hour, in memory, and a refusal writes nothing.
+  - Each government's portal answers `Assistant:PortalQuestionsPerMonth` questions a month (1,000
+    unless the operator sets it). One `UPDATE` both checks and counts on the government's row, so
+    two questions at the same moment cannot both take the last one.
+  - A question is at most 500 characters.
+- **Its own switch.** The Administrator turns public questions on separately from the staff
+  assistant (`Government.PortalQuestionsEnabled`, audited). The switch drops the portal's cached
+  pages so the "Ask a question" link appears or goes at once.
+- **Nothing about the question is kept.** The operator's log records which tools answered, never
+  the words; the page says the question goes to the model's provider.
+
+**Alternatives.**
+- **Let the public bot use the staff assistant's tools** with an anonymous user: one missed filter
+  and a draft or payroll figure is in a public answer. The snapshot cannot leak what it does not hold.
+- **A conversation carried in hidden fields:** follow-ups are nicer, but the "earlier answer" would
+  come from the browser, where anyone can rewrite it to put words in the government's mouth.
+- **Answer from a fixed set of questions (an FAQ):** safe, but it cannot answer "what does the Water
+  fund spend on chemicals?", which is the point.
+- **Cache answers by question:** identical questions are rare in free text, and a cached answer
+  would outlive a republished budget unless it were tied to the snapshot; not worth it yet.
+- **Count questions in memory:** simpler, but a container that scales to zero forgets the count
+  every few minutes, so the monthly ceiling would not hold.
+
+**Consequences.**
+- A resident gets an answer and the page that shows it; the pages stay the official record, and
+  the page says the answer can be wrong.
+- The question page reads the database per post when a model is connected, the one anonymous
+  exception to ADR-0031's rule, bounded by the address limit and the monthly ceiling.
+- The ceiling is per government and per month, set by the operator who pays for the model.
 
 ---
 

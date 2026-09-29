@@ -3,6 +3,7 @@
 @using CivicBudget.Web.Components.Portal.Common
 @inject NavigationManager Navigation
 @inject ISnapshotQueryService Snapshots
+@inject CivicBudget.Application.Assistant.IPortalQuestionService Questions
 
 @* The citizen-facing shell: a navy header band with the government's name and question-led
    navigation, the page, and a one-line footer (which budget, downloads, glossary, accessibility).
@@ -32,6 +33,10 @@
                     <a href="@Root/outlook" class="@Active("outlook")" aria-current="@Current("outlook")">Outlook</a>
                     <a href="@Root/years" class="@Active("years")" aria-current="@Current("years")">Year over year</a>
                     <a href="@Root/search" class="@Active("search")" aria-current="@Current("search")">Search</a>
+                    @if (askable)
+                    {
+                        <a href="@Root/ask" class="@Active("ask")" aria-current="@Current("ask")">Ask a question</a>
+                    }
                 </nav>
             }
         </div>
@@ -62,6 +67,7 @@
 @code {
     private PortalRoute? route;
     private PortalBudgetDto? budget;
+    private bool askable;
 
     private string Root => route is null ? "/transparency" : $"/transparency/{route.Slug}/{budget?.FiscalYear ?? route.Year}";
 
@@ -71,6 +77,9 @@
         if (route is not null)
         {
             budget = await Snapshots.GetBudgetAsync(route.Slug, route.Year);
+
+            // Checked only when a model is connected, so a portal without one reads nothing more.
+            askable = budget is not null && Questions.ModelConfigured && await Questions.IsAvailableAsync(route.Slug);
         }
     }
 

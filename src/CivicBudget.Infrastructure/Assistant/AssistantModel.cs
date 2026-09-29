@@ -14,6 +14,7 @@ namespace CivicBudget.Infrastructure.Assistant;
 /// Assistant:Provider   Anthropic (the default) or Ollama
 /// Assistant:Model      the model id; claude-sonnet-5-5 by default for Anthropic, required for Ollama
 /// Assistant:BaseUrl    optional; another address for the provider, such as a local Ollama
+/// Assistant:PortalQuestionsPerMonth   optional; how many public questions each government's portal answers a month (1,000)
 /// </code>
 /// </summary>
 public sealed class AssistantModelOptions
@@ -34,6 +35,9 @@ public sealed class AssistantModelOptions
 
     /// <summary>Tool calls the model may chain for one question before it must answer.</summary>
     public int MaxToolRounds { get; set; } = 8;
+
+    /// <summary>The spending cap on the public question box, per government per calendar month.</summary>
+    public int PortalQuestionsPerMonth { get; set; } = Application.Assistant.PortalQuestionLimits.DefaultPerMonth;
 }
 
 public static class AssistantModelRegistration
@@ -49,6 +53,7 @@ public static class AssistantModelRegistration
     public static IServiceCollection AddAssistantModel(this IServiceCollection services, IConfiguration configuration)
     {
         AssistantModelOptions options = configuration.GetSection(AssistantModelOptions.SectionName).Get<AssistantModelOptions>() ?? new();
+        services.AddSingleton(new Application.Assistant.PortalQuestionLimits(options.PortalQuestionsPerMonth));
         if (string.IsNullOrWhiteSpace(options.ApiKey))
         {
             return services;

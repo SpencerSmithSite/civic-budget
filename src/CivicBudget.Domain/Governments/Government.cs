@@ -94,6 +94,27 @@ public sealed partial class Government : Entity
 
     public void SetAssistantEnabled(bool enabled) => AssistantEnabled = enabled;
 
+    /// <summary>
+    /// Whether the public may ask questions about the published budget on the transparency portal.
+    /// A separate switch from <see cref="AssistantEnabled"/>: it answers anyone, in the government's
+    /// name, and every question costs money, so the Administrator decides on it by itself.
+    /// </summary>
+    public bool PortalQuestionsEnabled { get; private set; }
+
+    public void SetPortalQuestionsEnabled(bool enabled) => PortalQuestionsEnabled = enabled;
+
+    /// <summary>
+    /// The month (yyyyMM) that <see cref="PortalQuestionsAsked"/> counts, and the count. Both change
+    /// only through one atomic database update per question (the portal question service), so two
+    /// residents asking at once cannot both take the last question of the month. Not audited: a
+    /// counter changing on every question would bury the audit trail.
+    /// </summary>
+    [NotAudited]
+    public int PortalQuestionsMonth { get; private set; }
+
+    [NotAudited]
+    public int PortalQuestionsAsked { get; private set; }
+
     private static string ValidateState(string state)
     {
         string value = Guard.NotNullOrWhiteSpace(state, nameof(state)).ToUpperInvariant();

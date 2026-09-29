@@ -1,0 +1,22 @@
+@using CivicBudget.Application.Assistant
+@using CivicBudget.Web.Components.Assistant
+
+@* A resident's question and its answer. The answer is the model's Markdown made safe: no raw HTML,
+   and a link survives only if it points into this government's own portal. *@
+<section class="pt-answer" aria-labelledby="answer-title">
+    <h2 id="answer-title" class="pt-q">Answer</h2>
+    <p class="pt-asked"><span class="pt-muted">You asked:</span> @Question</p>
+    <div class="pt-answer-body">@((MarkupString)AssistantMarkdown.ToHtml(Answer.Text, LinkPrefix))</div>
+    @if (Answer.LookedAt.Count > 0)
+    {
+        <p class="pt-answer-steps">Looked at: @string.Join("; ", Answer.LookedAt)</p>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string Question { get; set; } = "";
+    [Parameter, EditorRequired] public PortalAnswer Answer { get; set; } = null!;
+
+    /// <summary>"/transparency/maple-ridge-oh/": where the answer's links may go.</summary>
+    [Parameter, EditorRequired] public string LinkPrefix { get; set; } = "";
+}

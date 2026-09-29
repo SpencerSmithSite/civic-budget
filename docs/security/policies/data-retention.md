@@ -11,6 +11,7 @@
 | Users and roles | While the government is a customer; a deactivated user stays so the audit trail can name them | `--offboard` |
 | The security log | 1 year | `--maintenance` (daily), and it survives `--offboard` for the rest of its year as the operator's evidence |
 | Emails in the outbox | 1 year after they were written, once sent, failed, or held (one still waiting is never removed) | `--maintenance` |
+| Questions to the assistant and the portal | Not kept: the security log records which tools a staff question used, the platform log which tools answered a public one, and the portal keeps only a count per month | Nothing to remove |
 | Platform logs | 30 days | The platform |
 | Backups | 7 days point-in-time; longer-term backups as configured | The platform, on schedule |
 

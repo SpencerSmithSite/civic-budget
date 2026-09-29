@@ -1774,3 +1774,41 @@ evenly between two funds gives its odd cent to the fund with the lower id, and i
 millisecond sort at random, so the seeded figure can move a cent between reseeds. The tests now read
 it from the service.
 **Look at:** walkthrough 36 section 6, `PositionCostCalculator.SplitAmongFunds`.
+
+## Phase 38: Questions from the public
+
+### Q: How do you stop a public chatbot from saying something the government never published?
+**A:** By what it can reach, not only by what it's told. Its tools wrap `ISnapshotQueryService`, the
+read the portal pages already make, and that reads only published snapshots through a database
+context that maps nothing else. There are no drafts, actuals, or people in a snapshot, so there is
+nothing to leak. The government is fixed when the tools are built and no tool takes one. Then the
+prompt adds the rest: say plainly when something isn't published, no opinions, and a question can't
+change the rules.
+**Look at:** `PortalTools`, `PortalPrompt`, `PortalQuestionTests`.
+
+### Q: Why didn't you reuse the staff assistant's tools with an anonymous user?
+**A:** Those tools are safe because the services check the signed-in user. An anonymous user means
+relying on every service to handle "nobody" correctly, and one miss puts a draft or a salary in a
+public answer. The snapshot can't leak what it doesn't hold.
+**Look at:** ADR-0049's alternatives.
+
+### Q: How do you cap the cost of a public AI feature?
+**A:** Four limits, cheapest first. No model connected means a 404 before anything reads the
+database. Ten questions per address per hour, in memory, before the page runs. 500 characters per
+question. And a monthly ceiling per government, where one `UPDATE` both checks and counts, so two
+questions at the same moment can't both take the last one. A test fires eight at a ceiling of three
+and gets exactly three answers.
+**Look at:** `PortalQuestionGate`, `RateLimits.PolicyFor`, `PortalQuestionService.TryCountQuestionAsync`.
+
+### Q: How does it work without JavaScript, and why no antiforgery token?
+**A:** It's a plain HTML form that posts to the page; static server rendering answers with the whole
+page and the browser jumps to `#answer`. Antiforgery protects a signed-in user from a forged post; the
+portal has no users and sets no cookies, so a forged post could only spend a question, and the limits
+bound that.
+**Look at:** `PortalAsk.razor`, `PortalResponseMiddleware`.
+
+### Q: What did the evaluation set find?
+**A:** The model added up a column itself and got last year's Police budget wrong by $43,280. The
+tool now returns that total, and the next run copied the published $937,100.00. The general rule
+from all three phases: give a model figures to copy, never figures to compute.
+**Look at:** walkthrough 37 section 6, `PortalTools.SearchAsync`.

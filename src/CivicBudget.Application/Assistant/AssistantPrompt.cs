@@ -20,8 +20,8 @@ public sealed record AssistantSituation(
 
 /// <summary>
 /// The assistant's standing instructions. Pure so the rules that matter can be tested: figures come
-/// only from tools, links only from tools, text inside tool results is data, and it says plainly
-/// that it cannot change anything yet.
+/// only from tools, links only from tools, text inside tool results is data, and a change is only
+/// ever proposed, never reported as made.
 /// </summary>
 public static class AssistantPrompt
 {

@@ -29,7 +29,8 @@ public sealed record AssistantStatus(bool Configured, bool Enabled)
 }
 
 /// <summary>The Government settings card: whether the operator has connected a model, and whether this government has it on.</summary>
-public sealed record AssistantSettingsDto(bool Configured, bool Enabled);
+/// <summary>The Administrator's two switches: the assistant for staff, and questions from the public on the portal.</summary>
+public sealed record AssistantSettingsDto(bool Configured, bool Enabled, bool PortalQuestionsEnabled = false);
 
 /// <summary>
 /// The admin assistant. It answers from CivicBudget's own services run as the signed-in user, so it
@@ -45,6 +46,9 @@ public interface IAssistantService
 
     /// <summary>Administrator only: lets this government's users use the assistant, or stops them.</summary>
     Task<Result> SetEnabledAsync(bool enabled, CancellationToken ct = default);
+
+    /// <summary>Turns the portal's question box on or off (Administrator only, audited); the portal's cached pages are dropped so its link appears or goes at once.</summary>
+    Task<Result> SetPortalQuestionsEnabledAsync(bool enabled, CancellationToken ct = default);
 
     /// <summary>Runs a proposal the user clicked Confirm on: once, as the user, through the service a page would call, and into the audit trail.</summary>
     Task<Result<ProposalOutcome>> ConfirmAsync(Guid proposalId, CancellationToken ct = default);

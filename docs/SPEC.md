@@ -464,6 +464,10 @@ their way around.
   user's click makes it. The change goes through the same service a page uses, checked again, and
   the audit trail records that it came through the assistant.
 - **Review:** "check my budget" lists what must be fixed before council and what is worth a look.
+- **On the portal, for the public:** an "Ask a question" page answers from the published budget
+  only, links the page that shows each answer, and says plainly when something is not published
+  (actual spending, drafts, anything about people). No opinions. It works without JavaScript, has
+  its own switch, and takes a set number of questions per government per month.
 - **Navigation:** finds and opens pages the user's policies allow, from each page's help topic.
 - **Switches:** shown only when the operator has connected a model; each government's Administrator
   turns it on.
@@ -739,7 +743,7 @@ prove tenant isolation in the tests and in the demo.
 | §3.17 Employees from the ERP, personnel reports | 27 | ADR-0039; simulated payroll in the demo |
 | §3.18 Email, two-step sign-in, onboarding | 28 | ADR-0040; the demo keeps email in its outbox |
 | §3.19 Security, sessions, a government's data | 29 | ADR-0041; controls mapped in `docs/security` |
-| §3.23 The assistant | 36, 37 | ADR-0047, ADR-0048; Claude behind Microsoft.Extensions.AI; off by default; changes only on the user's click |
+| §3.23 The assistant | 36, 37, 38 | ADR-0047, ADR-0048, ADR-0049; Claude behind Microsoft.Extensions.AI; off by default; changes only on the user's click; the portal bot reads only the snapshot |
 | §3.22 The budget book | 35 | ADR-0046; frozen with the snapshot |
 | §3.21 Connecting an ERP | 34 | ADR-0045; a reference ERP in `samples/` |
 | §3.20 Multi-year plan | 33 | ADR-0044; nothing projected is stored except in the snapshot |

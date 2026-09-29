@@ -204,6 +204,7 @@ app.UseAuthorization();
 app.UseMiddleware<CurrentUserMiddleware>();
 app.UseMiddleware<MustChangePasswordMiddleware>();
 app.UseMiddleware<RequireMfaMiddleware>();
+app.UseMiddleware<PortalQuestionGate>();
 app.UseRateLimiter();
 app.UseMiddleware<PortalResponseMiddleware>();
 app.UseOutputCache();

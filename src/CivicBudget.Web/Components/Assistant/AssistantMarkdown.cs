@@ -17,12 +17,14 @@ public static class AssistantMarkdown
 {
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder().DisableHtml().UseEmphasisExtras().Build();
 
-    public static string ToHtml(string markdown)
+    /// <param name="linkPrefix">When given, a link must also start with it: the portal keeps only links into that government's own portal.</param>
+    public static string ToHtml(string markdown, string? linkPrefix = null)
     {
         MarkdownDocument document = Markdown.Parse(markdown, Pipeline);
         foreach (LinkInline link in document.Descendants<LinkInline>().ToList())
         {
-            if (link.IsImage || !LocalUrl.IsLocal(link.Url))
+            if (link.IsImage || !LocalUrl.IsLocal(link.Url)
+                || (linkPrefix is not null && !link.Url!.StartsWith(linkPrefix, StringComparison.OrdinalIgnoreCase)))
             {
                 link.ReplaceBy(new LiteralInline(TextOf(link)), copyChildren: false);
             }

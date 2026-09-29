@@ -40,6 +40,7 @@ public static class DependencyInjection
         services.AddScoped<Assistant.IAssistantToolProvider, Assistant.ActionTools>();
         services.AddScoped<Assistant.AssistantProposals>();
         services.AddSingleton<Assistant.AssistantUsageLimiter>();
+        services.AddScoped<Assistant.IPortalQuestionService, Assistant.PortalQuestionService>();
         services.AddScoped<IMeasureColumnService, MeasureColumnService>();
         services.AddScoped<IActualsReportService, ActualsReportService>();
         services.AddScoped<IErpChartFileSource, ErpChartFileSource>();

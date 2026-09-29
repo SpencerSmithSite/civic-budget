@@ -459,11 +459,13 @@ published snapshot.
 - [x] Drafts: the budget message and department narratives
 - [x] "Check my budget" review and "fix this fund" options
 
-- [ ] Reviewed and approved
+- [x] Reviewed and approved
 
-### Phase 38: Public portal Q&A
-- [ ] A non-agentic bot that reads only the published snapshot, answers with links, and says so when something is not published
-- [ ] Works without JavaScript; rate limits and a monthly cap per government; prompt-injection tests
+### Phase 38: Public portal Q&A  `phase-38-portal-questions`
+- [x] A non-agentic bot that reads only the published snapshot, answers with links, and says so when something is not published
+- [x] Works without JavaScript; rate limits and a monthly cap per government; prompt-injection tests
+
+- [ ] Reviewed and approved
 
 ## Later
 Nothing parked; the ERP partner kit and the budget book were the last two items (2026-09-29).
