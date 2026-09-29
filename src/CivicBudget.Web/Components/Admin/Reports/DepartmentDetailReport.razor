@@ -71,10 +71,10 @@ else
                         <th scope="col" class="cb-num">Change %</th>
                     </tr>
                 </thead>
-                <tbody>
                     @foreach (DepartmentDetailDto d in report.Departments)
                     {
-                        <tr class="cb-group"><td colspan="8">@d.DepartmentCode @d.DepartmentName</td></tr>
+                        <tbody>
+                        <tr class="cb-group"><th scope="rowgroup" colspan="8">@d.DepartmentCode @d.DepartmentName</th></tr>
                         @if (d.Narrative is not null)
                         {
                             <tr class="cb-report-narrative"><td colspan="8"><span class="cb-eyebrow">Department narrative</span><p class="mb-0">@d.Narrative</p></td></tr>
@@ -100,8 +100,8 @@ else
                             <td class="cb-num @(d.DollarChange < 0 ? "cb-neg" : "")">@Display.Money(d.DollarChange)</td>
                             <td class="cb-num @(d.PercentChange < 0 ? "cb-neg" : "")">@Display.Percent(d.PercentChange)</td>
                         </tr>
+                        </tbody>
                     }
-                </tbody>
                 @if (report.Departments.Count > 1)
                 {
                     <tfoot>

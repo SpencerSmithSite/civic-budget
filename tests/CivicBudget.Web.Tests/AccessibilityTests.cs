@@ -88,6 +88,26 @@ public class AccessibilityTests : BunitContext
         Assert.NotNull(header.Find(".cb-page-title .cb-tip"));
     }
 
+    [Theory]
+    [InlineData(3_704_500, "$3.70M", "$3.70 million")]
+    [InlineData(588_000, "$588K", "$588 thousand")]
+    [InlineData(-21_908.63, "-$22K", "minus $22 thousand")]
+    [InlineData(950, "$950", "$950")]
+    public void Short_amounts_have_a_spoken_form(decimal amount, string shown, string spoken)
+    {
+        Assert.Equal(shown, MoneyShort.Format(amount));
+        Assert.Equal(spoken, MoneyShort.Spoken(amount));
+    }
+
+    [Fact]
+    public void A_portal_figure_is_shown_short_and_spoken_in_full()
+    {
+        IRenderedComponent<PortalKpi> kpi = Render<PortalKpi>(p => p.Add(x => x.Label, "Revenues").Add(x => x.Amount, 3_704_500m));
+
+        Assert.Equal("$3.70M", kpi.Find(".pt-kpi-v [aria-hidden=true]").TextContent);
+        Assert.Equal("$3.70 million", kpi.Find(".pt-kpi-v .visually-hidden").TextContent);
+    }
+
     [Fact]
     public void Portal_panel_radios_are_a_named_group()
     {

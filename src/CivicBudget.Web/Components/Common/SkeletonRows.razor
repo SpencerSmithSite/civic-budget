@@ -1,4 +1,6 @@
 @* Placeholder rows shown inside a grid while data loads, so the page keeps its shape. *@
+@* The placeholder is hidden from screen readers, which hear "Loading" instead. *@
+<span class="visually-hidden" role="status">Loading</span>
 <table class="cb-grid" aria-hidden="true">
     <tbody>
         @for (int i = 0; i < Rows; i++)

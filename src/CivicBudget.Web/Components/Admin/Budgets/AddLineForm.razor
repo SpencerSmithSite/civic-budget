@@ -31,14 +31,14 @@
             }
             else
             {
-                <select id="add-dept" class="form-select" @bind="departmentId">
+                <select id="add-dept" class="form-select" @bind="departmentId" aria-describedby="add-department-hint">
                     <option value="">None (fund level, for revenues and transfers)</option>
                     @foreach (LookupDto department in Workspace.Departments)
                     {
                         <option value="@department.Id">@department.Display</option>
                     }
                 </select>
-                <div class="form-text">Expenditure accounts need a department.</div>
+                <div class="form-text" id="add-department-hint">Expenditure accounts need a department.</div>
             }
         </div>
         <div class="mb-1">

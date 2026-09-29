@@ -38,7 +38,7 @@
 
 @{ visible = Filtered.ToList(); }
 <div class="cb-grid-wrap">
-    <table class="cb-grid">
+    <table class="cb-grid" aria-label="Budget lines">
         <thead>
             @* Phones keep Account, current budget, and the editable amount; .cb-col-wide columns
                drop out and the chevron opens the row's detail sheet with the rest. *@
@@ -52,16 +52,14 @@
                 <th scope="col"><span class="visually-hidden">Actions</span></th>
             </tr>
         </thead>
-        <tbody>
-            @{ string? lastGroup = null; }
-            @foreach (BudgetLineDto line in visible)
-            {
-                string group = $"{line.FundCode} {line.FundName} · {(line.DepartmentCode is null ? (line.AccountType.IsResource() ? "Revenues and transfers in" : "Fund level") : $"{line.DepartmentCode} {line.DepartmentName}")}";
-                if (group != lastGroup)
+        @* One tbody per group, headed by a rowgroup header cell, so a screen reader knows which fund and
+           program a line belongs to. *@
+        @foreach (LineRun run in Runs(visible))
+        {
+            <tbody @key="run.Key">
+                <tr class="cb-group"><th colspan="7" scope="rowgroup">@run.Title</th></tr>
+                @foreach (BudgetLineDto line in run.Lines)
                 {
-                    lastGroup = group;
-                    <tr @key="group" class="cb-group"><td colspan="7">@group</td></tr>
-                }
                 @* Keyed so a cell's own state (a red "invalid" border, the saving tint) stays with its line when the filters reorder rows. *@
                 <tr @key="line.Id">
                     <th scope="row" class="cb-wrap fw-normal" title="@Display.Enum(line.Category)">
@@ -100,12 +98,13 @@
                         </RowMenu>
                     </td>
                 </tr>
-            }
-            @if (visible.Count == 0)
-            {
-                <tr><td colspan="7"><EmptyState Icon="bi-funnel" Title="No lines match" Text="Clear a filter or the search box to see more." /></td></tr>
-            }
-        </tbody>
+                }
+            </tbody>
+        }
+        @if (visible.Count == 0)
+        {
+            <tbody><tr><td colspan="7"><EmptyState Icon="bi-funnel" Title="No lines match" Text="Clear a filter or the search box to see more." /></td></tr></tbody>
+        }
     </table>
 </div>
 <div class="cb-grid-foot">
@@ -124,6 +123,28 @@
     // The filters and sort run once per render (the list, the empty check, and the count all read it)
     // rather than three times on every keystroke in the search box.
     private List<BudgetLineDto> visible = [];
+
+    private sealed record LineRun(string Key, string Title, List<BudgetLineDto> Lines);
+
+    // Consecutive lines of the same fund and program form a group, in the grid's own sort order, so the
+    // grid reads like a printed budget. Sorted by amount, a fund can come back later as another run;
+    // each run is its own row group, and its key includes its position so keys stay unique.
+    private static List<LineRun> Runs(List<BudgetLineDto> lines)
+    {
+        var runs = new List<LineRun>();
+        foreach (BudgetLineDto line in lines)
+        {
+            string title = $"{line.FundCode} {line.FundName} · {(line.DepartmentCode is null ? (line.AccountType.IsResource() ? "Revenues and transfers in" : "Fund level") : $"{line.DepartmentCode} {line.DepartmentName}")}";
+            if (runs.Count == 0 || runs[^1].Title != title)
+            {
+                runs.Add(new LineRun($"{runs.Count}:{title}", title, []));
+            }
+
+            runs[^1].Lines.Add(line);
+        }
+
+        return runs;
+    }
 
     [Parameter, EditorRequired]
     public BudgetWorkspaceDto Workspace { get; set; } = default!;

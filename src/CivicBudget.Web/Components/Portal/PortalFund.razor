@@ -18,9 +18,9 @@ else if (fund is not null)
     }
 
     <div class="pt-kpis">
-        <PortalKpi Label="Revenues" Value="@MoneyShort.Format(fund.Revenues + fund.TransfersIn)" Text="@(fund.TransfersIn > 0 ? $"Including {Display.Money(fund.TransfersIn)} transferred in from other funds." : "Money this fund takes in during the year.")" />
-        <PortalKpi Label="Expenditures" Value="@MoneyShort.Format(fund.Appropriations)" Text="@(fund.TransfersOut > 0 ? $"Including {Display.Money(fund.TransfersOut)} transferred to other funds." : "What council authorized this fund to spend.")" />
-        <PortalKpi Label="Projected ending balance" Value="@MoneyShort.Format(fund.ProjectedEndingBalance)" Text="@($"Began the year with {Display.Money(fund.BeginningBalance)}; estimated resources {Display.Money(fund.EstimatedResources)}.")" />
+        <PortalKpi Label="Revenues" Amount="fund.Revenues + fund.TransfersIn" Text="@(fund.TransfersIn > 0 ? $"Including {Display.Money(fund.TransfersIn)} transferred in from other funds." : "Money this fund takes in during the year.")" />
+        <PortalKpi Label="Expenditures" Amount="fund.Appropriations" Text="@(fund.TransfersOut > 0 ? $"Including {Display.Money(fund.TransfersOut)} transferred to other funds." : "What council authorized this fund to spend.")" />
+        <PortalKpi Label="Projected ending balance" Amount="fund.ProjectedEndingBalance" Text="@($"Began the year with {Display.Money(fund.BeginningBalance)}; estimated resources {Display.Money(fund.EstimatedResources)}.")" />
     </div>
 
     @if (fund.ExpendituresByDepartment.Items.Count > 0)

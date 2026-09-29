@@ -1,5 +1,5 @@
-@* One money value. Read-only lines print it; editable lines render an input that looks like the
-   value until hovered or focused and saves on change. Typing is local: nothing crosses the circuit
+@* One money value. Read-only lines print it; editable lines render an input, outlined so it reads
+   as a field (the outline is what tells the two apart at a glance), that saves on change. Typing is local: nothing crosses the circuit
    until the field loses focus or Enter is pressed. While the save round-trip runs the value shows
    in "unsaved" blue (a convention from planning tools like Adaptive). A value that is not an amount
    is refused out loud: the field is marked invalid and a toast (an alert) says what to type. *@

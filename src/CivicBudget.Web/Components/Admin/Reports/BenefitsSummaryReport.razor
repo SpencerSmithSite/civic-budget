@@ -59,7 +59,7 @@ else
                     @foreach (InsuranceSummaryDto plan in report.Insurance)
                     {
                         <tbody>
-                            <tr class="cb-group"><td colspan="5">@plan.Plan <span class="small text-secondary">· employees pay @PositionCostCalculator.Number(plan.EmployeeSharePercent)%</span></td></tr>
+                            <tr class="cb-group"><th scope="rowgroup" colspan="5">@plan.Plan <span class="small text-secondary">· employees pay @PositionCostCalculator.Number(plan.EmployeeSharePercent)%</span></th></tr>
                             @foreach (BenefitTierDto tier in plan.Tiers.Where(t => t.Positions > 0))
                             {
                                 <tr>

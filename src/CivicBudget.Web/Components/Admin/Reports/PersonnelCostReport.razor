@@ -47,7 +47,7 @@ else
                     @foreach (PersonnelCostFundDto fund in report.Funds)
                     {
                         <tbody>
-                            <tr class="cb-group"><td colspan="7"><span class="cb-code">@fund.FundCode</span> @fund.FundName</td></tr>
+                            <tr class="cb-group"><th scope="rowgroup" colspan="7"><span class="cb-code">@fund.FundCode</span> @fund.FundName</th></tr>
                             @foreach (PersonnelCostRowDto d in fund.Departments)
                             {
                                 <tr>@Cells(d, strong: false)</tr>

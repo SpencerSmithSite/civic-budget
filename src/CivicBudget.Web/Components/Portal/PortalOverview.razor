@@ -27,9 +27,9 @@ else if (budget is not null && byFund is not null && revenue is not null)
     </div>
 
     <div class="pt-kpis">
-        <PortalKpi Label="Revenues" Value="@MoneyShort.Format(budget.TotalRevenues)" Text="Taxes, state funding, utility bills, fees, and interest the government expects to receive." Href="@($"{Root}/revenue")" LinkText="Where it comes from" />
-        <PortalKpi Label="Expenditures" Value="@MoneyShort.Format(budget.TotalExpenditures)" Text="What council authorized departments to spend, including debt payments." Href="@($"{Root}/spending")" LinkText="Where it goes" />
-        <PortalKpi Label="Projected ending balance" Value="@MoneyShort.Format(budget.ProjectedEndingBalance)" Text="@($"Money carried into {budget.FiscalYear + 1} across all funds, after this year's revenues and spending.")" Href="@($"{Root}/funds")" LinkText="Fund balances" />
+        <PortalKpi Label="Revenues" Amount="budget.TotalRevenues" Text="Taxes, state funding, utility bills, fees, and interest the government expects to receive." Href="@($"{Root}/revenue")" LinkText="Where it comes from" />
+        <PortalKpi Label="Expenditures" Amount="budget.TotalExpenditures" Text="What council authorized departments to spend, including debt payments." Href="@($"{Root}/spending")" LinkText="Where it goes" />
+        <PortalKpi Label="Projected ending balance" Amount="budget.ProjectedEndingBalance" Text="@($"Money carried into {budget.FiscalYear + 1} across all funds, after this year's revenues and spending.")" Href="@($"{Root}/funds")" LinkText="Fund balances" />
     </div>
 
     <PortalPanels Name="money" Label="Spending or revenue" FirstTitle="Where does the money go?" SecondTitle="Where does it come from?" SecondFirst="@(View == "revenue")">

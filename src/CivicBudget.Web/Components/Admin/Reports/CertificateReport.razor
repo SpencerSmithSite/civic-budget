@@ -84,7 +84,7 @@ else
                         @foreach (CertificateSectionDto section in report.Sections)
                         {
                             <tbody>
-                                <tr class="cb-group"><td colspan="@(report.RevenueColumnLabels.Count + 4)">@section.Label</td></tr>
+                                <tr class="cb-group"><th scope="rowgroup" colspan="@(report.RevenueColumnLabels.Count + 4)">@section.Label</th></tr>
                                 @foreach (CertificateRowDto f in section.Funds)
                                 {
                                     <tr>@IssuedCells(f, $"{f.FundCode} {f.FundName}", strong: false)</tr>
@@ -117,7 +117,7 @@ else
                         @foreach (CertificateSectionDto section in report.Sections)
                         {
                             <tbody>
-                                <tr class="cb-group"><td colspan="10">@section.Label</td></tr>
+                                <tr class="cb-group"><th scope="rowgroup" colspan="10">@section.Label</th></tr>
                                 @foreach (CertificateRowDto f in section.Funds)
                                 {
                                     <tr>@DetailedCells(f, $"{f.FundCode} {f.FundName}", strong: false)</tr>
