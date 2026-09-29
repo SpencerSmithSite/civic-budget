@@ -122,10 +122,9 @@ This is a self-evaluation. No third-party audit has been done.
 
 ## Known limitations and plans
 
-- **Not yet tested with a screen reader.** The accessibility tree of every key screen has been
+- **Not tested with a screen reader.** The accessibility tree of every key screen has been
   reviewed: it is what a screen reader reads from. A VoiceOver pass is written up in
-  [screen-reader-checklist.md](screen-reader-checklist.md), and this line will record its date and
-  results.
+  [screen-reader-checklist.md](screen-reader-checklist.md) but is not planned for now.
 - **Admin form fields** point to their errors through a focused summary rather than
   `aria-describedby` on each field.
 

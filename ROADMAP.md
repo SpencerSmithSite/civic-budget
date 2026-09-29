@@ -394,6 +394,24 @@ Decided with Spencer (2026-09-28): close the two partial passes in the conforman
 - [x] Editable amounts show a faint border at rest (WCAG 1.4.11), darker on hover and focus
 - [x] Worksheet fund and program group rows become row-group headers (WCAG 1.3.1); the reports too
 - [x] Accessibility tree review of the sign-in, worksheet, department request, dialogs, idle warning, and portal; VoiceOver checklist written (`docs/accessibility/screen-reader-checklist.md`)
-- [ ] VoiceOver pass itself, run by Spencer or with VoiceOver AppleScript control turned on
+- [x] ~~VoiceOver pass itself~~: skipped by decision (Spencer, 2026-09-28); the checklist stays for later
 - [x] Update the conformance report
+- [x] Reviewed and approved (2026-09-28, PR #63)
+
+## Phase 33: Multi-year plan  `phase-33-multi-year-plan`
+Decided with Spencer (2026-09-28): plan up to ten years (five by default) on both the revenue and expenditure side,
+calculated from each prior year like starting a budget; the plan lives on each budget version; departments edit their
+own lines' future years; fund balances roll forward year by year; the portal shows the plan once published.
+
+- [ ] Domain: plan length, per-year revenue and expenditure percentages, typed-over amounts, the pure projection and fund balance roll-forward
+- [ ] Plan page: assumptions, fund balances by year with flags, the lines by year (departments edit their own)
+- [ ] Carried into amendments and the next year's budget; locked once adopted
+- [ ] Multi-year plan report and XLSX export
+- [ ] Published with the budget; an Outlook page on the portal
 - [ ] Reviewed and approved
+
+## Later (parked by Spencer, 2026-09-28)
+- ERP partner kit: an integration guide, an OpenAPI description of the four exchanges, the file layouts, and a sample adapter
+- Printable budget book: the adopted budget as one PDF (cover, message, fund summaries, department narratives, the certificate)
+
+Not planned: a VoiceOver pass and Microsoft sign-in (Entra ID), both skipped by Spencer (2026-09-28).
