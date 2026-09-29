@@ -15,7 +15,8 @@ namespace CivicBudget.Application.Assistant;
 /// and returns a compact summary with the path of the page that shows the whole thing. The service
 /// decides what the user may see (a department user's department detail holds only their
 /// departments; a whole-fund report is null for them), so the tools add no permission logic of their
-/// own and cannot show more than the page would.
+/// own and cannot show more than the page would. Every optional parameter has a default value:
+/// without one the tool layer marks it required, and a model that leaves it out gets an error.
 /// </summary>
 public sealed class BudgetTools(
     ICivicBudgetDbContextFactory dbFactory,
@@ -37,45 +38,45 @@ public sealed class BudgetTools(
             "Every budget version of this government: id, fiscal year, label (Original or Amendment n), status (Draft, Proposed, Adopted), and resolution number.");
 
         yield return AIFunctionFactory.Create(
-            async ([Description(VersionHelp)] string? versionId, CancellationToken ct) => await FundSummaryAsync(turn, versionId, ct),
+            async ([Description(VersionHelp)] string? versionId = null, CancellationToken ct = default) => await FundSummaryAsync(turn, versionId, ct),
             "fund_summary",
             "Each fund's beginning balance, revenues, transfers, appropriations, projected ending balance, and whether appropriations stay within estimated resources (the Ohio limit).");
 
         yield return AIFunctionFactory.Create(
-            async ([Description(VersionHelp)] string? versionId, [Description("A fund number to list that fund's lines, e.g. 1000. Empty for totals by fund and department.")] string? fundCode, CancellationToken ct) =>
+            async ([Description(VersionHelp)] string? versionId = null, [Description("A fund number to list that fund's lines, e.g. 1000. Empty for totals by fund and department.")] string? fundCode = null, CancellationToken ct = default) =>
                 await BudgetVsActualAsync(turn, versionId, fundCode, ct),
             "budget_vs_actual",
             "Spending so far this year against the budget, from the ERP's books: by fund and department, spent, encumbered (committed, not yet spent), remaining, the share used, and where the same line stood last year at this point. For questions like 'how are we doing against budget'.");
 
         yield return AIFunctionFactory.Create(
-            async ([Description(VersionHelp)] string? versionId, CancellationToken ct) => await RevenueVsReceiptsAsync(turn, versionId, ct),
+            async ([Description(VersionHelp)] string? versionId = null, CancellationToken ct = default) => await RevenueVsReceiptsAsync(turn, versionId, ct),
             "revenue_vs_receipts",
             "Revenue received so far this year against each estimate, compared with how much had arrived by the same month last year, and which revenues are behind.");
 
         yield return AIFunctionFactory.Create(
-            async ([Description(VersionHelp)] string? versionId, CancellationToken ct) => await FundProjectionAsync(turn, versionId, ct),
+            async ([Description(VersionHelp)] string? versionId = null, CancellationToken ct = default) => await FundProjectionAsync(turn, versionId, ct),
             "fund_projection",
             "Where each fund is projected to end the year from this year's actuals so far, beside where the budget said it would end.");
 
         yield return AIFunctionFactory.Create(
-            async ([Description(VersionHelp)] string? versionId, [Description("A department's code (e.g. 110) for its lines and narrative. Empty for every department's totals.")] string? departmentCode, CancellationToken ct) =>
+            async ([Description(VersionHelp)] string? versionId = null, [Description("A department's code (e.g. 110) for its lines and narrative. Empty for every department's totals.")] string? departmentCode = null, CancellationToken ct = default) =>
                 await DepartmentsAsync(turn, versionId, departmentCode, ct),
             "department_budget",
             "Each department's spending budget against last year's budget and actual, with the change; or one department's lines and its narrative.");
 
         yield return AIFunctionFactory.Create(
-            async ([Description("Words or a number to find: an account name ('overtime'), code (5120), or full account number (1000-110-5120).")] string text, [Description(VersionHelp)] string? versionId, CancellationToken ct) =>
+            async ([Description("Words or a number to find: an account name ('overtime'), code (5120), or full account number (1000-110-5120).")] string text, [Description(VersionHelp)] string? versionId = null, CancellationToken ct = default) =>
                 await SearchLinesAsync(turn, text, versionId, ct),
             "search_budget_lines",
             "Finds budget lines by account name, code, number, fund, or department, with the amount, this year's budget, last year's actual, and the justification typed on the line.");
 
         yield return AIFunctionFactory.Create(
-            async ([Description(VersionHelp)] string? versionId, CancellationToken ct) => await PlanAsync(turn, versionId, ct),
+            async ([Description(VersionHelp)] string? versionId = null, CancellationToken ct = default) => await PlanAsync(turn, versionId, ct),
             "multi_year_plan",
             "The multi-year plan: each future year's assumed revenue and spending change, and each fund's projected ending balance year by year.");
 
         yield return AIFunctionFactory.Create(
-            async ([Description(VersionHelp)] string? versionId, CancellationToken ct) => await CertificateAsync(turn, versionId, ct),
+            async ([Description(VersionHelp)] string? versionId = null, CancellationToken ct = default) => await CertificateAsync(turn, versionId, ct),
             "certificate",
             "The certificate of estimated resources (or the amended certificate, for an amendment): each fund's total available against its appropriations, and the reconciliation checks.");
     }
@@ -125,7 +126,7 @@ public sealed class BudgetTools(
 
     private async Task<object> BudgetVsActualAsync(AssistantTurn turn, string? versionId, string? fundCode, CancellationToken ct)
     {
-        if (await ResolveAsync(turn, versionId, ct) is not { } v)
+        if (await ResolveAsync(turn, versionId, ct, forActuals: true) is not { } v)
         {
             return NoVersion;
         }
@@ -175,7 +176,7 @@ public sealed class BudgetTools(
 
     private async Task<object> RevenueVsReceiptsAsync(AssistantTurn turn, string? versionId, CancellationToken ct)
     {
-        if (await ResolveAsync(turn, versionId, ct) is not { } v)
+        if (await ResolveAsync(turn, versionId, ct, forActuals: true) is not { } v)
         {
             return NoVersion;
         }
@@ -198,7 +199,8 @@ public sealed class BudgetTools(
             asOf = report.Period.AsOf,
             total = Row(report.Total),
             funds = report.Funds.Select(f => new { fund = $"{f.FundCode} {f.FundName}", total = Row(f.Subtotal) }),
-            behindLastYearsPace = report.Funds.SelectMany(f => f.Lines).Where(l => l.IsBehind).Take(15).Select(Row),
+            // Named for exactly what it holds, so the model does not read an empty list as "nothing is behind at all".
+            linesMoreThanTenPointsBehindLastYear = report.Funds.SelectMany(f => f.Lines).Where(l => l.IsBehind).Take(15).Select(Row),
             page = $"/admin/reports/{v.Id}/revenue-vs-receipts",
         };
 
@@ -215,7 +217,7 @@ public sealed class BudgetTools(
 
     private async Task<object> FundProjectionAsync(AssistantTurn turn, string? versionId, CancellationToken ct)
     {
-        if (await ResolveAsync(turn, versionId, ct) is not { } v)
+        if (await ResolveAsync(turn, versionId, ct, forActuals: true) is not { } v)
         {
             return NoVersion;
         }
@@ -418,9 +420,11 @@ public sealed class BudgetTools(
 
     /// <summary>
     /// The version a tool is about: the one named, else the one on the user's page, else the current
-    /// fiscal year's latest adopted version, else the newest adopted, else the newest of all.
+    /// fiscal year's latest adopted version, else the newest adopted, else the newest of all. For the
+    /// actuals reports the page's version counts only if it is this year's: on next year's draft,
+    /// "how are we doing" is about the year under way, which is the only one with books.
     /// </summary>
-    private async Task<BudgetVersionSummaryDto?> ResolveAsync(AssistantTurn turn, string? versionId, CancellationToken ct)
+    private async Task<BudgetVersionSummaryDto?> ResolveAsync(AssistantTurn turn, string? versionId, CancellationToken ct, bool forActuals = false)
     {
         IReadOnlyList<BudgetVersionSummaryDto> versions = await entry.ListVersionsAsync(ct);
         if (versionId is { Length: > 0 })
@@ -428,12 +432,12 @@ public sealed class BudgetTools(
             return Guid.TryParse(versionId, out Guid id) ? versions.FirstOrDefault(v => v.Id == id) : null;
         }
 
-        if (turn.PageVersionId is { } onPage && versions.FirstOrDefault(v => v.Id == onPage) is { } shown)
+        int currentYear = await CurrentFiscalYearAsync(ct);
+        if (turn.PageVersionId is { } onPage && versions.FirstOrDefault(v => v.Id == onPage) is { } shown && (!forActuals || shown.Year == currentYear))
         {
             return shown;
         }
 
-        int currentYear = await CurrentFiscalYearAsync(ct);
         IEnumerable<BudgetVersionSummaryDto> adopted = versions.Where(v => v.Status == BudgetStatus.Adopted).OrderByDescending(v => v.Year).ThenByDescending(v => v.VersionNumber);
         return adopted.FirstOrDefault(v => v.Year == currentYear) ?? adopted.FirstOrDefault() ?? versions.OrderByDescending(v => v.Year).ThenByDescending(v => v.VersionNumber).FirstOrDefault();
     }

@@ -68,7 +68,7 @@ public static class AssistantModelRegistration
             _ => throw new InvalidOperationException($"Assistant:Provider must be {AssistantModelOptions.Anthropic} or {AssistantModelOptions.Ollama}, not '{options.Provider}'."),
         };
 
-        services.AddSingleton(sp => client.AsIChatClient(model, 1500)
+        services.AddSingleton(sp => client.AsIChatClient(model, 4000)
             .AsBuilder()
             .UseFunctionInvocation(sp.GetRequiredService<ILoggerFactory>(), invoker =>
             {

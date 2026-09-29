@@ -137,3 +137,24 @@ It reads the same `Assistant` settings as the app, from the web project's user-s
 `Assistant__ApiKey` and friends in the environment), so a key set once for the app runs the
 evaluation too. Without a key the set is skipped, so CI stays green; run it after changing the
 prompt, a tool, or the model.
+
+## 7. What a real model found
+
+The scripted tests passed from the start. The first session with a real model (GLM 5.3 Flash on
+Ollama Cloud) found three things they could not:
+
+| Found | Cause | Fix |
+|---|---|---|
+| "The department comparison isn't loading" | Nullable tool parameters without a default are marked *required* in the schema the model receives. The scripted model always sent every argument; the real one left optional ones out, and the call was refused. | Every optional parameter has a default, and `ToolSchemaTests` fails if a tool requires anything but what it cannot do without. I checked the test fails when a default is removed. |
+| "Let me verify the versions and try another angle..." inside the answer | The reply joined every message the model wrote, including its working notes between tool calls. | Only the last message is the answer. |
+| An empty answer to "What changed most in this budget?" | A model that thinks before answering spent the 1,500-token cap on thinking. | 4,000 tokens, and a warning in the log with the reason when a model gives no answer. |
+
+The same session also sharpened two smaller things:
+- **A field name.** The receipts tool's list of lagging revenues had a vague name, so the model said
+  "nothing is behind" when the list only held lines more than ten points behind. It is now named for
+  exactly that.
+- **Which budget "how are we doing" means.** On next year's draft, the actuals tools used the page's
+  budget, which has no books yet. They now go straight to the year under way.
+
+That is the case for the evaluation set: the rules that must hold are tested exactly, and a real
+model is the only test of whether the tools are usable.

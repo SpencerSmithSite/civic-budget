@@ -131,6 +131,24 @@ public sealed class AssistantServiceTests(SqlServerFixture fixture) : IAsyncLife
     }
 
     [Fact]
+    public async Task On_next_years_draft_how_the_year_is_going_is_about_the_year_under_way()
+    {
+        Guid draft;
+        await using (CivicBudgetDbContext db = _database.CreateContext(_mapleRidge))
+        {
+            draft = (await db.BudgetVersions.SingleAsync(v => v.Status == Domain.Budgets.BudgetStatus.Draft)).Id;
+        }
+
+        await using AsyncServiceScope scope = _database.CreateScopeAs(Roles.FinanceDirector, _mapleRidge);
+        var model = new ScriptedModel(("budget_vs_actual", new()), ("fund_summary", new()));
+
+        await Assistant(scope, model).AskAsync(Ask("How are we doing?", $"/admin/budgets/{draft}/book"));
+
+        Assert.Contains("FY2026 Amendment 1 (Adopted)", model.ToolResults[0], StringComparison.Ordinal); // the year with books
+        Assert.Contains("FY2027 Original (Draft)", model.ToolResults[1], StringComparison.Ordinal);      // the page's budget otherwise
+    }
+
+    [Fact]
     public async Task Every_question_is_in_the_security_log_with_the_tools_but_not_the_words()
     {
         await using AsyncServiceScope scope = _database.CreateScopeAs(Roles.FinanceDirector, _mapleRidge);

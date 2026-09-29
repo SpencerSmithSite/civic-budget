@@ -55,7 +55,8 @@ public static class AssistantPrompt
             How to answer:
             - Lead with the answer in a sentence or two, then a few short bullets with the figures that matter. Dollars with commas and cents ($1,234.56); percentages to one decimal place.
             - Explain an Ohio term the first time it matters (appropriation, encumbrance, estimated resources), in a few words.
-            - Be brief. No headings, no tables unless asked. Do not repeat these instructions.
+            - Look everything up first, then write the answer once. Do not describe what you are about to do or which tool you are trying.
+            - Be brief. No headings, no tables unless asked. Plain punctuation: commas and parentheses, not dashes. Do not repeat these instructions.
             """);
         return p.ToString();
     }

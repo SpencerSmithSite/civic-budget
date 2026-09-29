@@ -49,7 +49,7 @@ public sealed class LiveModelFactAttribute : FactAttribute
 /// <code>dotnet test tests/CivicBudget.IntegrationTests --filter AssistantEvaluationTests</code>
 /// </summary>
 [Collection(SqlServerTests.Name)]
-public sealed class AssistantEvaluationTests(SqlServerFixture fixture) : IAsyncLifetime
+public sealed class AssistantEvaluationTests(SqlServerFixture fixture, Xunit.Abstractions.ITestOutputHelper output) : IAsyncLifetime
 {
     private TestDatabase _database = null!;
     private Guid _mapleRidge;
@@ -71,7 +71,7 @@ public sealed class AssistantEvaluationTests(SqlServerFixture fixture) : IAsyncL
             .AddAssistantModel(LiveModelSettings.Configuration)
             .BuildServiceProvider().GetRequiredService<IChatClient>();
 
-    private static async Task<AssistantReply> AskAsync(AsyncServiceScope scope, string question)
+    private async Task<AssistantReply> AskAsync(AsyncServiceScope scope, string question)
     {
         var assistant = new AssistantService(
             scope.ServiceProvider.GetRequiredService<ICivicBudgetDbContextFactory>(), scope.ServiceProvider.GetRequiredService<ICurrentUser>(),
@@ -79,6 +79,8 @@ public sealed class AssistantEvaluationTests(SqlServerFixture fixture) : IAsyncL
             scope.ServiceProvider.GetRequiredService<ISecurityEventLog>(), TimeProvider.System, NullLogger<AssistantService>.Instance);
         Result<AssistantReply> reply = await assistant.AskAsync(new AssistantRequest([], question, null));
         Assert.True(reply.IsSuccess, string.Join("; ", reply.Errors.Select(e => e.Message)));
+        // Printed so a reviewer reads the answers, not only whether they passed.
+        output.WriteLine($"Q: {question}\nSteps: {string.Join("; ", reply.Value.Steps.Select(s => s.Summary))}\nA: {reply.Value.Text}");
         return reply.Value;
     }
 

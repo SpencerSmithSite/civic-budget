@@ -106,7 +106,8 @@ public sealed partial class AssistantService(
         var options = new ChatOptions
         {
             Tools = [.. toolProviders.SelectMany(p => p.Tools(turn))],
-            MaxOutputTokens = 1500,
+            // Room for a model that thinks before it answers; the answer itself is short by instruction.
+            MaxOutputTokens = 4000,
         };
 
         ChatResponse response;
@@ -125,8 +126,17 @@ public sealed partial class AssistantService(
         await securityLog.RecordAsync(SecurityEventKind.AssistantUsed, currentUser.GovernmentId, currentUser.UserId, currentUser.DisplayName,
             tools.Length == 0 ? "Answered without looking anything up" : $"Looked at: {string.Join(", ", tools)}", ct);
 
+        // Only the last message is the answer; text the model wrote between tool calls ("let me check
+        // another report") is working, not something to show.
+        string? answer = response.Messages.LastOrDefault(m => m.Role == ChatRole.Assistant && !string.IsNullOrWhiteSpace(m.Text))?.Text;
+        if (string.IsNullOrWhiteSpace(answer))
+        {
+            LogNoAnswer(logger, response.FinishReason?.Value ?? "none", response.Messages.Count,
+                string.Join(",", response.Messages.SelectMany(m => m.Contents).Select(c => c.GetType().Name).Distinct()));
+        }
+
         return Result.Success(new AssistantReply(
-            string.IsNullOrWhiteSpace(response.Text) ? "I could not put an answer together. Try asking another way." : response.Text.Trim(),
+            string.IsNullOrWhiteSpace(answer) ? "I could not put an answer together. Try asking another way." : answer.Trim(),
             turn.Steps, turn.NavigateTo));
     }
 
@@ -169,6 +179,9 @@ public sealed partial class AssistantService(
         return new AssistantSituation(government.Name, government.FiscalYearStartMonth, OhioTime.DateOf(clock.GetUtcNow()),
             currentUser.DisplayName ?? "the user", [.. currentUser.Roles.Select(Roles.DisplayName)], departments, currentUser.IsDepartmentUser(), currentPath);
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The assistant's model gave no answer (finish reason {Reason}, {Messages} messages, contents {Contents})")]
+    private static partial void LogNoAnswer(ILogger logger, string reason, int messages, string contents);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The assistant's model call failed")]
     private static partial void LogFailure(ILogger logger, Exception ex);

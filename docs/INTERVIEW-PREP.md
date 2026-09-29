@@ -1725,3 +1725,11 @@ logged) is tested exactly with a scripted model. What the real model says is che
 set that asserts what matters, such as the right figure or the link, not the wording, and runs when a
 key is present.
 **Look at:** `AssistantServiceTests.ScriptedModel`, `LiveModelFactAttribute`.
+
+### Q: What did testing against a real model find that your tests didn't?
+**A:** Three things. Nullable tool parameters without defaults are marked required in the schema the
+model gets, so a model that leaves one out is refused; my scripted model always sent every argument.
+Joining all of the model's messages leaked its working notes into the answer. And a thinking model
+spent a small output cap before answering. Each is fixed, and the first now has a test that reads each
+tool's schema and fails on an unexpected required parameter, which I checked by breaking it.
+**Look at:** `ToolSchemaTests`, `AssistantService.AskAsync`, walkthrough 35 section 7.
