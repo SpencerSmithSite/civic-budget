@@ -1644,3 +1644,42 @@ required fields and nulls where none are allowed are refused (`RespectRequiredCo
 `RespectNullableAnnotations`). Extra fields are ignored so an ERP can grow its answers without
 breaking CivicBudget.
 **Look at:** `ErpApiContract.Json`.
+
+## Phase 35: The printable budget book
+
+### Q: How do you make sure the book and the screens never disagree?
+**A:** The book computes nothing. `BudgetBookService` asks the same services the report pages use
+(fund summary, categories, department detail, certificate, plan, personnel cost, the workspace
+lines), and a pure builder only arranges them into pages. If a figure is wrong in the book, it is
+wrong on a screen too, and there is one place to fix it. Each service's own permission check comes
+along, which is why a department user gets no book.
+**Look at:** `BudgetBookService.SourcesAsync`, `BudgetBookBuilder`.
+
+### Q: Why store the published PDF instead of rendering it on demand?
+**A:** A resident should download the book council adopted. If the portal rendered on each
+request, editing the message or changing the book's layout after publishing would quietly change
+the published document. Publishing prints it once and stores it beside the snapshot, in its own
+table so the portal's pages never load a PDF. The portal's output cache keeps it with the pages and
+drops it on the next publish.
+**Look at:** `PublishingService.PublishAsync`, `PublishedBudgetBook`, `SnapshotQueryService.GetBookAsync`.
+
+### Q: How do the demo's published budgets get books if they were never published through the app?
+**A:** The seed writes snapshots straight to the database. After seeding, a backfill prints a book
+for every published budget without one. It lists the governments (which are not tenant-owned),
+then for each one opens a scope that acts for that government, so every query still goes through
+the tenant filter; no `IgnoreQueryFilters`. The test template seeds through the same path, so tests
+see what the app sees.
+**Look at:** `PublishedBookBackfill`, `DatabaseInitializer.SeedAsync`.
+
+### Q: How does the contents page know the page numbers?
+**A:** Each heading adds a bookmark, and the contents page, written last but placed second, uses
+page reference fields that MigraDoc resolves when it lays out the document. Headings also set an
+outline level, so the PDF has a clickable outline. The certificate's landscape pages go in the
+middle of the portrait book because MigraDoc sets up each section's page separately.
+**Look at:** `BudgetBookPdfRenderer.Heading`, `Contents`, `CertificatePdfRenderer.AddPages`.
+
+### Q: Is the PDF accessible?
+**A:** Partly. It has a title, a reading order, and an outline, but PDFsharp cannot tag headings and
+tables for screen readers. I said so in the conformance report rather than claim it, and the book
+itself points readers to the portal, which holds the same figures in accessible HTML.
+**Look at:** `docs/accessibility/ACR.md`, the note in `BudgetBookPdfRenderer.Contents`.

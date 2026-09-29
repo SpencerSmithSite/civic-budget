@@ -412,6 +412,7 @@ resume. The app therefore starts listening **before** the database is ready:
 | Output caching | `PortalOutputCachePolicy` as the base policy: `GET /transparency/**` only, varied by path and the three query keys the pages read, tagged `portal:{slug}`. `PortalResponseMiddleware` rewrites Blazor's `no-store` to a public max-age and drops the antiforgery cookie on portal pages (ADR-0021) |
 | Time | `TimeProvider` everywhere, so tests control "now"; screens show Eastern time, the zone every Ohio government is in |
 | Excel | ClosedXML on the server; no Office, no COM |
+| PDF | MigraDoc and PDFsharp with an embedded font: the certificate and the budget book; the published book is stored beside its snapshot (ADR-0036, ADR-0046) |
 | ERP connections | Per government, from configuration (`Erp:Connections:{id}`), validated at startup; one `HttpErpAdapter` for every connected ERP, the simulated ERP where demo data is seeded (ADR-0045) |
 | Uploads | Profile pictures and logos are resized by the browser, then checked on the server for a PNG, JPEG, or WebP signature and a size cap, and served with `nosniff` and a locked-down CSP |
 | Downloads | CSV cells that a spreadsheet would read as a formula get a leading apostrophe |

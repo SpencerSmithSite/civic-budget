@@ -421,9 +421,21 @@ the operator in configuration (user-secrets, Secrets Manager, Key Vault), never 
 - [x] Reference ERP: a small runnable server implementing the API on demo data; the adapter's tests run against it
 - [x] File layouts for the four import and export files, with sample files the tests read
 - [x] Integration guide for ERP vendors
+- [x] Reviewed and approved (2026-09-29, PR #65)
+
+## Phase 35: Printable budget book  `phase-35-budget-book`
+Decided with Spencer (2026-09-29): the budget message is typed in CivicBudget on each budget version; any version can be
+printed, and a budget council has not adopted is marked Proposed on the cover and every page; publishing keeps the book
+with the snapshot and the portal offers that copy; the outlook, personnel, line-item, and glossary sections are each
+optional, chosen when printing, with defaults the published book uses.
+
+- [x] Budget message on each version (written until adoption, carried into amendments and next year's budget)
+- [x] The book: cover, contents, message, summary, fund pages, departments, certificate, and the four optional sections
+- [x] Budget book page: message editor, section choices, download, and defaults for published books
+- [x] Kept with the published snapshot; a portal link on the overview and footer
 - [ ] Reviewed and approved
 
-## Later (parked by Spencer, 2026-09-28)
-- Printable budget book: the adopted budget as one PDF (cover, message, fund summaries, department narratives, the certificate)
+## Later
+Nothing parked; the ERP partner kit and the budget book were the last two items (2026-09-29).
 
 Not planned: a VoiceOver pass and Microsoft sign-in (Entra ID), both skipped by Spencer (2026-09-28).

@@ -6,6 +6,18 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 
 ## [Unreleased]
 
+## Phase 35: 2026-09-29 (printable budget book)
+### Added
+- **Budget book:** the whole budget as one PDF: cover, contents, the budget message, the budget at a glance, a page for each fund, the departments with their narratives, and the certificate of estimated resources.
+- **Optional sections,** chosen when printing: the multi-year outlook, personnel cost, every account line, and the glossary. The government's defaults decide the published book.
+- **Budget message** on each budget version (heading, text, signer), written until adoption and carried into amendments and next year's budget.
+- **Proposed marking:** a budget council has not adopted says "Proposed" on the cover and at the top of every page.
+- **Published with the budget:** publishing keeps the book with the snapshot, and the portal links to that copy from the overview and footer.
+- **Budget book page** (Tools, then Budget book, or its card on Reports).
+### Changed
+- The glossary's terms are one shared list for the portal and the book.
+- The seeded demo's published budgets get their books after seeding; the FY2026 and FY2027 budgets carry a fictional mayor's message.
+
 ## Phase 34: 2026-09-28 (ERP partner kit)
 ### Added
 - **ERP partner kit** in `docs/partners`: an integration guide for ERP vendors, the API as OpenAPI 3.1, the four file layouts, and a sample of every request, answer, and file.

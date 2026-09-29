@@ -441,6 +441,18 @@ actuals, and the payroll roster come in; the budget journal goes out.
   one without keeps the files alone.
 - **Reference ERP:** a small server implementing the API on demo data, for vendors and for tests.
 
+### 3.22 The budget book
+The whole budget as one PDF, printed from any version.
+- **Contents:** cover, contents, the budget message, the budget at a glance, a page per fund,
+  the departments with their narratives, and the certificate of estimated resources; optionally
+  the multi-year outlook, personnel cost, every account line, and the glossary.
+- **Message:** typed on the version by the fiscal authority (heading, text, signer), until adoption;
+  carried into amendments and next year's budget.
+- **Proposed:** a version council has not adopted is marked Proposed on the cover and every page.
+- **Who:** anyone who sees the whole budget; not department users.
+- **Published:** publishing keeps the book with the snapshot, with the government's default
+  sections, and the portal offers that copy.
+
 ## 4. Workflow
 
 ```
@@ -580,6 +592,7 @@ contain no rules of their own.
    Department Budget Detail, Revenue vs. Expenditure by Category.
 9. **Multi-year plan** (§3.20): the percentages, each fund's balance by year, and
    every line by year, with an XLSX export.
+10. **Budget book** (§3.22): the message, the sections, and the PDF.
 
 ### 7.2 Public transparency portal: `/transparency/{slug}/{year?}`
 - **Overview:** total revenues and expenditures, where the money comes from and
@@ -588,6 +601,7 @@ contain no rules of their own.
   stable URL at every level. Department pages carry the department's narrative.
 - **Charts:** by category, fund, and department, plus year over year across every
   published year. Every chart has a table twin and does not rely on color.
+- **Budget book:** the PDF printed when the budget was published, linked from the overview.
 - **Outlook:** the plan published with the budget, all funds by year with the
   assumed changes, and each fund's ending balance.
 - **Search** by department, account name, or full account number.
@@ -708,6 +722,7 @@ prove tenant isolation in the tests and in the demo.
 | §3.17 Employees from the ERP, personnel reports | 27 | ADR-0039; simulated payroll in the demo |
 | §3.18 Email, two-step sign-in, onboarding | 28 | ADR-0040; the demo keeps email in its outbox |
 | §3.19 Security, sessions, a government's data | 29 | ADR-0041; controls mapped in `docs/security` |
+| §3.22 The budget book | 35 | ADR-0046; frozen with the snapshot |
 | §3.21 Connecting an ERP | 34 | ADR-0045; a reference ERP in `samples/` |
 | §3.20 Multi-year plan | 33 | ADR-0044; nothing projected is stored except in the snapshot |
 | §4 Workflow, §5 Validation | 4 | Block or Warn at the transition |
