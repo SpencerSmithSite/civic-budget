@@ -14,7 +14,8 @@ src/
   CivicBudget.Domain          entities, value objects, budget rules, domain exceptions
   CivicBudget.Application     use cases (services), DTOs, validators, and the interfaces they need
   CivicBudget.Infrastructure  EF Core contexts, configurations, migrations, interceptors,
-                              Identity, Excel reading and writing, seed data, the simulated ERP
+                              Identity, Excel reading and writing, seed data, the simulated ERP,
+                              the HTTP adapter for any ERP implementing the published API
   CivicBudget.Web             Blazor Web App: admin (Interactive Server) and portal (static SSR),
                               account pages, file endpoints, startup, the composition root
 tests/
@@ -23,6 +24,8 @@ tests/
   CivicBudget.Web.Tests           components (bUnit), authorization policies, middleware, caching
   CivicBudget.IntegrationTests    services against a real SQL Server (Testcontainers)
   CivicBudget.Infra.Tests         assertions on the synthesized AWS CloudFormation
+samples/
+  CivicBudget.ReferenceErp        a small ERP implementing the published API (docs/partners), for vendors and tests
 infra/
   CivicBudget.Infra               AWS CDK app in C#
   azure/main.bicep                the live demo on Azure
@@ -409,6 +412,7 @@ resume. The app therefore starts listening **before** the database is ready:
 | Output caching | `PortalOutputCachePolicy` as the base policy: `GET /transparency/**` only, varied by path and the three query keys the pages read, tagged `portal:{slug}`. `PortalResponseMiddleware` rewrites Blazor's `no-store` to a public max-age and drops the antiforgery cookie on portal pages (ADR-0021) |
 | Time | `TimeProvider` everywhere, so tests control "now"; screens show Eastern time, the zone every Ohio government is in |
 | Excel | ClosedXML on the server; no Office, no COM |
+| ERP connections | Per government, from configuration (`Erp:Connections:{id}`), validated at startup; one `HttpErpAdapter` for every connected ERP, the simulated ERP where demo data is seeded (ADR-0045) |
 | Uploads | Profile pictures and logos are resized by the browser, then checked on the server for a PNG, JPEG, or WebP signature and a size cap, and served with `nosniff` and a locked-down CSP |
 | Downloads | CSV cells that a spreadsheet would read as a formula get a leading apostrophe |
 

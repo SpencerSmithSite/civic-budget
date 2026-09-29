@@ -15,6 +15,9 @@ public sealed class SimulatedErpEmployeesApi(TimeProvider clock) : IErpEmployees
 {
     public string Name => "ERP (simulated)";
 
+    // The demo simulates the ERP for every government it seeds.
+    public bool IsConnected(Guid governmentId) => true;
+
     public Task<Result<ErpEmployees>> FetchAsync(ErpEntity entity, CancellationToken ct = default)
     {
         IReadOnlyList<SeedEmployee>? payroll = entity.Slug switch

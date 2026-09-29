@@ -1,9 +1,7 @@
 using CivicBudget.Application;
-using CivicBudget.Application.Erp;
 using CivicBudget.Application.Notifications;
 using CivicBudget.Application.Publishing;
 using CivicBudget.Infrastructure;
-using CivicBudget.Infrastructure.Erp;
 using CivicBudget.Infrastructure.Persistence;
 using CivicBudget.Infrastructure.Seed;
 using CivicBudget.Web;
@@ -70,13 +68,16 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 builder.Services.Configure<SeedOptions>(builder.Configuration.GetSection(SeedOptions.SectionName));
 
-// The simulated ERP keeps only the demo governments' books and chart, so it is connected exactly where
-// the demo data is seeded. Elsewhere no ERP API is registered, and the actuals and send pages offer files alone.
-if (builder.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>($"{DatabaseOptions.SectionName}:{nameof(DatabaseOptions.SeedDemoData)}"))
+// ERP connections the operator configured (Erp:Connections) use the HTTP adapter, for the governments
+// they name. Without any, the simulated ERP stands in where the demo data is seeded, since it knows only
+// the demo governments. Elsewhere no ERP API is registered, and the sync and send pages offer files alone.
+if (CivicBudget.Infrastructure.DependencyInjection.HasErpConnections(builder.Configuration))
 {
-    builder.Services.AddSingleton<IErpActualsApi, SimulatedErpActualsApi>();
-    builder.Services.AddSingleton<IErpBudgetApi, SimulatedErpBudgetApi>();
-    builder.Services.AddSingleton<IErpEmployeesApi, SimulatedErpEmployeesApi>();
+    builder.Services.AddErpConnections(builder.Configuration);
+}
+else if (builder.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>($"{DatabaseOptions.SectionName}:{nameof(DatabaseOptions.SeedDemoData)}"))
+{
+    builder.Services.AddSimulatedErp();
 }
 
 // --- Authentication: Identity's cookie. ---------------------------------------------------------

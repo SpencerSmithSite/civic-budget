@@ -1,0 +1,20 @@
+{
+  "externalId": "0199a000-0000-7000-8000-0000000000b1",
+  "fiscalYear": 2027,
+  "description": "FY2027 Original, resolution 2026-50",
+  "date": "2027-01-01",
+  "lines": [
+    {
+      "account": "1000-4110",
+      "amount": 437081.0
+    },
+    {
+      "account": "1000-110-5110",
+      "amount": 578966.8
+    },
+    {
+      "account": "2011-620-5420",
+      "amount": 17057.0
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "posted": false,
+  "refused": [
+    {
+      "account": "1000-110-5990",
+      "reason": "Account is not set up in the ERP. Add it to the ERP's chart, then send again."
+    }
+  ],
+  "message": "The ERP posted nothing: 1 account is not set up."
+}

@@ -24,7 +24,10 @@ public sealed class ActualsSyncService(
     private const string NoApi = "No ERP connection is set up for this government. Upload an actuals export instead.";
 
     /// <summary>At most one connection is registered; with none, the page offers the file upload alone.</summary>
-    private readonly IErpActualsApi? api = apis.FirstOrDefault();
+    private readonly IErpActualsApi? adapter = apis.FirstOrDefault();
+
+    // One adapter serves every government, but only those with a configured connection may use it.
+    private IErpActualsApi? Api => adapter is not null && currentUser.GovernmentId is { } governmentId && adapter.IsConnected(governmentId) ? adapter : null;
 
     public async Task<ActualsStatusDto> StatusAsync(CancellationToken ct = default)
     {
@@ -34,10 +37,10 @@ public sealed class ActualsSyncService(
 
         // Only years that have begun can have books: the ERP has nothing for next year's budget yet.
         var today = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);
-        List<int> fetchable = api is null
+        List<int> fetchable = Api is null
             ? []
             : await db.FiscalYears.Where(fy => fy.StartDate <= today).OrderByDescending(fy => fy.Year).Select(fy => fy.Year).ToListAsync(ct);
-        return new ActualsStatusDto(api?.Name, fetchable, years);
+        return new ActualsStatusDto(Api?.Name, fetchable, years);
     }
 
     public async Task<Result<ActualsPreviewDto>> PreviewFileAsync(string fileName, Stream content, CancellationToken ct = default)
@@ -60,15 +63,15 @@ public sealed class ActualsSyncService(
             return Result.Failure<ActualsPreviewDto>(NotAllowed);
         }
 
-        if (api is null)
+        if (Api is null)
         {
             return Result.Failure<ActualsPreviewDto>(NoApi);
         }
 
         await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
         Government government = await GovernmentAsync(db, ct);
-        Result<ErpActuals> fetched = await api.FetchAsync(EntityFor(government), fiscalYear, ct);
-        return fetched.IsFailure ? Result.Failure<ActualsPreviewDto>(fetched.Errors) : await PreviewAsync(db, government, fetched.Value, api.Name, null, ct);
+        Result<ErpActuals> fetched = await Api.FetchAsync(EntityFor(government), fiscalYear, ct);
+        return fetched.IsFailure ? Result.Failure<ActualsPreviewDto>(fetched.Errors) : await PreviewAsync(db, government, fetched.Value, Api.Name, null, ct);
     }
 
     public async Task<Result<ActualsSyncDto>> CommitFileAsync(string fileName, Stream content, CancellationToken ct = default)
@@ -93,15 +96,15 @@ public sealed class ActualsSyncService(
             return Result.Failure<ActualsSyncDto>(NotAllowed);
         }
 
-        if (api is null)
+        if (Api is null)
         {
             return Result.Failure<ActualsSyncDto>(NoApi);
         }
 
         await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
         Government government = await GovernmentAsync(db, ct);
-        Result<ErpActuals> fetched = await api.FetchAsync(EntityFor(government), fiscalYear, ct);
-        return fetched.IsFailure ? Result.Failure<ActualsSyncDto>(fetched.Errors) : await CommitAsync(db, government, fetched.Value, api.Name, null, ct);
+        Result<ErpActuals> fetched = await Api.FetchAsync(EntityFor(government), fiscalYear, ct);
+        return fetched.IsFailure ? Result.Failure<ActualsSyncDto>(fetched.Errors) : await CommitAsync(db, government, fetched.Value, Api.Name, null, ct);
     }
 
     public async Task<IReadOnlyList<ActualsSyncDto>> HistoryAsync(CancellationToken ct = default)

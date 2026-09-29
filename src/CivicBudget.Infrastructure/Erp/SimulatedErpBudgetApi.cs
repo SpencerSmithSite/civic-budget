@@ -19,6 +19,9 @@ public sealed class SimulatedErpBudgetApi : IErpBudgetApi
 
     public string Name => "ERP (simulated)";
 
+    // The demo simulates the ERP for every government it seeds.
+    public bool IsConnected(Guid governmentId) => true;
+
     public Task<ErpJournalAnswer> PostBudgetJournalAsync(ErpEntity entity, ErpBudgetJournal journal, CancellationToken ct = default) =>
         Task.FromResult(_answers.GetOrAdd(journal.ExternalId, _ => Post(entity, journal)));
 

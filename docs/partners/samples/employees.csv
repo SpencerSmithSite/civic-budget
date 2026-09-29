@@ -1,0 +1,4 @@
+Employee ID,Name,Title,Department,Pay Type,Rate,Annual Hours,Hire Date,Grade,Step,Retirement,Pick Up,Funds,Benefits
+E1001,Morgan Hale,Chief of Police,110,Salary,88500,,2006-04-17,,,OP&F police,Yes,1000,"Medical (PPO): Family; Dental: Family; Life ($25,000): Single"
+E1014,Alex Rivera,Sergeant,110,Hourly,,,2011-08-08,SGT,3,OP&F police,No,1000,"Medical (PPO): Family; Dental: Family; Life ($25,000): Single"
+E3002,Jordan Pike,Service Worker,620,Hourly,24.50,2080,2019-05-06,,,OPERS,No,"1000 40%; 2011 60%",Medical (PPO): Single

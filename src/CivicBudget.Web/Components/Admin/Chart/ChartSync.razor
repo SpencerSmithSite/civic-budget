@@ -5,12 +5,12 @@
 @inject IChartSyncService Sync
 @inject ToastService Toasts
 
-@* Bring the chart of accounts in from the parent ERP: upload its export, see exactly what would
+@* Bring the chart of accounts in from the parent ERP: fetch it or upload its export, see exactly what would
    change, apply. Same two-step shape as the line import. Below it, the sync log. *@
 <PageTitle>Chart of accounts sync</PageTitle>
 
 <PageHeader Title="Sync the chart of accounts" Eyebrow="Setup" Crumbs="@([new Crumb("Setup"), new Crumb("Chart sync")])"
-            Tip="Upload the ERP's chart export. Codes new to CivicBudget are added, changed names or categories are updated, and codes the ERP no longer lists are deactivated so history keeps its names. Nothing is deleted.">
+            Tip="Fetch the chart from the ERP, or upload its chart export. Codes new to CivicBudget are added, changed names or categories are updated, and codes the ERP no longer lists are deactivated so history keeps its names. Nothing is deleted.">
     <TitleAddon>
         @if (status is not null)
         {
@@ -29,26 +29,40 @@
     </Actions>
 </PageHeader>
 
-<div class="card mb-4">
-    <div class="card-body cb-import-pick">
-        <div>
-            <label class="form-label fw-semibold" for="chartFile">ERP chart export</label>
-            <InputFile id="chartFile" class="form-control" accept=".csv,.xlsx" OnChange="OnFileChosenAsync" disabled="@busy" />
-            <div class="form-text">
-                One row per code. Columns: <code>Kind</code> (Fund, Department, Object), <code>Code</code>, <code>Name</code>, and for objects <code>Type</code> and <code>Category</code>; optional <code>Description</code> and <code>Active</code>.
+<div class="cb-sync-sources mb-4">
+    @if (status?.ApiName is not null)
+    {
+        <div class="card">
+            <div class="card-body">
+                <h2 class="h6 mb-1"><i class="bi bi-plug me-2" aria-hidden="true"></i>Fetch from @status.ApiName</h2>
+                <p class="small text-secondary mb-3">Asks the ERP for its current chart and shows what would change.</p>
+                <button type="button" class="btn btn-primary btn-sm" @onclick="FetchAsync" disabled="@busy">
+                    <i class="bi bi-cloud-download me-1" aria-hidden="true"></i>Fetch
+                </button>
             </div>
         </div>
-        @if (busy)
-        {
-            <div class="text-secondary small" role="status"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Comparing…</div>
-        }
+    }
+    <div class="card">
+        <div class="card-body cb-import-pick">
+            <div>
+                <label class="form-label fw-semibold" for="chartFile">ERP chart export</label>
+                <InputFile id="chartFile" class="form-control" accept=".csv,.xlsx" OnChange="OnFileChosenAsync" disabled="@busy" />
+                <div class="form-text">
+                    One row per code. Columns: <code>Kind</code> (Fund, Department, Object), <code>Code</code>, <code>Name</code>, and for objects <code>Type</code> and <code>Category</code>; optional <code>Description</code> and <code>Active</code>.
+                </div>
+            </div>
+            @if (busy)
+            {
+                <div class="text-secondary small" role="status"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Comparing…</div>
+            }
+        </div>
     </div>
 </div>
 
 @if (fileErrors is not null)
 {
     <div class="alert alert-danger" role="alert">
-        <div class="fw-semibold mb-1">The file could not be read as a chart export.</div>
+        <div class="fw-semibold mb-1">@(fetched ? "The ERP's chart could not be used." : "The file could not be read as a chart export.")</div>
         <ul class="mb-0">@foreach (string e in fileErrors) { <li>@e</li> }</ul>
     </div>
 }
@@ -104,7 +118,7 @@
 }
 else if (history.Count == 0)
 {
-    <div class="card"><EmptyState Icon="bi-cloud-download" Title="No syncs yet" Text="Upload the ERP's chart export above to bring the chart in." /></div>
+    <div class="card"><EmptyState Icon="bi-cloud-download" Title="No syncs yet" Text="Fetch or upload the ERP's chart above to bring it in." /></div>
 }
 else
 {
@@ -180,7 +194,7 @@ else
         {
             @if (LooksPartial)
             {
-                <div class="alert alert-warning"><i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i><b>This file lists far fewer codes than CivicBudget has.</b> A sync deactivates every code the ERP does not list (@preview.Count(ChartChangeKind.Deactivate) here). If this is a partial export, cancel and upload the full chart.</div>
+                <div class="alert alert-warning"><i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i><b>@(fetched ? "The ERP's chart" : "This file") lists far fewer codes than CivicBudget has.</b> A sync deactivates every code the ERP does not list (@preview.Count(ChartChangeKind.Deactivate) here). If this is a partial chart, cancel and bring in the full one.</div>
             }
             <p>Adds <b>@preview.Count(ChartChangeKind.Add)</b>, updates <b>@preview.Count(ChartChangeKind.Update)</b>, deactivates <b>@preview.Count(ChartChangeKind.Deactivate)</b>, and reactivates <b>@preview.Count(ChartChangeKind.Reactivate)</b> codes. From now on the chart is managed by the ERP: the Funds, Departments, and Chart of accounts screens become read-only until the next sync.</p>
             <p class="mb-0 text-secondary small">Deactivated codes keep their history; budget lines that use them stay as they are.</p>
@@ -198,6 +212,7 @@ else
     private byte[]? fileBytes;
     private string fileName = "";
     private bool busy;
+    private bool fetched;
     private bool onlyChanges = true;
     private bool detailsOpen;
     private ChartSyncDto? details;
@@ -217,10 +232,30 @@ else
         history = await Sync.HistoryAsync();
     }
 
+    private async Task FetchAsync()
+    {
+        fileErrors = null;
+        preview = null;
+        fileBytes = null;
+        fetched = true;
+        busy = true;
+        try
+        {
+            Result<ChartSyncPreviewDto> result = await Sync.PreviewFromErpAsync();
+            preview = result.IsSuccess ? result.Value : null;
+            fileErrors = result.IsSuccess ? null : result.Errors.Select(x => x.Message).ToList();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
     private async Task OnFileChosenAsync(InputFileChangeEventArgs e)
     {
         fileErrors = null;
         preview = null;
+        fetched = false;
         busy = true;
         try
         {
@@ -252,12 +287,14 @@ else
 
     private async Task<bool> CommitAsync()
     {
-        if (fileBytes is null)
+        if (fileBytes is null && !fetched)
         {
             return true;
         }
 
-        Result<ChartSyncDto> result = await Sync.CommitAsync(fileName, new MemoryStream(fileBytes));
+        Result<ChartSyncDto> result = fileBytes is not null
+            ? await Sync.CommitAsync(fileName, new MemoryStream(fileBytes))
+            : await Sync.CommitFromErpAsync();
         if (result.IsFailure)
         {
             Toasts.Danger(string.Join(" ", result.Errors.Select(x => x.Message)));
@@ -267,6 +304,7 @@ else
         Toasts.Success($"Chart synced: {result.Value.Added} added, {result.Value.Updated} updated, {result.Value.Deactivated} deactivated.");
         preview = null;
         fileBytes = null;
+        fetched = false;
         await LoadAsync();
         StateHasChanged(); // the confirm runs inside the dialog's event, so the page must ask for its own re-render
         return true;

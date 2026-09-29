@@ -1,9 +1,7 @@
 using System.Security.Claims;
 using CivicBudget.Application;
-using CivicBudget.Application.Erp;
 using CivicBudget.Application.Security;
 using CivicBudget.Infrastructure;
-using CivicBudget.Infrastructure.Erp;
 using CivicBudget.Infrastructure.Persistence;
 using CivicBudget.Infrastructure.Persistence.Interceptors;
 using CivicBudget.Infrastructure.Security;
@@ -144,9 +142,7 @@ public sealed class TestDatabase
         services.AddApplication();
         services.AddInfrastructure(connectionString);
         services.Configure<SeedOptions>(o => o.DemoPassword = DemoPassword);
-        services.AddSingleton<IErpActualsApi, SimulatedErpActualsApi>(); // as Program.cs does wherever the demo data is seeded
-        services.AddSingleton<IErpBudgetApi, SimulatedErpBudgetApi>();
-        services.AddSingleton<IErpEmployeesApi, SimulatedErpEmployeesApi>();
+        services.AddSimulatedErp(); // as Program.cs does wherever the demo data is seeded
         services.AddEmail(new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build()); // no mail server: the outbox keeps everything
         services.AddScoped<Application.Notifications.IAppLinks, TestAppLinks>();
         _provider = services.BuildServiceProvider();

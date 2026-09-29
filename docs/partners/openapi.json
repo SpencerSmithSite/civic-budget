@@ -1,0 +1,935 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "CivicBudget ERP API",
+    "version": "1.0.0",
+    "summary": "The four exchanges between CivicBudget and a government's ERP.",
+    "description": "An ERP that implements these four endpoints connects to CivicBudget by configuration alone: the operator gives CivicBudget the ERP's address and a key for each government, and nothing is built inside CivicBudget.\n\n- **Chart of accounts** (ERP to CivicBudget): the funds, departments or programs, and object codes a budget is written against.\n- **Actuals** (ERP to CivicBudget): one fiscal year of monthly activity, open encumbrances, and cash by fund.\n- **Employees** (ERP to CivicBudget): the payroll roster that prices personnel lines.\n- **Budget journal** (CivicBudget to ERP): an adopted budget or amendment as a journal of changes.\n\nCivicBudget calls the ERP; the ERP never calls CivicBudget. Every request is for one entity (one government) and carries that government's key as a Bearer token. Every exchange also has a file form (docs/partners/file-layouts.md) for ERPs without an API.\n\nCompatibility: CivicBudget ignores fields it does not know, so an ERP may add fields. New values in an enumeration are a new API version. Errors use the problem format (RFC 9457); CivicBudget shows the detail to the user.",
+    "contact": {
+      "name": "CivicBudget",
+      "email": "CivicBudget@spencersmith.site"
+    },
+    "license": {
+      "name": "Proprietary"
+    }
+  },
+  "servers": [
+    {
+      "url": "{baseUrl}/v1",
+      "description": "The ERP's address, as the operator configures it for each government (Erp:Connections:{government id}:BaseUrl).",
+      "variables": {
+        "baseUrl": {
+          "default": "https://erp.example.com/civicbudget"
+        }
+      }
+    }
+  ],
+  "security": [
+    {
+      "bearerKey": []
+    }
+  ],
+  "paths": {
+    "/entities/{entityId}/chart": {
+      "get": {
+        "operationId": "getChart",
+        "summary": "The chart of accounts",
+        "tags": [
+          "Chart of accounts"
+        ],
+        "description": "The whole chart, every time: CivicBudget compares it with its own, adds new codes, updates renamed ones, and deactivates codes the chart no longer lists (it never deletes). Send inactive codes with active set to false rather than leaving them out, so their history keeps its name.",
+        "parameters": [
+          {
+            "name": "entityId",
+            "in": "path",
+            "required": true,
+            "description": "The ERP's own id for the government. CivicBudget sends the id the operator configured for the connection, or the government's portal slug if none was set.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The chart.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Chart"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The key is missing or wrong. CivicBudget tells the user to have the operator check the connection.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The entity is unknown, or (for actuals) the year has no books. The problem's detail is shown to the Fiscal Officer, so write it for them.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entities/{entityId}/actuals/{fiscalYear}": {
+      "get": {
+        "operationId": "getActuals",
+        "summary": "A fiscal year's actuals",
+        "tags": [
+          "Actuals"
+        ],
+        "description": "The year's activity through the last closed month. CivicBudget replaces everything it holds for that year with the answer, so send the whole year each time, not just what changed.",
+        "parameters": [
+          {
+            "name": "entityId",
+            "in": "path",
+            "required": true,
+            "description": "The ERP's own id for the government. CivicBudget sends the id the operator configured for the connection, or the government's portal slug if none was set.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fiscalYear",
+            "in": "path",
+            "required": true,
+            "description": "The fiscal year by the year it ends in (FY2026 is 2026, including a July-to-June year that starts in 2025).",
+            "schema": {
+              "type": "integer",
+              "minimum": 2000,
+              "maximum": 2100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The year's books. fiscalYear must be the year asked for.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Actuals"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The key is missing or wrong. CivicBudget tells the user to have the operator check the connection.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The entity is unknown, or (for actuals) the year has no books. The problem's detail is shown to the Fiscal Officer, so write it for them.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entities/{entityId}/employees": {
+      "get": {
+        "operationId": "getEmployees",
+        "summary": "The payroll roster",
+        "tags": [
+          "Employees"
+        ],
+        "description": "Everyone currently employed, as of the latest payroll. Plans (retirement and insurance) are named the way the government names them in CivicBudget's personnel settings; departments and funds by their chart codes.",
+        "parameters": [
+          {
+            "name": "entityId",
+            "in": "path",
+            "required": true,
+            "description": "The ERP's own id for the government. CivicBudget sends the id the operator configured for the connection, or the government's portal slug if none was set.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The roster.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Employees"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The key is missing or wrong. CivicBudget tells the user to have the operator check the connection.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The entity is unknown, or (for actuals) the year has no books. The problem's detail is shown to the Fiscal Officer, so write it for them.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entities/{entityId}/budget-journals": {
+      "post": {
+        "operationId": "postBudgetJournal",
+        "summary": "Post a budget journal",
+        "tags": [
+          "Budget journal"
+        ],
+        "description": "Post the journal whole or not at all. Amounts are changes to the ERP's budget, not totals: an original budget arrives as every line's amount, an amendment as only what moved, and a decrease is negative.\n\nRetries: when CivicBudget gets no answer it does not know whether the journal posted, so it sends the same journal again with the same externalId. Answer a repeat with the first answer (the same journal number) and post nothing new.",
+        "parameters": [
+          {
+            "name": "entityId",
+            "in": "path",
+            "required": true,
+            "description": "The ERP's own id for the government. CivicBudget sends the id the operator configured for the connection, or the government's portal slug if none was set.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "The journal's externalId, repeated so the ERP can recognize a retry before reading the body.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BudgetJournal"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Posted, or a retry of a journal already answered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JournalResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Refused whole: nothing posted. List each account the ERP would not take with its reason; the Fiscal Officer sees them.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JournalResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The journal could not be read. Treated as a refusal: nothing posted.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The key is missing or wrong. CivicBudget tells the user to have the operator check the connection.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The entity is unknown, or (for actuals) the year has no books. The problem's detail is shown to the Fiscal Officer, so write it for them.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "5XX": {
+            "description": "CivicBudget treats a server error like no answer at all: the send stays open and is retried with the same externalId."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "A key the ERP issues for one government. The operator stores it in CivicBudget's secret store (never its database), and CivicBudget sends it only over HTTPS."
+      }
+    },
+    "schemas": {
+      "Chart": {
+        "type": "object",
+        "description": "A government's chart of accounts.",
+        "required": [
+          "funds",
+          "departments",
+          "objects"
+        ],
+        "properties": {
+          "funds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Fund"
+            }
+          },
+          "departments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Department"
+            },
+            "description": "Programs (Ohio's Uniform Accounting Network) or departments (county and city charts): the middle segment of an account number."
+          },
+          "objects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Object"
+            }
+          },
+          "numberFormat": {
+            "description": "How the ERP writes a full account number. Optional; when present CivicBudget adopts it.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NumberFormat"
+              }
+            ]
+          }
+        }
+      },
+      "NumberFormat": {
+        "type": "object",
+        "description": "A full account number is fund, department, and object codes, each of a fixed width, joined by one punctuation character: 1000-110-5110.",
+        "required": [
+          "fundWidth",
+          "departmentWidth",
+          "objectWidth",
+          "separator",
+          "departmentLabel"
+        ],
+        "properties": {
+          "fundWidth": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8
+          },
+          "departmentWidth": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8
+          },
+          "objectWidth": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8
+          },
+          "separator": {
+            "type": "string",
+            "description": "One punctuation character, such as - or .",
+            "minLength": 1,
+            "maxLength": 1
+          },
+          "departmentLabel": {
+            "type": "string",
+            "description": "What the government calls the middle segment: Program or Department.",
+            "maxLength": 20
+          }
+        }
+      },
+      "Fund": {
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "category",
+          "active"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "The fund number.",
+            "minLength": 1,
+            "maxLength": 20
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "category": {
+            "$ref": "#/components/schemas/FundCategory"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Plain words for the public portal.",
+            "maxLength": 1000
+          }
+        }
+      },
+      "Department": {
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "active"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "The middle segment.",
+            "minLength": 1,
+            "maxLength": 20
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 1000
+          }
+        }
+      },
+      "Object": {
+        "type": "object",
+        "description": "An object code: what money is received or spent for.",
+        "required": [
+          "code",
+          "name",
+          "type",
+          "category",
+          "active"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "The last segment.",
+            "minLength": 1,
+            "maxLength": 20
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "type": {
+            "$ref": "#/components/schemas/AccountType"
+          },
+          "category": {
+            "$ref": "#/components/schemas/ReportingCategory"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Actuals": {
+        "type": "object",
+        "description": "One fiscal year of the ERP's books.",
+        "required": [
+          "fiscalYear",
+          "throughPeriod",
+          "activity",
+          "encumbrances",
+          "cash"
+        ],
+        "properties": {
+          "fiscalYear": {
+            "type": "integer"
+          },
+          "throughPeriod": {
+            "type": "integer",
+            "description": "The last fiscal month the figures include. 12 means the year is closed.",
+            "minimum": 1,
+            "maximum": 12
+          },
+          "activity": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Activity"
+            }
+          },
+          "encumbrances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Encumbrance"
+            }
+          },
+          "cash": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Cash"
+            }
+          }
+        }
+      },
+      "Activity": {
+        "type": "object",
+        "description": "Receipts on a revenue account, or spending on an expenditure account, in one fiscal month.",
+        "required": [
+          "fundCode",
+          "objectCode",
+          "period",
+          "amount"
+        ],
+        "properties": {
+          "fundCode": {
+            "type": "string"
+          },
+          "objectCode": {
+            "type": "string"
+          },
+          "period": {
+            "type": "integer",
+            "description": "Fiscal month, 1 to 12 (July is 1 in a July-to-June year).",
+            "minimum": 1,
+            "maximum": 12
+          },
+          "amount": {
+            "type": "number",
+            "format": "decimal",
+            "description": "Dollars and cents. Send as a JSON number, never a string or with separators."
+          },
+          "departmentCode": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Absent for revenue kept by fund only."
+          }
+        }
+      },
+      "Encumbrance": {
+        "type": "object",
+        "description": "What is committed on an account and not yet spent (purchase orders).",
+        "required": [
+          "fundCode",
+          "objectCode",
+          "amount"
+        ],
+        "properties": {
+          "fundCode": {
+            "type": "string"
+          },
+          "objectCode": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number",
+            "format": "decimal",
+            "description": "Dollars and cents. Send as a JSON number, never a string or with separators."
+          },
+          "departmentCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "Cash": {
+        "type": "object",
+        "description": "A fund's cash balance as of the end of throughPeriod.",
+        "required": [
+          "fundCode",
+          "amount"
+        ],
+        "properties": {
+          "fundCode": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number",
+            "format": "decimal",
+            "description": "Dollars and cents. Send as a JSON number, never a string or with separators."
+          }
+        }
+      },
+      "Employees": {
+        "type": "object",
+        "required": [
+          "asOf",
+          "employees"
+        ],
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "description": "The payroll date the roster describes.",
+            "format": "date"
+          },
+          "employees": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Employee"
+            }
+          }
+        }
+      },
+      "Employee": {
+        "type": "object",
+        "description": "One person on the payroll. CivicBudget refreshes what the ERP owns (name, title, hire date, pay, retirement, insurance, funds) and keeps what the budget owns (raises, months budgeted, other pay).",
+        "required": [
+          "employeeId",
+          "name",
+          "title",
+          "departmentCode",
+          "basis",
+          "rate",
+          "funds",
+          "benefits"
+        ],
+        "properties": {
+          "employeeId": {
+            "type": "string",
+            "description": "The ERP's employee number. It must not change: it is how a position is found again next year.",
+            "maxLength": 40
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "departmentCode": {
+            "type": "string"
+          },
+          "basis": {
+            "$ref": "#/components/schemas/PayBasis"
+          },
+          "rate": {
+            "type": "number",
+            "format": "decimal",
+            "description": "Annual salary, or hourly rate for Hourly."
+          },
+          "funds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FundShare"
+            },
+            "description": "How pay is charged across funds. Percentages add up to 100."
+          },
+          "benefits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Benefit"
+            },
+            "description": "Insurance plans the employee is enrolled in."
+          },
+          "picksUpEmployeeShare": {
+            "type": "boolean",
+            "description": "The employer pays the employee's retirement share too (a pick-up). Defaults to false."
+          },
+          "annualHours": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Hours a year; absent means the government's full-time hours."
+          },
+          "hireDate": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "grade": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "With step, the employee's place on a pay scale."
+          },
+          "step": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "retirement": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The retirement system by the name the government's personnel settings use (for example OPERS, or OP&F police). Absent for none."
+          }
+        }
+      },
+      "FundShare": {
+        "type": "object",
+        "required": [
+          "fundCode",
+          "percent"
+        ],
+        "properties": {
+          "fundCode": {
+            "type": "string"
+          },
+          "percent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          }
+        }
+      },
+      "Benefit": {
+        "type": "object",
+        "required": [
+          "plan",
+          "tier"
+        ],
+        "properties": {
+          "plan": {
+            "type": "string",
+            "description": "The plan by the name the government's personnel settings use."
+          },
+          "tier": {
+            "$ref": "#/components/schemas/CoverageTier"
+          }
+        }
+      },
+      "BudgetJournal": {
+        "type": "object",
+        "description": "A budget journal: every line one full account number and a change, with one description and one posting date for the whole journal.",
+        "required": [
+          "externalId",
+          "fiscalYear",
+          "description",
+          "date",
+          "lines"
+        ],
+        "properties": {
+          "externalId": {
+            "type": "string",
+            "description": "CivicBudget's id for this send. A retry repeats it.",
+            "format": "uuid"
+          },
+          "fiscalYear": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string",
+            "description": "For example: FY2027 Original, resolution 2026-50.",
+            "maxLength": 100
+          },
+          "date": {
+            "type": "string",
+            "description": "The posting date.",
+            "format": "date"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JournalLine"
+            }
+          }
+        }
+      },
+      "JournalLine": {
+        "type": "object",
+        "required": [
+          "account",
+          "amount"
+        ],
+        "properties": {
+          "account": {
+            "type": "string",
+            "description": "The full account number in the government's format."
+          },
+          "amount": {
+            "type": "number",
+            "format": "decimal",
+            "description": "The change to the account's budget. Negative for a decrease."
+          }
+        }
+      },
+      "JournalResult": {
+        "type": "object",
+        "required": [
+          "posted"
+        ],
+        "properties": {
+          "posted": {
+            "type": "boolean"
+          },
+          "journalNumber": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The ERP's journal number. Required when posted."
+          },
+          "refused": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/RefusedAccount"
+            },
+            "description": "When refused: each account the ERP would not take."
+          },
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "When refused: one sentence for the Fiscal Officer."
+          }
+        }
+      },
+      "RefusedAccount": {
+        "type": "object",
+        "required": [
+          "account",
+          "reason"
+        ],
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "Problem": {
+        "type": "object",
+        "description": "The problem format (RFC 9457). CivicBudget shows detail, or else title.",
+        "properties": {
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "FundCategory": {
+        "type": "string",
+        "description": "The fund types of governmental accounting (GASB).",
+        "enum": [
+          "General",
+          "SpecialRevenue",
+          "DebtService",
+          "CapitalProjects",
+          "Permanent",
+          "Enterprise",
+          "InternalService",
+          "Fiduciary"
+        ]
+      },
+      "AccountType": {
+        "type": "string",
+        "description": "Revenue and TransferIn are resources; Expenditure and TransferOut are appropriations.",
+        "enum": [
+          "Revenue",
+          "Expenditure",
+          "TransferIn",
+          "TransferOut"
+        ]
+      },
+      "ReportingCategory": {
+        "type": "string",
+        "description": "The object's line on budget reports.",
+        "enum": [
+          "PersonalServices",
+          "FringeBenefits",
+          "ContractualServices",
+          "SuppliesAndMaterials",
+          "CapitalOutlay",
+          "DebtService",
+          "OtherExpenditure",
+          "Taxes",
+          "Intergovernmental",
+          "ChargesForServices",
+          "FinesAndForfeitures",
+          "LicensesAndPermits",
+          "InvestmentIncome",
+          "Miscellaneous",
+          "Transfers"
+        ]
+      },
+      "PayBasis": {
+        "type": "string",
+        "enum": [
+          "Salary",
+          "Hourly"
+        ]
+      },
+      "CoverageTier": {
+        "type": "string",
+        "enum": [
+          "EmployeeOnly",
+          "EmployeeSpouse",
+          "Family"
+        ]
+      }
+    }
+  }
+}

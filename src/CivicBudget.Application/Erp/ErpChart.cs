@@ -42,3 +42,18 @@ public interface IErpChartFileSource : IErpChartSource
     /// <summary>Reads CSV or XLSX; fails as a whole when the file is not a chart export.</summary>
     Common.Result<ErpChart> Read(string fileName, Stream content);
 }
+
+/// <summary>
+/// Asks the ERP for its chart directly. Registered only where a connection is configured; the demo
+/// registers a simulated ERP. When none is registered the page offers the file upload alone.
+/// </summary>
+public interface IErpChartApi : IErpChartSource
+{
+    /// <summary>
+    /// Whether this government has a connection. One adapter serves every government, and only the ones
+    /// the operator configured are connected; for the rest the page offers the file alone.
+    /// </summary>
+    bool IsConnected(Guid governmentId);
+
+    Task<Common.Result<ErpChart>> FetchAsync(ErpEntity entity, CancellationToken ct = default);
+}

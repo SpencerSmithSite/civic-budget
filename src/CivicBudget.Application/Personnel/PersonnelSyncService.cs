@@ -80,7 +80,10 @@ public sealed class PersonnelSyncService(
     private const string NotAllowed = "Only an Administrator or the Fiscal Officer can bring employees in from the ERP.";
     private const string NoApi = "No ERP connection is set up for this government. Upload an employee export instead.";
 
-    private readonly IErpEmployeesApi? api = apis.FirstOrDefault();
+    private readonly IErpEmployeesApi? adapter = apis.FirstOrDefault();
+
+    // One adapter serves every government, but only those with a configured connection may use it.
+    private IErpEmployeesApi? Api => adapter is not null && currentUser.GovernmentId is { } governmentId && adapter.IsConnected(governmentId) ? adapter : null;
 
     public async Task<PersonnelSyncStatusDto> StatusAsync(CancellationToken ct = default)
     {
@@ -91,7 +94,7 @@ public sealed class PersonnelSyncService(
                 .OrderByDescending(x => x.Year).ToListAsync(ct))
             .Select(x => new SyncableVersionDto(x.Id, x.Year, x.VersionNumber == 1 ? "Original" : $"Amendment {x.VersionNumber - 1}", setUp.Contains(x.Year)))
             .ToList();
-        return new PersonnelSyncStatusDto(api?.Name, versions, await HistoryAsync(db, ct));
+        return new PersonnelSyncStatusDto(Api?.Name, versions, await HistoryAsync(db, ct));
     }
 
     public async Task<Result<PersonnelSyncPreviewDto>> PreviewFromErpAsync(Guid versionId, CancellationToken ct = default) =>
@@ -120,14 +123,14 @@ public sealed class PersonnelSyncService(
 
     private async Task<Result<Source>> FetchAsync(Government government, CancellationToken ct)
     {
-        if (api is null)
+        if (Api is null)
         {
             return Result.Failure<Source>(NoApi);
         }
 
         var entity = new ErpEntity(government.Id, government.PublicSlug, government.Name, government.FiscalYearStartMonth, government.AccountNumberFormat);
-        Result<ErpEmployees> fetched = await api.FetchAsync(entity, ct);
-        return fetched.IsFailure ? Result.Failure<Source>(fetched.Errors) : Result.Success(new Source(fetched.Value, api.Name, null));
+        Result<ErpEmployees> fetched = await Api.FetchAsync(entity, ct);
+        return fetched.IsFailure ? Result.Failure<Source>(fetched.Errors) : Result.Success(new Source(fetched.Value, Api.Name, null));
     }
 
     private Result<Source> ReadFile(string fileName, Stream content)
