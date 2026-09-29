@@ -391,8 +391,9 @@ Decided with Spencer (2026-09-27): no official audit for now; our own scan near 
 ## Phase 32: Finish accessibility  `phase-32-accessibility-finish`
 Decided with Spencer (2026-09-28): close the two partial passes in the conformance report, then a screen-reader pass.
 
-- [ ] Editable amounts show a faint border at rest (WCAG 1.4.11), darker on hover and focus
-- [ ] Worksheet fund and program group rows become row-group headers (WCAG 1.3.1)
-- [ ] Screen-reader pass (VoiceOver) on the sign-in, worksheet, department request, dialogs, idle warning, and portal
-- [ ] Update the conformance report
+- [x] Editable amounts show a faint border at rest (WCAG 1.4.11), darker on hover and focus
+- [x] Worksheet fund and program group rows become row-group headers (WCAG 1.3.1); the reports too
+- [x] Accessibility tree review of the sign-in, worksheet, department request, dialogs, idle warning, and portal; VoiceOver checklist written (`docs/accessibility/screen-reader-checklist.md`)
+- [ ] VoiceOver pass itself, run by Spencer or with VoiceOver AppleScript control turned on
+- [x] Update the conformance report
 - [ ] Reviewed and approved

@@ -6,7 +6,7 @@ Technology Industry Council (ITI).
 | | |
 |---|---|
 | **Product** | CivicBudget: the admin application and the public transparency portal |
-| **Version** | `main` as of 2026-09-28 (after Phase 31) |
+| **Version** | `main` as of 2026-09-28 (after Phase 32) |
 | **Report date** | 2026-09-28 |
 | **Contact** | CivicBudget@spencersmith.site |
 | **Product description** | Budget preparation for Ohio local governments (admin application, Blazor Interactive Server) and a public transparency portal (static HTML, no JavaScript) |
@@ -30,6 +30,10 @@ This is a self-evaluation. No third-party audit has been done.
 - **Keyboard regression checks:** after the fixes, a script repeats the serious findings: the
   phone menu, dialogs opened from row menus, refused amounts, form errors, sidebar focus, and the
   portal panels.
+- **Accessibility tree review (Phase 32):** the names, roles, and states a screen reader receives on
+  the sign-in page, the worksheet, a dialog, a department request, the idle warning, and the
+  portal. It found unnamed tables, a hint not tied to its field, the "$" and "%" links read as
+  symbols, and abbreviated amounts ("$3.70M") with no spoken form. All are fixed.
 - **Not done:** testing with screen readers (VoiceOver, NVDA, JAWS), speech input, or real users
   with disabilities. "Announced" below means the text is in a live region or alert in the
   accessibility tree, not that a particular screen reader was heard saying it.
@@ -58,7 +62,7 @@ This is a self-evaluation. No third-party audit has been done.
 | 1.2.1 Audio-only and Video-only (Prerecorded) | Not applicable | The application has no audio or video. |
 | 1.2.2 Captions (Prerecorded) | Not applicable | No audio. |
 | 1.2.3 Audio Description or Media Alternative | Not applicable | No video. |
-| 1.3.1 Info and Relationships | Partially supports | Headings, landmarks, lists, labelled fields, fieldsets, `scope` on table headers, and row headers in the worksheet and reports. **Exception:** in the worksheet, the group rows that title a fund and program are data cells spanning the row, not headers. |
+| 1.3.1 Info and Relationships | Supports | Headings, landmarks, lists, labelled fields, fieldsets, named tables with `scope` on column headers, and row headers. Grouped tables (the worksheet's funds and programs, the reports' funds and departments) put each group in its own `tbody` headed by a `rowgroup` header cell. |
 | 1.3.2 Meaningful Sequence | Supports | DOM order matches reading order. |
 | 1.3.3 Sensory Characteristics | Supports | Instructions do not depend on shape, color, or position. |
 | 1.4.1 Use of Color | Supports | Status pills carry text; over-limit funds say "Over by"; changes carry a sign; the portal's selected toggle is also marked with `aria-current`. |
@@ -99,7 +103,7 @@ This is a self-evaluation. No third-party audit has been done.
 | 1.4.4 Resize Text | Supports | Readable at 200% text. |
 | 1.4.5 Images of Text | Supports | None, apart from the logo. |
 | 1.4.10 Reflow | Supports | No sideways scrolling at 320 CSS pixels, except inside wide data tables, which scroll on their own and can be reached by keyboard. |
-| 1.4.11 Non-text Contrast | Partially supports | Focus rings, field borders (3.3:1), and status marks meet 3:1. **Exception:** in the worksheet, editable amount cells show their border only on hover or focus, a deliberate design so the grid reads like a printed budget; the column header and the focus ring identify them. |
+| 1.4.11 Non-text Contrast | Supports | Focus rings, status marks, and the edge of every field meet 3:1, including the worksheet's editable amounts, which are always outlined (3.0:1 or better against a white or hovered row) so the numbers that can be changed are visible at a glance. |
 | 1.4.12 Text Spacing | Supports | |
 | 1.4.13 Content on Hover or Focus | Supports | Info tips can be hovered, stay while the pointer is on them, and close with Escape. |
 | 2.4.5 Multiple Ways | Supports | Navigation, breadcrumbs, and search on the portal. |
@@ -118,11 +122,10 @@ This is a self-evaluation. No third-party audit has been done.
 
 ## Known limitations and plans
 
-- **Not tested with screen readers.** The next step is a pass with VoiceOver and NVDA on the
-  worksheet, the dialogs, and the idle warning.
-- **1.3.1:** the worksheet's fund and program group rows should become header cells.
-- **1.4.11:** whether editable amount cells should show a faint border at rest is a design
-  decision still open.
+- **Not yet tested with a screen reader.** The accessibility tree of every key screen has been
+  reviewed: it is what a screen reader reads from. A VoiceOver pass is written up in
+  [screen-reader-checklist.md](screen-reader-checklist.md), and this line will record its date and
+  results.
 - **Admin form fields** point to their errors through a focused summary rather than
   `aria-describedby` on each field.
 

@@ -94,7 +94,7 @@ The public portal needs no login: [Village of Maple Ridge](https://civicbudget-a
 | Admin app | Blazor Interactive Server, QuickGrid, Bootstrap 5 themed with CSS variables |
 | Portal | Blazor static server rendering, output caching, no JavaScript |
 | Data | EF Core on SQL Server 2022, ASP.NET Core Identity, FluentValidation, ClosedXML for Excel |
-| Tests | xUnit, bUnit, Testcontainers (a real SQL Server in Docker), CDK assertions; 907 tests |
+| Tests | xUnit, bUnit, Testcontainers (a real SQL Server in Docker), CDK assertions; 912 tests |
 | Delivery | Docker, GitHub Actions with OIDC sign-in; live on Azure (Bicep), deploy-ready on AWS (CDK in C#) |
 
 The code is four projects with dependencies pointing inward: `Domain` (entities and budget
@@ -291,7 +291,8 @@ deployed; it shows the production-shaped design. See [infra/README.md](infra/REA
    [27 Email, two-step sign-in, onboarding](docs/walkthroughs/27-email-mfa-onboarding.md) ·
    [28 SOC 2 by design](docs/walkthroughs/28-soc2.md) ·
    [29 The product site](docs/walkthroughs/29-product-site.md) ·
-   [30 The accessibility self-scan](docs/walkthroughs/30-accessibility.md)
+   [30 The accessibility self-scan](docs/walkthroughs/30-accessibility.md) ·
+   [31 Finishing accessibility](docs/walkthroughs/31-accessibility-finish.md)
 4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 43 decision records, each
    with the alternatives I turned down, and the table of every package and why it is there.
 5. Then the code, starting at `src/CivicBudget.Domain/Budgets/BudgetVersion.cs`, the heart of it.
