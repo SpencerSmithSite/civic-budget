@@ -93,7 +93,9 @@ let version;
   // The seed is attributed to "system", which the overview's activity feed leaves out, so make
   // two ordinary edits first: the feed then shows what a working day looks like.
   await open(page, `/admin/budgets/${version}`);
-  for (const [label, amount] of [['5120 Overtime, 110', '42,500.00'], ['5420 Fuel, 620', '18,400.00']]) {
+  // Typed General Fund lines only: a line calculated from positions has no amount to type, and a
+  // Street fund line would move the over-limit figure the other screenshots show.
+  for (const [label, amount] of [['5420 Fuel, 110', '30,500.00'], ['5410 Supplies & Materials, 410', '3,100.00']]) {
     const input = page.getByLabel(`Proposed amount for ${label}`);
     await input.fill(amount);
     await input.press('Enter');
