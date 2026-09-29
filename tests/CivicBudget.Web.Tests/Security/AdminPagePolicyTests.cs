@@ -25,6 +25,7 @@ public class AdminPagePolicyTests
         ["/admin/budgets/{VersionId:guid}/departments/{DepartmentId:guid}"] = Policies.CanViewBudget,
         ["/admin/budgets/{VersionId:guid}/import"] = Policies.CanImport,
         ["/admin/budgets/{VersionId:guid}/personnel/{DepartmentId:guid}"] = Policies.CanViewBudget,
+        ["/admin/budgets/{VersionId:guid}/plan"] = Policies.CanViewBudget,
         ["/admin/reports"] = Policies.CanViewBudget,
         ["/admin/reports/{VersionId:guid}/fund-summary"] = Policies.CanViewBudget,
         ["/admin/reports/{VersionId:guid}/department-detail"] = Policies.CanViewBudget,

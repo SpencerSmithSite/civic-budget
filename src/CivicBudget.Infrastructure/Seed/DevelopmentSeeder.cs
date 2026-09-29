@@ -3,6 +3,7 @@ using CivicBudget.Application.Erp;
 using CivicBudget.Application.Security;
 using CivicBudget.Domain.Accounts;
 using CivicBudget.Domain.Budgets;
+using CivicBudget.Domain.Budgets.Planning;
 using CivicBudget.Domain.Departments;
 using CivicBudget.Domain.Erp;
 using CivicBudget.Domain.FiscalYears;
@@ -148,6 +149,7 @@ public sealed class DevelopmentSeeder(
         // FY2025: adopted December 2024.
         BudgetVersion fy2025 = chart.BuildVersion(2025, MapleRidgeSeed.Lines, MapleRidgeSeed.BeginningBalances,
             amount: l => l.Budget2025, prior: l => l.Actual2023, current: l => l.Budget2024);
+        fy2025.SetPlan(1, wholeDollars: true, []); // budgeted before the plan existed: the budget year only
         fy2025.Propose();
         fy2025.Adopt("2024-38", SeedUserId, new DateTimeOffset(2024, 12, 16, 19, 30, 0, TimeSpan.Zero));
 
@@ -160,6 +162,7 @@ public sealed class DevelopmentSeeder(
             fy2026.SetDepartmentNarrative(chart.Department(deptCode), narrative);
         }
 
+        fy2026.SetPlan(BudgetVersion.DefaultPlanYears, wholeDollars: true, MapleRidgeSeed.Plan2026);
         fy2026.Propose();
         fy2026.Adopt("2025-41", SeedUserId, new DateTimeOffset(2025, 12, 15, 19, 30, 0, TimeSpan.Zero));
 
@@ -185,6 +188,12 @@ public sealed class DevelopmentSeeder(
         {
             fy2027.SetDepartmentNarrative(chart.Department(deptCode), narrative);
         }
+
+        fy2027.SetPlan(BudgetVersion.DefaultPlanYears, wholeDollars: true, MapleRidgeSeed.Plan2027);
+        (string planFund, string planDept, string planAccount, int planYear, decimal planAmount) = MapleRidgeSeed.PlannedProject;
+        BudgetLine projectLine = fy2027.Lines.Single(l => l.FundId == chart.Fund(planFund).Id
+            && l.DepartmentId == chart.Department(planDept).Id && l.AccountId == chart.Account(planAccount).Id);
+        fy2027.SetPlannedAmount(projectLine.Id, planYear, planAmount);
 
         fy2027.SubmitDepartment(chart.Department("110"), SeedUserId, "Chief Morgan Hale", new DateTimeOffset(2026, 9, 14, 20, 15, 0, TimeSpan.Zero));
         fy2027.SubmitDepartment(chart.Department("310"), SeedUserId, "Sam Okafor (Service Director)", new DateTimeOffset(2026, 9, 10, 18, 40, 0, TimeSpan.Zero));
@@ -247,6 +256,7 @@ public sealed class DevelopmentSeeder(
         // FY2026 runs July 2025 through June 2026; adopted in March 2025 (townships adopt before the year starts).
         BudgetVersion fy2026 = chart.BuildVersion(2026, PineHollowSeed.Lines, PineHollowSeed.BeginningBalances,
             amount: l => l.Budget2026, prior: l => l.Actual2024, current: l => l.Budget2025);
+        fy2026.SetPlan(BudgetVersion.DefaultPlanYears, wholeDollars: true, [new(1, 2m, 2.5m), new(2, 2m, 2.5m), new(3, 2m, 2.5m), new(4, 2m, 2.5m)]);
         fy2026.Propose();
         fy2026.Adopt("2025-07", SeedUserId, new DateTimeOffset(2025, 3, 18, 23, 0, 0, TimeSpan.Zero));
 

@@ -20,6 +20,23 @@ public static class ReportTables
             l.AccountNumber, l.FundCode, l.DepartmentCode, l.AccountCode, l.AccountName, l.Amount, l.PriorYearActual, l.CurrentYearBudget, l.Justification,
         }).ToList());
 
+    /// <summary>
+    /// The multi-year plan: every line in every year, then each fund's projected ending balance by year
+    /// (none for a department user, who sees no fund totals). "Notes" lists the years typed by hand, or the years a fund overspends.
+    /// </summary>
+    public static ExportTable Plan(BudgetPlanDto plan) => new(
+        $"FY{plan.BudgetYear} {plan.VersionLabel} plan",
+        ["Row", "Account number", "Fund", "Department", "Account name", "Type", .. plan.FiscalYears.Select(y => $"FY{y}"), "Notes"],
+        plan.Lines.Select(l => new object?[] { "Line", l.AccountNumber, $"{l.FundCode} {l.FundName}", l.DepartmentCode is null ? null : $"{l.DepartmentCode} {l.DepartmentName}", l.AccountName, Labels.AccountType(l.AccountType) }
+                .Concat(l.Amounts.Cast<object?>())
+                .Append(plan.FiscalYears.Any(y => l.Typed[y - plan.BudgetYear]) ? "Typed: " + string.Join(", ", plan.FiscalYears.Where(y => l.Typed[y - plan.BudgetYear]).Select(y => $"FY{y}")) : null)
+                .ToArray())
+            .Concat(plan.Funds.Select(f => new object?[] { "Ending balance", null, $"{f.FundCode} {f.FundName}", null, "Projected ending balance", null }
+                .Concat(f.Years.Select(y => (object?)y.EndingBalance))
+                .Append(f.Years.Any(y => y.OverLimit) ? "Over limit: " + string.Join(", ", f.Years.Where(y => y.OverLimit).Select(y => $"FY{y.FiscalYear}")) : null)
+                .ToArray()))
+            .ToList());
+
     public static ExportTable FundSummary(FundSummaryReportDto report) => new(
         "Budget summary by fund",
         ["Fund", "Name", "Category", "Beginning balance", "Revenues", "Transfers in", "Estimated resources", "Expenditures", "Transfers out", "Appropriations", "Projected ending balance", "Within limit"],

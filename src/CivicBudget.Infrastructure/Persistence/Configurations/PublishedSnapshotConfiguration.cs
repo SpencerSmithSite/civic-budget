@@ -43,6 +43,8 @@ public static class PublishedSnapshotModel
             snapshot.Navigation(s => s.Funds).UsePropertyAccessMode(PropertyAccessMode.Field).HasField("_funds");
             snapshot.HasMany(s => s.Departments).WithOne().HasForeignKey(d => d.SnapshotId).OnDelete(DeleteBehavior.Cascade);
             snapshot.Navigation(s => s.Departments).UsePropertyAccessMode(PropertyAccessMode.Field).HasField("_departments");
+            snapshot.HasMany(s => s.PlanYears).WithOne().HasForeignKey(p => p.SnapshotId).OnDelete(DeleteBehavior.Cascade);
+            snapshot.Navigation(s => s.PlanYears).UsePropertyAccessMode(PropertyAccessMode.Field).HasField("_planYears");
         });
 
         builder.Entity<PublishedBudgetSnapshotLine>(line =>
@@ -74,6 +76,17 @@ public static class PublishedSnapshotModel
             department.Property(d => d.Narrative).HasMaxLength(Domain.Budgets.DepartmentRequest.NarrativeMaxLength);
             department.HasIndex(d => new { d.SnapshotId, d.Code }).IsUnique();
         });
+
+        builder.Entity<PublishedBudgetSnapshotPlanYear>(year =>
+        {
+            year.ToTable("PublishedBudgetSnapshotPlanYears");
+            year.Property(y => y.FundCode).HasMaxLength(20);
+            year.Property(y => y.FundName).HasMaxLength(150);
+            year.Property(y => y.RevenuePercent).HasPrecision(9, 4);
+            year.Property(y => y.ExpenditurePercent).HasPrecision(9, 4);
+            year.Ignore(y => y.EndingBalance);
+            year.HasIndex(y => new { y.SnapshotId, y.FundCode, y.FiscalYear }).IsUnique();
+        });
     }
 }
 
@@ -100,4 +113,10 @@ internal sealed class PublishedSnapshotDepartmentAdminConfiguration : IEntityTyp
 {
     public void Configure(EntityTypeBuilder<PublishedBudgetSnapshotDepartment> builder) =>
         builder.HasOne<Government>().WithMany().HasForeignKey(d => d.GovernmentId).OnDelete(DeleteBehavior.Restrict);
+}
+
+internal sealed class PublishedSnapshotPlanYearAdminConfiguration : IEntityTypeConfiguration<PublishedBudgetSnapshotPlanYear>
+{
+    public void Configure(EntityTypeBuilder<PublishedBudgetSnapshotPlanYear> builder) =>
+        builder.HasOne<Government>().WithMany().HasForeignKey(y => y.GovernmentId).OnDelete(DeleteBehavior.Restrict);
 }

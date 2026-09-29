@@ -37,6 +37,7 @@ else
                 <ul class="dropdown-menu dropdown-menu-end">
                     <li><a class="dropdown-item" href="admin/export/budgets/@VersionId/lines.xlsx"><i class="bi bi-file-earmark-spreadsheet me-2" aria-hidden="true"></i>Export lines (XLSX)</a></li>
                     <li><a class="dropdown-item" href="admin/reports/@VersionId/fund-summary"><i class="bi bi-file-earmark-bar-graph me-2" aria-hidden="true"></i>Reports for this version</a></li>
+                    <li><a class="dropdown-item" href="admin/budgets/@VersionId/plan"><i class="bi bi-calendar-range me-2" aria-hidden="true"></i>Multi-year plan</a></li>
                     <AuthorizeView Policy="@Policies.CanImport">
                         @if (workspace.IsEditable)
                         {

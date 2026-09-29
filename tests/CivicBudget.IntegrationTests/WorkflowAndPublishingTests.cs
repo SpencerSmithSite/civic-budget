@@ -182,6 +182,14 @@ public class WorkflowAndPublishingTests(SqlServerFixture fixture) : IAsyncLifeti
         Assert.Equal(16, started.Value.PositionsCarried);
         Assert.Equal(9, next.Lines.Single(l => l.AccountNumber == "1000-110-5110").PositionCount);
 
+        // The plan moves on a year: FY2027's typed FY2029 project is FY2028's second year, and the
+        // percentages shift down with the new last year repeating the old one.
+        BudgetPlanDto nextPlan = (await scope.ServiceProvider.GetRequiredService<IBudgetPlanService>().GetAsync(started.Value.VersionId))!;
+        Assert.Equal(BudgetVersion.DefaultPlanYears, nextPlan.Years);
+        Assert.Equal([3m, 3m, 3m, 3m], nextPlan.Rates.Select(r => r.ExpenditurePercent));
+        PlanLineDto project = nextPlan.Lines.Single(l => l.AccountNumber == "4901-620-5520");
+        Assert.Equal((250_000m, true), (project.Amounts[1], project.Typed[1]));
+
         // Once a year has a budget, it is not started again; a closed year is not started at all.
         Assert.Contains("already has a budget", (await workflow.StartBudgetAsync(new StartBudgetRequest(fy2028, false))).Errors.Single().Message, StringComparison.Ordinal);
         Guid fy2029 = (await years.CreateAsync(new CreateFiscalYearRequest(2029))).Value;
@@ -326,7 +334,7 @@ public class WorkflowAndPublishingTests(SqlServerFixture fixture) : IAsyncLifeti
         // The model maps the four snapshot tables and the government logo (a public image, ADR-0029) and
         // nothing else: no live lines, users, or governments to leak.
         List<string> tables = portal.Model.GetEntityTypes().Select(e => e.GetTableName()!).OrderBy(t => t).ToList();
-        Assert.Equal(["GovernmentLogos", "PublishedBudgetSnapshotDepartments", "PublishedBudgetSnapshotFunds", "PublishedBudgetSnapshotLines", "PublishedBudgetSnapshots"], tables);
+        Assert.Equal(["GovernmentLogos", "PublishedBudgetSnapshotDepartments", "PublishedBudgetSnapshotFunds", "PublishedBudgetSnapshotLines", "PublishedBudgetSnapshotPlanYears", "PublishedBudgetSnapshots"], tables);
     }
 
     [Fact]

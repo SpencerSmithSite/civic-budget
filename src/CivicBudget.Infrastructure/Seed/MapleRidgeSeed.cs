@@ -1,5 +1,6 @@
 using CivicBudget.Domain.Accounts;
 using CivicBudget.Domain.Budgets;
+using CivicBudget.Domain.Budgets.Planning;
 using CivicBudget.Domain.Departments;
 using CivicBudget.Domain.FiscalYears;
 using CivicBudget.Domain.Funds;
@@ -228,6 +229,20 @@ internal static class MapleRidgeSeed
         ("1000", "110", "5120", 53_000m),   // overtime: two officers on extended leave
         ("1000", "110", "5310", 71_000m),   // county dispatch contract increase
     ];
+
+    /// <summary>
+    /// The multi-year plans: revenues growing a little slower than costs, the usual pressure a finance
+    /// director plans around. FY2026's travels into its amendment and so to the portal.
+    /// </summary>
+    public static IReadOnlyList<PlanRate> Plan2026 { get; } =
+        [new(1, 2.5m, 3m), new(2, 2.5m, 3m), new(3, 2.5m, 3m), new(4, 2.5m, 3m)];
+
+    public static IReadOnlyList<PlanRate> Plan2027 { get; } =
+        [new(1, 2.5m, 3.5m), new(2, 2.5m, 3m), new(3, 2m, 3m), new(4, 2m, 3m)];
+
+    /// <summary>A planned project typed into FY2029: Maple Street reconstruction from the Capital Projects fund.</summary>
+    public static (string FundCode, string DepartmentCode, string AccountCode, int YearOffset, decimal Amount) PlannedProject { get; } =
+        ("4901", "620", "5520", 2, 250_000m);
 
     public const string Amendment1Reason =
         "Supplemental appropriation for police overtime coverage and the county dispatch contract increase effective July 1.";

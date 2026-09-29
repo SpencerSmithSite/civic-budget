@@ -41,5 +41,9 @@ internal sealed class BudgetVersionConfiguration : IEntityTypeConfiguration<Budg
 
         builder.HasMany(v => v.Positions).WithOne().HasForeignKey(p => p.BudgetVersionId).OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(v => v.Positions).UsePropertyAccessMode(PropertyAccessMode.Field).HasField("_positions");
+
+        builder.Property(v => v.PlanYears).HasDefaultValue(BudgetVersion.DefaultPlanYears);
+        builder.HasMany(v => v.PlanAssumptions).WithOne().HasForeignKey(a => a.BudgetVersionId).OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(v => v.PlanAssumptions).UsePropertyAccessMode(PropertyAccessMode.Field).HasField("_planAssumptions");
     }
 }

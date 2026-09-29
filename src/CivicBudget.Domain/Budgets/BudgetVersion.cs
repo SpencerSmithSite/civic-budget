@@ -1,4 +1,5 @@
 using CivicBudget.Domain.Accounts;
+using CivicBudget.Domain.Budgets.Planning;
 using CivicBudget.Domain.Common;
 using CivicBudget.Domain.Departments;
 using CivicBudget.Domain.Funds;
@@ -22,6 +23,12 @@ public sealed class BudgetVersion : Entity, ITenantOwned
     private readonly List<FundBeginningBalance> _beginningBalances = [];
     private readonly List<DepartmentRequest> _departmentRequests = [];
     private readonly List<Position> _positions = [];
+    private readonly List<PlanAssumption> _planAssumptions = [];
+
+    /// <summary>The longest multi-year plan: the budget year and nine more.</summary>
+    public const int MaxPlanYears = 10;
+
+    public const int DefaultPlanYears = 5;
 
     public Guid GovernmentId { get; private set; }
     public Guid FiscalYearId { get; private set; }
@@ -51,6 +58,17 @@ public sealed class BudgetVersion : Entity, ITenantOwned
 
     /// <summary>The budgeted positions of every department. Load them when a method needs them (amendments, personnel).</summary>
     public IReadOnlyCollection<Position> Positions => _positions.AsReadOnly();
+
+    /// <summary>
+    /// How many fiscal years the multi-year plan covers, counting the budget year itself: 5 is this year
+    /// and the four after it. Only the budget year is appropriated; the rest is a plan.
+    /// </summary>
+    public int PlanYears { get; private set; } = DefaultPlanYears;
+
+    /// <summary>Whether calculated future years round to whole dollars, as a budget started from last year's can.</summary>
+    public bool PlanInWholeDollars { get; private set; }
+
+    public IReadOnlyCollection<PlanAssumption> PlanAssumptions => _planAssumptions.AsReadOnly();
 
     public bool IsAmendment => VersionNumber > 1;
     public bool IsEditable => Status != BudgetStatus.Adopted;
@@ -104,11 +122,14 @@ public sealed class BudgetVersion : Entity, ITenantOwned
                 continue;
             }
 
-            version.AddLine(line.Fund, line.Department, line.Account,
+            BudgetLine added = version.AddLine(line.Fund, line.Department, line.Account,
                 amount: options.Apply(line.Amount, line.Account.Type),
                 priorYearActual: 0m,
                 currentYearBudget: line.Amount);
+            added.CopyPlannedFrom(line, shift: 1);
         }
+
+        version.CarryPlanForward(priorAdopted);
 
         foreach (FundBalanceSummary summary in FundBalanceCalculator.CalculateAll(priorAdopted))
         {
@@ -177,6 +198,14 @@ public sealed class BudgetVersion : Entity, ITenantOwned
         amendment._beginningBalances.AddRange(_beginningBalances.Select(b => b.CopyTo(amendment.Id)));
         amendment._departmentRequests.AddRange(_departmentRequests.Select(r => r.CopyTo(amendment.Id)));
         amendment._positions.AddRange(_positions.Select(p => p.CopyTo(amendment.Id)));
+        amendment.PlanYears = PlanYears;
+        amendment.PlanInWholeDollars = PlanInWholeDollars;
+        amendment._planAssumptions.AddRange(_planAssumptions.Select(a => a.CopyTo(amendment.Id, a.YearOffset)));
+        foreach ((BudgetLine source, BudgetLine copy) in _lines.Zip(amendment._lines))
+        {
+            copy.CopyPlannedFrom(source, shift: 0);
+        }
+
         return amendment;
     }
 
@@ -252,6 +281,80 @@ public sealed class BudgetVersion : Entity, ITenantOwned
         BudgetLine line = FindLine(lineId);
         EnsureTyped(line);
         _lines.Remove(line);
+    }
+
+    // ---- Multi-year plan -------------------------------------------------------------------
+
+    /// <summary>
+    /// Sets the plan's length, rounding, and each future year's percentages at once (the plan page saves
+    /// them together). A year left out carries the year before it forward unchanged; making the plan
+    /// shorter drops the typed amounts for the years it no longer covers.
+    /// </summary>
+    public void SetPlan(int years, bool wholeDollars, IReadOnlyCollection<PlanRate> rates)
+    {
+        Touch();
+        EnsureEditable();
+        Guard.Against(years < 1 || years > MaxPlanYears, $"A plan covers from 1 to {MaxPlanYears} years, counting the budget year.");
+        Guard.Against(rates.Any(r => r.YearOffset < 1 || r.YearOffset >= years), "Each percentage belongs to a future year inside the plan.");
+        Guard.Against(rates.GroupBy(r => r.YearOffset).Any(g => g.Count() > 1), "Each future year has one pair of percentages.");
+        Guard.Against(
+            rates.Any(r => OutOfRange(r.RevenuePercent) || OutOfRange(r.ExpenditurePercent)),
+            $"Each change must be between {BudgetSeedOptions.MinPercent}% and {BudgetSeedOptions.MaxPercent}%.");
+
+        PlanYears = years;
+        PlanInWholeDollars = wholeDollars;
+        _planAssumptions.RemoveAll(a => rates.All(r => r.YearOffset != a.YearOffset));
+        foreach (PlanRate rate in rates)
+        {
+            PlanAssumption? existing = _planAssumptions.FirstOrDefault(a => a.YearOffset == rate.YearOffset);
+            if (existing is null)
+            {
+                _planAssumptions.Add(new PlanAssumption(GovernmentId, Id, rate.YearOffset, rate.RevenuePercent, rate.ExpenditurePercent));
+            }
+            else
+            {
+                existing.Set(rate.RevenuePercent, rate.ExpenditurePercent);
+            }
+        }
+
+        foreach (BudgetLine line in _lines)
+        {
+            line.RemovePlannedFrom(years);
+        }
+
+        static bool OutOfRange(decimal percent) => percent < BudgetSeedOptions.MinPercent || percent > BudgetSeedOptions.MaxPercent;
+    }
+
+    /// <summary>
+    /// Types over one future year of one line, or with null goes back to the calculated amount. Any line
+    /// may be typed over, a calculated personnel line included: future years are a plan, not
+    /// appropriations, so they are not tied to the positions.
+    /// </summary>
+    public void SetPlannedAmount(Guid lineId, int yearOffset, decimal? amount)
+    {
+        Touch();
+        EnsureEditable();
+        Guard.Against(yearOffset < 1 || yearOffset >= PlanYears, "That year is not a future year of this plan.");
+        FindLine(lineId).SetPlanned(yearOffset, amount);
+    }
+
+    /// <summary>
+    /// Next year's budget keeps last year's plan one year on: the same length, its year two's percentages
+    /// become year one's, and the new last year repeats the old last year's percentages.
+    /// </summary>
+    private void CarryPlanForward(BudgetVersion prior)
+    {
+        PlanYears = prior.PlanYears;
+        PlanInWholeDollars = prior.PlanInWholeDollars;
+        foreach (PlanAssumption assumption in prior._planAssumptions.Where(a => a.YearOffset >= 2))
+        {
+            _planAssumptions.Add(assumption.CopyTo(Id, assumption.YearOffset - 1));
+        }
+
+        if (PlanYears >= 2 && prior._planAssumptions.FirstOrDefault(a => a.YearOffset == prior.PlanYears - 1) is { } last)
+        {
+            _planAssumptions.Add(last.CopyTo(Id, PlanYears - 1));
+        }
     }
 
     // ---- Personnel -------------------------------------------------------------------------

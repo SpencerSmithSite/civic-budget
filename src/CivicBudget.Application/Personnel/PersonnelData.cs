@@ -10,7 +10,11 @@ namespace CivicBudget.Application.Personnel;
 /// <summary>The loads every personnel operation shares, so the includes and the year's rules are written once.</summary>
 internal static class PersonnelData
 {
-    /// <summary>A budget version with its lines (and their fund, department, and account) and every position.</summary>
+    /// <summary>
+    /// A budget version with its lines (and their fund, department, and account), every position, and its
+    /// multi-year plan: amendments and next year's budget copy all of it, so a load that left the plan out
+    /// would silently drop it.
+    /// </summary>
     public static IQueryable<BudgetVersion> VersionsWithPositions(ICivicBudgetDbContext db) =>
         db.BudgetVersions
             .Include(v => v.Lines).ThenInclude(l => l.Fund)
@@ -20,7 +24,9 @@ internal static class PersonnelData
             .Include(v => v.DepartmentRequests)
             .Include(v => v.Positions).ThenInclude(p => p.Funds)
             .Include(v => v.Positions).ThenInclude(p => p.Coverages)
-            .Include(v => v.Positions).ThenInclude(p => p.ExtraPay);
+            .Include(v => v.Positions).ThenInclude(p => p.ExtraPay)
+            .Include(v => v.PlanAssumptions)
+            .Include(v => v.Lines).ThenInclude(l => l.PlannedAmounts);
 
     public static Task<PersonnelSettings?> SettingsAsync(ICivicBudgetDbContext db, int fiscalYear, CancellationToken ct) =>
         db.PersonnelSettings

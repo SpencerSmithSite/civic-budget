@@ -24,6 +24,9 @@ public interface ISnapshotQueryService
     /// <summary>Every line of the year, for the download and the full account table.</summary>
     Task<IReadOnlyList<PortalLineDto>> GetLinesAsync(string slug, int fiscalYear, CancellationToken ct = default);
 
+    /// <summary>The plan published with the year's budget, or null when it covers the budget year only.</summary>
+    Task<OutlookDto?> GetOutlookAsync(string slug, int fiscalYear, CancellationToken ct = default);
+
     Task<IReadOnlyList<YearTotalsDto>> YearOverYearAsync(string slug, CancellationToken ct = default);
 
     Task<IReadOnlyList<PortalSearchHitDto>> SearchAsync(string slug, int fiscalYear, string query, CancellationToken ct = default);

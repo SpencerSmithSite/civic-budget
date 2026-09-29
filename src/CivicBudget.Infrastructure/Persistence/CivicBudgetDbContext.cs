@@ -62,6 +62,8 @@ public sealed class CivicBudgetDbContext(DbContextOptions<CivicBudgetDbContext> 
     public DbSet<CertificateFundAdjustment> CertificateFundAdjustments => Set<CertificateFundAdjustment>();
     public DbSet<PersonnelSettings> PersonnelSettings => Set<PersonnelSettings>();
     public DbSet<Position> Positions => Set<Position>();
+    public DbSet<Domain.Budgets.Planning.PlanAssumption> PlanAssumptions => Set<Domain.Budgets.Planning.PlanAssumption>();
+    public DbSet<Domain.Budgets.Planning.PlannedAmount> PlannedAmounts => Set<Domain.Budgets.Planning.PlannedAmount>();
     public DbSet<PersonnelSync> PersonnelSyncs => Set<PersonnelSync>();
     public DbSet<Domain.Notifications.OutboxEmail> OutboxEmails => Set<Domain.Notifications.OutboxEmail>();
     public DbSet<Domain.Security.SecurityEvent> SecurityEvents => Set<Domain.Security.SecurityEvent>();

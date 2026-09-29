@@ -9,6 +9,10 @@ internal sealed class BudgetLineConfiguration : IEntityTypeConfiguration<BudgetL
 {
     public void Configure(EntityTypeBuilder<BudgetLine> builder)
     {
+        // A line's typed future years (the multi-year plan). Everything else in a plan is calculated.
+        builder.HasMany(l => l.PlannedAmounts).WithOne().HasForeignKey(p => p.BudgetLineId).OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(l => l.PlannedAmounts).UsePropertyAccessMode(PropertyAccessMode.Field).HasField("_plannedAmounts");
+
         builder.Property(l => l.Justification).HasMaxLength(BudgetLine.JustificationMaxLength);
         builder.Ignore(l => l.DollarChange);
         builder.Ignore(l => l.PercentChange);

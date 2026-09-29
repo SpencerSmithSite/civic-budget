@@ -44,6 +44,12 @@ internal static class AdminExportEndpoints
             return workspace is null ? Results.NotFound() : File(exporter, ReportTables.Lines(workspace), $"budget-lines-fy{workspace.Version.Year}-{Slug(workspace.Version.Label)}");
         });
 
+        group.MapGet("/budgets/{versionId:guid}/plan.xlsx", async (Guid versionId, [FromServices] IBudgetPlanService plans, [FromServices] ISpreadsheetExporter exporter, CancellationToken ct) =>
+        {
+            BudgetPlanDto? plan = await plans.GetAsync(versionId, ct);
+            return plan is null ? Results.NotFound() : File(exporter, ReportTables.Plan(plan), $"multi-year-plan-fy{plan.BudgetYear}-{Slug(plan.VersionLabel)}");
+        });
+
         group.MapGet("/reports/{versionId:guid}/fund-summary.xlsx", async (Guid versionId, [FromServices] IReportService reports, [FromServices] ISpreadsheetExporter exporter, CancellationToken ct) =>
         {
             FundSummaryReportDto? report = await reports.FundSummaryAsync(versionId, ct);

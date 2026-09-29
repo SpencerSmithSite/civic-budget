@@ -45,7 +45,7 @@ for (const [viewport, suffix] of [[{ width: 1366, height: 850 }, ''], [{ width: 
   const anon = [
     '/Account/Login', '/Account/ForgotPassword', '/Account/AccessDenied', '/Account/Lockout',
     '/transparency', '/transparency/maple-ridge-oh', portal, `${portal}/spending`, `${portal}/revenue`, `${portal}/funds`,
-    `${portal}/funds/1000`, `${portal}/funds/1000/departments/110`, `${portal}/search?q=police`, `${portal}/glossary`, `${portal}/years`,
+    `${portal}/funds/1000`, `${portal}/funds/1000/departments/110`, `${portal}/search?q=police`, `${portal}/glossary`, `${portal}/years`, `${portal}/outlook`,
   ];
   for (const r of anon) await visit(p, base + r, r + suffix);
   if (site) await visit(p, site, 'product site' + suffix);
@@ -69,7 +69,7 @@ for (const email of roles) {
   const routes = new Set(['/admin', ...navs.filter(h => h && !h.startsWith('http') && !h.startsWith('#') && !h.includes('transparency')).map(h => h.startsWith('/') ? h : '/' + h),
     '/admin/profile-picture', '/Account/Manage', '/Account/Manage/ChangePassword', '/Account/Manage/TwoFactor', '/Account/Manage/EnableAuthenticator']);
   for (const v of versions.slice(0, 2)) {
-    for (const s of ['', '/departments', '/import', '/send']) routes.add(`/admin/budgets/${v}${s}`);
+    for (const s of ['', '/departments', '/import', '/send', '/plan']) routes.add(`/admin/budgets/${v}${s}`);
     for (const s of ['fund-summary', 'department-detail', 'category', 'position-roster', 'personnel-cost', 'benefits-summary', 'certificate', 'fund-projection', 'trends', 'appropriation-measure', 'budget-vs-actual', 'revenue-vs-receipts']) routes.add(`/admin/reports/${v}/${s}`);
   }
   if (versions[0]) {

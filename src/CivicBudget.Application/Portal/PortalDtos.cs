@@ -99,3 +99,18 @@ public sealed record YearTotalsDto(int FiscalYear, string VersionLabel, decimal 
 
 /// <summary>A government's logo as the portal serves it.</summary>
 public sealed record PortalLogoDto(byte[] Data, string ContentType, DateTimeOffset UpdatedAtUtc);
+
+/// <summary>One fund in one year of the published plan. The first year is the adopted budget; later years are the plan, not appropriations.</summary>
+public sealed record OutlookFundYearDto(int FiscalYear, decimal BeginningBalance, decimal Revenues, decimal TransfersIn,
+    decimal Expenditures, decimal TransfersOut, decimal EndingBalance);
+
+public sealed record OutlookFundDto(string FundCode, string FundName, IReadOnlyList<OutlookFundYearDto> Years);
+
+/// <summary>A year of the published plan across every fund, with the change assumed from the year before (0 for the budget year).</summary>
+public sealed record OutlookYearDto(int FiscalYear, decimal Revenues, decimal Expenditures, decimal EndingBalance, decimal RevenuePercent, decimal ExpenditurePercent)
+{
+    public decimal Net => Revenues - Expenditures;
+}
+
+/// <summary>The multi-year outlook published with a budget: totals by year and each fund by year.</summary>
+public sealed record OutlookDto(int BudgetYear, IReadOnlyList<OutlookYearDto> Years, IReadOnlyList<OutlookFundDto> Funds);

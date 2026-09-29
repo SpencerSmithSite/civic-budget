@@ -1,5 +1,6 @@
 using CivicBudget.Domain.Accounts;
 using CivicBudget.Domain.Budgets;
+using CivicBudget.Domain.Budgets.Planning;
 using CivicBudget.Domain.Common;
 using CivicBudget.Domain.Departments;
 using CivicBudget.Domain.FiscalYears;
@@ -34,6 +35,7 @@ public sealed class PublishedBudgetSnapshot : Entity, ITenantOwned
     private readonly List<PublishedBudgetSnapshotLine> _lines = [];
     private readonly List<PublishedBudgetSnapshotFund> _funds = [];
     private readonly List<PublishedBudgetSnapshotDepartment> _departments = [];
+    private readonly List<PublishedBudgetSnapshotPlanYear> _planYears = [];
 
     public Guid GovernmentId { get; private set; }
 
@@ -62,6 +64,9 @@ public sealed class PublishedBudgetSnapshot : Entity, ITenantOwned
     public IReadOnlyCollection<PublishedBudgetSnapshotLine> Lines => _lines.AsReadOnly();
     public IReadOnlyCollection<PublishedBudgetSnapshotFund> Funds => _funds.AsReadOnly();
     public IReadOnlyCollection<PublishedBudgetSnapshotDepartment> Departments => _departments.AsReadOnly();
+
+    /// <summary>The multi-year plan as published: each fund in each year, the budget year first.</summary>
+    public IReadOnlyCollection<PublishedBudgetSnapshotPlanYear> PlanYears => _planYears.AsReadOnly();
 
     public bool IsActive => Status == SnapshotStatus.Active;
 
@@ -128,6 +133,19 @@ public sealed class PublishedBudgetSnapshot : Entity, ITenantOwned
             Fund fund = funds.FirstOrDefault(f => f.Id == fundId)
                 ?? throw new DomainException($"Fund {fundId} was not supplied for the snapshot.");
             snapshot._funds.Add(new PublishedBudgetSnapshotFund(snapshot.Id, government.Id, fund, version.GetBeginningBalance(fundId)));
+        }
+
+        // The multi-year plan, worked out now and frozen with the rest: one row per fund per year, with
+        // that year's percentages, so the portal can show the outlook without the live plan.
+        MultiYearProjection plan = MultiYearPlanCalculator.Project(version);
+        Dictionary<int, PlanAssumption> rates = version.PlanAssumptions.ToDictionary(a => a.YearOffset);
+        foreach (PlanFundYear fundYear in plan.Funds)
+        {
+            Fund fund = funds.First(f => f.Id == fundYear.FundId);
+            PlanAssumption? rate = rates.GetValueOrDefault(fundYear.YearOffset);
+            snapshot._planYears.Add(new PublishedBudgetSnapshotPlanYear(
+                snapshot.Id, government.Id, fund, fiscalYear.Year + fundYear.YearOffset, fundYear.Summary,
+                rate?.RevenuePercent ?? 0m, rate?.ExpenditurePercent ?? 0m));
         }
 
         // One department row per department with lines, carrying the narrative it wrote for this
@@ -286,5 +304,53 @@ public sealed class PublishedBudgetSnapshotDepartment : Entity, ITenantOwned
     {
         Code = null!;
         Name = null!;
+    }
+}
+
+/// <summary>
+/// One fund in one year of the published multi-year plan. The budget year is the adopted budget; the
+/// years after it are the plan council saw, with the percentages that produced them.
+/// </summary>
+public sealed class PublishedBudgetSnapshotPlanYear : Entity, ITenantOwned
+{
+    public Guid SnapshotId { get; private set; }
+    public Guid GovernmentId { get; private set; }
+    public string FundCode { get; private set; }
+    public string FundName { get; private set; }
+    public int FiscalYear { get; private set; }
+    public decimal BeginningBalance { get; private set; }
+    public decimal Revenues { get; private set; }
+    public decimal TransfersIn { get; private set; }
+    public decimal Expenditures { get; private set; }
+    public decimal TransfersOut { get; private set; }
+
+    /// <summary>The change from the year before (0 for the budget year itself).</summary>
+    public decimal RevenuePercent { get; private set; }
+
+    public decimal ExpenditurePercent { get; private set; }
+
+    public decimal EndingBalance => BeginningBalance + Revenues + TransfersIn - Expenditures - TransfersOut;
+
+    internal PublishedBudgetSnapshotPlanYear(Guid snapshotId, Guid governmentId, Fund fund, int fiscalYear, FundBalanceSummary summary,
+        decimal revenuePercent, decimal expenditurePercent)
+    {
+        SnapshotId = snapshotId;
+        GovernmentId = governmentId;
+        FundCode = fund.Code;
+        FundName = fund.Name;
+        FiscalYear = fiscalYear;
+        BeginningBalance = summary.BeginningBalance;
+        Revenues = summary.Revenues;
+        TransfersIn = summary.TransfersIn;
+        Expenditures = summary.Expenditures;
+        TransfersOut = summary.TransfersOut;
+        RevenuePercent = revenuePercent;
+        ExpenditurePercent = expenditurePercent;
+    }
+
+    private PublishedBudgetSnapshotPlanYear()
+    {
+        FundCode = null!;
+        FundName = null!;
     }
 }
