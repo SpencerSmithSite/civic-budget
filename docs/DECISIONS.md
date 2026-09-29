@@ -849,6 +849,9 @@ database for each posted question, because the answer comes from the snapshot an
 lives on the government's row. It does so only when an AI model is connected; without one,
 `PortalQuestionGate` refuses the post before anything reads the database, so the free demo, which
 has no model, keeps the rule. With a model, 10 questions per address per hour are allowed first.
+*Amended again 2026-09-29:* the demo now has a model (see ADR-0047's amendment), so a posted
+question can wake its database. Each address gets 10 an hour, so keeping it awake takes many
+addresses; if that ever happens, `scripts/azure-assistant.sh --off` restores the rule in a minute.
 
 **Alternatives.** A minimum of one replica (costs money, and the database would still pause);
 disabling SQL auto-pause (burns the free vCore-seconds in about four days); a keep-alive ping
@@ -1788,6 +1791,12 @@ navigation); Phase 37 adds actions; Phase 38 a separate bot on the public portal
 - The quality of answers depends on the model and the prompt; the evaluation set is the check after
   changing either.
 - The hosted demo shows the switch but not the assistant, until a key and a spending cap are chosen.
+- *Amended 2026-09-29:* the hosted demo is connected, so the AI features can be shown there: GLM 5.3
+  Flash on Ollama Cloud, the key set as a Container App secret by `scripts/azure-assistant.sh` (the
+  Bicep template takes it as an optional parameter, for the web app only, and `azure-setup.sh`
+  keeps it on a rerun). The demo password is public, so anyone can use the staff assistant as a
+  demo user; the portal takes 200 questions a month per government there instead of 1,000. The key
+  is a temporary one that I can switch off with `azure-assistant.sh --off`.
 
 ---
 

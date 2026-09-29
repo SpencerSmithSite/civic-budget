@@ -5,6 +5,8 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Changed
+- **The live demo has the AI features:** the assistant and the portal's question box run on GLM 5.3 Flash (Ollama Cloud). `scripts/azure-assistant.sh` stores the key as a Container App secret (`--off` removes it); the Bicep template takes it as an optional parameter for the web app only, `azure-setup.sh` keeps it on a rerun, and the demo's portal takes 200 questions a month per government.
 
 ## Phase 38: 2026-09-29 (questions from the public)
 ### Added

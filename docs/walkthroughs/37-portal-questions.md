@@ -77,6 +77,9 @@ A public box that calls a paid model needs a ceiling. There are four limits, in 
 1. **No model, no database.** `PortalQuestionGate` answers a posted question with a 404 when no
    model is connected, before any other middleware or the page can read the database. The free demo
    has no model, so its database cannot be woken by posting questions (ADR-0031's rule, amended).
+   (*Since the same day:* the demo is connected to GLM so the AI features can be shown, with a
+   ceiling of 200 questions a month; the 10-an-hour limit per address is what protects its
+   database now.)
 2. **Ten questions per address per hour**, in `RateLimits`, in memory. A refusal writes nothing,
    not even a security-log row, since a database write per refusal is what the limit prevents.
 3. **Five hundred characters per question**, checked before anything is counted.

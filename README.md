@@ -84,6 +84,12 @@ All the demo logins share one password, published here on purpose: **`Demo-Bpe1G
 | `admin@pinehollow.example` | Administrator of a second government | Pine Hollow Township only: proof that one government never sees another's data |
 
 The public portal needs no login: [Village of Maple Ridge](https://civicbudget-app.ashysmoke-cd0f52a4.centralus.azurecontainerapps.io/transparency/maple-ridge-oh).
+
+The AI features are switched on for Maple Ridge: the **Assistant** button in the top bar (ask
+"how are actuals compared to our budget so far this year?" or "raise utilities 5% in the FY2027
+draft", which shows a card to confirm), and **Ask a question** on the portal. They run on GLM 5.3
+Flash, a small fast model, so an answer takes a few seconds and can be wrong; the linked pages hold
+the real figures. The portal answers 200 questions a month per government.
 [docs/DEMO-SCRIPT.md](docs/DEMO-SCRIPT.md) is a ten-minute tour.
 
 ## How it is built

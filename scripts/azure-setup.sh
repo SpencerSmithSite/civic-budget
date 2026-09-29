@@ -14,7 +14,9 @@
 # anonymously.
 #
 # Optional environment: LOCATION (default eastus2), RESOURCE_GROUP (default civicbudget-rg),
-# DEMO_PASSWORD (default: generated and printed; put it in the README's demo logins section).
+# DEMO_PASSWORD (default: generated and printed; put it in the README's demo logins section),
+# ASSISTANT_API_KEY (default: the key the demo already has, if any; scripts/azure-assistant.sh
+# is the usual way to set it).
 set -euo pipefail
 
 LOCATION="${LOCATION:-eastus2}"
@@ -44,6 +46,10 @@ if az containerapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --
   SQL_PASSWORD="$(printf '%s' "$CONNECTION" | sed -n 's/.*Password=\([^;]*\).*/\1/p')"
   DEMO_PASSWORD="${DEMO_PASSWORD:-$(az containerapp secret show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --secret-name demo-password --query value -o tsv)}"
   IMAGE="$(az containerapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query 'properties.template.containers[0].image' -o tsv)"
+  # The assistant's key, if azure-assistant.sh set one: redeploying the template without it would switch the AI features off.
+  if az containerapp secret list --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query "[?name=='assistant-api-key']" -o tsv | grep -q .; then
+    ASSISTANT_API_KEY="${ASSISTANT_API_KEY:-$(az containerapp secret show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --secret-name assistant-api-key --query value -o tsv)}"
+  fi
 else
   # Passwords: the SQL admin password is kept only in the Container App's secrets; the demo password
   # is meant to be published. Both must satisfy Azure SQL's complexity rules, hence the shape below.
@@ -58,7 +64,7 @@ echo "Deploying infra/azure/main.bicep (five to ten minutes; the SQL server is t
 az deployment group create \
   --resource-group "$RESOURCE_GROUP" \
   --template-file infra/azure/main.bicep \
-  --parameters location="$LOCATION" containerImage="$IMAGE" sqlAdminPassword="$SQL_PASSWORD" demoPassword="$DEMO_PASSWORD" \
+  --parameters location="$LOCATION" containerImage="$IMAGE" sqlAdminPassword="$SQL_PASSWORD" demoPassword="$DEMO_PASSWORD" assistantApiKey="${ASSISTANT_API_KEY:-}" \
   --output none
 
 APP_URL="$(az deployment group show --resource-group "$RESOURCE_GROUP" --name main --query properties.outputs.appUrl.value -o tsv)"
