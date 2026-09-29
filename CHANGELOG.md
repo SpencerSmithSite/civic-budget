@@ -7,6 +7,9 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 ## [Unreleased]
 ### Changed
 - **The live demo has the AI features:** the assistant and the portal's question box run on GLM 5.3 Flash (Ollama Cloud). `scripts/azure-assistant.sh` stores the key as a Container App secret (`--off` removes it); the Bicep template takes it as an optional parameter for the web app only, `azure-setup.sh` keeps it on a rerun, and the demo's portal takes 200 questions a month per government.
+### Fixed
+- **A form opened before the nightly reset** (or before a deploy that changed the keys) no longer submits to a blank white page. Its antiforgery token was sealed with keys the reset deletes, and the app answered with an empty 400. `ExpiredFormMiddleware` now shows a short "This page expired" page with a link back to the same address; sign-in keeps its ReturnUrl when it stays on the site, and a post-only endpoint such as sign-out links home. The portal's question box, which has no token, is unaffected.
+- The waiting screen and the new page share one shell (`PlainPage`) instead of two copies of the header and styles.
 
 ## Phase 38: 2026-09-29 (questions from the public)
 ### Added

@@ -760,7 +760,7 @@ context maps.
 ---
 
 ## ADR-0030: The live demo runs on Azure's free tiers; the database is rebuilt from the seed every night
-**Date:** 2026-09-20 · **Status:** Accepted
+**Date:** 2026-09-20 · **Status:** Accepted, amended 2026-09-29
 
 **Context.** I wanted the app hosted for free so hiring managers can sign in and use it. It
 needs a persistent process (Blazor Server) and SQL Server. The SQL Server container wants 2 GB
@@ -792,6 +792,22 @@ the new credit-based free tier (six months, and the NAT gateway alone is about $
 (ADR-0021). Every session ends at the nightly reset. CI compiles and lints the Bicep so a
 template error cannot wait for a deploy. The first visit after a quiet spell is slow; ADR-0031
 is what I did about it.
+
+**Amended 2026-09-29: a page opened before the reset.** The reset drops every table, and that
+includes `DataProtectionKeys`, so the next process makes new keys. A static form (sign-in, the
+account pages) that was loaded before the reset still carries an antiforgery token sealed with the
+old key. Posting it failed the check, and the endpoint answered 400 with an empty body, which the
+browser shows as a blank white page. The status-code pages could not help: they re-execute the
+request as the same POST, which fails the same check. I kept the keys in the reset's path (keeping
+them would mean a reset that is not quite a reset, and a deploy that rotates keys hits the same
+thing) and made the failure readable instead. `ExpiredFormMiddleware` runs right after
+`UseAntiforgery` and, when the check failed, answers before the endpoint with a small page in the
+waiting screen's shell (`PlainPage`): the page expired, nothing changed, and a link back to the same
+address as a GET. Sign-in keeps its ReturnUrl only when `LocalUrl.IsLocal` accepts it; a post-only
+endpoint (sign-out) links home. The page has no script. The portal's question box opts out of
+antiforgery, so it is never checked and never sees this page. I chose to answer before the endpoint
+rather than rewrite its 400 afterwards because in Development Blazor writes a line of plain text into
+that 400, so an after-the-fact check would work in production and not on my machine.
 
 ---
 

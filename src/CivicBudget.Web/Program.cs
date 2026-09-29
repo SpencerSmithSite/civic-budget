@@ -209,6 +209,9 @@ app.UseRateLimiter();
 app.UseMiddleware<PortalResponseMiddleware>();
 app.UseOutputCache();
 app.UseAntiforgery();
+// After the antiforgery check, before the endpoint: a form whose token the current keys cannot read
+// (the nightly reset drops them) gets the "page expired" page instead of an empty 400.
+app.UseMiddleware<ExpiredFormMiddleware>();
 
 // Liveness: the process is up (the platform's startup probe, so traffic arrives while the database
 // is still waking). Startup: migrations and seed are done, answered from memory for the waiting

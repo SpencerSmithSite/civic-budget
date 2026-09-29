@@ -39,6 +39,13 @@ nothing, and seeds. It keeps the database itself: on Azure the database is
 the free-offer resource. `DatabaseResetTests` proves a changed line and a
 renamed user are gone and the seed is back.
 
+*Added 2026-09-29:* the reset also drops the Data Protection keys (they are a
+table like any other), so a sign-in page left open overnight holds an
+antiforgery token nothing can read. Submitting it used to give a blank white
+page (an empty 400). `ExpiredFormMiddleware` now answers with a short "This
+page expired" page and a link back to the same address, keeping a local
+ReturnUrl. ADR-0030's amendment has the details.
+
 ## 4. Deploying
 
 `scripts/azure-setup.sh` runs once: resource group, template, generated SQL

@@ -61,6 +61,7 @@ Actions · AWS CDK (C#) deploy-ready (no account — see ADR-0008).
 - The product site is `public/CivicBudget` in the spencersmith.site repository (its `docs/civicbudget-site.md`). Its clips come from `scripts/screenshots/site-clips.mjs`, which saves its edits, so reseed before each recording; a reseed also gives records new ids, so look ids up, never hard-code them.
 - `scripts/screenshots/role-sweep.mjs` opens every page as every demo user; pages that load cleanly can still be wrong after a click, so exercise actions too.
 - Blazor sets its own `Content-Security-Policy: frame-ancestors 'self'`; `Program.cs` turns it off (`ContentSecurityFrameAncestorsPolicy = null`) because `SecurityHeadersMiddleware` keeps a policy that is already set, and OnStarting callbacks run last-registered first.
+- A form post whose antiforgery token fails (a page opened before `--reseed`, which drops the Data Protection keys) gets `ExpiredFormMiddleware`'s page, which sits after `UseAntiforgery` and answers before the endpoint. The running process keeps its old keys in memory, so to reproduce: load the page, reseed, restart the app, then submit. In Development Blazor writes plain text into its own 400, so never rely on "400 with an empty body" to spot this.
 - Rate limits count per client address; many sign-ins from one machine in a script (more than 20 per 5 minutes) get 429. Restart the app to reset them.
 - Kestrel logs `SslStream ... Bad address` on HTTP/2 when Safari drops an HTTPS connection; harmless macOS noise, use http://localhost:5000 if it bothers you.
 
