@@ -1,4 +1,5 @@
 @page "/admin/budgets/{VersionId:guid}/send"
+@attribute [HelpTopic("Send to the ERP", "Send an adopted budget or amendment to the ERP as a budget journal, or download the journal file to import.", "erp journal send post export accounting system")]
 @attribute [Authorize(Policy = Policies.CanSendToErp)]
 @using CivicBudget.Application.Erp
 @using CivicBudget.Domain.Erp

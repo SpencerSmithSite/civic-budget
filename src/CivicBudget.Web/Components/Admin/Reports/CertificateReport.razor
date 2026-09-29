@@ -1,4 +1,5 @@
 @page "/admin/reports/{VersionId:guid}/certificate"
+@attribute [HelpTopic("Certificate of estimated resources", "The certificate (or amended certificate) of estimated resources for the county budget commission, with its detailed schedule and checks; download it as a PDF.", "certificate amended certificate estimated resources budget commission pdf 5705.36")]
 @attribute [Authorize(Policy = Policies.CanViewBudget)]
 @using CivicBudget.Application.Reports
 @inject ICertificateService Certificates

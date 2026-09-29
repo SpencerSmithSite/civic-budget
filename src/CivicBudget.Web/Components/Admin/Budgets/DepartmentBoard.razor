@@ -1,4 +1,5 @@
 @page "/admin/budgets/{VersionId:guid}/departments"
+@attribute [HelpTopic("Department requests", "Every department's request for the budget: who has submitted, who is still working, and returning a request with a note.", "departments requests submit return board")]
 @attribute [Authorize(Policy = Policies.CanViewBudget)]
 @inject IBudgetEntryService BudgetEntry
 @inject IDepartmentRequestService Requests

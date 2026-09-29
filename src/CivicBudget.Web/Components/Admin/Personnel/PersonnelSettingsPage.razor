@@ -1,4 +1,5 @@
 @page "/admin/personnel-settings"
+@attribute [HelpTopic("Personnel settings", "The year's pay scales, retirement rates, Medicare, workers' compensation, insurance premiums, and longevity rules that price every position.", "personnel settings pay scale opers insurance longevity")]
 @attribute [Authorize(Policy = Policies.CanMaintainSetup)]
 @using CivicBudget.Domain.Personnel
 @inject IPersonnelSettingsService Settings

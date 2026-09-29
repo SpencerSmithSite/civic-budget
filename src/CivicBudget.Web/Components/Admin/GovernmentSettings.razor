@@ -1,8 +1,11 @@
 @page "/admin/settings"
+@attribute [HelpTopic("Government settings", "The government's name, address, account number format, portal introduction and logo, two-step sign-in, the assistant switch, and downloading all its data.", "settings logo two-step mfa assistant export all data")]
 @attribute [Authorize(Policy = Policies.CanManageUsers)]
 @inject IGovernmentSettingsService SettingsService
 @inject IGovernmentLogoService Logos
 @inject ISignInSecurityService SignInSecurity
+@inject CivicBudget.Application.Assistant.IAssistantService Assistant
+@inject CivicBudget.Web.Components.Assistant.AssistantPanelState AssistantPanel
 @inject ToastService Toasts
 @using CivicBudget.Application.Portal
 
@@ -97,6 +100,28 @@ else
     </div>
 
     <div class="card mt-3" style="max-width: 640px">
+        <div class="card-header d-flex align-items-center gap-2">Assistant <InfoTip Text="An assistant in the top bar that answers questions about your budget and actuals and helps people find their way around CivicBudget. It sees only what each user's account can see and cannot change anything. Questions and the figures it looks up go to the AI model's provider." /></div>
+        <div class="card-body">
+            @if (assistant is null)
+            {
+                <SkeletonRows Rows="1" Columns="1" />
+            }
+            else if (!assistant.Configured)
+            {
+                <p class="small text-secondary mb-0">No AI model is connected to this CivicBudget. The operator connects one; after that you can turn the assistant on here.</p>
+            }
+            else
+            {
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" role="switch" id="assistantEnabled" checked="@assistant.Enabled" @onchange="e => SetAssistantAsync(e.Value is true)" disabled="@assistantBusy" />
+                    <label class="form-check-label fw-semibold" for="assistantEnabled">Let our users use the assistant</label>
+                </div>
+                <div class="small text-secondary">When on, a user's questions and the figures the assistant looks up to answer them are sent to the AI model's provider. Each question is recorded in the security log, without its text.</div>
+            }
+        </div>
+    </div>
+
+    <div class="card mt-3" style="max-width: 640px">
         <div class="card-header d-flex align-items-center gap-2">Your data <InfoTip Text="Every table this government has, one CSV file each, in a ZIP: budgets, lines, positions, the chart, ERP data, users and their roles, the audit trail, and the security log. Passwords, two-step keys, and images are left out. The download is recorded in the security log." /></div>
         <div class="card-body d-flex flex-wrap align-items-center gap-3">
             <div class="flex-grow-1 small text-secondary" style="min-width: 14rem">A complete copy of your government's data, to keep or to take elsewhere. Readable in any spreadsheet or database.</div>
@@ -142,6 +167,32 @@ else
     private bool logoBusy;
     private SignInSecurityDto? security;
     private bool securityBusy;
+    private CivicBudget.Application.Assistant.AssistantSettingsDto? assistant;
+    private bool assistantBusy;
+
+    private async Task SetAssistantAsync(bool enabled)
+    {
+        assistantBusy = true;
+        try
+        {
+            Result saved = await Assistant.SetEnabledAsync(enabled);
+            if (saved.IsSuccess)
+            {
+                Toasts.Success(enabled ? "The assistant is on. It is in the top bar for every user." : "The assistant is off.");
+            }
+            else
+            {
+                Toasts.Danger(saved.Errors[0].Message);
+            }
+
+            assistant = await Assistant.GetSettingsAsync();
+            AssistantPanel.Refresh(await Assistant.StatusAsync());
+        }
+        finally
+        {
+            assistantBusy = false;
+        }
+    }
 
     private async Task SetRequireMfaAsync(bool require)
     {
@@ -176,6 +227,7 @@ else
         current = await SettingsService.GetAsync();
         logo = await Logos.GetAsync();
         security = await SignInSecurity.GetAsync();
+        assistant = await Assistant.GetSettingsAsync();
         model.Name = current.Name;
         model.PublicSlug = current.PublicSlug;
         model.AppropriationLimitMode = current.AppropriationLimitMode;

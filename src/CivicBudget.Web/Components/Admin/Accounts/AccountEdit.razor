@@ -1,5 +1,6 @@
 @page "/admin/accounts/new"
 @page "/admin/accounts/{Id:guid}"
+@attribute [HelpTopic("Add or edit an account", "Create an object code (the kind of revenue or spending) or change its name, type, or reporting category.", "chart of accounts object code new account")]
 @attribute [Authorize(Policy = Policies.CanMaintainSetup)]
 @inject IAccountService AccountService
 @inject NavigationManager Navigation

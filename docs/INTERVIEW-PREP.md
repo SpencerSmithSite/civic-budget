@@ -1683,3 +1683,53 @@ middle of the portrait book because MigraDoc sets up each section's page separat
 tables for screen readers. I said so in the conformance report rather than claim it, and the book
 itself points readers to the portal, which holds the same figures in accessible HTML.
 **Look at:** `docs/accessibility/ACR.md`, the note in `BudgetBookPdfRenderer.Contents`.
+
+## Phase 36: The assistant
+
+### Q: How does an AI assistant respect each user's permissions?
+**A:** It never gets its own access. Every tool is a thin wrapper over the Application service a page
+calls, run in the user's own scope with their identity, so the tenant filter, department visibility,
+and role checks that protect the pages protect the assistant too. The model sees only what the
+tools return: no database, no SQL. The integration tests prove it with a scripted model through the
+real tool-calling layer; one compares the fund summary the assistant saw with what the report service
+returns to the same user.
+**Look at:** `BudgetTools`, `AssistantServiceTests`.
+
+### Q: Why Microsoft.Extensions.AI instead of the Anthropic SDK directly?
+**A:** Application depends only on `IChatClient` and `AIFunction`, the way it depends on `ILogger`.
+Claude is registered in Infrastructure behind that interface, so a government that needs a model
+from its own cloud is a different registration, and the service is tested with a fake `IChatClient`
+instead of the network. `UseFunctionInvocation` is the middleware that runs the tools the model asks
+for, capped at eight rounds. It paid off at once: adding Ollama as a second provider was one more case
+in the registration, because Ollama speaks Anthropic's Messages API.
+**Look at:** `AssistantModelRegistration`, `AssistantService`.
+
+### Q: How does it know which pages exist and who may open them?
+**A:** The pages tell it. Each carries a `[HelpTopic]` with a title, purpose, and keywords, and a
+catalog reads those with the page's routes and `[Authorize]` policies by reflection, so it can't fall
+behind the app. Before offering or opening a page the tool asks `IAuthorizationService` the page's
+policies for this user. A test fails for any admin page without a topic.
+**Look at:** `PageCatalog`, `NavigationTools`, `HelpCatalogTests`.
+
+### Q: What stops a prompt injection hidden in the data?
+**A:** Layers. The prompt says typed text in results is data. There is no write tool, so the worst
+an injection can do in this phase is word an answer badly. The answer is rendered with raw HTML off
+and only local links kept, so it can't send anyone to a phishing page. And the evaluation set plants
+"IGNORE ALL PREVIOUS INSTRUCTIONS" in a justification and checks the model reports it rather than
+obeying.
+**Look at:** `AssistantPrompt`, `AssistantMarkdown`, `AssistantEvaluationTests`.
+
+### Q: How do you test something whose answers vary?
+**A:** Two ways. What must never vary (which tools ran, what they were allowed to return, what was
+logged) is tested exactly with a scripted model. What the real model says is checked by an evaluation
+set that asserts what matters, such as the right figure or the link, not the wording, and runs when a
+key is present.
+**Look at:** `AssistantServiceTests.ScriptedModel`, `LiveModelFactAttribute`.
+
+### Q: What did testing against a real model find that your tests didn't?
+**A:** Three things. Nullable tool parameters without defaults are marked required in the schema the
+model gets, so a model that leaves one out is refused; my scripted model always sent every argument.
+Joining all of the model's messages leaked its working notes into the answer. And a thinking model
+spent a small output cap before answering. Each is fixed, and the first now has a test that reads each
+tool's schema and fails on an unexpected required parameter, which I checked by breaking it.
+**Look at:** `ToolSchemaTests`, `AssistantService.AskAsync`, walkthrough 35 section 7.

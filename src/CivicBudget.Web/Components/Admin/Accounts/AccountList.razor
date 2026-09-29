@@ -1,4 +1,5 @@
 @page "/admin/accounts"
+@attribute [HelpTopic("Chart of accounts", "Every object code with its type and reporting category; add, edit, deactivate, or export them.", "accounts object codes chart export")]
 @attribute [Authorize(Policy = Policies.CanMaintainSetup)]
 @inject IAccountService AccountService
 @inject ToastService Toasts

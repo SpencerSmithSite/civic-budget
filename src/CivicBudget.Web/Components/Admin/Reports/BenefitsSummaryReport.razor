@@ -1,4 +1,5 @@
 @page "/admin/reports/{VersionId:guid}/benefits-summary"
+@attribute [HelpTopic("Benefits summary", "Insurance enrollment and cost by plan and coverage tier.", "benefits insurance report")]
 @attribute [Authorize(Policy = Policies.CanViewBudget)]
 @using CivicBudget.Application.Reports
 @using CivicBudget.Domain.Personnel

@@ -13,6 +13,8 @@
     <PackageReference Include="ClosedXML" />
     <PackageReference Include="MailKit" />
     <PackageReference Include="PDFsharp-MigraDoc" />
+    <PackageReference Include="Anthropic" />
+    <PackageReference Include="Microsoft.Extensions.AI" />
     <!-- Design-time only (PrivateAssets): lets `dotnet ef -p src/CivicBudget.Infrastructure` run without a startup project. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
       <PrivateAssets>all</PrivateAssets>

@@ -1711,6 +1711,74 @@ screen or in a report; what was missing was the letter and one document to hold 
 - A new report section is a builder change and a renderer method; the report services stay as
   they are.
 
+## ADR-0047: An assistant that acts only through the Application services, as the signed-in user
+**Date:** 2026-09-29 · **Status:** Accepted
+
+**Context.** I want CivicBudget to have an AI assistant that does real work, not a chat window: answer
+"how are actuals compared to our budget so far this year?", find and open the page for "how do I
+print the budget book?", and later carry out tasks like building a five-year plan. The hard
+requirement is permissions: a department head's assistant must see what a department head sees and
+nothing more, and a Viewer's must change nothing. Phase 36 builds the foundation (questions and
+navigation); Phase 37 adds actions; Phase 38 a separate bot on the public portal.
+
+**Decision.**
+- **The tools are the Application services.** Every tool (`BudgetTools`) calls the service a page
+  calls, in the user's own scope, and returns a compact summary with the path of the page that shows
+  the whole thing. The services already enforce the tenant filter, department visibility, and role
+  rules, so the assistant cannot see more than the page would, and there is no second permission
+  system to keep in step. The model never sees a connection string, a table, or SQL.
+- **Navigation from the pages themselves.** Each page carries a `[HelpTopic]` (title, purpose,
+  keywords); `PageCatalog` reads them with each page's routes and `[Authorize]` policies, and
+  `NavigationTools` offers or opens only the pages the user's policies allow. A test fails for an
+  admin page without a topic.
+- **Microsoft.Extensions.AI in Application, the provider in Infrastructure.** Application depends
+  on `IChatClient` and `AIFunction` only. Infrastructure registers Anthropic's official SDK behind
+  that interface, with the tool-calling layer (`UseFunctionInvocation`) capped at eight rounds.
+  `Assistant:Provider` chooses Anthropic (Claude, the default) or Ollama (its cloud, or a local
+  server at `Assistant:BaseUrl`). Ollama speaks Anthropic's Messages API, tools included, so the same
+  SDK reaches it with the key sent as a Bearer token, and no second package is needed. Any other
+  provider is one more case in that registration.
+- **Off unless both switches are on.** The operator connects a model (`Assistant:ApiKey` in the
+  secret store); without it nothing is registered and the button does not appear. Each government's
+  Administrator then turns it on (`Government.AssistantEnabled`, audited), because questions send
+  budget figures to the provider. The hosted demo has no key.
+- **Guardrails in code, not just in the prompt.**
+  - Answers are rendered with raw HTML disabled, and links are kept only when they point inside the
+    app (`AssistantMarkdown`).
+  - A question is at most 2,000 characters, and each user may ask 40 an hour.
+  - Each question goes into the security log with the names of the tools it used, not its text.
+  - The prompt tells the model to take every figure from a tool and to treat typed text in the data
+    as data; the evaluation set checks that it does.
+- **Read-only for now.** The prompt says so, and there is no tool that writes. Phase 37 adds actions
+  that the model proposes and only the user's click confirms.
+- **The conversation lives in the browser tab's connection** (`AssistantPanelState`), so it
+  survives moving between pages and is gone when the tab closes. Nothing is stored.
+- **Tested three ways:**
+  - a scripted model through the real tool-calling layer against the seeded database
+    (`AssistantServiceTests`), which is where the permission cases are proved;
+  - component and catalog tests;
+  - an evaluation set against the real model (`AssistantEvaluationTests`), which runs when
+    `ANTHROPIC_API_KEY` is set.
+
+**Alternatives.**
+- **Let the model query the database** (text to SQL, or a read replica): powerful, but permissions
+  would live in a prompt. One missed filter and a department head reads payroll.
+- **A retrieval index of the budget:** the figures change on every save, and the services already
+  answer precisely. An index would be a stale second copy.
+- **Anthropic's SDK directly in Application:** less code, but it ties every layer to one provider and
+  makes the service hard to test without the network.
+- **Storing conversations:** useful for support, but questions can hold anything, and keeping them
+  makes the government's data bigger and its export and offboarding longer. Nothing is kept for now.
+- **A chat window in its own page:** the assistant is most useful beside the page it is talking
+  about, so it is a panel that knows the current page.
+
+**Consequences.**
+- A new report or screen becomes a tool by wrapping its service; a new page is findable through its
+  `[HelpTopic]`.
+- The quality of answers depends on the model and the prompt; the evaluation set is the check after
+  changing either.
+- The hosted demo shows the switch but not the assistant, until a key and a spending cap are chosen.
+
 ---
 
 ## Packages
@@ -1731,6 +1799,10 @@ adds it.
 | MailKit | Infrastructure | Sends the outbox's email over SMTP; Microsoft's own documentation points to it instead of the old `SmtpClient`; MIT licensed | 0040 |
 | QRCoder | Web | Draws the QR code for setting up an authenticator app, as SVG on the server, so the sign-in pages stay free of third-party script; MIT licensed | 0040 |
 | PDFsharp-MigraDoc | Infrastructure | The certificate's PDF: MigraDoc lays out pages and tables, PDFsharp writes the file; MIT licensed, cross-platform | 0036 |
+| Microsoft.Extensions.AI.Abstractions | Application | The assistant's model interface (`IChatClient`) and tools (`AIFunction`): interfaces only, so Application names no provider; MIT | 0047 |
+| Microsoft.Extensions.AI | Infrastructure | Runs the tool calls the model asks for (`UseFunctionInvocation`); MIT | 0047 |
+| Anthropic | Infrastructure | The official Claude SDK, which implements `IChatClient`; the first model behind the assistant; MIT | 0047 |
+| Markdig | Web | Turns the assistant's Markdown answers into HTML with raw HTML disabled; BSD-2-Clause | 0047 |
 | xunit, xunit.runner.visualstudio, Microsoft.NET.Test.Sdk, coverlet.collector | tests | Test framework and coverage (the template defaults) | |
 | bunit | Web.Tests | Blazor component tests | |
 | Testcontainers.MsSql | IntegrationTests | A real SQL Server 2022 in tests | 0009 |

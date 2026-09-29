@@ -211,6 +211,11 @@ that would have been wrong.
   department, and the certificate as one PDF, assembled from the same reports the screens show so
   it cannot disagree with them. A proposed budget says so on every page, and the published book is
   frozen with its snapshot so residents download what council adopted. ([ADR-0046](docs/DECISIONS.md#adr-0046-the-budget-book-is-assembled-from-the-existing-reports-printed-with-migradoc-and-frozen-at-publish), [Walkthrough 34](docs/walkthroughs/34-budget-book.md))
+- **An assistant that can only see what you can.** Ask about the budget and actuals, or how to do
+  something, and it looks the answer up and links or opens the page. Its tools are the same services
+  the pages call, run as the signed-in user, so a department head's assistant sees a department
+  head's data and nothing else; the model never touches the database. Off until a government's
+  Administrator turns it on. ([ADR-0047](docs/DECISIONS.md#adr-0047-an-assistant-that-acts-only-through-the-application-services-as-the-signed-in-user), [Walkthrough 35](docs/walkthroughs/35-assistant.md))
 
 ## Run it locally
 
@@ -309,8 +314,9 @@ deployed; it shows the production-shaped design. See [infra/README.md](infra/REA
    [31 Finishing accessibility](docs/walkthroughs/31-accessibility-finish.md) ·
    [32 The multi-year plan](docs/walkthroughs/32-multi-year-plan.md) ·
    [33 The ERP partner kit](docs/walkthroughs/33-erp-partner-kit.md) ·
-   [34 The printable budget book](docs/walkthroughs/34-budget-book.md)
-4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 46 decision records, each
+   [34 The printable budget book](docs/walkthroughs/34-budget-book.md) ·
+   [35 The assistant](docs/walkthroughs/35-assistant.md)
+4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 47 decision records, each
    with the alternatives I turned down, and the table of every package and why it is there.
 5. Then the code, starting at `src/CivicBudget.Domain/Budgets/BudgetVersion.cs`, the heart of it.
 

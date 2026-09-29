@@ -1,4 +1,5 @@
 @page "/admin/budgets/{VersionId:guid}"
+@attribute [HelpTopic("Budget worksheet", "Enter and change budget lines by department or by account line, see each fund's balance and limit, and move the budget through its workflow (propose, adopt, amend).", "worksheet lines enter amounts propose adopt amend workflow")]
 @attribute [Authorize(Policy = Policies.CanViewBudget)]
 @using CivicBudget.Application.Publishing
 @inject IBudgetEntryService BudgetEntry

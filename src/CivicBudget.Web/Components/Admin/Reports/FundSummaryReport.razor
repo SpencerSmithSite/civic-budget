@@ -1,4 +1,5 @@
 @page "/admin/reports/{VersionId:guid}/fund-summary"
+@attribute [HelpTopic("Budget summary by fund", "Each fund's beginning balance, revenues, appropriations, and projected ending balance, with the Ohio limit check.", "fund summary report")]
 @attribute [Authorize(Policy = Policies.CanViewBudget)]
 @using CivicBudget.Application.Reports
 @inject IReportService Reports

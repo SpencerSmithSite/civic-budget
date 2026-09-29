@@ -1,4 +1,5 @@
 @page "/admin/outbox"
+@attribute [HelpTopic("Email outbox", "Every email CivicBudget has sent or is waiting to send, such as sign-in links and budget notices.", "email outbox notifications")]
 @attribute [Authorize(Policy = Policies.CanManageUsers)]
 @using System.Text.RegularExpressions
 @using CivicBudget.Application.Notifications

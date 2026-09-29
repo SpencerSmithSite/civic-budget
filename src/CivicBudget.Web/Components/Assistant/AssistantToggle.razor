@@ -1,0 +1,36 @@
+@using CivicBudget.Application.Assistant
+@implements IDisposable
+@inject AssistantPanelState State
+@inject IAssistantService Assistant
+
+@* The top bar's button. Shown only when the operator has connected a model, so a government without
+   the assistant sees no sign of it. *@
+@if (State.Status is { Configured: true })
+{
+    <button type="button" class="btn btn-outline-primary btn-sm cb-assistant-toggle" aria-controls="assistant-panel" aria-expanded="@Aria.Bool(State.IsOpen)" @onclick="State.Toggle" @ref="button">
+        <i class="bi bi-stars" aria-hidden="true"></i><span class="d-none d-sm-inline ms-1">Assistant</span><span class="visually-hidden d-sm-none">Assistant</span>
+    </button>
+}
+
+@code {
+    private ElementReference button;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (State.ReturnFocusToButton && !State.IsOpen)
+        {
+            State.ReturnFocusToButton = false;
+            await button.FocusAsync();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.Changed += OnChanged;
+        State.Status ??= await Assistant.StatusAsync();
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => State.Changed -= OnChanged;
+}

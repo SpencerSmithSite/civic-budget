@@ -1,4 +1,5 @@
 @page "/admin/reports/{VersionId:guid}/appropriation-measure"
+@attribute [HelpTopic("Appropriation measure", "The appropriation ordinance or resolution council adopts: each fund's appropriation by department, with personal services set out (ORC 5705.38).", "appropriation measure ordinance resolution report")]
 @attribute [Authorize(Policy = Policies.CanViewBudget)]
 @using CivicBudget.Application.Reports
 @inject IActualsReportService Reports

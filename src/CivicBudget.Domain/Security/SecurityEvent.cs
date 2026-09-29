@@ -39,6 +39,12 @@ public enum SecurityEventKind
 
     /// <summary>The retention job removed security events and emails past their keeping period.</summary>
     RetentionPurge = 14,
+
+    /// <summary>
+    /// A question to the assistant, with the tools it used. The question's text is not kept: it can
+    /// hold anything, and the log records what was reached, not what was asked.
+    /// </summary>
+    AssistantUsed = 15,
 }
 
 /// <summary>

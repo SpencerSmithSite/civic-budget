@@ -1,5 +1,6 @@
 @page "/admin/users/new"
 @page "/admin/users/{Id}"
+@attribute [HelpTopic("Add or edit a user", "Invite a user, or change their role, departments, or whether they can sign in.", "user invite role access")]
 @attribute [Authorize(Policy = Policies.CanManageUsers)]
 @inject IUserAdminService UserAdmin
 @inject IDepartmentService DepartmentService

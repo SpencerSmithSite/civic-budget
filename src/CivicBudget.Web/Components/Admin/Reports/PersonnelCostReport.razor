@@ -1,4 +1,5 @@
 @page "/admin/reports/{VersionId:guid}/personnel-cost"
+@attribute [HelpTopic("Personnel cost by fund", "What each fund pays for people, by department: pay, retirement, Medicare, workers' compensation, and insurance.", "personnel cost report")]
 @attribute [Authorize(Policy = Policies.CanViewBudget)]
 @using CivicBudget.Application.Reports
 @inject IPersonnelReportService Reports

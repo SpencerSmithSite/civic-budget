@@ -139,6 +139,9 @@ public sealed class DevelopmentSeeder(
     private async Task<Government> SeedMapleRidgeAsync(CivicBudgetDbContext db, CancellationToken ct)
     {
         Government government = MapleRidgeSeed.Government();
+        // On for Maple Ridge and off for Pine Hollow, so both halves of the switch are in the demo. It
+        // does nothing until the operator connects a model, which the hosted demo does not.
+        government.SetAssistantEnabled(true);
         tenant.SetTenant(government.Id); // before the first save: the government's own audit row is tenant-checked
         db.Governments.Add(government);
         await db.SaveChangesAsync(ct);

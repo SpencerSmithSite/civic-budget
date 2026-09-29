@@ -1,4 +1,5 @@
 @page "/admin/funds"
+@attribute [HelpTopic("Funds", "Every fund with its category; add, edit, deactivate, or export them.", "funds")]
 @attribute [Authorize(Policy = Policies.CanMaintainSetup)]
 @inject IFundService FundService
 @inject ToastService Toasts

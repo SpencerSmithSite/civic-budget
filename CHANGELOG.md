@@ -6,6 +6,18 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 
 ## [Unreleased]
 
+## Phase 36: 2026-09-29 (assistant foundation)
+### Added
+- **Assistant** in the admin app's top bar: ask about the budget and actuals ("how are actuals compared to our budget so far this year?") or how to do something ("how do I print the budget book?"), and it looks the answer up, links the page, or opens it.
+- **Nine read-only tools** over the Application services, run as the signed-in user, so the assistant sees exactly what the user's account can see.
+- **Help topics** on every page (`[HelpTopic]`), from which the assistant finds pages the user may open.
+- **Government setting:** the Administrator turns the assistant on or off; it is audited. Nothing appears unless the operator has connected a model (`Assistant:ApiKey`).
+- **Security log:** every question, with the tools it used and without its text.
+- **Two providers:** Anthropic (Claude) or Ollama (cloud or local), chosen by `Assistant:Provider`; both through the same SDK and interface.
+- **Evaluation set** against the real model, run when the app's `Assistant:ApiKey` is set in user-secrets.
+### Packages
+- Microsoft.Extensions.AI.Abstractions, Microsoft.Extensions.AI, Anthropic (the official Claude SDK), and Markdig.
+
 ## Phase 35: 2026-09-29 (printable budget book)
 ### Added
 - **Budget book:** the whole budget as one PDF: cover, contents, the budget message, the budget at a glance, a page for each fund, the departments with their narratives, and the certificate of estimated resources.

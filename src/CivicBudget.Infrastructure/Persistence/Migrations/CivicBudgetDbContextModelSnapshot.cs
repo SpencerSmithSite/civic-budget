@@ -906,6 +906,9 @@ namespace CivicBudget.Infrastructure.Persistence.Migrations
                     b.Property<int>("AppropriationLimitMode")
                         .HasColumnType("int");
 
+                    b.Property<bool>("AssistantEnabled")
+                        .HasColumnType("bit");
+
                     b.Property<int>("ChartSource")
                         .HasColumnType("int");
 

@@ -1,4 +1,5 @@
 @page "/admin/reports/{VersionId:guid}/position-roster"
+@attribute [HelpTopic("Position roster", "Every budgeted position by department, filled and vacant, with pay, benefits, and total cost.", "positions roster employees report")]
 @attribute [Authorize(Policy = Policies.CanViewBudget)]
 @using CivicBudget.Application.Reports
 @inject IPersonnelReportService Reports

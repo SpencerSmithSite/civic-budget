@@ -433,7 +433,35 @@ optional, chosen when printing, with defaults the published book uses.
 - [x] The book: cover, contents, message, summary, fund pages, departments, certificate, and the four optional sections
 - [x] Budget book page: message editor, section choices, download, and defaults for published books
 - [x] Kept with the published snapshot; a portal link on the overview and footer
+- [x] Reviewed and approved (2026-09-29, PR #66)
+
+## AI assistant (phases 36 to 38)
+Decided with Spencer (2026-09-29): an agentic assistant that acts only through the Application services as the signed-in
+user, so every permission the pages enforce applies to it; changes are proposed with a preview and committed only by the
+user's confirmation; Microsoft.Extensions.AI as the interface with Anthropic's Claude as the first model, so another
+provider can be configured; off until a government's Administrator turns it on; the API key in the operator's secret
+store; local only for now (the live demo shows it switched off). A separate public bot on the portal reads only the
+published snapshot.
+
+### Phase 36: Assistant foundation  `phase-36-assistant`
+- [x] Model interface (Microsoft.Extensions.AI) with Claude configured by the operator; off without a key
+- [x] Per-government switch for the Administrator
+- [x] Read-only tools over the Application services, run as the signed-in user
+- [x] Help catalog of every admin page (purpose, who may open it), held complete by a test; navigation answers with links
+- [x] Assistant panel in the admin app; every question and tool call in the security log
+- [x] Tests with a fake model (permissions, tool routing) and a scripted evaluation set against the demo data
+
 - [ ] Reviewed and approved
+
+### Phase 37: Agentic actions
+- [ ] Proposal and confirmation: the model proposes, a preview shows the effect, only the user's click commits
+- [ ] Actions: set the multi-year plan, change lines in bulk, start next year's budget, fetch actuals, run and download reports
+- [ ] Drafts: the budget message and department narratives
+- [ ] "Check my budget" review and "fix this fund" options
+
+### Phase 38: Public portal Q&A
+- [ ] A non-agentic bot that reads only the published snapshot, answers with links, and says so when something is not published
+- [ ] Works without JavaScript; rate limits and a monthly cap per government; prompt-injection tests
 
 ## Later
 Nothing parked; the ERP partner kit and the budget book were the last two items (2026-09-29).
