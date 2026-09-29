@@ -51,6 +51,7 @@ public sealed class CivicBudgetDbContext(DbContextOptions<CivicBudgetDbContext> 
     /// </summary>
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
     public DbSet<PublishedBudgetSnapshot> PublishedBudgetSnapshots => Set<PublishedBudgetSnapshot>();
+    public DbSet<PublishedBudgetBook> PublishedBudgetBooks => Set<PublishedBudgetBook>();
     public DbSet<ChartSync> ChartSyncs => Set<ChartSync>();
     public DbSet<ActualsSync> ActualsSyncs => Set<ActualsSync>();
     public DbSet<ErpActual> ErpActuals => Set<ErpActual>();
@@ -58,6 +59,7 @@ public sealed class CivicBudgetDbContext(DbContextOptions<CivicBudgetDbContext> 
     public DbSet<ErpFundCash> ErpFundCash => Set<ErpFundCash>();
     public DbSet<BudgetTransmission> BudgetTransmissions => Set<BudgetTransmission>();
     public DbSet<CertificateSettings> CertificateSettings => Set<CertificateSettings>();
+    public DbSet<BudgetBookSettings> BudgetBookSettings => Set<BudgetBookSettings>();
     public DbSet<ReportAccountGroup> ReportAccountGroups => Set<ReportAccountGroup>();
     public DbSet<CertificateFundAdjustment> CertificateFundAdjustments => Set<CertificateFundAdjustment>();
     public DbSet<PersonnelSettings> PersonnelSettings => Set<PersonnelSettings>();

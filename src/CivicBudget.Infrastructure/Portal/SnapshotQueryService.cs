@@ -54,7 +54,8 @@ public sealed class SnapshotQueryService(IDbContextFactory<PublicPortalDbContext
             TotalBeginningBalance: s.Funds.Sum(f => f.BeginningBalance),
             PriorYearRevenues: Sum(data.Lines, AccountType.Revenue, l => l.CurrentYearBudget),
             PriorYearExpenditures: Sum(data.Lines, AccountType.Expenditure, l => l.CurrentYearBudget),
-            LogoVersion: data.LogoVersion);
+            LogoVersion: data.LogoVersion,
+            HasBook: data.HasBook);
     }
 
     public async Task<BreakdownDto?> ExpendituresByFundAsync(string slug, int fiscalYear, CancellationToken ct = default)
@@ -244,7 +245,7 @@ public sealed class SnapshotQueryService(IDbContextFactory<PublicPortalDbContext
 
     // ---- helpers ------------------------------------------------------------------------------
 
-    private sealed record Loaded(PublishedBudgetSnapshot Snapshot, IReadOnlyList<PublishedBudgetSnapshotLine> Lines, IReadOnlyList<PortalYearDto> Years, long? LogoVersion);
+    private sealed record Loaded(PublishedBudgetSnapshot Snapshot, IReadOnlyList<PublishedBudgetSnapshotLine> Lines, IReadOnlyList<PortalYearDto> Years, long? LogoVersion, bool HasBook);
 
     private async Task<Loaded?> LoadAsync(string slug, int? fiscalYear, CancellationToken ct)
     {
@@ -291,7 +292,23 @@ public sealed class SnapshotQueryService(IDbContextFactory<PublicPortalDbContext
             .Where(l => l.GovernmentId == snapshot.GovernmentId)
             .Select(l => (DateTimeOffset?)l.UpdatedAtUtc)
             .FirstOrDefaultAsync(ct);
-        return new Loaded(snapshot, snapshot.Lines.ToList(), years, logoUpdated?.UtcTicks);
+        bool hasBook = await db.SnapshotBooks.AnyAsync(b => b.SnapshotId == snapshot.Id, ct);
+        return new Loaded(snapshot, snapshot.Lines.ToList(), years, logoUpdated?.UtcTicks, hasBook);
+    }
+
+    public async Task<PortalBookDto?> GetBookAsync(string slug, int fiscalYear, CancellationToken ct = default)
+    {
+        Loaded? data = await LoadAsync(slug, fiscalYear, ct);
+        if (data is not { HasBook: true })
+        {
+            return null;
+        }
+
+        await using PublicPortalDbContext db = await dbFactory.CreateDbContextAsync(ct);
+        return await db.SnapshotBooks
+            .Where(b => b.SnapshotId == data.Snapshot.Id)
+            .Select(b => new PortalBookDto(b.Content, b.CreatedAtUtc))
+            .FirstOrDefaultAsync(ct);
     }
 
     public async Task<PortalLogoDto?> GetLogoAsync(string slug, CancellationToken ct = default)

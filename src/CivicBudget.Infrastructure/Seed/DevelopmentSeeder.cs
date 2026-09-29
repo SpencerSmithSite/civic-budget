@@ -163,6 +163,8 @@ public sealed class DevelopmentSeeder(
         }
 
         fy2026.SetPlan(BudgetVersion.DefaultPlanYears, wholeDollars: true, MapleRidgeSeed.Plan2026);
+        (string heading, string body, string signedBy, string signerTitle) = MapleRidgeSeed.Message2026;
+        fy2026.SetMessage(heading, body, signedBy, signerTitle);
         fy2026.Propose();
         fy2026.Adopt("2025-41", SeedUserId, new DateTimeOffset(2025, 12, 15, 19, 30, 0, TimeSpan.Zero));
 
@@ -190,6 +192,8 @@ public sealed class DevelopmentSeeder(
         }
 
         fy2027.SetPlan(BudgetVersion.DefaultPlanYears, wholeDollars: true, MapleRidgeSeed.Plan2027);
+        (heading, body, signedBy, signerTitle) = MapleRidgeSeed.Message2027;
+        fy2027.SetMessage(heading, body, signedBy, signerTitle);
         (string planFund, string planDept, string planAccount, int planYear, decimal planAmount) = MapleRidgeSeed.PlannedProject;
         BudgetLine projectLine = fy2027.Lines.Single(l => l.FundId == chart.Fund(planFund).Id
             && l.DepartmentId == chart.Department(planDept).Id && l.AccountId == chart.Account(planAccount).Id);

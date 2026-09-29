@@ -207,6 +207,10 @@ that would have been wrong.
   four endpoints, not by waiting for my code. The OpenAPI file is tested against the code field by
   field, a reference ERP shows it working, and each government's key lives in the secret store, not
   the database. ([ADR-0045](docs/DECISIONS.md#adr-0045-an-erp-partner-kit-with-a-published-api-one-http-adapter-and-connections-from-the-operators-secret-store), [Walkthrough 33](docs/walkthroughs/33-erp-partner-kit.md), [the kit](docs/partners/README.md))
+- **The budget book, printed from the budget.** The mayor's letter, a summary, every fund and
+  department, and the certificate as one PDF, assembled from the same reports the screens show so
+  it cannot disagree with them. A proposed budget says so on every page, and the published book is
+  frozen with its snapshot so residents download what council adopted. ([ADR-0046](docs/DECISIONS.md#adr-0046-the-budget-book-is-assembled-from-the-existing-reports-printed-with-migradoc-and-frozen-at-publish), [Walkthrough 34](docs/walkthroughs/34-budget-book.md))
 
 ## Run it locally
 
@@ -304,8 +308,9 @@ deployed; it shows the production-shaped design. See [infra/README.md](infra/REA
    [30 The accessibility self-scan](docs/walkthroughs/30-accessibility.md) ·
    [31 Finishing accessibility](docs/walkthroughs/31-accessibility-finish.md) ·
    [32 The multi-year plan](docs/walkthroughs/32-multi-year-plan.md) ·
-   [33 The ERP partner kit](docs/walkthroughs/33-erp-partner-kit.md)
-4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 45 decision records, each
+   [33 The ERP partner kit](docs/walkthroughs/33-erp-partner-kit.md) ·
+   [34 The printable budget book](docs/walkthroughs/34-budget-book.md)
+4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 46 decision records, each
    with the alternatives I turned down, and the table of every package and why it is there.
 5. Then the code, starting at `src/CivicBudget.Domain/Budgets/BudgetVersion.cs`, the heart of it.
 

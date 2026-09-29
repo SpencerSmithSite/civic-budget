@@ -74,6 +74,7 @@ public static class DependencyInjection
         services.AddSingleton<ISpreadsheetExporter, ClosedXmlSpreadsheetExporter>();
         services.AddSingleton<ISpreadsheetReader, ClosedXmlSpreadsheetReader>();
         services.AddSingleton<ICertificatePdfRenderer, CertificatePdfRenderer>();
+        services.AddSingleton<IBudgetBookRenderer, BudgetBookPdfRenderer>();
 
         // Identity core: users, roles, password hashing, lockout, tokens, sign-in. Cookie
         // authentication itself is added by the Web project because it is an HTTP pipeline concern.

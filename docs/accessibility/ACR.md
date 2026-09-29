@@ -127,6 +127,10 @@ This is a self-evaluation. No third-party audit has been done.
   [screen-reader-checklist.md](screen-reader-checklist.md) but is not planned for now.
 - **Admin form fields** point to their errors through a focused summary rather than
   `aria-describedby` on each field.
+- **The budget book PDF is not a tagged PDF.** It has a title, a real reading order, and an
+  outline of its sections, but the library that writes it (PDFsharp and MigraDoc) does not tag
+  headings and tables for assistive technology. Everything in the book is also on the public
+  portal's pages, which are the accessible form of the same figures, and the book says so.
 
 The product website (spencersmith.site/CivicBudget) is not part of this report. It was reviewed
 in the same pass, and its findings were fixed as well.

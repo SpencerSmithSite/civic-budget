@@ -11,6 +11,10 @@ internal sealed class BudgetVersionConfiguration : IEntityTypeConfiguration<Budg
     public void Configure(EntityTypeBuilder<BudgetVersion> builder)
     {
         builder.Property(v => v.AmendmentReason).HasMaxLength(BudgetVersion.ReasonMaxLength);
+        builder.Property(v => v.MessageHeading).HasMaxLength(BudgetVersion.MessageHeadingMaxLength);
+        builder.Property(v => v.MessageBody).HasMaxLength(BudgetVersion.MessageMaxLength);
+        builder.Property(v => v.MessageSignedBy).HasMaxLength(BudgetVersion.MessageSignerMaxLength);
+        builder.Property(v => v.MessageSignerTitle).HasMaxLength(BudgetVersion.MessageSignerMaxLength);
         builder.Property(v => v.ResolutionNumber).HasMaxLength(BudgetVersion.ResolutionNumberMaxLength);
         builder.Property(v => v.AdoptedByUserId).HasMaxLength(450); // matches ASP.NET Core Identity's key length
         // Optimistic concurrency: an UPDATE of the version carries "WHERE Revision = <the value loaded>",

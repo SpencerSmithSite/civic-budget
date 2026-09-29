@@ -30,6 +30,12 @@ internal static class PortalEndpoints
                 : Results.File(exporter.ToXlsx(table), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{slug}-fy{year}-budget.xlsx");
         });
 
+        // The book as it was printed when the budget was published; the output cache keeps it with the pages.
+        group.MapGet("/budget-book.pdf", async (string slug, int year, [FromServices] ISnapshotQueryService snapshots, CancellationToken ct) =>
+            await snapshots.GetBookAsync(slug, year, ct) is { } book
+                ? Results.File(book.Content, "application/pdf", $"{slug}-fy{year}-budget-book.pdf", lastModified: book.CreatedAtUtc)
+                : Results.NotFound());
+
         // The government's logo for the portal header. Public like the pages, versioned by the
         // upload time in the URL, and served only for governments with a published budget.
         endpoints.MapGet("/transparency/{slug}/logo", async (string slug, [FromServices] ISnapshotQueryService snapshots, HttpContext context, CancellationToken ct) =>

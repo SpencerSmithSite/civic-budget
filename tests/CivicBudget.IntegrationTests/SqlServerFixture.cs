@@ -91,11 +91,9 @@ public sealed class SqlServerFixture : IAsyncLifetime, IDisposable
                 return;
             }
 
+            // Seeded the way the app seeds, so the template has what a real start has (the published budgets' books too).
             TestDatabase template = await CreateDatabaseAsync(TemplateName);
-            await using (AsyncServiceScope scope = template.CreateScope())
-            {
-                await scope.ServiceProvider.GetRequiredService<DevelopmentSeeder>().SeedAsync();
-            }
+            await DatabaseInitializer.SeedAsync(template.Services);
 
             SqlConnection.ClearAllPools(); // nothing may hold the template open while it is backed up
             await using SqlConnection master = await OpenMasterAsync();

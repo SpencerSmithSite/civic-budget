@@ -1659,6 +1659,58 @@ new code inside CivicBudget.
 - A second API version would be a second set of wire records and a second base path, with the
   adapter choosing by configuration.
 
+## ADR-0046: The budget book is assembled from the existing reports, printed with MigraDoc, and frozen at publish
+**Date:** 2026-09-29 · **Status:** Accepted
+
+**Context.** Councils, auditors, and residents still expect a budget book: one document with a
+letter from the mayor or fiscal officer, a summary, every fund and department, and the certificate
+of estimated resources. Fiscal officers assemble it by hand from spreadsheets and word processors,
+and it drifts from the numbers the moment one of them changes. CivicBudget had every figure on a
+screen or in a report; what was missing was the letter and one document to hold it all.
+
+**Decision.**
+- **The message is part of the budget version** (`MessageHeading`, `MessageBody`, `MessageSignedBy`,
+  `MessageSignerTitle` on `BudgetVersion`, through `SetMessage`). It follows the version's rules:
+  written until adoption, copied into an amendment and into next year's budget as a draft. Plain
+  text with blank lines between paragraphs, so it reads the same in the book and on a screen.
+- **The book is assembled from the reports that already exist.** `BudgetBookService` calls the
+  fund summary, category, department detail, certificate, plan, and personnel cost services and
+  the workspace lines, and the pure `BudgetBookBuilder` decides what each page says. The book
+  cannot disagree with the screens, and each report's own permission check applies to it.
+- **One book for the whole government.** Department users get none, like the other whole-fund
+  reports: a book of part of the budget would read as the whole.
+- **Any version prints; a draft says so.** A budget council has not adopted prints "Proposed" on the
+  cover and at the top of every page, so a work-session copy cannot pass for the adopted budget.
+- **Four optional sections** (multi-year outlook, personnel, every account line, glossary) are
+  chosen when printing. The government's defaults (`BudgetBookSettings`) pre-fill the choices and
+  decide the published book.
+- **Frozen at publish.** Publishing prints the book and stores it beside the snapshot
+  (`PublishedBudgetBook`), in its own table so the portal's pages never load a PDF. The portal
+  serves that copy, cached with the pages and evicted on the next publish. Budgets published
+  without a book (the seeded demo, or before this change) get one from `PublishedBookBackfill`
+  after seeding, acting for one government at a time so the tenant filter stays on.
+- **MigraDoc, as for the certificate** (ADR-0036). The certificate's landscape pages go inside the
+  portrait book unchanged, with the book's footer; the contents page gets real page numbers from
+  bookmarks, and every heading is a PDF outline entry.
+
+**Alternatives.**
+- **Generate the book from the snapshot alone:** the snapshot has no certificate, personnel, or
+  prior-year figures, and would need to grow to hold them. Printing at publish from the live
+  reports, then freezing the PDF, gives the same guarantee.
+- **HTML to PDF with a headless browser:** better typography for less code, but a browser in the
+  container, a much larger image, and a process to supervise. MigraDoc is already here.
+- **A rich-text message editor:** formatting that the PDF and the portal would each have to
+  interpret; plain paragraphs are what budget messages are.
+- **Render the book on every portal download:** a resident could see a book that differs from what
+  was published if the budget or its message changed afterwards.
+
+**Consequences.**
+- The book is not a tagged PDF (the library cannot tag it); the portal is the accessible form of the
+  same figures, and the book's contents page says so. Recorded in the conformance report.
+- Publishing takes a little longer, because it prints the book first.
+- A new report section is a builder change and a renderer method; the report services stay as
+  they are.
+
 ---
 
 ## Packages

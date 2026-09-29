@@ -2764,6 +2764,17 @@ table.cb-grid > tfoot > tr > th {
     margin: 0 0 18px;
 }
 
+/* The link to the printed budget book, under the lead: easy to find without competing with the figures. */
+.pt-book {
+    max-width: 72ch;
+    margin: -8px 0 18px;
+    font-size: 0.95rem;
+}
+
+.pt-book a {
+    font-weight: 600;
+}
+
 .pt-lead-sm {
     color: var(--cb-muted);
     font-size: 0.9375rem;
@@ -3716,4 +3727,20 @@ button.cb-plan-reset:hover {
 /* A handful of years and two percentages: kept narrow so each year's pair reads as one row. */
 .cb-plan-rates {
     max-width: 40rem;
+}
+
+/* ---- Budget book ---------------------------------------------------------------------------- */
+
+/* The message is the long piece of writing, so it gets the wider column; one column on narrow screens. */
+.cb-book-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+@media (max-width: 991.98px) {
+    .cb-book-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }

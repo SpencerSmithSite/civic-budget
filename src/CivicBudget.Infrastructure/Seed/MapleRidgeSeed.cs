@@ -251,6 +251,27 @@ internal static class MapleRidgeSeed
     /// Department narratives: the "budget message" each department writes with the request. Set on
     /// FY2026 (so the published amendment carries them to the portal) and again on the FY2027 draft.
     /// </summary>
+    /// <summary>The budget messages that open each year's budget book (a fictional mayor's letter).</summary>
+    public static (string Heading, string Body, string SignedBy, string SignerTitle) Message2026 { get; } = (
+        "A budget that keeps the promises we made",
+        "To the residents of Maple Ridge:\n\n"
+        + "This budget keeps village services where you expect them while holding the General Fund's balance above four months of spending, the cushion our auditors recommend.\n\n"
+        + "Income tax receipts are steady and property values rose modestly at the last reappraisal. Most of the growth in spending is wages and health insurance, which we have budgeted honestly rather than hoping they come in low.\n\n"
+        + "The Street fund carries the second year of our paving plan, and the Capital Projects fund sets money aside for the Maple Street reconstruction so that we can pay for it without borrowing.\n\n"
+        + "Council and I welcome your questions at any meeting, and every figure in this book is also on the village's budget website.",
+        "Rebecca Lang",
+        "Mayor");
+
+    public static (string Heading, string Body, string SignedBy, string SignerTitle) Message2027 { get; } = (
+        "Proposed budget for 2027",
+        "To the members of council and the residents of Maple Ridge:\n\n"
+        + "I present the proposed budget for 2027 for your review before the December hearing.\n\n"
+        + "Revenues are projected to grow about two and a half percent, led by income tax. Spending grows faster, mainly wages, health insurance, and the new county dispatch contract, so the General Fund draws a little on its balance this year.\n\n"
+        + "The Street fund's appropriations exceed its resources as proposed. Before adoption we will either move a transfer from the General Fund or defer part of the paving program; the five-year outlook in this book shows why that choice matters.\n\n"
+        + "Departments have written their own accounts of the year, which follow the fund pages.",
+        "Rebecca Lang",
+        "Mayor");
+
     public static IReadOnlyDictionary<string, string> Narratives { get; } = new Dictionary<string, string>
     {
         ["110"] = "The department requests funding for eight sworn officers and one part-time clerk, the same staffing as this year. "
