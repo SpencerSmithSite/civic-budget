@@ -25,6 +25,7 @@ public static class DependencyInjection
         services.AddScoped<ISetupChecklistService, SetupChecklistService>();
         services.AddScoped<Security.ISecurityLogService, Security.SecurityLogService>();
         services.AddScoped<IBudgetEntryService, BudgetEntryService>();
+        services.AddScoped<IBudgetPlanService, BudgetPlanService>();
         services.AddScoped<IAuditQueryService, AuditQueryService>();
         services.AddScoped<IBudgetWorkflowService, BudgetWorkflowService>();
         services.AddScoped<IDepartmentRequestService, DepartmentRequestService>();

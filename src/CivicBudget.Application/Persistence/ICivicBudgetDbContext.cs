@@ -43,6 +43,8 @@ public interface ICivicBudgetDbContext : IAsyncDisposable, IDisposable
     DbSet<CertificateFundAdjustment> CertificateFundAdjustments { get; }
     DbSet<PersonnelSettings> PersonnelSettings { get; }
     DbSet<Position> Positions { get; }
+    DbSet<Domain.Budgets.Planning.PlanAssumption> PlanAssumptions { get; }
+    DbSet<Domain.Budgets.Planning.PlannedAmount> PlannedAmounts { get; }
     DbSet<PersonnelSync> PersonnelSyncs { get; }
     DbSet<Domain.Notifications.OutboxEmail> OutboxEmails { get; }
 

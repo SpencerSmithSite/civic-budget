@@ -1,4 +1,5 @@
 using CivicBudget.Domain.Accounts;
+using CivicBudget.Domain.Budgets.Planning;
 using CivicBudget.Domain.Common;
 using CivicBudget.Domain.Departments;
 using CivicBudget.Domain.Funds;
@@ -14,6 +15,8 @@ namespace CivicBudget.Domain.Budgets;
 public sealed class BudgetLine : Entity, ITenantOwned
 {
     public const int JustificationMaxLength = 2000;
+
+    private readonly List<PlannedAmount> _plannedAmounts = [];
 
     public Guid GovernmentId { get; private set; }
     public Guid BudgetVersionId { get; private set; }
@@ -47,6 +50,9 @@ public sealed class BudgetLine : Entity, ITenantOwned
     public int? PositionCount { get; private set; }
 
     public bool IsFromPersonnel => PositionCount is not null;
+
+    /// <summary>Future years of the multi-year plan typed over the calculation (the rest are calculated).</summary>
+    public IReadOnlyCollection<PlannedAmount> PlannedAmounts => _plannedAmounts.AsReadOnly();
 
     // Navigation properties. Loaded by Infrastructure when a query needs them (e.g. grouping by
     // account type); the domain never assumes they are populated.
@@ -126,6 +132,47 @@ public sealed class BudgetLine : Entity, ITenantOwned
     }
 
     internal void SetJustification(string? justification) => Justification = NormalizeJustification(justification);
+
+    /// <summary>Types over a future year's calculated amount, or with null goes back to the calculation.</summary>
+    internal void SetPlanned(int yearOffset, decimal? amount)
+    {
+        PlannedAmount? existing = _plannedAmounts.FirstOrDefault(p => p.YearOffset == yearOffset);
+        if (amount is not { } value)
+        {
+            if (existing is not null)
+            {
+                _plannedAmounts.Remove(existing);
+            }
+
+            return;
+        }
+
+        decimal valid = ValidAmount(value, nameof(amount));
+        if (existing is null)
+        {
+            _plannedAmounts.Add(new PlannedAmount(GovernmentId, Id, yearOffset, valid));
+        }
+        else
+        {
+            existing.SetAmount(valid);
+        }
+    }
+
+    /// <summary>A plan made shorter drops the years it no longer covers.</summary>
+    internal void RemovePlannedFrom(int yearOffset) => _plannedAmounts.RemoveAll(p => p.YearOffset >= yearOffset);
+
+    /// <summary>
+    /// Takes another line's typed future years, moved <paramref name="shift"/> years earlier: 0 for an
+    /// amendment of the same year, 1 when next year's budget starts from this one (its year two is the new
+    /// year one's next year). Years that fall before the new first future year are dropped.
+    /// </summary>
+    internal void CopyPlannedFrom(BudgetLine source, int shift)
+    {
+        foreach (PlannedAmount planned in source.PlannedAmounts.Where(p => p.YearOffset - shift >= 1))
+        {
+            _plannedAmounts.Add(planned.CopyTo(Id, planned.YearOffset - shift));
+        }
+    }
 
     /// <summary>
     /// Copies this line into another version (used when creating an amendment).

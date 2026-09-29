@@ -32,7 +32,7 @@ for (const email of roles) {
   const navs = await p.evaluate(() => [...new Set([...document.querySelectorAll('nav a[href], aside a[href]')].map(a => a.getAttribute('href')))]);
   const routes = new Set(['/', '/admin', ...navs.filter(h => h && !h.startsWith('http') && !h.startsWith('#')).map(h => h.startsWith('/') ? h : '/' + h), '/admin/profile-picture', '/Account/Manage', '/Account/Manage/ChangePassword']);
   for (const v of versions) {
-    for (const s of ['', '/departments', '/import']) routes.add(`/admin/budgets/${v}${s}`);
+    for (const s of ['', '/departments', '/import', '/plan']) routes.add(`/admin/budgets/${v}${s}`);
     for (const s of ['fund-summary', 'department-detail', 'category', 'position-roster', 'personnel-cost', 'benefits-summary']) routes.add(`/admin/reports/${v}/${s}`);
   }
   // department pages of the first version

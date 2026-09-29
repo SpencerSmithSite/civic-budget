@@ -149,6 +149,34 @@ public sealed class SnapshotQueryService(IDbContextFactory<PublicPortalDbContext
             : data.Lines.OrderBy(l => l.FundCode).ThenBy(l => l.DepartmentCode).ThenBy(l => l.AccountCode).Select(ToLine).ToList();
     }
 
+    public async Task<OutlookDto?> GetOutlookAsync(string slug, int fiscalYear, CancellationToken ct = default)
+    {
+        Loaded? data = await LoadAsync(slug, fiscalYear, ct);
+        if (data is null)
+        {
+            return null;
+        }
+
+        await using PublicPortalDbContext db = await dbFactory.CreateDbContextAsync(ct);
+        List<PublishedBudgetSnapshotPlanYear> rows = await db.SnapshotPlanYears
+            .Where(y => y.SnapshotId == data.Snapshot.Id)
+            .OrderBy(y => y.FundCode).ThenBy(y => y.FiscalYear)
+            .ToListAsync(ct);
+        if (rows.Select(r => r.FiscalYear).Distinct().Count() < 2)
+        {
+            return null;
+        }
+
+        // Revenues here include transfers in and expenditures include transfers out, so each year's
+        // net is exactly the change in the ending balance a reader sees beside it.
+        List<OutlookYearDto> years = [.. rows.GroupBy(r => r.FiscalYear).OrderBy(g => g.Key).Select(g => new OutlookYearDto(
+            g.Key, g.Sum(r => r.Revenues + r.TransfersIn), g.Sum(r => r.Expenditures + r.TransfersOut), g.Sum(r => r.EndingBalance),
+            g.First().RevenuePercent, g.First().ExpenditurePercent))];
+        List<OutlookFundDto> funds = [.. rows.GroupBy(r => (r.FundCode, r.FundName)).Select(g => new OutlookFundDto(g.Key.FundCode, g.Key.FundName,
+            [.. g.Select(r => new OutlookFundYearDto(r.FiscalYear, r.BeginningBalance, r.Revenues, r.TransfersIn, r.Expenditures, r.TransfersOut, r.EndingBalance))]))];
+        return new OutlookDto(data.Snapshot.FiscalYear, years, funds);
+    }
+
     public async Task<IReadOnlyList<YearTotalsDto>> YearOverYearAsync(string slug, CancellationToken ct = default)
     {
         await using PublicPortalDbContext db = await dbFactory.CreateDbContextAsync(ct);

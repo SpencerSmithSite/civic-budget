@@ -47,6 +47,8 @@ public class MigrationTests(SqlServerFixture fixture)
             "PersonnelSettings.StandardHours", "PersonnelSettings.MedicareRate", "PersonnelSettings.WorkersCompRate",
             "RetirementPlans.EmployerRate", "RetirementPlans.EmployeeRate", "InsurancePlans.EmployeeSharePercent",
             "ExtraPay.Multiplier", "Positions.AnnualHours", "Positions.RaisePercent", "PositionFundShares.Percent",
+            "PlanAssumptions.RevenuePercent", "PlanAssumptions.ExpenditurePercent",
+            "PublishedBudgetSnapshotPlanYears.RevenuePercent", "PublishedBudgetSnapshotPlanYears.ExpenditurePercent",
         ];
         Assert.Empty(offenders.Except(rates));
     }

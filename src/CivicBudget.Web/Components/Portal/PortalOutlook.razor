@@ -1,0 +1,111 @@
+@page "/transparency/{Slug}/{Year:int}/outlook"
+@inject ISnapshotQueryService Snapshots
+
+@* The multi-year plan published with a budget. Only the first year is adopted; the rest show where the
+   government expects to be if its assumptions hold, which is what a resident asks about fund balances. *@
+<PageTitle>@(budget is null ? "Outlook" : $"Outlook, {budget.GovernmentName}")</PageTitle>
+
+@if (loaded && budget is null)
+{
+    <PortalNotFound />
+}
+else if (budget is not null)
+{
+    <PortalCrumbs Crumbs="@([new Crumb($"{Year} budget", Root), new Crumb("Outlook")])" />
+    <h1 class="pt-h1">Where is the budget heading?</h1>
+
+    @if (outlook is null)
+    {
+        <p class="pt-lead">The FY@(Year) budget was published without a plan for later years.</p>
+    }
+    else
+    {
+        OutlookYearDto last = outlook.Years[^1];
+        <p class="pt-lead">
+            FY@(outlook.BudgetYear) is the adopted budget. FY@(outlook.BudgetYear + 1) to FY@(last.FiscalYear) are the plan: an estimate of where
+            revenues, spending, and fund balances go if the assumptions below hold. Council does not appropriate them.
+        </p>
+
+        <section class="pt-section" aria-labelledby="outlook-totals">
+            <h2 id="outlook-totals" class="pt-q">All funds, year by year</h2>
+            <div class="cb-grid-wrap" tabindex="0" role="region" aria-label="Table of the plan by fiscal year">
+                <table class="cb-grid pt-grid">
+                    <caption class="visually-hidden">Revenues, spending, and ending balance of all funds by fiscal year, with the change assumed from the year before</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Fiscal year</th>
+                            <th scope="col" class="cb-num">Revenues and transfers in</th>
+                            <th scope="col" class="cb-num">Spending and transfers out</th>
+                            <th scope="col" class="cb-num">Ending balance</th>
+                            <th scope="col" class="cb-num">Assumed revenue change</th>
+                            <th scope="col" class="cb-num">Assumed spending change</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (OutlookYearDto y in outlook.Years)
+                        {
+                            bool budgetYear = y.FiscalYear == outlook.BudgetYear;
+                            <tr>
+                                <th scope="row" class="fw-normal">FY@(y.FiscalYear)@(budgetYear ? " (adopted)" : " (plan)")</th>
+                                <td class="cb-num">@Display.Money(y.Revenues)</td>
+                                <td class="cb-num">@Display.Money(y.Expenditures)</td>
+                                <td class="cb-num @(y.EndingBalance < 0 ? "cb-neg" : "")">@Display.SignedOrPlain(y.EndingBalance)</td>
+                                <td class="cb-num">@(budgetYear ? "" : Display.Percent(y.RevenuePercent))</td>
+                                <td class="cb-num">@(budgetYear ? "" : Display.Percent(y.ExpenditurePercent))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <p class="pt-muted mt-2">Each planned year starts from the year before and changes by the percentage shown, except amounts the government set by hand (a planned project, for example). Each fund's ending balance is the next year's beginning balance.</p>
+        </section>
+
+        <section class="pt-section" aria-labelledby="outlook-funds">
+            <h2 id="outlook-funds" class="pt-q">Ending balance by fund</h2>
+            <div class="cb-grid-wrap" tabindex="0" role="region" aria-label="Table of each fund's ending balance by fiscal year">
+                <table class="cb-grid pt-grid">
+                    <caption class="visually-hidden">Each fund's projected ending balance by fiscal year</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Fund</th>
+                            @foreach (OutlookYearDto y in outlook.Years)
+                            {
+                                <th scope="col" class="cb-num">FY@(y.FiscalYear)</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (OutlookFundDto fund in outlook.Funds)
+                        {
+                            <tr>
+                                <th scope="row" class="fw-normal"><a href="@Root/funds/@fund.FundCode">@fund.FundCode @fund.FundName</a></th>
+                                @foreach (OutlookFundYearDto y in fund.Years)
+                                {
+                                    <td class="cb-num @(y.EndingBalance < 0 ? "cb-neg" : "")">@Display.SignedOrPlain(y.EndingBalance)</td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public int Year { get; set; }
+
+    private PortalBudgetDto? budget;
+    private OutlookDto? outlook;
+    private bool loaded;
+
+    private string Root => $"/transparency/{Slug}/{Year}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        budget = await Snapshots.GetBudgetAsync(Slug, Year);
+        outlook = budget is null ? null : await Snapshots.GetOutlookAsync(Slug, Year);
+        loaded = true;
+    }
+}

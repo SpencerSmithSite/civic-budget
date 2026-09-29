@@ -43,8 +43,10 @@ public sealed class PublishingService(
             .Include(v => v.Lines).ThenInclude(l => l.Fund)
             .Include(v => v.Lines).ThenInclude(l => l.Department)
             .Include(v => v.Lines).ThenInclude(l => l.Account)
+            .Include(v => v.Lines).ThenInclude(l => l.PlannedAmounts) // the snapshot freezes the multi-year plan
             .Include(v => v.BeginningBalances)
             .Include(v => v.DepartmentRequests)
+            .Include(v => v.PlanAssumptions)
             .FirstOrDefaultAsync(v => v.Id == versionId, ct);
         if (version is null)
         {

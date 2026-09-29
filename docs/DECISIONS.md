@@ -1534,6 +1534,60 @@ pay for an audit yet, and to do my own:
   group rows became row-group headers, closing both partial passes.
 - Any new page should pass the sweep before it merges.
 
+## ADR-0044: A multi-year plan on each budget version: percentages per year, typed years, balances rolled forward
+**Date:** 2026-09-28 · **Status:** Accepted
+
+**Context.** An Ohio council adopts one year's appropriations, but councils and auditors ask where
+the funds are heading: will the Street fund run dry in three years, can the village afford the
+Maple Street project in 2029? Finance officers answer that today with a spreadsheet beside the
+budget. I wanted the plan in the budget itself: up to ten years (five by default) on both the
+revenue and expenditure side, each year worked out from the year before the way starting a new
+budget works from last year's amounts.
+
+**Decision.**
+- **The plan belongs to a budget version.** `BudgetVersion` holds `PlanYears` (1 to 10, counting
+  the budget year, so the default 5 is FY2027 to FY2031), `PlanInWholeDollars`, and one
+  `PlanAssumption` per future year with a revenue and an expenditure percentage. Revenue and
+  transfers in follow the revenue percentage; expenditures and transfers out follow the other.
+- **A typed year replaces the calculation.** `PlannedAmount` is a child of `BudgetLine` keyed by
+  year offset; the years after it follow from it. Clearing it goes back to the calculation. Only
+  future years can be typed; the budget year is the line's amount, typed in the worksheet.
+- **The arithmetic is pure.** `MultiYearPlanCalculator.Project` takes the lines, the rates, and the
+  beginning balances and returns every line's amounts and every fund's `FundBalanceSummary` per
+  year, rolling each ending balance into the next year's beginning balance. It reuses
+  `FundBalanceCalculator`, so each future year gets the same over-limit check as the budget year.
+  Nothing projected is stored; the page, the export, and the snapshot all call the calculator.
+- **Who may change what.** The percentages and length follow the fiscal authority rule and lock at
+  adoption, like the rest of the budget. A line's future years follow the same rule as its budget
+  year (`BudgetLinePermissions.CanEdit` with the department's submitted flag), so a department head
+  plans their own lines while their request is open and sees no fund totals.
+- **It carries forward.** An amendment copies the plan as it stands. Starting next year's budget
+  moves it on a year: old year 2 becomes year 1, typed amounts shift down, the old year 1's typed
+  amounts drop (that year is now the budget), and the new last year repeats the old last year's
+  percentages.
+- **Published with the budget.** `PublishedBudgetSnapshot.Capture` stores one
+  `PublishedBudgetSnapshotPlanYear` row per fund per year, with the year's percentages, so the
+  portal's Outlook page reads frozen numbers like every other portal page.
+
+**Alternatives.**
+- A separate "plan" record beside the budget: two things to keep in step, and no answer to which
+  plan went with which amendment.
+- One growth rate for everything: the user asked for revenue and expenditure separately, and a
+  single rate hides the structural gap the plan exists to show.
+- Storing every projected amount: thousands of rows that go stale the moment a budget-year amount
+  changes. Storing only the percentages and the typed years keeps the plan consistent by
+  construction.
+- Rates per account or per fund: more control, and much more to explain. Typed years cover the
+  exceptions (a project, a grant that ends).
+
+**Consequences.**
+- A version created before this change gets a five-year plan with no change from year to year until
+  someone sets the percentages. The seeded FY2025 budget is set to one year to show a budget
+  published without a plan.
+- The portal gains an Outlook page, and the portal context maps one more snapshot table.
+- Personnel lines are projected by percentage like any other line; positions are not repriced for
+  future years.
+
 ---
 
 ## Packages

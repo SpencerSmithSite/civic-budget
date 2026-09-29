@@ -1,0 +1,362 @@
+@page "/admin/budgets/{VersionId:guid}/plan"
+@attribute [Authorize(Policy = Policies.CanViewBudget)]
+@inject IBudgetPlanService Plans
+@inject ToastService Toasts
+
+@* The multi-year plan of one budget version: how each future year follows from the one before (the
+   fiscal officer's percentages), what that does to each fund's balance year by year, and every line in
+   every year, where a future year can be typed over. Only the budget year is appropriated. *@
+<PageTitle>@(plan is null ? "Multi-year plan" : $"FY{plan.BudgetYear} {plan.VersionLabel} plan")</PageTitle>
+
+@if (notFound)
+{
+    <PageHeader Title="Multi-year plan" Eyebrow="Budget" Crumbs="@([new Crumb("Budget"), new Crumb("Budget versions", "admin/budgets"), new Crumb("Plan")])" />
+    <EmptyState Icon="bi-question-circle" Title="Budget not found" Text="It may have been removed. Choose a budget from the versions list." />
+}
+else if (plan is null)
+{
+    <PageHeader Title="Multi-year plan" Eyebrow="Budget" Crumbs="@([new Crumb("Budget"), new Crumb("Budget versions", "admin/budgets"), new Crumb("Plan")])" />
+    <SkeletonRows Rows="8" Columns="6" />
+}
+else
+{
+    <PageHeader Title="Multi-year plan" Eyebrow="@($"Budget · FY{plan.BudgetYear} {plan.VersionLabel}")"
+                Crumbs="@([new Crumb("Budget"), new Crumb("Budget versions", "admin/budgets"), new Crumb($"FY{plan.BudgetYear} {plan.VersionLabel}", $"admin/budgets/{VersionId}"), new Crumb("Plan")])"
+                Tip="Only the budget year is appropriated. Each later year starts from the year before it, changed by that year's percentage; type over any line's year to set it yourself.">
+        <TitleAddon><StatusPill Budget="plan.Status" /></TitleAddon>
+        <Actions>
+            <a class="btn btn-outline-primary btn-sm" href="admin/export/budgets/@VersionId/plan.xlsx" download><i class="bi bi-file-earmark-spreadsheet me-1" aria-hidden="true"></i>Export XLSX</a>
+            <a class="btn btn-outline-primary btn-sm" href="admin/budgets/@VersionId">Back to the budget</a>
+        </Actions>
+    </PageHeader>
+
+    <p class="text-secondary small mb-3">
+        FY@(plan.BudgetYear) is the budget council adopts.
+        @if (plan.Years > 1)
+        {
+            <text>FY@(plan.BudgetYear + 1) to FY@(plan.BudgetYear + plan.Years - 1) plan ahead: they are not appropriations.</text>
+        }
+    </p>
+
+    <div class="card mb-3">
+        <div class="card-header"><h2 class="cb-card-title">How each year follows from the one before</h2></div>
+        <div class="card-body">
+            <ResultAlert Result="saveResult" />
+            @if (plan.CanEditAssumptions)
+            {
+                <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                    <div>
+                        <label class="form-label fw-semibold" for="plan-years">Plan length</label>
+                        <select id="plan-years" class="form-select" value="@years" @onchange="ChangeYears">
+                            @for (int n = 1; n <= BudgetVersion.MaxPlanYears; n++)
+                            {
+                                <option value="@n">@n year@(n == 1 ? "" : "s") (FY@(plan.BudgetYear) to FY@(plan.BudgetYear + n - 1))</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input type="checkbox" class="form-check-input" id="plan-whole" @bind="wholeDollars" />
+                        <label class="form-check-label" for="plan-whole">Round calculated years to whole dollars</label>
+                    </div>
+                </div>
+
+                @if (rates.Count > 0)
+                {
+                    <fieldset class="cb-plan-fill mb-3">
+                        <legend class="form-label fw-semibold mb-1">Same change every year</legend>
+                        <div class="d-flex flex-wrap align-items-end gap-2">
+                            <div><label class="form-label small mb-1" for="fill-revenue">Revenues and transfers in (%)</label><input id="fill-revenue" type="number" step="0.1" class="form-control form-control-sm" @bind="fillRevenue" /></div>
+                            <div><label class="form-label small mb-1" for="fill-expenditure">Expenditures and transfers out (%)</label><input id="fill-expenditure" type="number" step="0.1" class="form-control form-control-sm" @bind="fillExpenditure" /></div>
+                            <button type="button" class="btn btn-outline-primary btn-sm" @onclick="FillAll">Use for every year</button>
+                        </div>
+                    </fieldset>
+
+                    <div class="cb-grid-wrap cb-plan-rates">
+                        <table class="cb-grid cb-grid-tight" aria-label="Change from the year before">
+                            <thead><tr><th scope="col">Year</th><th scope="col" class="cb-num">Revenues and transfers in (%)</th><th scope="col" class="cb-num">Expenditures and transfers out (%)</th></tr></thead>
+                            <tbody>
+                                @foreach (RateRow row in rates)
+                                {
+                                    <tr>
+                                        <th scope="row" class="fw-normal">FY@(row.FiscalYear)</th>
+                                        <td class="cb-num"><input type="number" step="0.1" class="form-control form-control-sm text-end cb-plan-rate" aria-label="@($"FY{row.FiscalYear} change in revenues and transfers in, percent")" @bind="row.Revenue" /></td>
+                                        <td class="cb-num"><input type="number" step="0.1" class="form-control form-control-sm text-end cb-plan-rate" aria-label="@($"FY{row.FiscalYear} change in expenditures and transfers out, percent")" @bind="row.Expenditure" /></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                <div class="mt-3 d-flex align-items-center gap-3">
+                    <button type="button" class="btn btn-primary btn-sm" @onclick="SaveAsync" disabled="@saving">Save the plan</button>
+                    <span class="small text-secondary">Typed amounts are kept; every other year is worked out again.</span>
+                </div>
+            }
+            else if (plan.Rates.Count > 0)
+            {
+                <div class="cb-grid-wrap cb-plan-rates">
+                    <table class="cb-grid cb-grid-tight" aria-label="Change from the year before">
+                        <thead><tr><th scope="col">Year</th><th scope="col" class="cb-num">Revenues and transfers in</th><th scope="col" class="cb-num">Expenditures and transfers out</th></tr></thead>
+                        <tbody>
+                            @foreach (PlanRateDto rate in plan.Rates)
+                            {
+                                <tr><th scope="row" class="fw-normal">FY@(rate.FiscalYear)</th><td class="cb-num">@Display.Percent(rate.RevenuePercent)</td><td class="cb-num">@Display.Percent(rate.ExpenditurePercent)</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <p class="small text-secondary mt-2 mb-0">The Administrator or Fiscal Officer sets these.@(plan.WholeDollars ? " Calculated years round to whole dollars." : "")</p>
+            }
+            else
+            {
+                <p class="mb-0 text-secondary">This plan covers the budget year only.</p>
+            }
+        </div>
+    </div>
+
+    @if (plan.Funds.Count > 0)
+    {
+        <div class="card mb-3">
+            <div class="card-header"><h2 class="cb-card-title">Projected ending balance by fund</h2></div>
+            <div class="cb-grid-wrap">
+                <table class="cb-grid cb-grid-tight" aria-label="Projected ending balance by fund and year">
+                    <thead>
+                        <tr>
+                            <th scope="col">Fund</th>
+                            @foreach (int year in plan.FiscalYears)
+                            {
+                                <th scope="col" class="cb-num">FY@(year)</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (PlanFundDto fund in plan.Funds)
+                        {
+                            <tr>
+                                <th scope="row" class="fw-normal cb-wrap"><span class="cb-code">@fund.FundCode</span> @fund.FundName</th>
+                                @foreach (PlanFundYearDto year in fund.Years)
+                                {
+                                    <td class="cb-num @(year.OverLimit ? "text-danger fw-semibold" : "")">
+                                        @Display.Amount(year.EndingBalance)
+                                        @if (year.OverLimit)
+                                        {
+                                            <div class="small fw-normal">Over by @Display.Money(year.AmountOverLimit)</div>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th scope="row">All funds</th>
+                            @for (int i = 0; i < plan.Years; i++)
+                            {
+                                int index = i;
+                                <td class="cb-num">@Display.Amount(plan.Funds.Sum(f => f.Years[index].EndingBalance))</td>
+                            }
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            @if (plan.Funds.Any(f => f.Years.Any(y => y.OverLimit)))
+            {
+                <div class="card-body pt-2 pb-3 small text-danger" role="status">
+                    @(string.Join("; ", plan.Funds.Where(f => f.Years.Any(y => y.OverLimit)).Select(f => $"Fund {f.FundCode} spends more than it has in FY{string.Join(", FY", f.Years.Where(y => y.OverLimit).Select(y => y.FiscalYear))}")))
+                </div>
+            }
+        </div>
+    }
+
+    <div class="card">
+        <div class="card-header"><h2 class="cb-card-title">Every line, year by year</h2></div>
+        <div class="card-body pb-0">
+            <div class="cb-toolbar mb-3">
+                <select class="form-select" aria-label="Filter by fund" @bind="fundFilter">
+                    <option value="">All funds</option>
+                    @foreach (var fund in plan.Lines.Select(l => (l.FundCode, l.FundName)).Distinct())
+                    {
+                        <option value="@fund.FundCode">@fund.FundCode @fund.FundName</option>
+                    }
+                </select>
+                <select class="form-select" aria-label="Filter by department" @bind="departmentFilter">
+                    <option value="">All programs</option>
+                    @foreach (var department in plan.Lines.Where(l => l.DepartmentCode is not null).Select(l => (l.DepartmentCode, l.DepartmentName)).Distinct().OrderBy(d => d.DepartmentCode))
+                    {
+                        <option value="@department.DepartmentCode">@department.DepartmentCode @department.DepartmentName</option>
+                    }
+                </select>
+            </div>
+        </div>
+        @if (visible.Count == 0)
+        {
+            <EmptyState Icon="bi-funnel" Title="No lines match" Text="Clear a filter to see more." />
+        }
+        else
+        {
+            <div class="cb-grid-wrap">
+                <table class="cb-grid" aria-label="Budget lines by year">
+                    <thead>
+                        <tr>
+                            <th scope="col">Account</th>
+                            @foreach (int year in plan.FiscalYears)
+                            {
+                                <th scope="col" class="cb-num">FY@(year)@(year == plan.BudgetYear ? " budget" : "")</th>
+                            }
+                        </tr>
+                    </thead>
+                    @foreach (IGrouping<string, PlanLineDto> group in visible.GroupBy(GroupTitle))
+                    {
+                        <tbody @key="group.Key">
+                            <tr class="cb-group"><th scope="rowgroup" colspan="@(plan.Years + 1)">@group.Key</th></tr>
+                            @foreach (PlanLineDto line in group)
+                            {
+                                <tr @key="line.LineId">
+                                    <th scope="row" class="cb-wrap fw-normal"><span class="cb-code">@line.AccountNumber</span> @line.AccountName</th>
+                                    <td class="cb-num">@Display.Amount(line.Amounts[0])</td>
+                                    @for (int i = 1; i < plan.Years; i++)
+                                    {
+                                        int offset = i;
+                                        int fiscalYear = plan.BudgetYear + offset;
+                                        <td class="cb-num">
+                                            <AmountCell Value="line.Amounts[offset]" CanEdit="line.CanEdit"
+                                                        Label="@($"FY{fiscalYear} plan for {line.AccountNumber} {line.AccountName}")"
+                                                        ValueChanged="amount => SetAsync(line, offset, amount)" />
+                                            @if (line.Typed[offset])
+                                            {
+                                                @if (line.CanEdit)
+                                                {
+                                                    <button type="button" class="cb-plan-reset" @onclick="() => SetAsync(line, offset, null)"
+                                                            aria-label="@($"Typed amount. Use the calculated FY{fiscalYear} amount for {line.AccountNumber} instead")">typed · reset</button>
+                                                }
+                                                else
+                                                {
+                                                    <span class="cb-plan-reset">typed</span>
+                                                }
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    }
+                </table>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter]
+    public Guid VersionId { get; set; }
+
+    // A department's request page links here with its code, so the lines open on that department.
+    [SupplyParameterFromQuery(Name = "department")]
+    public string? Department { get; set; }
+
+    private sealed class RateRow
+    {
+        public int YearOffset { get; init; }
+        public int FiscalYear { get; init; }
+        public decimal Revenue { get; set; }
+        public decimal Expenditure { get; set; }
+    }
+
+    private BudgetPlanDto? plan;
+    private Guid loadedFor;
+    private bool notFound;
+    private bool saving;
+    private Result? saveResult;
+    private int years;
+    private bool wholeDollars;
+    private List<RateRow> rates = [];
+    private decimal fillRevenue;
+    private decimal fillExpenditure;
+    private string fundFilter = "";
+    private string departmentFilter = "";
+
+    private List<PlanLineDto> visible => plan is null ? [] : [.. plan.Lines
+        .Where(l => fundFilter == "" || l.FundCode == fundFilter)
+        .Where(l => departmentFilter == "" || l.DepartmentCode == departmentFilter)];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (loadedFor != VersionId)
+        {
+            loadedFor = VersionId;
+            departmentFilter = Department ?? "";
+            await LoadAsync(resetForm: true);
+        }
+    }
+
+    private async Task LoadAsync(bool resetForm)
+    {
+        plan = await Plans.GetAsync(VersionId);
+        notFound = plan is null;
+        if (plan is not null && resetForm)
+        {
+            years = plan.Years;
+            wholeDollars = plan.WholeDollars;
+            rates = [.. plan.Rates.Select(r => new RateRow { YearOffset = r.YearOffset, FiscalYear = r.FiscalYear, Revenue = r.RevenuePercent, Expenditure = r.ExpenditurePercent })];
+        }
+    }
+
+    // A longer plan adds years that start from the last year's percentages; a shorter one drops the extra rows.
+    private void ChangeYears(ChangeEventArgs e)
+    {
+        if (plan is null || !int.TryParse(e.Value?.ToString(), out int chosen))
+        {
+            return;
+        }
+
+        years = chosen;
+        RateRow? last = rates.LastOrDefault();
+        rates = [.. rates.Where(r => r.YearOffset < years)];
+        for (int offset = rates.Count + 1; offset < years; offset++)
+        {
+            rates.Add(new RateRow { YearOffset = offset, FiscalYear = plan.BudgetYear + offset, Revenue = last?.Revenue ?? 0m, Expenditure = last?.Expenditure ?? 0m });
+        }
+    }
+
+    private void FillAll()
+    {
+        foreach (RateRow row in rates)
+        {
+            row.Revenue = fillRevenue;
+            row.Expenditure = fillExpenditure;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        saving = true;
+        saveResult = await Plans.SavePlanAsync(new SavePlanRequest(VersionId, years, wholeDollars,
+            [.. rates.Select(r => new PlanRateDto(r.YearOffset, r.FiscalYear, r.Revenue, r.Expenditure))]));
+        saving = false;
+        if (saveResult.IsSuccess)
+        {
+            saveResult = null;
+            Toasts.Success("Plan saved.");
+            await LoadAsync(resetForm: true);
+        }
+    }
+
+    private async Task SetAsync(PlanLineDto line, int offset, decimal? amount)
+    {
+        Result result = await Plans.SetPlannedAmountAsync(VersionId, line.LineId, offset, amount);
+        if (result.IsSuccess)
+        {
+            Toasts.Success(amount is null ? "Back to the calculated amount." : "Plan saved.");
+        }
+        else
+        {
+            Toasts.Danger(result.Errors[0].Message);
+        }
+
+        await LoadAsync(resetForm: false);
+    }
+
+    private static string GroupTitle(PlanLineDto line) =>
+        $"{line.FundCode} {line.FundName} · {(line.DepartmentCode is null ? (line.AccountType.IsResource() ? "Revenues and transfers in" : "Fund level") : $"{line.DepartmentCode} {line.DepartmentName}")}";
+}

@@ -3673,3 +3673,47 @@ table.pt-grid th[scope="row"] a {
     box-shadow: 0 8px 28px rgba(15, 42, 68, 0.25);
     font-size: 0.9375rem;
 }
+
+/* ---- Multi-year plan ------------------------------------------------------------------------ */
+
+/* Under a typed future year: says it was typed, and (for someone who may edit it) goes back to the
+   calculation. A plain button styled as a small link so it sits under the amount like the positions note. */
+.cb-plan-reset {
+    display: block;
+    margin-left: auto;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-size: 0.75rem;
+    color: var(--cb-teal);
+    text-align: right;
+    white-space: nowrap;
+}
+
+/* WCAG 2.5.8: a button at least 24px tall, however small its text. */
+button.cb-plan-reset {
+    min-height: 1.5rem;
+}
+
+button.cb-plan-reset:hover {
+    text-decoration: underline;
+}
+
+.cb-plan-rate {
+    width: 6.5rem;
+    margin-left: auto;
+}
+
+.cb-plan-fill {
+    border: 0;
+    padding: 0;
+}
+
+.cb-plan-fill .form-control {
+    width: 8rem;
+}
+
+/* A handful of years and two percentages: kept narrow so each year's pair reads as one row. */
+.cb-plan-rates {
+    max-width: 40rem;
+}
