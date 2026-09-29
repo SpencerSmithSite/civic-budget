@@ -1,14 +1,25 @@
-// Records the three silent clips on the product site (spencersmith.site/CivicBudget): a department
-// moving a line and submitting, the fiscal officer bringing the Street fund within its limit, and
-// the public portal on a phone. Each ends saved, so reseed before recording again.
+// Records the silent clips on the product site (spencersmith.site/CivicBudget): a department
+// moving a line and submitting, the fiscal officer bringing the Street fund within its limit, the
+// public portal on a phone, the multi-year plan, the assistant proposing a change that the fiscal
+// officer confirms, and a resident asking the portal a question. Each ends saved, so reseed before
+// recording again. The assistant and question clips need a model (Assistant:ApiKey in user-secrets).
 // From the repo root, with a freshly seeded app running and Playwright set up (see mobile-sweep.mjs):
 //   dotnet run --project src/CivicBudget.Web -- --reseed
 //   BASE=http://localhost:5000 PW=<Seed:DemoPassword> OUT=/tmp/clips node scripts/screenshots/site-clips.mjs
-// ONLY=worksheet|department|portal records one. Then encode each for the site, trimming the page load
-// (the .start file holds the second to cut from) and cropping the admin sidebar:
+// ONLY=worksheet|department|portal|plan|assistant|ask records one. Then encode each for the site,
+// trimming the page load (the .start file holds the second to cut from) and cropping the admin sidebar:
 //   ffmpeg -ss $(cat worksheet.start) -i worksheet.webm -vf "crop=1200:900:240:0,fps=30" -c:v libx264 -preset slow -crf 27 -pix_fmt yuv420p -movflags +faststart -an worksheet.mp4
 //   ffmpeg -ss $(cat portal.start) -i portal.webm -vf fps=30 -c:v libx264 -preset slow -crf 25 -pix_fmt yuv420p -movflags +faststart -an portal.mp4
 // and a poster from the first frame (same -ss and crop, -frames:v 1, then cwebp -q 80).
+// The assistant and ask clips also write a .wait file: the seconds (from the trimmed start) while the
+// model was answering, which the site shows eight times faster, and its caption says so:
+// Trim by absolute times, with split, and no -ss before the input: a seek plus the same input used
+// three times loses the end of a clip whose page changes after a navigation.
+//   s=$(cat assistant.start); read from to < assistant.wait; f=$(echo "$s+$from" | bc); t=$(echo "$s+$to" | bc)
+//   ffmpeg -i assistant.webm -filter_complex \
+//     "[0:v]split=3[x][y][z];[x]trim=$s:$f,setpts=PTS-STARTPTS[a];[y]trim=$f:$t,setpts=(PTS-STARTPTS)/8[b];[z]trim=start=$t,setpts=PTS-STARTPTS[c];[a][b][c]concat=n=3:v=1,crop=1200:900:240:0,fps=30" \
+//     -c:v libx264 -preset slow -crf 27 -pix_fmt yuv420p -movflags +faststart -an assistant.mp4
+// (ask.mp4 the same way without the crop, at -crf 25.)
 import { chromium } from 'playwright';
 import fs from 'node:fs';
 const base = process.env.BASE ?? 'http://localhost:5000', pw = process.env.PW, out = process.env.OUT;
@@ -46,12 +57,17 @@ async function record(name, viewport, storageState, extra, script) {
   await ctx.addInitScript(cursor);
   const p = await ctx.newPage();
   const t0 = Date.now(); let start = 0;
-  const mark = () => { start = (Date.now() - t0) / 1000; };
+  const now = () => (Date.now() - t0) / 1000;
+  const mark = () => { start = now(); };
+  // The model's thinking time, from and to, measured from the trimmed start.
+  const waited = [];
+  mark.wait = async (until) => { const from = now(); await until(); waited.push(from - start, now() - start); };
   await script(p, mark);
   await ctx.close();
   const file = fs.readdirSync(dir)[0];
   fs.renameSync(`${dir}/${file}`, `${out}/${name}.webm`);
   fs.writeFileSync(`${out}/${name}.start`, String(start));
+  if (waited.length) fs.writeFileSync(`${out}/${name}.wait`, waited.map(s => s.toFixed(2)).join(' '));
   console.log(name, 'recorded, trim from', start.toFixed(1), 's');
 }
 
@@ -129,4 +145,67 @@ if (!only || only === 'portal') {
     await scroll(4); await p.waitForTimeout(2200);
   });
 }
+if (!only || only === 'plan') {
+  const finance = await signedIn('finance@mapleridge.example', { width: 1440, height: 900 });
+  await record('plan', { width: 1440, height: 900 }, finance, {}, async (p, mark) => {
+    await p.goto(`${base}/admin/budgets/${version}/plan`, { waitUntil: 'networkidle' });
+    // The assumptions at the top, the balances by fund below them, both in view.
+    await p.evaluate(() => scrollTo(0, 250)); await p.mouse.move(900, 300); await p.waitForTimeout(600);
+    mark(); await p.waitForTimeout(1600);
+    for (const [id, value] of [['#fill-revenue', '4'], ['#fill-expenditure', '3']]) {
+      const field = p.locator(id);
+      await glide(p, field, 25); await field.click(); await field.press('ControlOrMeta+a');
+      await field.pressSequentially(value, { delay: 180 }); await p.waitForTimeout(400);
+    }
+    const fill = p.getByRole('button', { name: 'Use for every year' });
+    await glide(p, fill, 25); await fill.click(); await p.waitForTimeout(900);
+    const save = p.getByRole('button', { name: 'Save the plan' });
+    await glide(p, save, 25); await save.click(); await p.waitForTimeout(1200);
+    await p.mouse.move(1180, 840, { steps: 25 }); await p.waitForTimeout(3800);
+  });
+}
+
+if (!only || only === 'assistant') {
+  const finance = await signedIn('finance@mapleridge.example', { width: 1440, height: 900 });
+  await record('assistant', { width: 1440, height: 900 }, finance, {}, async (p, mark) => {
+    await p.goto(`${base}/admin/budgets/${version}`, { waitUntil: 'networkidle' });
+    const search = p.getByLabel('Search lines');
+    await search.fill('utilities'); await p.waitForTimeout(800); await p.mouse.move(700, 300);
+    mark(); await p.waitForTimeout(1500);
+    const toggle = p.locator('.cb-assistant-toggle');
+    await glide(p, toggle, 30); await toggle.click(); await p.waitForTimeout(700);
+    const box = p.locator('#assistant-question');
+    await glide(p, box, 20); await box.click();
+    await box.pressSequentially('Raise utilities 5% in this budget.', { delay: 55 }); await p.waitForTimeout(300);
+    await box.press('Enter');
+    await mark.wait(() => p.locator('#assistant-panel .cb-proposal').waitFor({ timeout: 120000 }));
+    await p.evaluate(() => document.querySelector('#assistant-panel .cb-proposal')?.scrollIntoView({ block: 'center', behavior: 'smooth' }));
+    await p.waitForTimeout(3200);
+    const confirm = p.locator('#assistant-panel .cb-proposal-actions .btn-primary');
+    await glide(p, confirm, 30); await p.waitForTimeout(300); await confirm.click();
+    await p.locator('#assistant-panel .cb-proposal-status .text-success').waitFor({ timeout: 30000 });
+    await p.waitForTimeout(1000);
+    // The page beneath was rebuilt with the new amounts; find the same lines again.
+    const again = p.getByLabel('Search lines');
+    await glide(p, again, 30); await again.click(); await again.pressSequentially('utilities', { delay: 90 });
+    await p.waitForTimeout(3600);
+  });
+}
+
+if (!only || only === 'ask') {
+  await record('ask', { width: 390, height: 844 }, undefined, { ctx: { isMobile: true, hasTouch: true } }, async (p, mark) => {
+    await p.goto(`${base}/transparency/maple-ridge-oh/2026/ask`, { waitUntil: 'networkidle' }); await p.waitForTimeout(800);
+    mark(); await p.waitForTimeout(1400);
+    const box = p.locator('#question');
+    await box.scrollIntoViewIfNeeded(); await box.tap();
+    await box.pressSequentially('Where does the money for roads come from?', { delay: 60 }); await p.waitForTimeout(500);
+    await mark.wait(() => Promise.all([p.waitForNavigation({ timeout: 120000 }), p.locator('.pt-ask button[type=submit]').tap()]));
+    // Start at the top of the answer (the question it repeats), then read down through it.
+    await p.evaluate(() => document.querySelector('.pt-answer')?.scrollIntoView({ block: 'start' }));
+    await p.waitForTimeout(4200);
+    for (let i = 0; i < 8; i++) { await p.mouse.wheel(0, 45); await p.waitForTimeout(380); }
+    await p.waitForTimeout(2400);
+  });
+}
+
 await b.close();

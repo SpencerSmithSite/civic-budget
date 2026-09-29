@@ -58,6 +58,13 @@ Three silent clips, recorded by Playwright from a freshly seeded copy of the app
 3. **Portal:** on a phone, the overview, the General Fund, and the Police department's own
    narrative.
 
+*Since Phase 38:* the site leads with the AI assistant and forecasting, in two new sections, and
+three more clips: the assistant proposing a utilities raise that the fiscal officer confirms, a
+resident asking the portal where road money comes from, and the multi-year plan rolling every
+fund forward. In the two AI clips the model's few seconds of thinking play eight times faster,
+and the captions say so; `site-clips.mjs` records when the wait starts and ends so the encoder
+can speed up just that stretch.
+
 A few things I learned making them:
 - **Headless recordings have no cursor.** Clicks look like magic, so the script injects a small
   pointer that follows the mouse and moves it in steps.

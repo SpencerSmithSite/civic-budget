@@ -15,7 +15,8 @@ ERP rather than replace it, and every non-obvious decision is written down. All 
 fictional (the Village of Maple Ridge and Pine Hollow Township do not exist).
 
 The product site is **[spencersmith.site/CivicBudget](https://spencersmith.site/CivicBudget/)**:
-what it does, three short clips of it working, the security summary, and the demo logins.
+what it does, short clips of it working (the AI assistant and forecasting among them), the
+security summary, and the demo logins.
 
 It has two halves:
 
@@ -24,10 +25,42 @@ It has two halves:
   narrative and submits it, seeing this year's spending from the ERP beside each line; the fiscal officer sees live fund balances against the Ohio
   appropriation limit, moves the budget from draft to proposed to adopted, sends the adopted
   budget to the ERP with one button, amends it mid-year, imports and exports spreadsheets, prints reports, and publishes. Every change is
-  in an audit trail.
+  in an audit trail. Each budget carries a **five-year plan**, and this year's actuals are
+  **projected to year end** by last year's pattern. An **AI assistant** beside every page
+  answers questions, finds pages, reviews the budget, and drafts changes that only the user's
+  click makes.
 - **The public transparency portal**, for citizens. No sign-in, fast, readable on a phone,
   and no JavaScript at all. It shows only what was published: where the money comes from,
-  where it goes, each fund and department, year over year, search, and downloads.
+  where it goes, each fund and department, year over year, the multi-year outlook, search, and
+  downloads, and a **question box** that answers residents from the published budget and
+  nothing else.
+
+## AI and forecasting
+
+The newest work, and the part I would show first.
+
+- **An assistant that acts as you.** Its tools are the same Application services the pages
+  call, run as the signed-in user, so it sees what you can see and nothing more. Ask how the
+  year is going, and it reads budget against actual; ask "check my budget," and it lists what
+  must be fixed before council. ([ADR-0047](docs/DECISIONS.md#adr-0047-an-assistant-that-acts-only-through-the-application-services-as-the-signed-in-user))
+- **Changes you confirm.** "Raise utilities 5%," "build a five-year plan at 4% a year," "fix the
+  Street fund": each comes back as a card with every line before and after. No tool can commit;
+  only the card's button does, once, and a stale preview is refused whole. ([ADR-0048](docs/DECISIONS.md#adr-0048-the-assistant-proposes-only-the-users-click-commits))
+- **A public question box that cannot leak.** Residents ask the portal in their own words. Its
+  tools read only that government's published snapshot, so drafts, spending to date, and people
+  are not there to find; it says so, gives no opinions, and works without JavaScript. ([ADR-0049](docs/DECISIONS.md#adr-0049-a-question-box-on-the-portal-that-knows-only-the-published-budget))
+- **Five years ahead, and this year on pace.** A multi-year plan on every budget rolls each
+  fund's balance forward with the Ohio limit checked every year, and is published as an outlook.
+  This year's actuals from the ERP are paced by last year at the same month, so August's property
+  tax is not mistaken for a windfall. ([ADR-0044](docs/DECISIONS.md#adr-0044-a-multi-year-plan-on-each-budget-version-percentages-per-year-typed-years-balances-rolled-forward), [ADR-0037](docs/DECISIONS.md#adr-0037-reports-on-the-erps-books-are-paced-by-last-year-and-the-appropriation-measures-columns-are-settings))
+
+| The assistant, beside a report | A change, proposed and waiting for a click |
+|---|---|
+| ![Budget vs. Actual with the assistant open: asked how actuals compare so far this year, it answers that 70.5% of the $3,359,604.00 budget is used against 66.5% by the same month last year, goes fund by fund, names Capital Projects as the one to watch, links the report, and says what it looked at](docs/screenshots/admin-assistant.png) | ![The FY2027 worksheet with the assistant's card for "Raise utilities 5% in this budget": six utilities lines with their current and proposed amounts, $220,139.00 becoming $231,145.95, and Change 6 lines and Cancel buttons; nothing has changed yet](docs/screenshots/admin-assistant-proposal.png) |
+| **A resident's question on the portal** | **The multi-year plan** |
+| ![The portal's Ask a question page: asked about the police budget, the answer gives $986,213.00, up $49,113.00 from $937,100.00, the lines behind it, the department's own published notes, a reminder that these are budgeted amounts, and a link to the Police page](docs/screenshots/portal-ask.png) | ![The FY2027 multi-year plan: yearly revenue and spending percentages for FY2028 to FY2031, and each fund's projected ending balance to FY2031, with the Street and Capital Projects funds flagged in the years they would overspend](docs/screenshots/admin-plan.png) |
+| **This year, projected to year end** | **The outlook residents see** |
+| ![Projected Fund Balances through August 31, 2026: for each fund, budgeted and projected receipts and spending and the budgeted and projected ending balance; all funds end $119,624.88 better than budgeted](docs/screenshots/admin-report-projection.png) | ![The portal's outlook: FY2026 adopted and FY2027 to FY2030 as the plan, with totals, ending balances, the assumed changes, and each fund's ending balance by year](docs/screenshots/portal-outlook.png) |
 
 ## What it looks like
 
@@ -60,7 +93,8 @@ On a phone, the portal and the admin app both work at 390 px without sideways sc
 
 </details>
 
-The screenshots are regenerated by `scripts/screenshots/capture.mjs` from fresh seed data.
+The screenshots are regenerated by `scripts/screenshots/capture.mjs` from fresh seed data, and the
+AI and forecasting ones by `scripts/screenshots/capture-ai.mjs` (it needs a model connected).
 
 ## Try the live demo
 
@@ -76,14 +110,14 @@ All the demo logins share one password, published here on purpose: **`Demo-Bpe1G
 
 | Login | Role | What to try |
 |---|---|---|
-| `finance@mapleridge.example` | Fiscal Officer | The whole budget: the FY2027 draft (the Street fund is over its limit on purpose), the department board, workflow, amendments, publishing, import, reports, Setup, Actuals sync to fetch a year from the simulated ERP, and the FY2026 amendment's Send to ERP |
+| `finance@mapleridge.example` | Fiscal Officer | The **Assistant** in the top bar: "How are actuals compared to our budget so far this year?", "Check my budget before I propose it", "Raise utilities 5% in this budget" (then confirm the card); the FY2027 **Plan**; the whole budget: the FY2027 draft (the Street fund is over its limit on purpose), the department board, workflow, amendments, publishing, import, reports, Setup, Actuals sync to fetch a year from the simulated ERP, and the FY2026 amendment's Send to ERP |
 | `police@mapleridge.example` | Department User | Lands on the Police department's request, which is already submitted and so locked |
 | `streets@mapleridge.example` | Department User | Streets & Service, still being entered; Parks & Recreation, returned with a note from the fiscal officer |
 | `admin@mapleridge.example` | Administrator | Everything the Fiscal Officer can do, plus users, government settings, and the logo |
 | `viewer@mapleridge.example` | Viewer | Read-only |
 | `admin@pinehollow.example` | Administrator of a second government | Pine Hollow Township only: proof that one government never sees another's data |
 
-The public portal needs no login: [Village of Maple Ridge](https://civicbudget-app.ashysmoke-cd0f52a4.centralus.azurecontainerapps.io/transparency/maple-ridge-oh).
+The public portal needs no login: [Village of Maple Ridge](https://civicbudget-app.ashysmoke-cd0f52a4.centralus.azurecontainerapps.io/transparency/maple-ridge-oh). Try its **Outlook** and **Ask a question**.
 
 The AI features are switched on for Maple Ridge: the **Assistant** button in the top bar (ask
 "how are actuals compared to our budget so far this year?" or "raise utilities 5% in the FY2027
@@ -222,6 +256,18 @@ that would have been wrong.
   the pages call, run as the signed-in user, so a department head's assistant sees a department
   head's data and nothing else; the model never touches the database. Off until a government's
   Administrator turns it on. ([ADR-0047](docs/DECISIONS.md#adr-0047-an-assistant-that-acts-only-through-the-application-services-as-the-signed-in-user), [Walkthrough 35](docs/walkthroughs/35-assistant.md))
+- **An AI that can change the budget, but only when you click.** The assistant proposes; a card
+  shows every line before and after; only the card's button, which the model cannot reach,
+  commits. The commit goes through the page's own service, a line that moved since the preview
+  refuses the whole change, and arithmetic like "cut the Street fund to its limit" is code, not
+  the model. Testing against a real model found what the scripted tests could not, including a
+  cent that moved between reseeds. ([ADR-0048](docs/DECISIONS.md#adr-0048-the-assistant-proposes-only-the-users-click-commits), [Walkthrough 36](docs/walkthroughs/36-assistant-actions.md))
+- **A public chatbot that cannot say what was never published.** The portal's question box reads
+  only the published snapshot of one government, through the portal's own read-only context, so
+  a draft or a salary cannot leak however the question is worded. It works without JavaScript,
+  refuses a question before touching the database when no model is connected (so the free demo
+  database can still sleep), and caps questions per address and per month with one atomic
+  update. ([ADR-0049](docs/DECISIONS.md#adr-0049-a-question-box-on-the-portal-that-knows-only-the-published-budget), [Walkthrough 37](docs/walkthroughs/37-portal-questions.md))
 
 ## Run it locally
 
@@ -321,8 +367,10 @@ deployed; it shows the production-shaped design. See [infra/README.md](infra/REA
    [32 The multi-year plan](docs/walkthroughs/32-multi-year-plan.md) ·
    [33 The ERP partner kit](docs/walkthroughs/33-erp-partner-kit.md) ·
    [34 The printable budget book](docs/walkthroughs/34-budget-book.md) ·
-   [35 The assistant](docs/walkthroughs/35-assistant.md)
-4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 47 decision records, each
+   [35 The assistant](docs/walkthroughs/35-assistant.md) ·
+   [36 The assistant proposes, you confirm](docs/walkthroughs/36-assistant-actions.md) ·
+   [37 Questions from the public](docs/walkthroughs/37-portal-questions.md)
+4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 49 decision records, each
    with the alternatives I turned down, and the table of every package and why it is there.
 5. Then the code, starting at `src/CivicBudget.Domain/Budgets/BudgetVersion.cs`, the heart of it.
 
