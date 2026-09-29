@@ -430,6 +430,17 @@ Each budget version carries a plan of 1 to 10 years (5 by default), counting the
 - **Carried:** an amendment copies the plan; starting next year's budget moves it on a year.
 - **Published:** the snapshot keeps each fund's plan by year, shown on the portal's Outlook page.
 
+### 3.21 Connecting an ERP
+Every exchange with the ERP has a file form and an API form: the chart of accounts, a year's
+actuals, and the payroll roster come in; the budget journal goes out.
+- **Published API:** version 1, described in `docs/partners/openapi.json`, with an integration guide
+  and the file layouts beside it. An ERP that implements it connects by configuration.
+- **Connections:** set by the operator per government (address, key, and the ERP's id for the
+  government) in the secret store, never the database or a page. HTTPS only.
+- **Who sees what:** a government with a connection gets Fetch and Send buttons beside the files;
+  one without keeps the files alone.
+- **Reference ERP:** a small server implementing the API on demo data, for vendors and for tests.
+
 ## 4. Workflow
 
 ```
@@ -697,6 +708,7 @@ prove tenant isolation in the tests and in the demo.
 | §3.17 Employees from the ERP, personnel reports | 27 | ADR-0039; simulated payroll in the demo |
 | §3.18 Email, two-step sign-in, onboarding | 28 | ADR-0040; the demo keeps email in its outbox |
 | §3.19 Security, sessions, a government's data | 29 | ADR-0041; controls mapped in `docs/security` |
+| §3.21 Connecting an ERP | 34 | ADR-0045; a reference ERP in `samples/` |
 | §3.20 Multi-year plan | 33 | ADR-0044; nothing projected is stored except in the snapshot |
 | §4 Workflow, §5 Validation | 4 | Block or Warn at the transition |
 | §6 Publishing | 4, 5, 18 | Denormalized snapshots (ADR-0005, 0019); read-only portal context (ADR-0006); cache evicted by tag (ADR-0021) |

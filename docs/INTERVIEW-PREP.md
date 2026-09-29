@@ -1598,3 +1598,49 @@ submitted flag decides whether a future year can be typed, and the service filte
 the user's departments and returns no fund totals. The rule lives in one place, so the plan cannot
 drift from the worksheet.
 **Look at:** `BudgetPlanService`, `BudgetPlanServiceTests`.
+
+## Phase 34: ERP partner kit
+
+### Q: How would an ERP vendor connect to CivicBudget?
+**A:** They build four endpoints to a published OpenAPI description: the chart, a year's actuals,
+the payroll roster, and a budget journal post. CivicBudget already has the client, one HTTP
+adapter that works with any ERP implementing the API, so the connection is configuration (an
+address and a key per government), not code. There is also a file form of every exchange for ERPs
+without an API, and a small reference ERP that implements the API so a vendor can see it working.
+**Look at:** `docs/partners/README.md`, `HttpErpAdapter`, `samples/CivicBudget.ReferenceErp`.
+
+### Q: How do you keep a hand-written OpenAPI file from drifting from the code?
+**A:** A test reads the document and compares each schema with its C# record: the property names,
+which are required (a constructor parameter without a default), and which may be null (from the
+nullability annotations). It compares each enumeration with the C# enum, checks every `$ref`
+resolves, and reads every sample through the real code with unknown fields refused. I proved it
+bites by breaking the document four ways; each failed.
+**Look at:** `ErpApiContractTests`.
+
+### Q: Why separate wire records instead of serializing your contracts?
+**A:** The Application contracts are internal and change with the product; the API is a promise to
+vendors. With separate records, renaming a C# property cannot silently rename a JSON field, and a
+v2 would be a second set of records beside the first.
+**Look at:** `ErpApiContract.cs`.
+
+### Q: What happens when the ERP doesn't answer a budget journal post?
+**A:** Nobody knows whether it posted, so the adapter throws instead of guessing. The send service
+marks the send failed but open, and a retry sends the same journal id, in the body and in an
+`Idempotency-Key` header, which the ERP must recognize and answer with the first answer. A clear
+refusal (422 with the refused accounts, or a bad key) is different: nothing posted, so it comes
+back as a refusal the Fiscal Officer can act on.
+**Look at:** `HttpErpAdapter.PostBudgetJournalAsync`, `BudgetTransmissionService.PostAsync`.
+
+### Q: Where do ERP keys live, and why not in the database?
+**A:** In configuration, which in the cloud is the platform's secret store, keyed by government id.
+A key opens a government's books and payroll; in the database it would be in every backup and
+export and in reach of anything that can read a table. The app validates connections at startup
+(HTTPS only, a key present) and never logs call bodies.
+**Look at:** `ErpConnectionsOptions`, `ErpConnectionsOptionsValidator`.
+
+### Q: Why is the JSON reading strict about missing fields but relaxed about extra ones?
+**A:** A missing amount read as zero would build a budget on a number nobody sent, so missing
+required fields and nulls where none are allowed are refused (`RespectRequiredConstructorParameters`,
+`RespectNullableAnnotations`). Extra fields are ignored so an ERP can grow its answers without
+breaking CivicBudget.
+**Look at:** `ErpApiContract.Json`.

@@ -1,0 +1,62 @@
+{
+  "funds": [
+    {
+      "code": "1000",
+      "name": "General Fund",
+      "category": "General",
+      "active": true,
+      "description": "Pays for day-to-day village services (police, administration, parks, and zoning), mostly from income and property taxes."
+    },
+    {
+      "code": "2011",
+      "name": "Street Construction, Maintenance & Repair",
+      "category": "SpecialRevenue",
+      "active": true,
+      "description": "State gasoline tax and vehicle license fees that, by law, may only be spent on streets."
+    }
+  ],
+  "departments": [
+    {
+      "code": "715",
+      "name": "Council & Mayor",
+      "active": true,
+      "description": "The elected legislative and executive offices of the village."
+    },
+    {
+      "code": "725",
+      "name": "Finance",
+      "active": true,
+      "description": "The Fiscal Officer's department: accounting, payroll, budgeting, and the annual audit."
+    }
+  ],
+  "objects": [
+    {
+      "code": "4110",
+      "name": "Real Estate Taxes",
+      "type": "Revenue",
+      "category": "Taxes",
+      "active": true
+    },
+    {
+      "code": "5110",
+      "name": "Salaries & Wages",
+      "type": "Expenditure",
+      "category": "PersonalServices",
+      "active": true
+    },
+    {
+      "code": "5910",
+      "name": "Transfers Out",
+      "type": "TransferOut",
+      "category": "Transfers",
+      "active": true
+    }
+  ],
+  "numberFormat": {
+    "fundWidth": 4,
+    "departmentWidth": 3,
+    "objectWidth": 4,
+    "separator": "-",
+    "departmentLabel": "Program"
+  }
+}

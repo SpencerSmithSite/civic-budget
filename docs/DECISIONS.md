@@ -1588,6 +1588,77 @@ budget works from last year's amounts.
 - Personnel lines are projected by percentage like any other line; positions are not repriced for
   future years.
 
+## ADR-0045: An ERP partner kit with a published API, one HTTP adapter, and connections from the operator's secret store
+**Date:** 2026-09-28 · **Status:** Accepted
+
+**Context.** CivicBudget exchanges four things with a government's ERP: the chart of accounts,
+actuals, the payroll roster, and the budget journal (ADR-0025, 0034, 0035, 0039). Each already had
+a contract in Application and a file form, and three had a simulated API for the demo. What was
+missing is what an ERP vendor would need to connect a real system: a written API to build to, and a
+client on CivicBudget's side that works with any ERP that builds it. Without that, each ERP means
+new code inside CivicBudget.
+
+**Decision.**
+- **One published API, version 1** (`docs/partners/openapi.json`): four endpoints under
+  `/v1/entities/{entityId}`, JSON with camelCase names and enumerations by name, errors in the
+  problem format (RFC 9457), a Bearer key per government. The chart gained an API form
+  (`IErpChartApi`) so all four exchanges have one.
+- **The wire shapes are their own records** (`ApiChart`, `ApiActuals`, ... in
+  `Infrastructure/Erp/Http/ErpApiContract.cs`), translated to and from the Application contracts.
+  The Application contracts can change with CivicBudget; the wire shapes are a promise to vendors
+  and change only by adding a version.
+- **Strict about what is missing, relaxed about what is extra.** A required field left out, a null
+  where none is allowed, or an enumeration sent as a number is refused
+  (`RespectRequiredConstructorParameters`, `RespectNullableAnnotations`), because a budget built
+  on a silently zeroed amount is worse than an error. Unknown fields are ignored, so an ERP can add
+  to its answers.
+- **One adapter for every ERP** (`HttpErpAdapter`) implements all four contracts. Reads turn every
+  failure into a sentence for the Fiscal Officer. The journal post refuses only when the ERP clearly
+  said no (a 422 with the refused accounts, or a 400, 401, 403, or 404), and throws when the answer
+  is lost or the ERP fails on its side, so the send stays open and is retried under the same id,
+  which the ERP must recognize (the `Idempotency-Key` header repeats it).
+- **Connections come from configuration, keyed by government id** (`Erp:Connections:{id}`: base
+  address, key, and the ERP's own entity id), which in the cloud means the platform's secret store.
+  Never the database or a page: an ERP key opens a government's books and payroll, and keeping it
+  out of the database keeps it out of backups, exports, and the reach of a SQL injection. Keyed by
+  id because an Administrator can change a government's slug. Validated at startup: HTTPS only
+  (plain HTTP to localhost for testing), a key present, the key a real government id.
+- **One adapter serves many governments.** Each ERP contract gained `IsConnected(governmentId)`, and
+  each service uses the adapter only for a connected government. A configured connection replaces
+  the simulated ERP; without any, the simulated one stands in where the demo data is seeded
+  (`AddErpConnections`, `AddSimulatedErp`).
+- **A reference ERP** (`samples/CivicBudget.ReferenceErp`) implements the API over the demo data,
+  borrowing the simulated ERP's behavior. Vendors read it; the tests run the adapter against it over
+  real HTTP.
+- **The document is tested against the code.** `ErpApiContractTests` compares every schema's
+  properties, required fields, and nullability with its record, every enumeration with the C# enum,
+  and reads every sample (JSON and CSV) through the real code, refusing sample fields the API does
+  not define.
+
+**Alternatives.**
+- **Generate the OpenAPI file from code** (Microsoft.AspNetCore.OpenApi on the reference ERP): it
+  would need a package and annotations for every rule, and the descriptions (the part vendors
+  actually read) would live in attributes. A hand-written document held to the code by a test gives
+  the same guarantee and reads better.
+- **Serialize the Application contracts directly:** less code, but renaming a C# property would
+  silently change the public API.
+- **Connections on a settings page, encrypted in the database:** self-service, but it puts a key
+  to the government's books in the database, its backups, and its exports, and adds rotation and a
+  page to secure. I chose operator configuration (2026-09-28), which matches how governments
+  are provisioned.
+- **A per-vendor adapter** for each ERP: the old path; it scales with vendors instead of staying
+  at one.
+- **Webhooks from the ERP:** nothing in the budget cycle needs a push, and every exchange already
+  has a preview the Fiscal Officer confirms.
+
+**Consequences.**
+- An ERP connects by building four endpoints, with no release of CivicBudget.
+- The demo now fetches the chart too (the simulated ERP holds the seeded chart, so a fetch finds
+  nothing to change until someone edits the chart).
+- The solution has a `samples/` folder; the Docker image leaves it out.
+- A second API version would be a second set of wire records and a second base path, with the
+  adapter choosing by configuration.
+
 ---
 
 ## Packages

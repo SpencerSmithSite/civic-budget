@@ -1,0 +1,69 @@
+{
+  "asOf": "2026-09-11",
+  "employees": [
+    {
+      "employeeId": "E1001",
+      "name": "Morgan Hale",
+      "title": "Chief of Police",
+      "departmentCode": "110",
+      "basis": "Salary",
+      "rate": 88500,
+      "funds": [
+        {
+          "fundCode": "1000",
+          "percent": 100
+        }
+      ],
+      "benefits": [
+        {
+          "plan": "Medical (PPO)",
+          "tier": "Family"
+        },
+        {
+          "plan": "Dental",
+          "tier": "Family"
+        },
+        {
+          "plan": "Life ($25,000)",
+          "tier": "EmployeeOnly"
+        }
+      ],
+      "picksUpEmployeeShare": true,
+      "hireDate": "2006-04-17",
+      "retirement": "OP&F police"
+    },
+    {
+      "employeeId": "E1014",
+      "name": "Alex Rivera",
+      "title": "Sergeant",
+      "departmentCode": "110",
+      "basis": "Hourly",
+      "rate": 0,
+      "funds": [
+        {
+          "fundCode": "1000",
+          "percent": 100
+        }
+      ],
+      "benefits": [
+        {
+          "plan": "Medical (PPO)",
+          "tier": "Family"
+        },
+        {
+          "plan": "Dental",
+          "tier": "Family"
+        },
+        {
+          "plan": "Life ($25,000)",
+          "tier": "EmployeeOnly"
+        }
+      ],
+      "picksUpEmployeeShare": false,
+      "hireDate": "2011-08-08",
+      "grade": "SGT",
+      "step": 3,
+      "retirement": "OP&F police"
+    }
+  ]
+}

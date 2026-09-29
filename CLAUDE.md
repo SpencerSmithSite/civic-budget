@@ -80,8 +80,9 @@ Actions · AWS CDK (C#) deploy-ready (no account — see ADR-0008).
 - Roles: never test `IsInRole(Roles.FinanceDirector)` in a service; use `currentUser.IsFiscalAuthority()` (Admin or Fiscal Officer) or `IsDepartmentUser()`. Display names via `Roles.DisplayName`. Admin-set passwords are temporary (`MustChangePassword` + middleware).
 - Department round (9d): `DepartmentRequest` is a child of `BudgetVersion` (`SetDepartmentNarrative`, `SubmitDepartment`, `ReturnDepartment`); never new one up elsewhere. "May they edit" always passes the submitted flag (`BudgetLinePermissions.CanEdit(..., departmentSubmitted)`); pages read `BudgetWorkspaceDto.DepartmentRequests` and its `CanSubmit`/`CanReturn`/`CanEditNarrative` rather than checking roles. A dialog's `OnConfirm` is a `Func`, so call `StateHasChanged()` after reloading inside it.
 - ERP chart: `ErpChart` is the contract, `ChartDiff` is pure, `ChartSyncService` applies through entities. Setup services must call `ChartOwnership.RefuseIfErpManagedAsync` before writing. Add an ERP adapter by implementing `IErpChartSource`, never by touching the sync service.
-- ERP actuals (ADR-0034): `ErpActuals` is the contract, `ActualsMatcher` and `ActualsByLine` are pure, `ActualsSyncService` replaces a fiscal year. Add a source by implementing `IErpActualsFileSource` or `IErpActualsApi`. Never store actuals on budget lines except the prior-year actual, which only a closed year fills, through `PriorYearActuals` and `BudgetVersion`. The simulated ERP is registered only where demo data is seeded (`Program.cs`, and the integration test host).
+- ERP actuals (ADR-0034): `ErpActuals` is the contract, `ActualsMatcher` and `ActualsByLine` are pure, `ActualsSyncService` replaces a fiscal year. Add a source by implementing `IErpActualsFileSource` or `IErpActualsApi`. Never store actuals on budget lines except the prior-year actual, which only a closed year fills, through `PriorYearActuals` and `BudgetVersion`. The simulated ERP (`AddSimulatedErp`) is registered only where demo data is seeded and no connection is configured (`Program.cs`, and the integration test host).
 - Text the app shows says "ERP" or "the ERP", never "VIP" or another vendor's name (a connection names itself through its adapter's `Name`). Docs may use VIP as the example.
+- ERP API (ADR-0045): the published API is `docs/partners/openapi.json`; its JSON shapes are the `Api*` records in `ErpApiContract.cs`, never the Application contracts serialized directly. Change a field in both the record and the document, or `ErpApiContractTests` fails; a breaking change is a new version (`/v2`), not an edit. Keep every sample in `docs/partners/samples` readable by the real code. Connections are `Erp:Connections:{government id}` in configuration only, never the database or a page. Every ERP contract has `IsConnected(governmentId)`; services use the adapter only through their `Api` property, which checks it. The journal post throws when the outcome is unknown and returns a refusal only when nothing posted.
 - Sending to the ERP (ADR-0035): journals are changes (`BudgetJournalBuilder`), never totals; a `BudgetTransmission` is saved before the ERP is called and its id is the idempotency key; only Accepted or Imported count as sent; one open send per year (service check plus filtered unique index). Add an ERP by implementing `IErpBudgetApi`.
 - Certificate (ADR-0036): `CertificateBuilder` is pure and both views render its one row per fund; revenue columns come from `ReportAccountGroup` (report settings), never a hard-coded category; balances from the ERP's closed prior year, else the budget's estimate. PDFs go through `ICertificatePdfRenderer` (MigraDoc, fonts embedded from `Infrastructure/Reports/Fonts`); a MigraDoc section needs its own `PageSetup` copy with the page size set outright.
 - Reports on ERP actuals (ADR-0037): `ActualsReportBuilder` is pure; pace and projection come from last year at the same month (`Project`), never a straight line. Whole-fund reports (projection, trends, appropriation measure, certificate) return null for department users. Report columns for any report go through `ReportColumnRules`; the measure's live in `MeasureColumnService`.
@@ -130,6 +131,7 @@ Actions · AWS CDK (C#) deploy-ready (no account — see ADR-0008).
 ```
 src/CivicBudget.{Domain,Application,Infrastructure,Web}
 tests/CivicBudget.{Domain,Application,Web}.Tests, tests/CivicBudget.IntegrationTests
+samples/CivicBudget.ReferenceErp   (the published ERP API on demo data; docs/partners is the kit)
 infra/CivicBudget.Infra
 docs/  (SPEC, ARCHITECTURE, DECISIONS, walkthroughs/)
 ```
@@ -149,6 +151,7 @@ bicep build infra/azure/main.bicep --stdout >/dev/null  # the Azure template (br
 dotnet run --project src/CivicBudget.Web -- --reseed   # drop every table, migrate, seed (what the nightly Azure job runs)
 ./scripts/dev-setup.sh                                 # once: .env + user-secrets connection string
 dotnet format                                          # CI runs --verify-no-changes
+dotnet run --project samples/CivicBudget.ReferenceErp -- --urls http://localhost:5090 --ReferenceErp:ApiKey=local-test-key   # the reference ERP
 ```
 
 ## Git

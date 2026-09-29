@@ -6,6 +6,17 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 
 ## [Unreleased]
 
+## Phase 34: 2026-09-28 (ERP partner kit)
+### Added
+- **ERP partner kit** in `docs/partners`: an integration guide for ERP vendors, the API as OpenAPI 3.1, the four file layouts, and a sample of every request, answer, and file.
+- **HTTP adapter** (`HttpErpAdapter`) for all four exchanges: an ERP that implements the published API connects by configuration, with no code in CivicBudget.
+- **ERP connections** per government from the operator's secret store (`Erp:Connections:{government id}`), checked when the app starts: HTTPS only, a key required.
+- **The chart from the ERP's API:** the Chart sync page fetches the chart beside the upload, like actuals and employees. The demo's simulated ERP serves the seeded chart.
+- **Reference ERP** (`samples/CivicBudget.ReferenceErp`): a small runnable server implementing the API over the demo data.
+- **Contract tests:** the OpenAPI file is checked against the code field by field, and every sample file is read through the real code.
+### Changed
+- The ERP API is offered only to governments with a connection; the others keep the file uploads.
+
 ## Phase 33: 2026-09-28 (multi-year plan)
 ### Added
 - **Multi-year plan** on every budget version: up to ten years, five by default, counting the budget year. Each future year has a revenue and an expenditure percentage, and any line's future year can be typed over (a project, a grant that ends).

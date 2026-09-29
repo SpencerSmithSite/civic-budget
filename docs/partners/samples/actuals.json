@@ -1,0 +1,50 @@
+{
+  "fiscalYear": 2025,
+  "throughPeriod": 12,
+  "activity": [
+    {
+      "fundCode": "1000",
+      "objectCode": "4110",
+      "period": 3,
+      "amount": 177120.0
+    },
+    {
+      "fundCode": "1000",
+      "objectCode": "4110",
+      "period": 4,
+      "amount": 19680.0
+    },
+    {
+      "fundCode": "1000",
+      "objectCode": "5110",
+      "period": 1,
+      "amount": 60600.0,
+      "departmentCode": "110"
+    },
+    {
+      "fundCode": "1000",
+      "objectCode": "5110",
+      "period": 2,
+      "amount": 40400.0,
+      "departmentCode": "110"
+    }
+  ],
+  "encumbrances": [
+    {
+      "fundCode": "1000",
+      "objectCode": "5310",
+      "amount": 1481,
+      "departmentCode": "715"
+    }
+  ],
+  "cash": [
+    {
+      "fundCode": "1000",
+      "amount": 632200
+    },
+    {
+      "fundCode": "2011",
+      "amount": 86207
+    }
+  ]
+}

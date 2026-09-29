@@ -408,10 +408,22 @@ own lines' future years; fund balances roll forward year by year; the portal sho
 - [x] Carried into amendments and the next year's budget; locked once adopted
 - [x] Multi-year plan report and XLSX export
 - [x] Published with the budget; an Outlook page on the portal
+- [x] Reviewed and approved (2026-09-28, PR #64)
+
+## Phase 34: ERP partner kit  `phase-34-erp-partner-kit`
+Decided with Spencer (2026-09-28): the kit ships a working HTTP adapter, so an ERP that implements the published API
+connects by configuration with no code in CivicBudget; each government's connection (address and API key) is set by
+the operator in configuration (user-secrets, Secrets Manager, Key Vault), never in the database or on a page.
+
+- [x] The chart of accounts can come from an ERP's API, like actuals and employees
+- [x] OpenAPI description of the four exchanges (chart, actuals, employees, budget journal), checked against the code by a test
+- [x] HTTP adapter for all four, with per-government connections from configuration
+- [x] Reference ERP: a small runnable server implementing the API on demo data; the adapter's tests run against it
+- [x] File layouts for the four import and export files, with sample files the tests read
+- [x] Integration guide for ERP vendors
 - [ ] Reviewed and approved
 
 ## Later (parked by Spencer, 2026-09-28)
-- ERP partner kit: an integration guide, an OpenAPI description of the four exchanges, the file layouts, and a sample adapter
 - Printable budget book: the adopted budget as one PDF (cover, message, fund summaries, department narratives, the certificate)
 
 Not planned: a VoiceOver pass and Microsoft sign-in (Entra ID), both skipped by Spencer (2026-09-28).

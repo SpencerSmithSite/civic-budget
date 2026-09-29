@@ -202,6 +202,11 @@ that would have been wrong.
   and every fund's balance rolled forward with the Ohio limit checked in each year. Nothing
   projected is stored, so the plan can never disagree with the budget; it moves on a year when the
   next budget starts, and the portal publishes it as an outlook. ([ADR-0044](docs/DECISIONS.md#adr-0044-a-multi-year-plan-on-each-budget-version-percentages-per-year-typed-years-balances-rolled-forward), [Walkthrough 32](docs/walkthroughs/32-multi-year-plan.md))
+- **A kit for ERP vendors.** Every exchange with the ERP (chart, actuals, payroll, budget journal)
+  is a published API with a working client already in CivicBudget, so an ERP connects by building
+  four endpoints, not by waiting for my code. The OpenAPI file is tested against the code field by
+  field, a reference ERP shows it working, and each government's key lives in the secret store, not
+  the database. ([ADR-0045](docs/DECISIONS.md#adr-0045-an-erp-partner-kit-with-a-published-api-one-http-adapter-and-connections-from-the-operators-secret-store), [Walkthrough 33](docs/walkthroughs/33-erp-partner-kit.md), [the kit](docs/partners/README.md))
 
 ## Run it locally
 
@@ -298,8 +303,9 @@ deployed; it shows the production-shaped design. See [infra/README.md](infra/REA
    [29 The product site](docs/walkthroughs/29-product-site.md) ·
    [30 The accessibility self-scan](docs/walkthroughs/30-accessibility.md) ·
    [31 Finishing accessibility](docs/walkthroughs/31-accessibility-finish.md) ·
-   [32 The multi-year plan](docs/walkthroughs/32-multi-year-plan.md)
-4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 44 decision records, each
+   [32 The multi-year plan](docs/walkthroughs/32-multi-year-plan.md) ·
+   [33 The ERP partner kit](docs/walkthroughs/33-erp-partner-kit.md)
+4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 45 decision records, each
    with the alternatives I turned down, and the table of every package and why it is there.
 5. Then the code, starting at `src/CivicBudget.Domain/Budgets/BudgetVersion.cs`, the heart of it.
 

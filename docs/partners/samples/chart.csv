@@ -1,0 +1,8 @@
+Kind,Code,Name,Type,Category,Description,Active
+Fund,1000,General Fund,,General,"Pays for day-to-day village services (police, administration, parks, and zoning), mostly from income and property taxes.",Yes
+Fund,2011,"Street Construction, Maintenance & Repair",,SpecialRevenue,"State gasoline tax and vehicle license fees that, by law, may only be spent on streets.",Yes
+Program,110,Police,,,Full-time police department providing 24-hour patrol and Mayor's Court support.,Yes
+Program,620,Streets & Service,,,"Street maintenance, snow removal, street lighting, and the village garage.",Yes
+Object,4110,Real Estate Taxes,Revenue,Taxes,,Yes
+Object,5110,Salaries & Wages,Expenditure,PersonalServices,,Yes
+Object,5910,Transfers Out,TransferOut,Transfers,,Yes
