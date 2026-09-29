@@ -16,7 +16,7 @@ else if (department is not null)
     {
         <p class="pt-lead">@department.Description</p>
     }
-    <p class="pt-lead">@MoneyShort.Format(department.Expenditures) budgeted for @Year in this fund.</p>
+    <p class="pt-lead">@MoneyShort.Speakable(department.Expenditures) budgeted for @Year in this fund.</p>
 
     @if (department.Narrative is not null)
     {

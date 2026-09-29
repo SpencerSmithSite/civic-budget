@@ -1530,6 +1530,8 @@ pay for an audit yet, and to do my own:
 **Consequences.**
 - Portal panels now use CSS `:has()`, so browsers older than 2023 show the first panel only.
 - Editable amount cells keep their borderless look at rest, a known partial pass on 1.4.11.
+  *Amended 2026-09-28 (Phase 32):* Spencer chose to outline them at rest, and the worksheet's
+  group rows became row-group headers, closing both partial passes.
 - Any new page should pass the sweep before it merges.
 
 ---

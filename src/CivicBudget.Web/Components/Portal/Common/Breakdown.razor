@@ -5,7 +5,7 @@
     <div class="pt-section-head">
         <h2 id="@headingId" class="pt-q @(HideTitle ? "visually-hidden" : "")">@Title</h2>
         <span class="pt-toggle" role="group" aria-label="Show amounts as">
-            <a href="@ToggleHref(false)" class="@(showPercent ? "" : "on")" aria-current="@(showPercent ? null : "true")">$</a><a href="@ToggleHref(true)" class="@(showPercent ? "on" : "")" aria-current="@(showPercent ? "true" : null)">%</a>
+            <a href="@ToggleHref(false)" class="@(showPercent ? "" : "on")" aria-current="@(showPercent ? null : "true")"><span aria-hidden="true">$</span><span class="visually-hidden">Dollars</span></a><a href="@ToggleHref(true)" class="@(showPercent ? "on" : "")" aria-current="@(showPercent ? "true" : null)"><span aria-hidden="true">%</span><span class="visually-hidden">Percent</span></a>
         </span>
     </div>
     @if (Lead is not null)

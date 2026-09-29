@@ -97,7 +97,8 @@ green in balance, amber warning, red over) and the worksheet on the left; below 
 stacks above the grid. Grid: sticky header, sticky Account column, 34px rows, no vertical rules,
 zebra off (hover instead), group header rows per fund and department in `--cb-subtotal`, subtotal
 rows at 600 weight, negatives in parentheses in danger red, editable cells shown as inputs only on
-focus (a pencil affordance on hover), unsaved value text in info blue until the save round-trip
+focus (a pencil affordance on hover; since Phase 32 editable amounts are always outlined in
+`--cb-field-border`, 3:1, so which numbers can be changed shows at rest), unsaved value text in info blue until the save round-trip
 completes, then a brief green check. Toolbar above the grid: left selects (View: By department / By
 account line; Fund; Department; Type), right icon+label buttons (Add line, Filter, Export [Phase 6],
 Print). The Note column becomes an icon with a count; History opens a right-side drawer instead of

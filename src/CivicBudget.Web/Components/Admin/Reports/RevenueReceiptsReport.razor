@@ -45,7 +45,7 @@ else
                     @foreach (RevenueReceiptFundDto fund in report.Funds)
                     {
                         <tbody>
-                            <tr class="cb-group"><td colspan="6"><span class="cb-code">@fund.FundCode</span> @fund.FundName</td></tr>
+                            <tr class="cb-group"><th scope="rowgroup" colspan="6"><span class="cb-code">@fund.FundCode</span> @fund.FundName</th></tr>
                             @foreach (RevenueReceiptRowDto row in fund.Lines)
                             {
                                 <tr>@Cells(row, $"{row.AccountNumber} {row.Label}", strong: false)</tr>

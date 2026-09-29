@@ -105,6 +105,11 @@ Actions · AWS CDK (C#) deploy-ready (no account — see ADR-0008).
   - An action column's header is `<span class="visually-hidden">Actions</span>`.
   - Failure and warning toasts stay until dismissed, so do not rely on them vanishing.
   - Run `scripts/screenshots/a11y-sweep.mjs` before merging UI work; the conformance report is `docs/accessibility/ACR.md`.
+  - Every table has a name (`aria-label` or a caption).
+  - A grouped table puts each group in its own `<tbody>` headed by `<th scope="rowgroup" colspan="…">` in a `tr.cb-group`, and a row's naming cell is `<th scope="row">`. Never a spanning `<td>`.
+  - Fields use the `--cb-field-border` token (3:1); editable amounts stay outlined at rest.
+  - Short portal amounts go through `MoneyShort.Speakable` (or `PortalKpi Amount=`) so screen readers hear "$3.70 million".
+  - `civicbudget.js` makes any overflowing `.cb-grid-wrap` on an interactive page a named, focusable region. Static portal pages set `tabindex="0" role="region"` themselves.
 - Password fields use `<PasswordInput>` (never `InputText type="password"`): it adds the show/hide button, which `js/password-toggle.js` drives on both static and interactive pages.
 - Dialogs and drawers call `civicBudget.openModal(element[, focusFirst])` / `closeModal([refocus])` through `FocusJs` (Tab trapped, focus returned to the opener, a dropdown's toggle, or the page heading); a strict bUnit test must `SetupVoid` both.
 - Blazor traps (Phase 17): a `Func` callback (`ConfirmDialog.OnConfirm`, `AddLineForm.OnAdd`) does not re-render its owner, so call `StateHasChanged()` after reloading; a page with a route parameter loads in `OnParametersSetAsync` guarded by the id it last loaded; an input bound one way keeps a refused value unless its `@key` changes (`AmountCell`). Paged lists use `ListPager`, not QuickGrid's `Paginator`, so the phone cards follow the page.

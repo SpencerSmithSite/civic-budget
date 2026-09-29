@@ -48,7 +48,7 @@ else
                 @foreach (MeasureFundDto fund in report.Funds)
                 {
                     <tbody>
-                        <tr class="cb-group"><td colspan="@(report.ColumnLabels.Count + 3)"><span class="cb-code">@fund.FundCode</span> @fund.FundName</td></tr>
+                        <tr class="cb-group"><th scope="rowgroup" colspan="@(report.ColumnLabels.Count + 3)"><span class="cb-code">@fund.FundCode</span> @fund.FundName</th></tr>
                         @foreach (MeasureRowDto department in fund.Departments)
                         {
                             <tr>@Cells(department, department.Label, strong: false)</tr>

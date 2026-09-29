@@ -11,7 +11,7 @@ else if (budget is not null && byDepartment is not null && byCategory is not nul
 {
     <PortalCrumbs Crumbs="@([new Crumb($"{budget.FiscalYear} budget", Root), new Crumb("Where it goes")])" />
     <h1 class="pt-h1">Where does the money go?</h1>
-    <p class="pt-lead">@MoneyShort.Format(budget.TotalExpenditures) in expenditures for @budget.FiscalYear, across every fund. Departments show who spends it; categories show what it buys.</p>
+    <p class="pt-lead">@MoneyShort.Speakable(budget.TotalExpenditures) in expenditures for @budget.FiscalYear, across every fund. Departments show who spends it; categories show what it buys.</p>
 
     <Breakdown Title="By department" Data="byDepartment" ItemHeader="Department" Open="true"
                ShowPercent="ShowPercent" PageHref="@($"{Root}/spending")" />

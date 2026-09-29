@@ -29,10 +29,10 @@ else
                                     <th scope="col"><span class="visually-hidden">Actions</span></th>
                                 </tr>
                             </thead>
-                            <tbody>
                                 @foreach (LineGroup category in fund.Children)
                                 {
-                                    <tr class="cb-group"><td colspan="7">@category.Title</td></tr>
+                                    <tbody>
+                                    <tr class="cb-group"><th scope="rowgroup" colspan="7">@category.Title</th></tr>
                                     @foreach (BudgetLineDto line in category.Lines)
                                     {
                                         <tr>
@@ -68,8 +68,8 @@ else
                                         <td class="cb-num cb-col-wide">@Display.Percent(category.PercentChange)</td>
                                         <td></td>
                                     </tr>
+                                    </tbody>
                                 }
-                            </tbody>
                             <tfoot>
                                 <tr>
                                     <td class="cb-wrap">Total, @fund.Title</td>

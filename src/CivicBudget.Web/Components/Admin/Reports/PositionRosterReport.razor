@@ -49,7 +49,7 @@ else
                     @foreach (RosterDepartmentDto department in report.Departments)
                     {
                         <tbody>
-                            <tr class="cb-group"><td colspan="7"><span class="cb-code">@department.DepartmentCode</span> @department.DepartmentName</td></tr>
+                            <tr class="cb-group"><th scope="rowgroup" colspan="7"><span class="cb-code">@department.DepartmentCode</span> @department.DepartmentName</th></tr>
                             @foreach (RosterRowDto p in department.Positions)
                             {
                                 <tr>

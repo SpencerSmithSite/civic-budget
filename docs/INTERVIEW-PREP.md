@@ -1547,3 +1547,21 @@ making it list all the errors, act as an alert, and take focus fixed them all, a
 later gets it too. The same goes for the color tokens: most of 109 contrast failures were two CSS
 variables, one of them the link color Bootstrap reads from an `-rgb` triple the theme never set.
 **Look at:** `ResultAlert.razor`, `app.css` (`--cb-muted`, `--bs-link-color-rgb`).
+
+## Phase 32: Finishing accessibility
+
+### Q: How do you make a grouped table accessible?
+**A:** Each group gets its own `<tbody>` with a `<th scope="rowgroup">` as its title, and each row's
+naming cell is a `<th scope="row">`. A screen reader then says which fund and program a number
+belongs to as you move through it. The worksheet was the tricky one: its groups come from the
+current sort order, so sorted by amount the same fund can appear in several runs. The runs are
+computed in code, and each is keyed by its position so Blazor's diffing stays stable.
+**Look at:** `AccountLineGrid.Runs`, `DepartmentEntryView.razor`.
+
+### Q: Can you claim screen-reader support without testing with one?
+**A:** No, and the report does not. What I could do was read the accessibility tree, which is exactly
+what a screen reader consumes, for each key screen. That found unnamed tables, symbols read as
+symbols, and "$3.70M" with no spoken form, and I fixed them. The VoiceOver pass itself is a written
+checklist with expected announcements, and the report's screen-reader line stays open until it is
+done.
+**Look at:** `docs/accessibility/screen-reader-checklist.md`, `MoneyShort.Speakable`.

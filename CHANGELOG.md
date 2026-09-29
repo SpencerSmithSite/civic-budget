@@ -6,6 +6,22 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 
 ## [Unreleased]
 
+## Phase 32: 2026-09-28 (finish accessibility)
+### Changed
+- **Editable amounts** on the worksheet and department pages are always outlined, so the numbers you can change are visible at a glance. The border is 3:1 against the row, and darkens on hover.
+- **Grouped tables** put each group (a fund, a program, a department, a category) in its own row group, headed by a row-group header cell. That covers the worksheet, the department page, and seven reports.
+- **Row cells:** the account that names a row is its header cell, styled like the others.
+### Added
+- **Spoken amounts:** the portal's short figures ("$3.70M") carry a spoken form ("$3.70 million").
+- **"$" and "%" links** are read as "Dollars" and "Percent".
+- **Table names:** every table has a name.
+- **Scrolling tables:** a table that scrolls inside its card becomes a named, keyboard-reachable region wherever it overflows.
+- **Loading:** a loading placeholder says "Loading" to screen readers.
+- `docs/accessibility/screen-reader-checklist.md`: a 15-minute VoiceOver pass.
+### Fixed
+- The Add line dialog's hint is tied to the Program field.
+- The conformance report now rates every WCAG 2.2 A and AA criterion as supported or not applicable, pending the VoiceOver pass.
+
 ## Phase 31: 2026-09-28 (accessibility self-scan)
 ### Added
 - `scripts/screenshots/a11y-sweep.mjs`: axe-core (WCAG 2.2 A and AA plus best practices) on every page for every role, the sign-in pages, and the portal at desktop and phone width.

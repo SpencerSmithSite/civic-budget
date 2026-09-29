@@ -11,7 +11,7 @@ else if (budget is not null && bySource is not null)
 {
     <PortalCrumbs Crumbs="@([new Crumb($"{budget.FiscalYear} budget", Root), new Crumb("Where it comes from")])" />
     <h1 class="pt-h1">Where does the money come from?</h1>
-    <p class="pt-lead">@MoneyShort.Format(budget.TotalRevenues) in revenues expected for @budget.FiscalYear. Transfers between funds (@Display.Money(budget.TotalTransfersIn)) are not counted here because they move money rather than raise it.</p>
+    <p class="pt-lead">@MoneyShort.Speakable(budget.TotalRevenues) in revenues expected for @budget.FiscalYear. Transfers between funds (@Display.Money(budget.TotalTransfersIn)) are not counted here because they move money rather than raise it.</p>
 
     <Breakdown Title="By source" Lead="Taxes and intergovernmental money (state shared revenue, gasoline tax) support general services; charges for services are mostly water and sewer bills." Data="bySource" ItemHeader="Source" Tone="rev" Open="true"
                ShowPercent="ShowPercent" PageHref="@($"{Root}/revenue")" />

@@ -31,6 +31,10 @@ public class DepartmentEntryViewTests : BunitContext
             ]));
 
         Assert.Contains("110 Police", view.Find("h2").TextContent);
+        // Each category is its own row group, headed by a rowgroup header cell a screen reader announces.
+        AngleSharp.Dom.IElement[] groups = [.. view.FindAll("tbody > tr.cb-group > th[scope=rowgroup]")];
+        Assert.Equal(["Personal Services", "Supplies & Materials"], groups.Select(g => g.TextContent.Trim()));
+        Assert.All(groups, g => Assert.Equal("TBODY", g.ParentElement!.ParentElement!.TagName));
         // The proposed column of each row by itself, so neither number can be satisfied by the other.
         AngleSharp.Dom.IElement subtotal = view.FindAll("tr.cb-subtotal").Single(r => r.TextContent.Contains("Subtotal, Personal Services"));
         Assert.Equal("350.00", subtotal.QuerySelectorAll("td")[3].TextContent);

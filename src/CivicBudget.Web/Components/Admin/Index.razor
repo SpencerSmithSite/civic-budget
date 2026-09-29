@@ -77,7 +77,7 @@ else
                         }
                     </div>
                     <div class="cb-grid-wrap cb-grid-wrap-fill d-none d-md-block">
-                        <table class="cb-grid cb-grid-tight">
+                        <table class="cb-grid cb-grid-tight" aria-label="Budget versions">
                             <thead><tr><th>Fiscal year</th><th>Version</th><th>Status</th><th>Resolution</th><th>Portal</th><th class="cb-num">Lines</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
                             <tbody>
                                 @foreach (BudgetVersionSummaryDto version in versions.Take(6))

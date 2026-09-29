@@ -66,5 +66,40 @@ window.civicBudget = {
         }
     }
 };
+// A table wider than its card scrolls inside its wrapper; a keyboard user can only scroll it if the
+// wrapper can take focus (WCAG 2.1.1). Any wrapper that overflows becomes a named, focusable region,
+// and stops being one when it no longer scrolls. Checked after Blazor changes the page and on resize.
+// Two tables can share a name (each department's "1000 General Fund"); the second and later take
+// their section's heading too, so every region is told apart.
+window.civicBudget.scrollRegions = () => {
+    const used = new Set([...document.querySelectorAll('[role="region"][aria-label]')].map(r => r.getAttribute("aria-label")));
+    document.querySelectorAll(".cb-grid-wrap").forEach(wrap => {
+        const scrolls = wrap.scrollWidth > wrap.clientWidth + 1;
+        const ours = wrap.dataset.cbRegion === "1";
+        if (scrolls && !wrap.hasAttribute("tabindex")) {
+            const table = wrap.querySelector("table");
+            const name = table && (table.getAttribute("aria-label") || (table.caption && table.caption.textContent.trim()));
+            let label = name ? `Table: ${name}` : "Table";
+            if (used.has(label)) {
+                const heading = wrap.closest("section") && wrap.closest("section").querySelector("h2, h3");
+                if (heading) { label = `${label}, ${heading.textContent.trim()}`; }
+            }
+            used.add(label);
+            wrap.setAttribute("tabindex", "0");
+            wrap.setAttribute("role", "region");
+            wrap.setAttribute("aria-label", label);
+            wrap.dataset.cbRegion = "1";
+        } else if (!scrolls && ours) {
+            wrap.removeAttribute("tabindex"); wrap.removeAttribute("role"); wrap.removeAttribute("aria-label");
+            delete wrap.dataset.cbRegion;
+        }
+    });
+};
+{
+    let pending = 0;
+    const later = () => { cancelAnimationFrame(pending); pending = requestAnimationFrame(window.civicBudget.scrollRegions); };
+    new MutationObserver(later).observe(document.documentElement, { childList: true, subtree: true });
+    addEventListener("resize", later);
+}
 window.civicBudget.initTips();
 document.addEventListener("focusin", (e) => { if (e.target !== document.body) { window.civicBudget.lastFocus = e.target; } });

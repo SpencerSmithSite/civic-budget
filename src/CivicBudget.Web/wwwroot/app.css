@@ -27,6 +27,7 @@
     --cb-canvas: #F6F8FA;
     --cb-surface: #FFFFFF;
     --cb-border: #E3E8EF;
+    --cb-field-border: #848F9B; /* where to type: 3:1 against the page and a hovered row (WCAG 1.4.11) */
     --cb-row-hover: #F1F5F9;
     --cb-subtotal: #EAF1F8;
 
@@ -138,7 +139,7 @@ h1, h2, h3, h4 {
    the light --cb-border that separates cards and rows is only 1.2:1. Focus and error states,
    being more specific, still recolor it. */
 .form-control, .form-select, .form-check-input {
-    border-color: #848F9B;
+    border-color: var(--cb-field-border);
 }
 
 /* Bootstrap's focus halo is a pale 35% ring, too faint on a filled button to be the only cue. */
@@ -869,7 +870,9 @@ table.cb-grid > thead > tr > th {
     }
 }
 
+/* Row cells, including a row's header cell (the account that names it). */
 table.cb-grid > tbody > tr > td,
+table.cb-grid > tbody > tr > th,
 table.cb-grid > tfoot > tr > td {
     padding: 0 12px;
     height: 38px;
@@ -878,11 +881,13 @@ table.cb-grid > tfoot > tr > td {
     white-space: nowrap;
 }
 
-table.cb-grid > tbody > tr:hover > td {
+table.cb-grid > tbody > tr:hover > td,
+table.cb-grid > tbody > tr:hover > th {
     background: var(--cb-row-hover);
 }
 
-table.cb-grid > tbody > tr.cb-group > td {
+table.cb-grid > tbody > tr.cb-group > td,
+table.cb-grid > tbody > tr.cb-group > th {
     background: var(--cb-subtotal);
     font-weight: 600;
     height: 34px;
@@ -898,7 +903,8 @@ table.cb-grid > tfoot > tr > td {
     background: #f8fafc;
 }
 
-table.cb-grid td.cb-wrap {
+table.cb-grid td.cb-wrap,
+table.cb-grid th.cb-wrap {
     white-space: normal;
     min-width: 14.5rem; /* room for a full account number ("1000-110-5110") plus most names on one line */
 }
@@ -954,7 +960,8 @@ table.cb-grid .cb-num, table.cb-grid th.cb-num {
 
     /* Group rows span the table; pinning them keeps the fund or department label in view too.
        They wrap, because a long no-wrap label would set the table's minimum width by itself. */
-    table.cb-grid > tbody > tr.cb-group > td:first-child {
+    table.cb-grid > tbody > tr.cb-group > td:first-child,
+    table.cb-grid > tbody > tr.cb-group > th:first-child {
         max-width: none;
         white-space: normal;
         background: var(--cb-subtotal);
@@ -1001,22 +1008,24 @@ table.cb-grid th.col-justify-end .col-header-content {
 }
 
 /* Inline amount editing: a value until focused, an input while editing. */
+/* An editable amount always shows its edge, so which numbers can be changed is visible without
+   hovering (WCAG 1.4.11); read-only amounts beside it are plain text. */
 .cb-amount-input {
     width: 7rem;
     height: 26px;
-    border: 1px solid transparent;
+    border: 1px solid var(--cb-field-border);
     border-radius: 4px;
     text-align: right;
     padding: 0 8px;
     font-variant-numeric: tabular-nums;
     font-size: 0.8125rem;
-    background: transparent;
+    background: #fff;
     color: var(--cb-text);
     font-family: inherit;
 }
 
 .cb-amount-input:hover {
-    border-color: #c9d3df;
+    border-color: var(--cb-navy-hover);
     background: #fff;
 }
 
@@ -2605,6 +2614,7 @@ table.cb-grid > tfoot > tr > th {
 
     /* Shaded rows (groups, subtotals, totals) and the highlighted column keep their fill on paper. */
     table.cb-grid > tbody > tr.cb-group > td,
+    table.cb-grid > tbody > tr.cb-group > th,
     table.cb-grid > tbody > tr.cb-subtotal > td,
     table.cb-grid > tfoot > tr > td,
     table.cb-grid > tfoot > tr > th,
@@ -2883,6 +2893,7 @@ table.cb-grid > tfoot > tr > th {
 }
 
 .pt-toggle {
+    position: relative; /* contains its visually hidden labels */
     display: inline-flex;
     border: 1px solid #c9d3df;
     border-radius: 6px;
@@ -3225,8 +3236,9 @@ table.pt-grid th[scope="row"] a {
     transition: transform 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
-/* The wrapper clips; the track slides. */
-.pt-panels { overflow: hidden; }
+/* The wrapper clips; the track slides. It is positioned so it also clips visually hidden text
+   (absolutely positioned) in the panel that is off to the side, which would otherwise widen the page. */
+.pt-panels { overflow: hidden; position: relative; }
 
 /* After the slide the hidden panel collapses to nothing, so the track is only as tall as the
    panel on screen; during the slide both keep their height so nothing jumps mid-motion. */

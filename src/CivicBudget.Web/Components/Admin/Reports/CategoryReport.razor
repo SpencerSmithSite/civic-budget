@@ -32,10 +32,10 @@ else
                     </tr>
                 </thead>
                 <tbody>
-                    <tr class="cb-group"><td colspan="6">Revenues</td></tr>
+                    <tr class="cb-group"><th scope="rowgroup" colspan="6">Revenues</th></tr>
                     @foreach (CategoryRowDto r in report.Revenues) { @Row(r, false) }
                     @Row(report.RevenueTotal, true)
-                    <tr class="cb-group"><td colspan="6">Expenditures</td></tr>
+                    <tr class="cb-group"><th scope="rowgroup" colspan="6">Expenditures</th></tr>
                     @foreach (CategoryRowDto r in report.Expenditures) { @Row(r, false) }
                     @Row(report.ExpenditureTotal, true)
                 </tbody>
