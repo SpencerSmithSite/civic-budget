@@ -43,7 +43,15 @@ az containerapp job start -n civicbudget-reset -g civicbudget-rg      # reset th
 az containerapp logs show -n civicbudget-app -g civicbudget-rg --tail 100
 az containerapp job execution list -n civicbudget-reset -g civicbudget-rg -o table
 az group delete -n civicbudget-rg                                     # tear everything down
+./scripts/azure-assistant.sh                                          # connect the AI features (key from user-secrets)
+./scripts/azure-assistant.sh --off                                    # disconnect them
 ```
+
+The AI features (ADR-0047 to ADR-0049) need a model key. `azure-assistant.sh` reads it from the web
+project's user-secrets (`Assistant:ApiKey`, with `Assistant:Provider` and `Assistant:Model`) and
+stores it as the Container App secret `assistant-api-key`, without printing it. The template takes
+the same key as the optional `assistantApiKey` parameter, and `azure-setup.sh` keeps an existing one
+when it redeploys. The portal's ceiling is `portalQuestionsPerMonth` (200 on the demo).
 
 ## What to expect
 

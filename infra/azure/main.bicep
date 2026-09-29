@@ -30,6 +30,19 @@ param demoPassword string
 @description('When the nightly reset runs, as a cron expression in UTC. 08:00 UTC is 3 or 4 a.m. in Ohio.')
 param resetSchedule string = '0 8 * * *'
 
+@secure()
+@description('Key for the assistant\'s AI model (ADR-0047). Empty leaves the assistant out; scripts/azure-assistant.sh sets it on a running demo.')
+param assistantApiKey string = ''
+
+@description('Anthropic or Ollama. The demo uses GLM 5.3 Flash on Ollama Cloud.')
+param assistantProvider string = 'Ollama'
+
+@description('The model id for that provider.')
+param assistantModel string = 'glm-5.3-flash'
+
+@description('How many public questions each government\'s portal answers a month (ADR-0049). Lower than the app\'s default of 1,000: the demo is public and the key is paid for.')
+param portalQuestionsPerMonth int = 200
+
 var sqlServerName = '${namePrefix}-sql-${uniqueString(resourceGroup().id)}'
 var databaseName = 'CivicBudget'
 var connectionString = 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Database=${databaseName};User ID=${sqlAdminLogin};Password=${sqlAdminPassword};Encrypt=True;TrustServerCertificate=False;Connection Timeout=60'
@@ -125,6 +138,19 @@ var env = [
   { name: 'Seed__DemoPassword', secretRef: 'demo-password' }
 ]
 
+// The assistant's model, for the site only: the reset job never asks it anything. Left out entirely
+// without a key, so the app registers no model and the assistant and the portal's question box
+// stay hidden (and a posted question never reaches the database, ADR-0031).
+var assistantSecrets = empty(assistantApiKey) ? [] : [
+  { name: 'assistant-api-key', value: assistantApiKey }
+]
+var assistantEnv = empty(assistantApiKey) ? [] : [
+  { name: 'Assistant__ApiKey', secretRef: 'assistant-api-key' }
+  { name: 'Assistant__Provider', value: assistantProvider }
+  { name: 'Assistant__Model', value: assistantModel }
+  { name: 'Assistant__PortalQuestionsPerMonth', value: string(portalQuestionsPerMonth) }
+]
+
 resource app 'Microsoft.App/containerApps@2024-03-01' = {
   name: '${namePrefix}-app'
   location: location
@@ -137,7 +163,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
         transport: 'auto' // HTTP/1.1 and WebSockets for the Blazor circuit
         allowInsecure: false
       }
-      secrets: secrets
+      secrets: concat(secrets, assistantSecrets)
     }
     template: {
       containers: [
@@ -145,7 +171,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'web'
           image: containerImage
           resources: { cpu: json('0.25'), memory: '0.5Gi' }
-          env: env
+          env: concat(env, assistantEnv)
           probes: [
             {
               // /health answers as soon as Kestrel listens; the database is prepared behind it and

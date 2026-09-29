@@ -140,7 +140,7 @@ public sealed class DevelopmentSeeder(
     {
         Government government = MapleRidgeSeed.Government();
         // On for Maple Ridge and off for Pine Hollow, so both halves of each switch are in the demo.
-        // They do nothing until the operator connects a model, which the hosted demo does not.
+        // They do nothing until the operator connects a model (scripts/azure-assistant.sh on the hosted demo).
         government.SetAssistantEnabled(true);
         government.SetPortalQuestionsEnabled(true);
         tenant.SetTenant(government.Id); // before the first save: the government's own audit row is tenant-checked
