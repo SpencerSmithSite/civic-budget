@@ -58,6 +58,9 @@ public interface IBudgetPlanService
 
     Task<Result> SavePlanAsync(SavePlanRequest request, CancellationToken ct = default);
 
+    /// <summary>The plan as it would be with these settings, worked out and not saved, under the same rules as saving.</summary>
+    Task<Result<BudgetPlanDto>> PreviewPlanAsync(SavePlanRequest request, CancellationToken ct = default);
+
     /// <summary>Types over one future year of a line, or with a null amount goes back to the calculation.</summary>
     Task<Result> SetPlannedAmountAsync(Guid versionId, Guid lineId, int yearOffset, decimal? amount, CancellationToken ct = default);
 }
@@ -68,11 +71,39 @@ public sealed class BudgetPlanService(ICivicBudgetDbContextFactory dbFactory, IC
     {
         await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
         BudgetVersion? version = await LoadAsync(db, versionId, ct);
+        return version is null ? null : await ToDtoAsync(db, version, ct);
+    }
+
+    public async Task<Result<BudgetPlanDto>> PreviewPlanAsync(SavePlanRequest request, CancellationToken ct = default)
+    {
+        await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
+        BudgetVersion? version = await LoadAsync(db, request.VersionId, ct);
         if (version is null)
         {
-            return null;
+            return Result.Failure<BudgetPlanDto>("Budget version was not found.");
         }
 
+        if (!CanEditAssumptions(version))
+        {
+            return Result.Failure<BudgetPlanDto>("Only an Administrator or Fiscal Officer can change the plan's years and percentages, and only before adoption.");
+        }
+
+        // Applied to the loaded budget and never saved: the context is thrown away with the change in it.
+        try
+        {
+            version.SetPlan(request.Years, request.WholeDollars,
+                [.. request.Rates.Where(r => r.YearOffset < request.Years).Select(r => new PlanRate(r.YearOffset, r.RevenuePercent, r.ExpenditurePercent))]);
+        }
+        catch (DomainException ex)
+        {
+            return Result.Failure<BudgetPlanDto>(ex.Message);
+        }
+
+        return Result.Success(await ToDtoAsync(db, version, ct));
+    }
+
+    private async Task<BudgetPlanDto> ToDtoAsync(ICivicBudgetDbContext db, BudgetVersion version, CancellationToken ct)
+    {
         FiscalYear fiscalYear = await db.FiscalYears.SingleAsync(f => f.Id == version.FiscalYearId, ct);
         Government government = await db.Governments.SingleAsync(g => g.Id == version.GovernmentId, ct);
         MultiYearProjection plan = MultiYearPlanCalculator.Project(version);

@@ -14,6 +14,13 @@ public interface IBudgetEntryService
     Task<IReadOnlyList<BudgetVersionSummaryDto>> ListVersionsAsync(CancellationToken ct = default);
     Task<BudgetWorkspaceDto?> GetWorkspaceAsync(Guid versionId, CancellationToken ct = default);
     Task<Result> UpdateLineAmountAsync(Guid versionId, Guid lineId, decimal amount, CancellationToken ct = default);
+
+    /// <summary>
+    /// Several amounts at once, all or none: every line must be one the user may edit and still hold
+    /// the amount the change was worked out from, or nothing is saved. For changes proposed and then
+    /// confirmed, where the budget may have moved in between.
+    /// </summary>
+    Task<Result> UpdateLineAmountsAsync(Guid versionId, IReadOnlyList<LineAmountChange> changes, CancellationToken ct = default);
     Task<Result> UpdateLineJustificationAsync(Guid versionId, Guid lineId, string? justification, CancellationToken ct = default);
     Task<Result<Guid>> AddLineAsync(AddBudgetLineRequest request, CancellationToken ct = default);
     Task<Result> RemoveLineAsync(Guid versionId, Guid lineId, CancellationToken ct = default);
@@ -36,3 +43,6 @@ public sealed class AddBudgetLineRequestValidator : AbstractValidator<AddBudgetL
         RuleFor(r => r.Justification).MaximumLength(Domain.Budgets.BudgetLine.JustificationMaxLength);
     }
 }
+
+/// <param name="Expected">The amount the change was worked out from; if the line holds anything else now, the change is refused.</param>
+public sealed record LineAmountChange(Guid LineId, decimal Expected, decimal Amount);

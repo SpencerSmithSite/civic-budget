@@ -457,7 +457,13 @@ The whole budget as one PDF, printed from any version.
 A panel in the admin app that answers questions about the budget and actuals and helps people find
 their way around.
 - **Acts as the user:** its tools are the Application services, run with the user's identity, so it
-  sees what the user's account can see and nothing more. It changes nothing (actions come later).
+  sees what the user's account can see and nothing more.
+- **Changes are proposed, never made:** the assistant can set the multi-year plan, change lines in
+  bulk, fix a fund over its limit, start next year's budget, bring in actuals, and write the budget
+  message or a narrative, but each is a card showing the change before and after, and only the
+  user's click makes it. The change goes through the same service a page uses, checked again, and
+  the audit trail records that it came through the assistant.
+- **Review:** "check my budget" lists what must be fixed before council and what is worth a look.
 - **Navigation:** finds and opens pages the user's policies allow, from each page's help topic.
 - **Switches:** shown only when the operator has connected a model; each government's Administrator
   turns it on.
@@ -733,7 +739,7 @@ prove tenant isolation in the tests and in the demo.
 | §3.17 Employees from the ERP, personnel reports | 27 | ADR-0039; simulated payroll in the demo |
 | §3.18 Email, two-step sign-in, onboarding | 28 | ADR-0040; the demo keeps email in its outbox |
 | §3.19 Security, sessions, a government's data | 29 | ADR-0041; controls mapped in `docs/security` |
-| §3.23 The assistant | 36 | ADR-0047; Claude behind Microsoft.Extensions.AI; off by default |
+| §3.23 The assistant | 36, 37 | ADR-0047, ADR-0048; Claude behind Microsoft.Extensions.AI; off by default; changes only on the user's click |
 | §3.22 The budget book | 35 | ADR-0046; frozen with the snapshot |
 | §3.21 Connecting an ERP | 34 | ADR-0045; a reference ERP in `samples/` |
 | §3.20 Multi-year plan | 33 | ADR-0044; nothing projected is stored except in the snapshot |

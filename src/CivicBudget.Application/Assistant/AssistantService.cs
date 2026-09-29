@@ -50,6 +50,7 @@ public sealed partial class AssistantService(
     IEnumerable<IChatClient> models,
     IEnumerable<IAssistantToolProvider> toolProviders,
     AssistantUsageLimiter limiter,
+    AssistantProposals proposals,
     ISecurityEventLog securityLog,
     TimeProvider clock,
     ILogger<AssistantService> logger) : IAssistantService
@@ -137,8 +138,35 @@ public sealed partial class AssistantService(
 
         return Result.Success(new AssistantReply(
             string.IsNullOrWhiteSpace(answer) ? "I could not put an answer together. Try asking another way." : answer.Trim(),
-            turn.Steps, turn.NavigateTo));
+            turn.Steps, turn.NavigateTo, turn.Proposals));
     }
+
+    public async Task<Result<ProposalOutcome>> ConfirmAsync(Guid proposalId, CancellationToken ct = default)
+    {
+        if (!(await StatusAsync(ct)).Available)
+        {
+            return Result.Failure<ProposalOutcome>("The assistant is off.");
+        }
+
+        if (proposals.Take(proposalId) is not { } pending)
+        {
+            return Result.Failure<ProposalOutcome>("That proposal has expired or was already used. Ask again for a fresh one.");
+        }
+
+        Result<ProposalOutcome> outcome = await pending.Commit(ct);
+        if (outcome.IsSuccess)
+        {
+            // The service's own changes are already in the audit trail under this user; this names how they were made.
+            await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
+            db.AuditEntries.Add(AuditEntry.Event(currentUser.GovernmentId!.Value, pending.EntityType, pending.EntityId,
+                $"Through the assistant: {pending.AuditText}", currentUser.UserId!, currentUser.DisplayName ?? "", clock.GetUtcNow()));
+            await db.SaveChangesAsync(ct);
+        }
+
+        return outcome;
+    }
+
+    public void Discard(Guid proposalId) => proposals.Take(proposalId);
 
     public async Task<AssistantSettingsDto> GetSettingsAsync(CancellationToken ct = default)
     {

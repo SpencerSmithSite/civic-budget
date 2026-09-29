@@ -6,6 +6,17 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 
 ## [Unreleased]
 
+## Phase 37: 2026-09-29 (the assistant proposes, you confirm)
+### Added
+- **Actions** in the assistant: set the multi-year plan, change lines in bulk, fix a fund over its limit, start next year's budget, bring in actuals from the ERP, and write the budget message or a department narrative. Each is shown as a card with the change before and after, and only the card's button makes it.
+- **"Check my budget"**: what must be fixed before council (a fund over the Ohio limit, a failing certificate check) and what is worth a look (unsubmitted requests, missing narratives, large changes with no justification, later plan years that overspend, zeroed lines).
+- **Downloads**: the assistant links a report's PDF or spreadsheet, and the link saves the file.
+- **Audit**: a confirmed change is recorded as "Through the assistant: ..." beside the change itself.
+- `IBudgetEntryService.UpdateLineAmountsAsync` (several lines at once, all or nothing, refused if a line moved since the preview) and `IBudgetPlanService.PreviewPlanAsync`.
+### Changed
+- After a confirmed change, the page under the panel reloads its data.
+- The evaluation set reads seeded amounts from the services instead of hard-coding them (a split position's odd cent can land on a different fund after a reseed).
+
 ## Phase 36: 2026-09-29 (assistant foundation)
 ### Added
 - **Assistant** in the admin app's top bar: ask about the budget and actuals ("how are actuals compared to our budget so far this year?") or how to do something ("how do I print the budget book?"), and it looks the answer up, links the page, or opens it.

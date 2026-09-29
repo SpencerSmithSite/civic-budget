@@ -117,6 +117,8 @@ public class BudgetPlanPageTests : BunitContext
             return Task.FromResult(Result.Success());
         }
 
+        public Task<Result<BudgetPlanDto>> PreviewPlanAsync(SavePlanRequest request, CancellationToken ct = default) => throw new NotSupportedException();
+
         public Task<Result> SetPlannedAmountAsync(Guid versionId, Guid lineId, int yearOffset, decimal? amount, CancellationToken ct = default)
         {
             LastSet = (lineId, yearOffset, amount);

@@ -451,13 +451,15 @@ published snapshot.
 - [x] Assistant panel in the admin app; every question and tool call in the security log
 - [x] Tests with a fake model (permissions, tool routing) and a scripted evaluation set against the demo data
 
-- [ ] Reviewed and approved
+- [x] Reviewed and approved
 
-### Phase 37: Agentic actions
-- [ ] Proposal and confirmation: the model proposes, a preview shows the effect, only the user's click commits
-- [ ] Actions: set the multi-year plan, change lines in bulk, start next year's budget, fetch actuals, run and download reports
-- [ ] Drafts: the budget message and department narratives
-- [ ] "Check my budget" review and "fix this fund" options
+### Phase 37: Agentic actions  `phase-37-assistant-actions`
+- [x] Proposal and confirmation: the model proposes, a preview shows the effect, only the user's click commits
+- [x] Actions: set the multi-year plan, change lines in bulk, start next year's budget, fetch actuals, run and download reports
+- [x] Drafts: the budget message and department narratives
+- [x] "Check my budget" review and "fix this fund" options
+
+- [ ] Reviewed and approved
 
 ### Phase 38: Public portal Q&A
 - [ ] A non-agentic bot that reads only the published snapshot, answers with links, and says so when something is not published

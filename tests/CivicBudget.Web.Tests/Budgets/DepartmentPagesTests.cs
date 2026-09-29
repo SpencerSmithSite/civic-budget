@@ -206,6 +206,7 @@ public class DepartmentPagesTests : BunitContext
         public Task<BudgetWorkspaceDto?> GetWorkspaceAsync(Guid versionId, CancellationToken ct = default) => Task.FromResult(Workspace);
         public Task<IReadOnlyList<BudgetVersionSummaryDto>> ListVersionsAsync(CancellationToken ct = default) => Task.FromResult(Versions);
         public Task<Result> UpdateLineAmountAsync(Guid versionId, Guid lineId, decimal amount, CancellationToken ct = default) => Task.FromResult(Result.Success());
+        public Task<Result> UpdateLineAmountsAsync(Guid versionId, IReadOnlyList<LineAmountChange> changes, CancellationToken ct = default) => Task.FromResult(Result.Success());
         public Task<Result> UpdateLineJustificationAsync(Guid versionId, Guid lineId, string? justification, CancellationToken ct = default) => Task.FromResult(Result.Success());
         public Task<Result<Guid>> AddLineAsync(AddBudgetLineRequest request, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<Result> RemoveLineAsync(Guid versionId, Guid lineId, CancellationToken ct = default) => Task.FromResult(Result.Success());

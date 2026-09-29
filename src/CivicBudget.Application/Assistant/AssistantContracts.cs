@@ -9,8 +9,8 @@ public sealed record AssistantMessage(bool FromUser, string Text);
 /// <summary>What the assistant looked at to answer, in words ("Budget against actual, FY2026 Amendment 1").</summary>
 public sealed record AssistantStep(string Summary);
 
-/// <summary>The answer, the steps behind it, and a page to open when the user asked to go somewhere.</summary>
-public sealed record AssistantReply(string Text, IReadOnlyList<AssistantStep> Steps, string? NavigateTo);
+/// <summary>The answer, the steps behind it, a page to open when the user asked to go somewhere, and any changes waiting for their confirmation.</summary>
+public sealed record AssistantReply(string Text, IReadOnlyList<AssistantStep> Steps, string? NavigateTo, IReadOnlyList<AssistantProposalDto> Proposals);
 
 /// <param name="CurrentPath">The page the user is on ("/admin/budgets/{id}/plan"), so "this budget" means something.</param>
 public sealed record AssistantRequest(IReadOnlyList<AssistantMessage> History, string Question, string? CurrentPath);
@@ -45,6 +45,12 @@ public interface IAssistantService
 
     /// <summary>Administrator only: lets this government's users use the assistant, or stops them.</summary>
     Task<Result> SetEnabledAsync(bool enabled, CancellationToken ct = default);
+
+    /// <summary>Runs a proposal the user clicked Confirm on: once, as the user, through the service a page would call, and into the audit trail.</summary>
+    Task<Result<ProposalOutcome>> ConfirmAsync(Guid proposalId, CancellationToken ct = default);
+
+    /// <summary>Drops a proposal the user turned down.</summary>
+    void Discard(Guid proposalId);
 }
 
 /// <summary>
@@ -60,6 +66,8 @@ public sealed class AssistantTurn(string? currentPath)
     public Guid? PageVersionId { get; } = VersionFrom(currentPath);
 
     public List<AssistantStep> Steps { get; } = [];
+
+    public List<AssistantProposalDto> Proposals { get; } = [];
 
     public string? NavigateTo { get; set; }
 

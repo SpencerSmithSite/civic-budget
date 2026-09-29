@@ -1733,3 +1733,44 @@ Joining all of the model's messages leaked its working notes into the answer. An
 spent a small output cap before answering. Each is fixed, and the first now has a test that reads each
 tool's schema and fails on an unexpected required parameter, which I checked by breaking it.
 **Look at:** `ToolSchemaTests`, `AssistantService.AskAsync`, walkthrough 35 section 7.
+
+## Phase 37: The assistant proposes, you confirm
+
+### Q: How do you let an AI change a budget safely?
+**A:** It never does. Every action tool is a `propose_` tool: it checks the user may make the change,
+works it out through the same service the page uses, and stores a proposal with a commit delegate.
+The panel shows it as a card with the rows before and after, and only the card's button calls
+`ConfirmAsync`. No tool can confirm, so the model cannot approve its own proposal, and neither can an
+instruction planted in the data. Confirming runs the page's service as the user, so every rule is
+checked again at the moment of the change.
+**Look at:** `ActionTools`, `AssistantProposals`, `AssistantService.ConfirmAsync`, ADR-0048.
+
+### Q: What if the budget changes between the preview and the click?
+**A:** The preview is refused, whole. Line changes carry each line's amount at the time of the
+preview (`LineAmountChange.Expected`), and `UpdateLineAmountsAsync` changes nothing if any line has
+moved, naming the line. A 5% raise applied to five lines out of six is a change nobody asked for,
+so it is all or nothing. Proposals are also single-use, held only in the tab that made them, and
+expire after 30 minutes.
+**Look at:** `BudgetEntryService.UpdateLineAmountsAsync`, `AssistantActionTests`.
+
+### Q: Why not just ask "are you sure?" in the chat?
+**A:** The model reads the "yes" too, and so can text in the data. A button outside the model's reach
+is the only confirmation it cannot forge. I also turned down "act, then offer undo": in a budget a
+change can be published or sent to the ERP before anyone looks.
+**Look at:** `ProposalCard.razor`, ADR-0048's alternatives.
+
+### Q: Where does the arithmetic happen?
+**A:** In code. "Fix the Street fund" is `FundTrim`, which cuts the fund's spending lines in
+proportion by exactly the amount over the limit and gives the rounding cents to the largest line.
+"Check my budget" is `BudgetReview`, which reads the reports that already exist. Both are pure and
+unit tested; the model reads their results and copies the amounts.
+**Look at:** `FundTrim`, `BudgetReview`, `FundTrimTests`, `BudgetReviewTests`.
+
+### Q: What did the real model teach you this time?
+**A:** To read the answers, not just the pass marks. All the tests passed, but one answer named a
+Fire department Maple Ridge doesn't have, because the preview showed account numbers without
+department names. And a failure I blamed on the model turned out to be real: a position split
+evenly between two funds gives its odd cent to the fund with the lower id, and ids made in the same
+millisecond sort at random, so the seeded figure can move a cent between reseeds. The tests now read
+it from the service.
+**Look at:** walkthrough 36 section 6, `PositionCostCalculator.SplitAmongFunds`.

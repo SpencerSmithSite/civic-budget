@@ -1,5 +1,6 @@
 using CivicBudget.Web.Components.Account;
 using Markdig;
+using Markdig.Renderers.Html;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 
@@ -9,7 +10,8 @@ namespace CivicBudget.Web.Components.Assistant;
 /// Turns the assistant's Markdown answer into HTML that is safe to show. Raw HTML in the answer is
 /// written out as text, images are dropped, and a link survives only if it points inside
 /// CivicBudget: a model can be talked into writing anything, and a link to another site in an
-/// answer that looks official is how that would do harm.
+/// answer that looks official is how that would do harm. A link to a file export gets the download
+/// attribute, so the browser saves the file instead of the app trying to route to it.
 /// </summary>
 public static class AssistantMarkdown
 {
@@ -23,6 +25,10 @@ public static class AssistantMarkdown
             if (link.IsImage || !LocalUrl.IsLocal(link.Url))
             {
                 link.ReplaceBy(new LiteralInline(TextOf(link)), copyChildren: false);
+            }
+            else if (link.Url!.StartsWith("/admin/export/", StringComparison.OrdinalIgnoreCase))
+            {
+                link.GetAttributes().AddPropertyIfNotExist("download", "");
             }
         }
 
