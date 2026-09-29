@@ -403,11 +403,11 @@ Decided with Spencer (2026-09-28): plan up to ten years (five by default) on bot
 calculated from each prior year like starting a budget; the plan lives on each budget version; departments edit their
 own lines' future years; fund balances roll forward year by year; the portal shows the plan once published.
 
-- [ ] Domain: plan length, per-year revenue and expenditure percentages, typed-over amounts, the pure projection and fund balance roll-forward
-- [ ] Plan page: assumptions, fund balances by year with flags, the lines by year (departments edit their own)
-- [ ] Carried into amendments and the next year's budget; locked once adopted
-- [ ] Multi-year plan report and XLSX export
-- [ ] Published with the budget; an Outlook page on the portal
+- [x] Domain: plan length, per-year revenue and expenditure percentages, typed-over amounts, the pure projection and fund balance roll-forward
+- [x] Plan page: assumptions, fund balances by year with flags, the lines by year (departments edit their own)
+- [x] Carried into amendments and the next year's budget; locked once adopted
+- [x] Multi-year plan report and XLSX export
+- [x] Published with the budget; an Outlook page on the portal
 - [ ] Reviewed and approved
 
 ## Later (parked by Spencer, 2026-09-28)

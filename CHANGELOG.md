@@ -6,6 +6,18 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 
 ## [Unreleased]
 
+## Phase 33: 2026-09-28 (multi-year plan)
+### Added
+- **Multi-year plan** on every budget version: up to ten years, five by default, counting the budget year. Each future year has a revenue and an expenditure percentage, and any line's future year can be typed over (a project, a grant that ends).
+- **Fund balances roll forward:** each fund's ending balance becomes the next year's beginning balance, and an overspent year is flagged in words, with the amount over.
+- **Plan page** (Tools, then Multi-year plan): the percentages, balances by fund and year, and every line by year. Department heads plan their own lines while their request is open.
+- **XLSX export** of the plan, and a card on the Reports page.
+- **Portal Outlook page:** the published plan, all funds by year with the assumed changes, and each fund's ending balance.
+### Changed
+- Amendments copy the plan; starting next year's budget moves it on a year. Adoption locks it.
+- Published snapshots store one row per fund per planned year.
+- The seeded FY2027 budget plans a $250,000 Maple Street project in FY2029; FY2025 is a one-year plan.
+
 ## Phase 32: 2026-09-28 (finish accessibility)
 ### Changed
 - **Editable amounts** on the worksheet and department pages are always outlined, so the numbers you can change are visible at a glance. The border is 3:1 against the row, and darkens on hover.

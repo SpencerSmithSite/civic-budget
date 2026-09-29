@@ -197,6 +197,11 @@ that would have been wrong.
   manager itself; an idle timeout that works on Blazor pages that never send the cookie; a strict
   script policy with a per-request nonce; and a government's data found from the EF model, so the
   full export and the removal cannot miss a table added later. ([ADR-0041](docs/DECISIONS.md#adr-0041-soc-2-by-design-a-security-log-apart-from-the-audit-trail-sessions-that-end-a-governments-data-found-from-the-model-and-scanning-in-ci), [Walkthrough 28](docs/walkthroughs/28-soc2.md))
+- **Five years ahead, not one.** Each budget carries a plan of up to ten years: a revenue and an
+  expenditure percentage per year, amounts typed over where a project or grant breaks the pattern,
+  and every fund's balance rolled forward with the Ohio limit checked in each year. Nothing
+  projected is stored, so the plan can never disagree with the budget; it moves on a year when the
+  next budget starts, and the portal publishes it as an outlook. ([ADR-0044](docs/DECISIONS.md#adr-0044-a-multi-year-plan-on-each-budget-version-percentages-per-year-typed-years-balances-rolled-forward), [Walkthrough 32](docs/walkthroughs/32-multi-year-plan.md))
 
 ## Run it locally
 
@@ -292,8 +297,9 @@ deployed; it shows the production-shaped design. See [infra/README.md](infra/REA
    [28 SOC 2 by design](docs/walkthroughs/28-soc2.md) ·
    [29 The product site](docs/walkthroughs/29-product-site.md) ·
    [30 The accessibility self-scan](docs/walkthroughs/30-accessibility.md) ·
-   [31 Finishing accessibility](docs/walkthroughs/31-accessibility-finish.md)
-4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 43 decision records, each
+   [31 Finishing accessibility](docs/walkthroughs/31-accessibility-finish.md) ·
+   [32 The multi-year plan](docs/walkthroughs/32-multi-year-plan.md)
+4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 44 decision records, each
    with the alternatives I turned down, and the table of every package and why it is there.
 5. Then the code, starting at `src/CivicBudget.Domain/Budgets/BudgetVersion.cs`, the heart of it.
 

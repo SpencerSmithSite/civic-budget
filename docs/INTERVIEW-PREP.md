@@ -1565,3 +1565,36 @@ symbols, and "$3.70M" with no spoken form, and I fixed them. The VoiceOver pass 
 checklist with expected announcements, and the report's screen-reader line stays open until it is
 done.
 **Look at:** `docs/accessibility/screen-reader-checklist.md`, `MoneyShort.Speakable`.
+
+## Phase 33: Multi-year plan
+
+### Q: Why store percentages and typed years instead of the projected amounts?
+**A:** Projected amounts depend on the budget year. The moment someone changes a line in the
+worksheet, every stored projection for that line would be stale. Storing only the inputs (the
+percentages per year and the years someone typed) and working the numbers out on every read keeps
+the plan consistent by construction, and there is one pure function to test. The snapshot is the
+one place projected numbers are stored, because a published budget is frozen on purpose.
+**Look at:** `MultiYearPlanCalculator.Project`, `PlannedAmount`, `PublishedBudgetSnapshot.Capture`.
+
+### Q: How do fund balances work across years?
+**A:** Each year of each fund is summed into the same `FundBalanceSummary` the budget year uses, by
+the same `FundBalanceCalculator`, and its ending balance becomes the next year's beginning balance.
+Reusing the calculator means every future year gets the Ohio check that appropriations stay within
+estimated resources, so the page can say "Fund 4901 spends more than it has in FY2029".
+**Look at:** `MultiYearPlanCalculator`, `FundBalanceCalculator`, `BudgetPlan.razor`.
+
+### Q: What happens to the plan when next year's budget starts?
+**A:** It moves on a year. Year 2's percentages become year 1's, typed amounts shift down, and the
+new last year repeats the old last year's percentages. The old year 1's typed amounts are dropped,
+because that year is now the budget and is started from last year's amounts like any budget. An
+amendment copies the plan unchanged. Both are domain methods on `BudgetVersion`, tested without a
+database.
+**Look at:** `BudgetVersion.CreateOriginalFrom` (`CarryPlanForward`), `BudgetLine.CopyPlannedFrom`,
+`MultiYearPlanTests`.
+
+### Q: How did you keep department heads to their own lines?
+**A:** The same way as the budget year: `BudgetLinePermissions.CanEdit` with the department's
+submitted flag decides whether a future year can be typed, and the service filters the lines to
+the user's departments and returns no fund totals. The rule lives in one place, so the plan cannot
+drift from the worksheet.
+**Look at:** `BudgetPlanService`, `BudgetPlanServiceTests`.

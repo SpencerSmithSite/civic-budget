@@ -415,6 +415,21 @@ for addresses with no account are the operator's alone.
 
 ---
 
+### 3.20 Multi-year plan
+Each budget version carries a plan of 1 to 10 years (5 by default), counting the budget year.
+- **Percentages:** each future year has a revenue percentage (revenues and transfers in) and an
+  expenditure percentage (expenditures and transfers out), within the same range as starting a
+  budget. A calculated year is the year before changed by that year's percentage, rounded to the
+  cent or, if chosen, the dollar.
+- **Typed years:** any line's future year can be set by hand; the years after it follow from it.
+  Clearing it goes back to the calculation.
+- **Fund balances:** each fund's ending balance is the next year's beginning balance, and each
+  year gets the appropriation check of §5.1.
+- **Who:** the fiscal authority sets the length and percentages; a line's future years follow the
+  same rule as its budget-year amount (§3.10). Adoption locks the plan.
+- **Carried:** an amendment copies the plan; starting next year's budget moves it on a year.
+- **Published:** the snapshot keeps each fund's plan by year, shown on the portal's Outlook page.
+
 ## 4. Workflow
 
 ```
@@ -552,6 +567,8 @@ contain no rules of their own.
    layout, so export, edit in Excel, import is a round trip.
 8. **Reports** (on screen, printable, and as XLSX): Budget Summary by Fund,
    Department Budget Detail, Revenue vs. Expenditure by Category.
+9. **Multi-year plan** (§3.20): the percentages, each fund's balance by year, and
+   every line by year, with an XLSX export.
 
 ### 7.2 Public transparency portal: `/transparency/{slug}/{year?}`
 - **Overview:** total revenues and expenditures, where the money comes from and
@@ -560,6 +577,8 @@ contain no rules of their own.
   stable URL at every level. Department pages carry the department's narrative.
 - **Charts:** by category, fund, and department, plus year over year across every
   published year. Every chart has a table twin and does not rely on color.
+- **Outlook:** the plan published with the budget, all funds by year with the
+  assumed changes, and each fund's ending balance.
 - **Search** by department, account name, or full account number.
 - **Downloads** of the published data as CSV and XLSX.
 - **Glossary** of the terms the portal uses.
@@ -678,6 +697,7 @@ prove tenant isolation in the tests and in the demo.
 | §3.17 Employees from the ERP, personnel reports | 27 | ADR-0039; simulated payroll in the demo |
 | §3.18 Email, two-step sign-in, onboarding | 28 | ADR-0040; the demo keeps email in its outbox |
 | §3.19 Security, sessions, a government's data | 29 | ADR-0041; controls mapped in `docs/security` |
+| §3.20 Multi-year plan | 33 | ADR-0044; nothing projected is stored except in the snapshot |
 | §4 Workflow, §5 Validation | 4 | Block or Warn at the transition |
 | §6 Publishing | 4, 5, 18 | Denormalized snapshots (ADR-0005, 0019); read-only portal context (ADR-0006); cache evicted by tag (ADR-0021) |
 | §7.1 Admin | 2–4, 6, 9c, 9d, 10 | Two entry modes, live fund panel, audit trail, import, reports, department round, profile pictures |
