@@ -1,4 +1,5 @@
 @page "/admin/budgets/{VersionId:guid}/book"
+@attribute [HelpTopic("Budget book", "Write the budget message, choose the book's sections, and download the whole budget as a PDF.", "pdf print book message letter mayor")]
 @using CivicBudget.Application.Reports
 @attribute [Authorize(Policy = Policies.CanViewBudget)]
 @inject IBudgetBookService Books

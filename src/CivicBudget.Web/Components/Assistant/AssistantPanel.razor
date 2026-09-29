@@ -1,0 +1,178 @@
+@using CivicBudget.Application.Assistant
+@implements IDisposable
+@inject AssistantPanelState State
+@inject IAssistantService Assistant
+@inject NavigationManager Navigation
+
+@* The assistant beside the page: not a dialog, so the page stays usable while it is open, and the
+   conversation carries across pages. New answers are announced (role="log"), Escape closes it and
+   returns to the button, and focus goes to the question box when it opens. *@
+@if (State.IsOpen && State.Status is { Configured: true } status)
+{
+    <aside class="cb-assistant" id="assistant-panel" aria-labelledby="assistant-title" @onkeydown="OnKeyDownAsync">
+        <div class="cb-assistant-header">
+            <h2 id="assistant-title"><i class="bi bi-stars me-2" aria-hidden="true"></i>Assistant</h2>
+            @if (State.Conversation.Count > 0)
+            {
+                <button type="button" class="btn btn-link btn-sm" @onclick="StartOver">Start over</button>
+            }
+            <button type="button" class="btn-close" aria-label="Close the assistant" @onclick="CloseAsync"></button>
+        </div>
+
+        @if (!status.Available)
+        {
+            <div class="cb-assistant-body"><p class="text-secondary small">@status.Reason</p></div>
+        }
+        else
+        {
+            <div class="cb-assistant-body" role="log" aria-live="polite" aria-label="Conversation with the assistant">
+                @if (State.Conversation.Count == 0)
+                {
+                    <p class="small text-secondary">Ask about your budget and actuals, or how to do something in CivicBudget. I answer from what your account can see, and I cannot change anything.</p>
+                    <div class="cb-assistant-suggestions">
+                        @foreach (string suggestion in Suggestions)
+                        {
+                            <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => AskAsync(suggestion)" disabled="@busy">@suggestion</button>
+                        }
+                    </div>
+                }
+
+                @foreach (AssistantEntry entry in State.Conversation)
+                {
+                    @if (entry.FromUser)
+                    {
+                        <div class="cb-assistant-msg cb-assistant-user"><span class="visually-hidden">You asked: </span>@entry.Text</div>
+                    }
+                    else
+                    {
+                        <div class="cb-assistant-msg @(entry.IsError ? "cb-assistant-error" : "cb-assistant-answer")">
+                            <span class="visually-hidden">Assistant: </span>
+                            @if (entry.IsError)
+                            {
+                                @entry.Text
+                            }
+                            else
+                            {
+                                @((MarkupString)AssistantMarkdown.ToHtml(entry.Text))
+                            }
+                            @if (entry.Steps.Count > 0)
+                            {
+                                <div class="cb-assistant-steps">Looked at: @string.Join("; ", entry.Steps.Select(s => s.Summary))</div>
+                            }
+                        </div>
+                    }
+                }
+
+                @if (busy)
+                {
+                    <div class="cb-assistant-msg cb-assistant-answer text-secondary" role="status"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Looking into it…</div>
+                }
+            </div>
+
+            <form class="cb-assistant-ask" @onsubmit="SubmitAsync" @onsubmit:preventDefault>
+                <label class="visually-hidden" for="assistant-question">Ask the assistant</label>
+                <textarea id="assistant-question" class="form-control" rows="2" maxlength="@AssistantService.QuestionMaxLength" placeholder="Ask a question…"
+                          @bind="question" @bind:event="oninput" @onkeydown="OnQuestionKeyDownAsync" @ref="questionBox" disabled="@busy"></textarea>
+                <button type="submit" class="btn btn-primary btn-sm" disabled="@(busy || string.IsNullOrWhiteSpace(question))">Ask</button>
+            </form>
+        }
+    </aside>
+}
+
+@code {
+    private string? question;
+    private bool busy;
+    private bool focusQuestion;
+    private ElementReference questionBox;
+
+    private string CurrentPath => "/" + Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0];
+
+    private IEnumerable<string> Suggestions => CurrentPath.Contains("/admin/budgets/", StringComparison.Ordinal) || CurrentPath.Contains("/admin/reports/", StringComparison.Ordinal)
+        ? ["What changed most in this budget?", "Which funds are close to their limit?", "How do I print the budget book?"]
+        : ["How are actuals compared to the budget so far this year?", "Which revenues are behind last year's pace?", "How do I change my password?"];
+
+    protected override void OnInitialized() => State.Changed += OnChanged;
+
+    private void OnChanged()
+    {
+        focusQuestion = State.IsOpen;
+        InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (focusQuestion && State.IsOpen && State.Status?.Available == true && !busy)
+        {
+            focusQuestion = false;
+            await questionBox.FocusAsync();
+        }
+    }
+
+    private Task SubmitAsync() => AskAsync(question);
+
+    // Enter asks; Shift+Enter makes a new line, as in any chat box.
+    private async Task OnQuestionKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+        {
+            await AskAsync(question);
+        }
+    }
+
+    private async Task AskAsync(string? text)
+    {
+        if (busy || string.IsNullOrWhiteSpace(text))
+        {
+            return;
+        }
+
+        List<AssistantMessage> history = [.. State.Conversation.Where(e => !e.IsError).Select(e => new AssistantMessage(e.FromUser, e.Text))];
+        State.Conversation.Add(new AssistantEntry(true, text.Trim(), []));
+        question = null;
+        busy = true;
+        StateHasChanged();
+        try
+        {
+            Result<AssistantReply> reply = await Assistant.AskAsync(new AssistantRequest(history, text, CurrentPath));
+            if (reply.IsSuccess)
+            {
+                State.Conversation.Add(new AssistantEntry(false, reply.Value.Text, reply.Value.Steps));
+                if (reply.Value.NavigateTo is { } path)
+                {
+                    Navigation.NavigateTo(path.TrimStart('/'));
+                }
+            }
+            else
+            {
+                State.Conversation.Add(new AssistantEntry(false, reply.Errors[0].Message, [], IsError: true));
+            }
+        }
+        finally
+        {
+            busy = false;
+            focusQuestion = true;
+        }
+    }
+
+    private void StartOver()
+    {
+        State.Conversation.Clear();
+        focusQuestion = true;
+    }
+
+    private Task CloseAsync()
+    {
+        State.CloseFromPanel();
+        return Task.CompletedTask;
+    }
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            await CloseAsync();
+        }
+    }
+
+    public void Dispose() => State.Changed -= OnChanged;
+}

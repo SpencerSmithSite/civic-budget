@@ -1,4 +1,5 @@
 @page "/admin/budgets/{VersionId:guid}/import"
+@attribute [HelpTopic("Import lines", "Load budget lines from a CSV or Excel file, with a preview of every row before anything is saved.", "import upload excel csv lines")]
 @attribute [Authorize(Policy = Policies.CanImport)]
 @using CivicBudget.Application.Import
 @inject IBudgetEntryService BudgetEntry

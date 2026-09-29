@@ -2,6 +2,7 @@ using CivicBudget.Application;
 using CivicBudget.Application.Notifications;
 using CivicBudget.Application.Publishing;
 using CivicBudget.Infrastructure;
+using CivicBudget.Infrastructure.Assistant;
 using CivicBudget.Infrastructure.Persistence;
 using CivicBudget.Infrastructure.Seed;
 using CivicBudget.Web;
@@ -68,6 +69,9 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 builder.Services.Configure<SeedOptions>(builder.Configuration.GetSection(SeedOptions.SectionName));
 
+// The assistant's model: registered only when the operator has set Assistant:ApiKey (ADR-0047).
+builder.Services.AddAssistantModel(builder.Configuration);
+
 // ERP connections the operator configured (Erp:Connections) use the HTTP adapter, for the governments
 // they name. Without any, the simulated ERP stands in where the demo data is seeded, since it knows only
 // the demo governments. Elsewhere no ERP API is registered, and the sync and send pages offer files alone.
@@ -108,6 +112,8 @@ builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuth
 builder.Services.AddScoped<CircuitHandler, CurrentUserCircuitHandler>();
 builder.Services.AddScoped<AdminPageState>();
 builder.Services.AddScoped<ToastService>();
+builder.Services.AddScoped<CivicBudget.Web.Components.Assistant.AssistantPanelState>();
+builder.Services.AddScoped<CivicBudget.Application.Assistant.IAssistantToolProvider, CivicBudget.Web.Help.NavigationTools>();
 
 // Output caching for the public portal (ADR-0021): pages are cached per URL and tagged by
 // government slug; publishing evicts the tag. Registered after AddInfrastructure so the real

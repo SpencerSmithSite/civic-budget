@@ -1,4 +1,5 @@
 @page "/admin/my-department"
+@attribute [HelpTopic("My department", "Takes a department user straight to their department's request in the current budget.", "my department request")]
 @attribute [Authorize(Policy = Policies.CanViewBudget)]
 @inject IBudgetEntryService BudgetEntry
 @inject NavigationManager Navigation

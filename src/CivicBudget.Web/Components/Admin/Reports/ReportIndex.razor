@@ -1,4 +1,5 @@
 @page "/admin/reports"
+@attribute [HelpTopic("Reports", "Every report, for any budget version: summaries, department detail, the certificate, reports on the ERP's books, personnel, the plan, and the budget book.", "reports list")]
 @attribute [Authorize(Policy = Policies.CanViewBudget)]
 @inject IBudgetEntryService BudgetEntry
 

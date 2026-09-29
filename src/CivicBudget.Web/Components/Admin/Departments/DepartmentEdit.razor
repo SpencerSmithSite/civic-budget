@@ -1,5 +1,6 @@
 @page "/admin/departments/new"
 @page "/admin/departments/{Id:guid}"
+@attribute [HelpTopic("Add or edit a department", "Create a department (or program) or change its name and description.", "department program new")]
 @attribute [Authorize(Policy = Policies.CanMaintainSetup)]
 @inject IDepartmentService DepartmentService
 @inject NavigationManager Navigation

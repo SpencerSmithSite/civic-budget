@@ -1,4 +1,5 @@
 @page "/admin/budgets"
+@attribute [HelpTopic("Budget versions", "Every budget by year and version, where each stands (draft, proposed, adopted), starting next year's budget, amendments, and publishing history.", "budgets versions amendment start new year publish")]
 @attribute [Authorize(Policy = Policies.CanViewBudget)]
 @using CivicBudget.Application.Publishing
 @inject IBudgetEntryService BudgetEntry

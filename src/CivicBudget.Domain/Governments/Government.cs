@@ -86,6 +86,14 @@ public sealed partial class Government : Entity
 
     public void SetRequireMfa(bool require) => RequireMfa = require;
 
+    /// <summary>
+    /// Whether this government's users may use the assistant. Off until the Administrator turns it
+    /// on, because questions to the assistant send budget figures to the model's provider.
+    /// </summary>
+    public bool AssistantEnabled { get; private set; }
+
+    public void SetAssistantEnabled(bool enabled) => AssistantEnabled = enabled;
+
     private static string ValidateState(string state)
     {
         string value = Guard.NotNullOrWhiteSpace(state, nameof(state)).ToUpperInvariant();

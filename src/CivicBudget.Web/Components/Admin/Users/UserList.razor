@@ -1,4 +1,5 @@
 @page "/admin/users"
+@attribute [HelpTopic("Users", "Everyone who can sign in, their roles and departments, and whether they use two-step sign-in.", "users people access roles")]
 @attribute [Authorize(Policy = Policies.CanManageUsers)]
 @inject IUserAdminService UserAdmin
 @inject ToastService Toasts

@@ -1,4 +1,5 @@
 @page "/admin/budgets/{VersionId:guid}/departments/{DepartmentId:guid}"
+@attribute [HelpTopic("A department's request", "One department's lines across its funds, its narrative, and submitting the request to the fiscal officer.", "department request narrative submit")]
 @attribute [Authorize(Policy = Policies.CanViewBudget)]
 @using CivicBudget.Domain.Accounts
 @inject IBudgetEntryService BudgetEntry

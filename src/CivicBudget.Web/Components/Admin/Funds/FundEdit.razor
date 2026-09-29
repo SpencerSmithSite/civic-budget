@@ -1,5 +1,6 @@
 @page "/admin/funds/new"
 @page "/admin/funds/{Id:guid}"
+@attribute [HelpTopic("Add or edit a fund", "Create a fund or change its name, category, and the description residents see.", "fund new")]
 @attribute [Authorize(Policy = Policies.CanMaintainSetup)]
 @inject IFundService FundService
 @inject NavigationManager Navigation

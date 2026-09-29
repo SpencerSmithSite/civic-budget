@@ -34,6 +34,9 @@ public static class DependencyInjection
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<ICertificateService, CertificateService>();
         services.AddScoped<IBudgetBookService, BudgetBookService>();
+        services.AddScoped<Assistant.IAssistantService, Assistant.AssistantService>();
+        services.AddScoped<Assistant.IAssistantToolProvider, Assistant.BudgetTools>();
+        services.AddSingleton<Assistant.AssistantUsageLimiter>();
         services.AddScoped<IMeasureColumnService, MeasureColumnService>();
         services.AddScoped<IActualsReportService, ActualsReportService>();
         services.AddScoped<IErpChartFileSource, ErpChartFileSource>();

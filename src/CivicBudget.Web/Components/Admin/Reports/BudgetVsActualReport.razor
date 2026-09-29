@@ -1,4 +1,5 @@
 @page "/admin/reports/{VersionId:guid}/budget-vs-actual"
+@attribute [HelpTopic("Budget vs. Actual", "Each appropriation against what has been spent and committed so far this year, and where it stood last year at the same point.", "budget versus actual spending year to date report")]
 @attribute [Authorize(Policy = Policies.CanViewBudget)]
 @using CivicBudget.Application.Reports
 @inject IActualsReportService Reports

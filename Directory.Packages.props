@@ -22,6 +22,11 @@
     <!-- Web -->
     <PackageVersion Include="MailKit" Version="4.18.1" />
     <PackageVersion Include="QRCoder" Version="1.8.0" />
+    <!-- Assistant: the model interface (Application), Claude behind it (Infrastructure), answers as safe HTML (Web) -->
+    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.10.1" />
+    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.10.0" />
+    <PackageVersion Include="Anthropic" Version="12.51.0" />
+    <PackageVersion Include="Markdig" Version="1.4.0" />
     <!-- Testing -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageVersion Include="xunit" Version="2.9.3" />

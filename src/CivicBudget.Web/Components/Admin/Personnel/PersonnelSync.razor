@@ -1,4 +1,5 @@
 @page "/admin/personnel-sync"
+@attribute [HelpTopic("Employees from the ERP", "Bring the payroll roster in from the ERP, by fetching or uploading an export, to update budgeted positions.", "employees payroll roster erp sync")]
 @attribute [Authorize(Policy = Policies.CanMaintainSetup)]
 @using CivicBudget.Application.Personnel
 @inject IPersonnelSyncService Sync
