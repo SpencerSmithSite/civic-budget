@@ -20,6 +20,9 @@ public sealed class SimulatedErpActualsApi(TimeProvider clock) : IErpActualsApi
 
     public string Name => "ERP (simulated)";
 
+    // The demo simulates the ERP for every government it seeds.
+    public bool IsConnected(Guid governmentId) => true;
+
     public Task<Result<ErpActuals>> FetchAsync(ErpEntity entity, int fiscalYear, CancellationToken ct = default)
     {
         (IReadOnlyList<SeedLine> Lines, IReadOnlyDictionary<(string FundCode, int Year), decimal> Balances)? books = entity.Slug switch

@@ -3,8 +3,11 @@ using CivicBudget.Domain.Erp;
 
 namespace CivicBudget.Application.Erp;
 
-/// <summary>Where the chart comes from today and when it last arrived; the setup screens read this to decide what to show.</summary>
-public sealed record ChartSourceStatusDto(ChartSource Source, DateTimeOffset? LastSyncedAtUtc, string? LastSyncedBy, string? LastSyncSource);
+/// <summary>
+/// Where the chart comes from today and when it last arrived; the setup screens read this to decide what
+/// to show. <paramref name="ApiName"/> is set when this government has an ERP connection to fetch from.
+/// </summary>
+public sealed record ChartSourceStatusDto(ChartSource Source, DateTimeOffset? LastSyncedAtUtc, string? LastSyncedBy, string? LastSyncSource, string? ApiName = null);
 
 /// <summary>One row of the sync log.</summary>
 public sealed record ChartSyncDto(Guid Id, string SourceName, string FileName, DateTimeOffset SyncedAtUtc, string UserName,
@@ -24,6 +27,11 @@ public interface IChartSyncService
     Task<Result<ChartSyncPreviewDto>> PreviewAsync(string fileName, Stream content, CancellationToken ct = default);
 
     Task<Result<ChartSyncDto>> CommitAsync(string fileName, Stream content, CancellationToken ct = default);
+
+    /// <summary>The same preview with the chart asked of the ERP's API instead of read from a file.</summary>
+    Task<Result<ChartSyncPreviewDto>> PreviewFromErpAsync(CancellationToken ct = default);
+
+    Task<Result<ChartSyncDto>> CommitFromErpAsync(CancellationToken ct = default);
 
     Task<IReadOnlyList<ChartSyncDto>> HistoryAsync(CancellationToken ct = default);
 

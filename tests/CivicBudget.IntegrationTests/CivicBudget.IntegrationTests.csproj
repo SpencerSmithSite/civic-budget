@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="../../src/CivicBudget.Infrastructure/CivicBudget.Infrastructure.csproj" />
+    <ProjectReference Include="../../samples/CivicBudget.ReferenceErp/CivicBudget.ReferenceErp.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />

@@ -196,6 +196,8 @@ public class BudgetTransmissionServiceTests(SqlServerFixture fixture) : IAsyncLi
         public string? FirstJournalNumber { get; private set; }
         public string Name => inner.Name;
 
+        public bool IsConnected(Guid governmentId) => inner.IsConnected(governmentId);
+
         public async Task<ErpJournalAnswer> PostBudgetJournalAsync(ErpEntity entity, ErpBudgetJournal journal, CancellationToken ct = default)
         {
             ExternalIds.Add(journal.ExternalId);

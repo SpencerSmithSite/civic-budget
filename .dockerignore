@@ -14,3 +14,4 @@ tests/
 scripts/
 node_modules/
 cdk.out/
+samples/

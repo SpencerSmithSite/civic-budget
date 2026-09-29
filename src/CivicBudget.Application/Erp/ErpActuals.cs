@@ -49,5 +49,11 @@ public interface IErpActualsApi
     /// <summary>What the page and the sync log call it ("ERP (simulated)").</summary>
     string Name { get; }
 
+    /// <summary>
+    /// Whether this government has a connection. One adapter serves every government, and only the ones
+    /// the operator configured are connected; for the rest the page offers the file alone.
+    /// </summary>
+    bool IsConnected(Guid governmentId);
+
     Task<Result<ErpActuals>> FetchAsync(ErpEntity entity, int fiscalYear, CancellationToken ct = default);
 }

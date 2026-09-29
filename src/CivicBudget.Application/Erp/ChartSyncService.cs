@@ -17,8 +17,19 @@ public sealed class ChartSyncService(
     ICivicBudgetDbContextFactory dbFactory,
     ICurrentUser currentUser,
     IErpChartFileSource chartSource,
+    IEnumerable<IErpChartApi> apis,
     TimeProvider clock) : IChartSyncService
 {
+    private const string NoApi = "No ERP connection is set up for this government. Upload a chart export instead.";
+
+    // The sync log names where a chart came from; a fetched chart has no file, so it records this.
+    private const string FetchedName = "Fetched by API";
+
+    private readonly IErpChartApi? adapter = apis.FirstOrDefault();
+
+    // One adapter serves every government, but only those with a configured connection may use it.
+    private IErpChartApi? Api => adapter is not null && currentUser.GovernmentId is { } governmentId && adapter.IsConnected(governmentId) ? adapter : null;
+
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     public async Task<ChartSourceStatusDto> StatusAsync(CancellationToken ct = default)
@@ -26,7 +37,7 @@ public sealed class ChartSyncService(
         await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
         Government government = await GovernmentAsync(db, ct);
         ChartSync? last = await db.ChartSyncs.OrderByDescending(s => s.SyncedAtUtc).FirstOrDefaultAsync(ct);
-        return new ChartSourceStatusDto(government.ChartSource, last?.SyncedAtUtc, last?.UserName, last?.SourceName);
+        return new ChartSourceStatusDto(government.ChartSource, last?.SyncedAtUtc, last?.UserName, last?.SourceName, Api?.Name);
     }
 
     public async Task<Result<ChartSyncPreviewDto>> PreviewAsync(string fileName, Stream content, CancellationToken ct = default)
@@ -37,20 +48,36 @@ public sealed class ChartSyncService(
         }
 
         Result<ErpChart> chart = chartSource.Read(fileName, content);
-        if (chart.IsFailure)
+        return chart.IsFailure ? Result.Failure<ChartSyncPreviewDto>(chart.Errors) : await PreviewAsync(chart.Value, chartSource.Name, fileName, ct);
+    }
+
+    public async Task<Result<ChartSyncPreviewDto>> PreviewFromErpAsync(CancellationToken ct = default)
+    {
+        if (!CanSync())
         {
-            return Result.Failure<ChartSyncPreviewDto>(chart.Errors);
+            return Result.Failure<ChartSyncPreviewDto>(NotAllowed);
         }
 
+        if (Api is not { } api)
+        {
+            return Result.Failure<ChartSyncPreviewDto>(NoApi);
+        }
+
+        Result<ErpChart> chart = await api.FetchAsync(await EntityAsync(ct), ct);
+        return chart.IsFailure ? Result.Failure<ChartSyncPreviewDto>(chart.Errors) : await PreviewAsync(chart.Value, api.Name, FetchedName, ct);
+    }
+
+    private async Task<Result<ChartSyncPreviewDto>> PreviewAsync(ErpChart chart, string sourceName, string fileName, CancellationToken ct)
+    {
         await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
         Local local = await LoadLocalAsync(db, ct);
         List<Account> accounts = await db.Accounts.AsNoTracking().ToListAsync(ct);
-        if (await RetypedAccountsInUseAsync(db, chart.Value, accounts, ct) is { Count: > 0 } retyped)
+        if (await RetypedAccountsInUseAsync(db, chart, accounts, ct) is { Count: > 0 } retyped)
         {
             return Result.Failure<ChartSyncPreviewDto>(RetypeRefusal(retyped));
         }
 
-        return Result.Success(new ChartSyncPreviewDto(chartSource.Name, fileName, ChartDiff.Compute(chart.Value, local.Funds, local.Departments, local.Objects), chart.Value.NumberFormat));
+        return Result.Success(new ChartSyncPreviewDto(sourceName, fileName, ChartDiff.Compute(chart, local.Funds, local.Departments, local.Objects), chart.NumberFormat));
     }
 
     public async Task<Result<ChartSyncDto>> CommitAsync(string fileName, Stream content, CancellationToken ct = default)
@@ -63,12 +90,28 @@ public sealed class ChartSyncService(
         // The file is read and compared again rather than trusting the preview: someone may have changed
         // the chart between the preview and this click, and the diff must be against what is here now.
         Result<ErpChart> read = chartSource.Read(fileName, content);
-        if (read.IsFailure)
+        return read.IsFailure ? Result.Failure<ChartSyncDto>(read.Errors) : await CommitAsync(read.Value, chartSource.Name, fileName, ct);
+    }
+
+    public async Task<Result<ChartSyncDto>> CommitFromErpAsync(CancellationToken ct = default)
+    {
+        if (!CanSync())
         {
-            return Result.Failure<ChartSyncDto>(read.Errors);
+            return Result.Failure<ChartSyncDto>(NotAllowed);
         }
 
-        ErpChart chart = read.Value;
+        if (Api is not { } api)
+        {
+            return Result.Failure<ChartSyncDto>(NoApi);
+        }
+
+        // Fetched again rather than trusting the preview, for the same reason a file is read again.
+        Result<ErpChart> chart = await api.FetchAsync(await EntityAsync(ct), ct);
+        return chart.IsFailure ? Result.Failure<ChartSyncDto>(chart.Errors) : await CommitAsync(chart.Value, api.Name, FetchedName, ct);
+    }
+
+    private async Task<Result<ChartSyncDto>> CommitAsync(ErpChart chart, string sourceName, string fileName, CancellationToken ct)
+    {
         await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
         Government government = await GovernmentAsync(db, ct);
         List<Fund> funds = await db.Funds.ToListAsync(ct);
@@ -82,7 +125,7 @@ public sealed class ChartSyncService(
 
         if (changes.All(c => c.Change == ChartChangeKind.Unchanged))
         {
-            return Result.Failure<ChartSyncDto>("The chart already matches the file; nothing to sync.");
+            return Result.Failure<ChartSyncDto>("The chart already matches the ERP's; nothing to sync.");
         }
 
         try
@@ -106,11 +149,11 @@ public sealed class ChartSyncService(
         int unchanged = changes.Count(c => c.Change == ChartChangeKind.Unchanged);
         // The name comes from the user's computer; the log keeps what fits rather than refusing the sync.
         string loggedName = fileName.Length <= ChartSync.NameMaxLength ? fileName : fileName[..(ChartSync.NameMaxLength - 1)] + "…";
-        var sync = new ChartSync(government.Id, chartSource.Name, loggedName, clock.GetUtcNow(), currentUser.UserId!, currentUser.DisplayName ?? currentUser.UserId!,
+        var sync = new ChartSync(government.Id, sourceName, loggedName, clock.GetUtcNow(), currentUser.UserId!, currentUser.DisplayName ?? currentUser.UserId!,
             added, updated, deactivated, reactivated, unchanged, JsonSerializer.Serialize(changes.Where(c => c.Change != ChartChangeKind.Unchanged), JsonOptions));
         db.ChartSyncs.Add(sync);
         db.AuditEntries.Add(AuditEntry.Event(government.Id, nameof(Government), government.Id,
-            $"Synced the chart of accounts from {chartSource.Name} ({loggedName}): {added} added, {updated} updated, {deactivated} deactivated, {reactivated} reactivated",
+            $"Synced the chart of accounts from {sourceName} ({loggedName}): {added} added, {updated} updated, {deactivated} deactivated, {reactivated} reactivated",
             currentUser.UserId!, currentUser.DisplayName ?? "", clock.GetUtcNow()));
         await db.SaveChangesAsync(ct);
         return Result.Success(ToDto(sync));
@@ -152,6 +195,13 @@ public sealed class ChartSyncService(
     private sealed record Local(IReadOnlyList<LocalFund> Funds, IReadOnlyList<LocalDepartment> Departments, IReadOnlyList<LocalObject> Objects);
 
     private bool CanSync() => currentUser.IsFiscalAuthority();
+
+    private async Task<ErpEntity> EntityAsync(CancellationToken ct)
+    {
+        await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
+        Government government = await GovernmentAsync(db, ct);
+        return new ErpEntity(government.Id, government.PublicSlug, government.Name, government.FiscalYearStartMonth, government.AccountNumberFormat);
+    }
 
     private async Task<Government> GovernmentAsync(ICivicBudgetDbContext db, CancellationToken ct) =>
         await db.Governments.SingleAsync(g => g.Id == currentUser.GovernmentId, ct);

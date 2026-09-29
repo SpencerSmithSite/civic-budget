@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!-- The reference ERP: the published API served from the demo governments' fictional data. -->
+  <ItemGroup>
+    <ProjectReference Include="../../src/CivicBudget.Infrastructure/CivicBudget.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

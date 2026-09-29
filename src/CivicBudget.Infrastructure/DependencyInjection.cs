@@ -1,3 +1,4 @@
+using CivicBudget.Application.Erp;
 using CivicBudget.Application.Export;
 using CivicBudget.Application.Notifications;
 using CivicBudget.Application.Persistence;
@@ -8,6 +9,8 @@ using CivicBudget.Application.Security;
 using CivicBudget.Application.Setup;
 using CivicBudget.Application.Tenancy;
 using CivicBudget.Application.Users;
+using CivicBudget.Infrastructure.Erp;
+using CivicBudget.Infrastructure.Erp.Http;
 using CivicBudget.Infrastructure.Export;
 using CivicBudget.Infrastructure.Identity;
 using CivicBudget.Infrastructure.Notifications;
@@ -22,6 +25,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace CivicBudget.Infrastructure;
 
@@ -122,6 +126,41 @@ public static class DependencyInjection
             services.AddHostedService<EmailDeliveryService>();
         }
 
+        return services;
+    }
+
+    /// <summary>Whether the operator has set up any ERP connection (<c>Erp:Connections</c>).</summary>
+    public static bool HasErpConnections(IConfiguration configuration) =>
+        configuration.GetSection($"{ErpConnectionsOptions.SectionName}:{nameof(ErpConnectionsOptions.Connections)}").GetChildren().Any();
+
+    /// <summary>
+    /// The HTTP adapter for all four exchanges, serving the governments the operator connected. The
+    /// connections are checked when the host starts, so a bad address or a missing key stops the app
+    /// instead of failing later on a Fetch button.
+    /// </summary>
+    public static IServiceCollection AddErpConnections(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddOptions<ErpConnectionsOptions>().Bind(configuration.GetSection(ErpConnectionsOptions.SectionName)).ValidateOnStart();
+        services.AddSingleton<IValidateOptions<ErpConnectionsOptions>, ErpConnectionsOptionsValidator>();
+        services.AddHttpClient(HttpErpAdapter.ClientName);
+        services.AddSingleton<HttpErpAdapter>();
+        services.AddSingleton<IErpChartApi>(sp => sp.GetRequiredService<HttpErpAdapter>());
+        services.AddSingleton<IErpActualsApi>(sp => sp.GetRequiredService<HttpErpAdapter>());
+        services.AddSingleton<IErpEmployeesApi>(sp => sp.GetRequiredService<HttpErpAdapter>());
+        services.AddSingleton<IErpBudgetApi>(sp => sp.GetRequiredService<HttpErpAdapter>());
+        return services;
+    }
+
+    /// <summary>
+    /// The simulated ERP, which knows only the demo governments' fictional chart, books, and payroll.
+    /// Registered only where the demo data is seeded.
+    /// </summary>
+    public static IServiceCollection AddSimulatedErp(this IServiceCollection services)
+    {
+        services.AddSingleton<IErpChartApi, SimulatedErpChartApi>();
+        services.AddSingleton<IErpActualsApi, SimulatedErpActualsApi>();
+        services.AddSingleton<IErpBudgetApi, SimulatedErpBudgetApi>();
+        services.AddSingleton<IErpEmployeesApi, SimulatedErpEmployeesApi>();
         return services;
     }
 }

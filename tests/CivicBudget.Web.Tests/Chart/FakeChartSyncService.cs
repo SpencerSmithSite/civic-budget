@@ -12,6 +12,8 @@ internal sealed class FakeChartSyncService(ChartSource source = ChartSource.Loca
 
     public Task<Result<ChartSyncPreviewDto>> PreviewAsync(string fileName, Stream content, CancellationToken ct = default) => throw new NotSupportedException();
     public Task<Result<ChartSyncDto>> CommitAsync(string fileName, Stream content, CancellationToken ct = default) => throw new NotSupportedException();
+    public Task<Result<ChartSyncPreviewDto>> PreviewFromErpAsync(CancellationToken ct = default) => throw new NotSupportedException();
+    public Task<Result<ChartSyncDto>> CommitFromErpAsync(CancellationToken ct = default) => throw new NotSupportedException();
     public Task<IReadOnlyList<ChartSyncDto>> HistoryAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<ChartSyncDto>>([]);
     public Task<Result> SetChartSourceAsync(ChartSource source, CancellationToken ct = default) => throw new NotSupportedException();
 }

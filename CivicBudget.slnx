@@ -5,6 +5,9 @@
     <Project Path="src/CivicBudget.Infrastructure/CivicBudget.Infrastructure.csproj" />
     <Project Path="src/CivicBudget.Web/CivicBudget.Web.csproj" />
   </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/CivicBudget.ReferenceErp/CivicBudget.ReferenceErp.csproj" />
+  </Folder>
   <Folder Name="/infra/">
     <Project Path="infra/CivicBudget.Infra/CivicBudget.Infra.csproj" />
   </Folder>

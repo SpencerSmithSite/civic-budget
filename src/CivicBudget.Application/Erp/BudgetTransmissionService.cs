@@ -20,7 +20,10 @@ public sealed class BudgetTransmissionService(
     TimeProvider clock) : IBudgetTransmissionService
 {
     /// <summary>At most one connection is registered; with none, only the import file is offered.</summary>
-    private readonly IErpBudgetApi? api = apis.FirstOrDefault();
+    private readonly IErpBudgetApi? adapter = apis.FirstOrDefault();
+
+    // One adapter serves every government, but only those with a configured connection may use it.
+    private IErpBudgetApi? Api => adapter is not null && currentUser.GovernmentId is { } governmentId && adapter.IsConnected(governmentId) ? adapter : null;
 
     public async Task<SendPageDto?> GetAsync(Guid versionId, CancellationToken ct = default)
     {
@@ -41,7 +44,7 @@ public sealed class BudgetTransmissionService(
         List<TransmissionDto> history = await HistoryAsync(db, year.Year, ct);
 
         return new SendPageDto(
-            version.Id, year.Year, version.Label, year.StartDate, year.EndDate, api?.Name,
+            version.Id, year.Year, version.Label, year.StartDate, year.EndDate, Api?.Name,
             CannotSend(version),
             DefaultDescription(version, year),
             DefaultPostingDate(version, year),
@@ -81,7 +84,7 @@ public sealed class BudgetTransmissionService(
             return Result.Failure<TransmissionDto>(NotAllowed);
         }
 
-        if (api is null)
+        if (Api is null)
         {
             return Result.Failure<TransmissionDto>(NoApi);
         }
@@ -124,7 +127,7 @@ public sealed class BudgetTransmissionService(
             return Result.Failure<TransmissionDto>(NotAllowed);
         }
 
-        if (method == TransmissionMethod.Api && api is null)
+        if (method == TransmissionMethod.Api && Api is null)
         {
             return Result.Failure<TransmissionDto>(NoApi);
         }
@@ -170,7 +173,7 @@ public sealed class BudgetTransmissionService(
             return Result.Failure<TransmissionDto>("The ERP already has this budget. There is nothing to send.");
         }
 
-        string target = method == TransmissionMethod.Api ? api!.Name : "ERP import file";
+        string target = method == TransmissionMethod.Api ? Api!.Name : "ERP import file";
         var transmission = new BudgetTransmission(government.Id, version.Id, year.Year, method, target, description, request.PostingDate,
             currentUser.UserId!, currentUser.DisplayName ?? currentUser.UserId!, clock.GetUtcNow());
         foreach (JournalChange c in changes)
@@ -201,7 +204,7 @@ public sealed class BudgetTransmissionService(
         ErpJournalAnswer? answer;
         try
         {
-            answer = await api!.PostBudgetJournalAsync(EntityFor(government), JournalOf(t), ct);
+            answer = await Api!.PostBudgetJournalAsync(EntityFor(government), JournalOf(t), ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
         {

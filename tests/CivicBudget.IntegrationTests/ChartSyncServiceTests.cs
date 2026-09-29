@@ -34,6 +34,20 @@ public class ChartSyncServiceTests(SqlServerFixture fixture) : IAsyncLifetime
     public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
+    public async Task The_simulated_ERP_holds_the_seeded_chart_so_a_fetch_finds_nothing_to_change()
+    {
+        await using AsyncServiceScope scope = As(Roles.FinanceDirector);
+        IChartSyncService sync = scope.ServiceProvider.GetRequiredService<IChartSyncService>();
+
+        Assert.Equal("ERP (simulated)", (await sync.StatusAsync()).ApiName);
+        Result<ChartSyncPreviewDto> preview = await sync.PreviewFromErpAsync();
+
+        Assert.True(preview.IsSuccess, string.Join("; ", preview.Errors.Select(e => e.Message)));
+        Assert.False(preview.Value.HasChanges);
+        Assert.Equal("The chart already matches the ERP's; nothing to sync.", (await sync.CommitFromErpAsync()).Errors.Single().Message);
+    }
+
+    [Fact]
     public async Task Preview_compares_the_file_with_the_seeded_chart()
     {
         await using AsyncServiceScope scope = As(Roles.FinanceDirector);

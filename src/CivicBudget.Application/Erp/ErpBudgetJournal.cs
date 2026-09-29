@@ -33,6 +33,12 @@ public interface IErpBudgetApi
     /// <summary>For the send history and the audit trail ("ERP (simulated)").</summary>
     string Name { get; }
 
+    /// <summary>
+    /// Whether this government has a connection. One adapter serves every government, and only the ones
+    /// the operator configured are connected; for the rest the page offers the file alone.
+    /// </summary>
+    bool IsConnected(Guid governmentId);
+
     Task<ErpJournalAnswer> PostBudgetJournalAsync(ErpEntity entity, ErpBudgetJournal journal, CancellationToken ct = default);
 }
 
