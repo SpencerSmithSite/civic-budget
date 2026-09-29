@@ -79,7 +79,7 @@ public class PersonnelSettingsTests
         PersonnelTestData data = new();
 
         (PersonnelSettings next, IReadOnlyDictionary<Guid, Guid> ids) = data.Settings.CopyTo(2028);
-        PayrollRules nextRules = next.ToRules(new DateOnly(2028, 1, 1), new DateOnly(2028, 12, 31));
+        PayrollRules nextRules = next.ToRules(new DateOnly(2028, 1, 1), new DateOnly(2028, 12, 31), PersonnelTestData.FundCodes);
 
         Assert.Equal(2028, next.FiscalYear);
         Guid oldMedical = data.Insurance("Medical");

@@ -1344,7 +1344,8 @@ contract, not the numbers against a formula.
 cent, between the General and Street funds. The rounding cent went to "the last fund" in a split, and
 the database returns a position's funds in no fixed order. Now the fund with the largest share takes
 it, with ties broken by id, and two tests pin it down: a split is the same in either order, and an
-unchanged save moves no line.
+unchanged save moves no line. (*Since 2026-09-29:* ties go to the lowest fund number, because ids made
+in the same millisecond differ from one seed to the next.)
 **Look at:** `PositionCostCalculator.SplitAmongFunds`, `Saving_settings_touches_only_the_lines_the_change_reaches`.
 
 ## Phase 27: Employees from the ERP, and personnel reports
@@ -1772,7 +1773,9 @@ Fire department Maple Ridge doesn't have, because the preview showed account num
 department names. And a failure I blamed on the model turned out to be real: a position split
 evenly between two funds gives its odd cent to the fund with the lower id, and ids made in the same
 millisecond sort at random, so the seeded figure can move a cent between reseeds. The tests now read
-it from the service.
+it from the service, and the tie now goes to the lowest fund number, which is the same in every
+database and is what a person checking the figures expects. The other funds' parts round down, so
+"takes the odd cent" is literally true: rounding half up had handed it to the other fund.
 **Look at:** walkthrough 36 section 6, `PositionCostCalculator.SplitAmongFunds`.
 
 ## Phase 38: Questions from the public

@@ -67,8 +67,8 @@ public sealed class AssistantEvaluationTests(SqlServerFixture fixture, Xunit.Abs
 
     public Task DisposeAsync() => Task.CompletedTask;
 
-    // How far the Street fund is over in the FY2027 draft, read rather than hard-coded: which fund
-    // takes a split position's odd cent can differ between seeds.
+    // How far the Street fund is over in the FY2027 draft, read rather than hard-coded, so a change
+    // to the seeded personnel does not break a test about the model.
     private async Task<string> StreetFundOverAsync()
     {
         await using AsyncServiceScope scope = _database.CreateScopeAs(Roles.FinanceDirector, _mapleRidge);

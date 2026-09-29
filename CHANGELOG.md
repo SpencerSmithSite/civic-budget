@@ -7,6 +7,8 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 ## [Unreleased]
 ### Changed
 - **The live demo has the AI features:** the assistant and the portal's question box run on GLM 5.3 Flash (Ollama Cloud). `scripts/azure-assistant.sh` stores the key as a Container App secret (`--off` removes it); the Bicep template takes it as an optional parameter for the web app only, `azure-setup.sh` keeps it on a rerun, and the demo's portal takes 200 questions a month per government.
+### Fixed
+- **A position split evenly between funds gives its odd cent to the lowest fund number**, not the fund with the lower id. Ids made in the same millisecond differ from one seed to the next, so the demo's Street fund over-limit amount moved by a cent or two between reseeds. The other funds' parts now round down, so the fund with the largest share (the lowest number, on a tie) always takes the odd cent rather than sometimes giving it away. The calculator gets the numbers from `PayrollRules.FundCodes` (ADR-0038, amended). The demo's Street fund is now over its limit by $21,908.68 on every reseed.
 
 ## Phase 38: 2026-09-29 (questions from the public)
 ### Added

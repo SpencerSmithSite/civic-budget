@@ -205,8 +205,8 @@ public sealed class BudgetWorkflowService(
 
         FiscalYear priorYear = await db.FiscalYears.SingleAsync(f => f.Id == prior.FiscalYearId, ct);
         HashSet<Guid> activeDepartments = (await db.Departments.Where(d => d.IsActive).Select(d => d.Id).ToListAsync(ct)).ToHashSet();
-        int carried = version.CarryForwardPositions(prior, priorSettings.ToRules(priorYear.StartDate, priorYear.EndDate), newIds, activeDepartments);
-        await PersonnelData.ApplyAllAsync(db, version, settings.ToRules(year.StartDate, year.EndDate), ct);
+        int carried = version.CarryForwardPositions(prior, await PersonnelData.RulesAsync(db, priorSettings, priorYear, ct), newIds, activeDepartments);
+        await PersonnelData.ApplyAllAsync(db, version, await PersonnelData.RulesAsync(db, settings, year, ct), ct);
         return carried;
     }
 

@@ -19,7 +19,7 @@ public class PersonnelReportBuilderTests
         var settings = PersonnelSettings.CreateDefault(Guid.CreateVersion7(), 2027, Account, null, Account, Account, Account);
         settings.SetBasics(2080m, Account, 1.45m, Account, 2m, Account);
         settings.SaveInsurancePlan(null, "Medical", 1_000m, 1_500m, 2_000m, 10m, Account);
-        _rules = settings.ToRules(new DateOnly(2027, 1, 1), new DateOnly(2027, 12, 31));
+        _rules = settings.ToRules(new DateOnly(2027, 1, 1), new DateOnly(2027, 12, 31), new Dictionary<Guid, string> { [General] = "1000", [Street] = "2011" });
     }
 
     private ReportPosition Position(string department, string? name, decimal salary, CoverageTier? tier = null, bool pickUp = false, params FundShare[] funds)

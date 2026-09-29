@@ -22,7 +22,9 @@ public class BudgetVersionPersonnelTests
         settings = PersonnelSettings.CreateDefault(TestData.GovernmentId, 2027, salaries.Id, null, retirement.Id, medicare.Id, medicare.Id);
     }
 
-    private PayrollRules Rules => settings.ToRules(new DateOnly(2027, 1, 1), new DateOnly(2027, 12, 31));
+    private PayrollRules Rules => settings.ToRules(new DateOnly(2027, 1, 1), new DateOnly(2027, 12, 31), FundCodes);
+
+    private Dictionary<Guid, string> FundCodes => new() { [general.Id] = general.Code };
 
     private PersonnelChart Chart => new(police, new Dictionary<Guid, Fund> { [general.Id] = general },
         new[] { salaries, retirement, medicare }.ToDictionary(a => a.Id));
@@ -194,7 +196,7 @@ public class BudgetVersionPersonnelTests
         Assert.Equal(1, details.FirstMonth);
         Assert.Equal(ids[Rules.RetirementPlans.Single(p => p.Name == "OPERS").Id], details.RetirementPlanId);
 
-        next.ApplyPersonnel(Chart, nextSettings.ToRules(new DateOnly(2028, 1, 1), new DateOnly(2028, 12, 31)));
+        next.ApplyPersonnel(Chart, nextSettings.ToRules(new DateOnly(2028, 1, 1), new DateOnly(2028, 12, 31), FundCodes));
         Assert.Equal(61_800m, Line(next, salaries).Amount);
     }
 
