@@ -255,7 +255,7 @@ public sealed class AssistantActionTests(SqlServerFixture fixture) : IAsyncLifet
         AssistantService assistant = Assistant(scope, model);
         IBudgetEntryService entry = scope.ServiceProvider.GetRequiredService<IBudgetEntryService>();
 
-        // Read, not hard-coded: which fund takes a split position's odd cent can differ between seeds.
+        // Read, not hard-coded, so a change to the seeded personnel does not break a test about the assistant.
         decimal over = (await entry.GetWorkspaceAsync(_draft))!.FundBalances.Single(f => f.FundCode == "2011").Limit.AmountOverLimit;
 
         AssistantReply reply = await AskAsync(assistant, "Fix the Street fund");

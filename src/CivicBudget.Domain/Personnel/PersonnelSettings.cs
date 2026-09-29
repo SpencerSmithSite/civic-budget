@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using CivicBudget.Domain.Common;
 
 namespace CivicBudget.Domain.Personnel;
@@ -183,8 +184,11 @@ public sealed class PersonnelSettings : Entity, ITenantOwned
 
     // ---- Use --------------------------------------------------------------------------------
 
-    /// <summary>The settings as the calculator's plain values, for the fiscal year that runs from <paramref name="yearStart"/> to <paramref name="yearEnd"/>.</summary>
-    public PayrollRules ToRules(DateOnly yearStart, DateOnly yearEnd) => new(
+    /// <summary>
+    /// The settings as the calculator's plain values, for the fiscal year that runs from <paramref name="yearStart"/>
+    /// to <paramref name="yearEnd"/>. <paramref name="fundCodes"/> is every fund's number, by id.
+    /// </summary>
+    public PayrollRules ToRules(DateOnly yearStart, DateOnly yearEnd, IReadOnlyDictionary<Guid, string> fundCodes) => new(
         FiscalYear, yearStart, yearEnd, StandardHours,
         PayAccountId, MedicareRate, MedicareAccountId, WorkersCompRate, WorkersCompAccountId,
         _retirementPlans.OrderBy(p => p.SortOrder).Select(p => new RetirementPlanRule(p.Id, p.Name, p.EmployerRate, p.EmployeeRate, p.AccountId)).ToList(),
@@ -193,7 +197,8 @@ public sealed class PersonnelSettings : Entity, ITenantOwned
         _longevitySchedules.OrderBy(p => p.SortOrder).Select(p => new LongevityRule(p.Id, p.Name, p.Method, p.CountedOn, p.MaxYears, p.AccountId,
             p.Steps.OrderBy(s => s.MinYears).Select(s => new LongevityStepRule(s.MinYears, s.Value)).ToList())).ToList(),
         _payScales.OrderBy(p => p.SortOrder).Select(p => new PayScaleRule(p.Id, p.Name, p.Basis,
-            p.Rates.OrderBy(r => r.Grade).ThenBy(r => r.Step).Select(r => new PayScaleRateRule(r.Grade, r.Step, r.Rate)).ToList())).ToList());
+            p.Rates.OrderBy(r => r.Grade).ThenBy(r => r.Step).Select(r => new PayScaleRateRule(r.Grade, r.Step, r.Rate)).ToList())).ToList(),
+        fundCodes);
 
     /// <summary>
     /// The next year's settings, starting as a copy of these. Every plan gets a new id (it belongs to
@@ -206,7 +211,8 @@ public sealed class PersonnelSettings : Entity, ITenantOwned
         var copy = new PersonnelSettings(GovernmentId, fiscalYear, PayAccountId, MedicareAccountId, WorkersCompAccountId);
         copy.SetBasics(StandardHours, PayAccountId, MedicareRate, MedicareAccountId, WorkersCompRate, WorkersCompAccountId);
         var ids = new Dictionary<Guid, Guid>();
-        PayrollRules rules = ToRules(DateOnly.MinValue, DateOnly.MaxValue);
+        // Only the plans are read here, so the rules need no dates or funds.
+        PayrollRules rules = ToRules(DateOnly.MinValue, DateOnly.MaxValue, ReadOnlyDictionary<Guid, string>.Empty);
         foreach (RetirementPlanRule p in rules.RetirementPlans)
         {
             ids[p.Id] = copy.SaveRetirementPlan(null, p.Name, p.EmployerRate, p.EmployeeRate, p.AccountId).Id;

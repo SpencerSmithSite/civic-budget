@@ -30,7 +30,7 @@ public class PersonnelPagesTests : BunitContext
     {
         var settings = PersonnelSettings.CreateDefault(Guid.CreateVersion7(), 2027, Salaries, null, Benefits, Benefits, Benefits);
         settings.SaveInsurancePlan(null, "Medical", 650m, 1_300m, 1_760m, 15m, Benefits);
-        _rules = settings.ToRules(new DateOnly(2027, 1, 1), new DateOnly(2027, 12, 31));
+        _rules = settings.ToRules(new DateOnly(2027, 1, 1), new DateOnly(2027, 12, 31), new Dictionary<Guid, string> { [General] = "1000" });
 
         Services.AddSingleton<IPersonnelService>(_personnel);
         Services.AddSingleton<IPersonnelSettingsService>(new FakeSettings());

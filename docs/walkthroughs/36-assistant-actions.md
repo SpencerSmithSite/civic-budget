@@ -117,7 +117,8 @@ direct call showed the data itself varies between seeds. When a position is spli
 two funds, `PositionCostCalculator` gives the odd cent to the fund with the lower id, and ids made
 in the same millisecond sort at random. Within one database the split never moves. Across reseeds
 it can move by a cent. The tests now read the figure from the service instead of hard-coding it,
-and making the seed stable is a separate task.
+and making the seed stable is a separate task. (*Since the same day:* it is done. The lowest fund
+number takes the odd cent, so every reseed gives the same figure, $21,908.68; ADR-0038, amended.)
 
 ## 7. Trying it
 

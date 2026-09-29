@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using CivicBudget.Application.Budgets;
 using CivicBudget.Application.Common;
 using CivicBudget.Application.Persistence;
@@ -61,7 +62,8 @@ public sealed class PersonnelSettingsService(
         return new PersonnelSettingsPageDto(
             years.Select(f => f.Year).ToList(), year.Year, year.StartDate, year.EndDate,
             currentUser.IsFiscalAuthority(),
-            settings is null ? null : PersonnelSettingsForm.From(settings.ToRules(year.StartDate, year.EndDate)),
+            // The form shows the plans, not what a position costs, so it needs no fund numbers.
+            settings is null ? null : PersonnelSettingsForm.From(settings.ToRules(year.StartDate, year.EndDate, ReadOnlyDictionary<Guid, string>.Empty)),
             priorSetUp,
             accounts.Where(a => (a.IsActive && a.Type == AccountType.Expenditure) || referenced.Contains(a.Id))
                 .Select(a => new AccountLookupDto(a.Id, a.Code, a.Name, a.Type, a.Category)).ToList(),
@@ -165,7 +167,7 @@ public sealed class PersonnelSettingsService(
             return Result.Failure<PersonnelSettingsSavedDto>(ex.Message);
         }
 
-        PayrollRules rules = settings.ToRules(year.StartDate, year.EndDate);
+        PayrollRules rules = await PersonnelData.RulesAsync(db, settings, year, ct);
 
         // Every position of the year must still price, adopted budgets included: their pages show what
         // each position costs, and the database would refuse to drop a plan they point at anyway.

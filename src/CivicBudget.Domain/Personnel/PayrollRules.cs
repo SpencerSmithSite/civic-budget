@@ -51,7 +51,8 @@ public enum ServiceCountedOn
 /// <summary>
 /// One year's personnel settings as plain values: everything <see cref="PositionCostCalculator"/>
 /// needs, and nothing tied to the database, so a screen can price a position while it is being typed.
-/// Rates are percentages (14 means 14%).
+/// Rates are percentages (14 means 14%). <see cref="FundCodes"/> numbers the government's funds: when
+/// two funds pay equal shares of a position, the lower fund number takes the odd cent.
 /// </summary>
 public sealed record PayrollRules(
     int FiscalYear,
@@ -67,7 +68,8 @@ public sealed record PayrollRules(
     IReadOnlyList<InsurancePlanRule> InsurancePlans,
     IReadOnlyList<ExtraPayRule> ExtraPay,
     IReadOnlyList<LongevityRule> Longevity,
-    IReadOnlyList<PayScaleRule> PayScales)
+    IReadOnlyList<PayScaleRule> PayScales,
+    IReadOnlyDictionary<Guid, string> FundCodes)
 {
     public RetirementPlanRule? RetirementPlan(Guid id) => RetirementPlans.FirstOrDefault(p => p.Id == id);
     public InsurancePlanRule? InsurancePlan(Guid id) => InsurancePlans.FirstOrDefault(p => p.Id == id);

@@ -39,7 +39,14 @@ internal static class PersonnelData
 
     /// <summary>The year's settings as rules, or null when the year has not been set up.</summary>
     public static async Task<PayrollRules?> RulesAsync(ICivicBudgetDbContext db, FiscalYear year, CancellationToken ct) =>
-        (await SettingsAsync(db, year.Year, ct))?.ToRules(year.StartDate, year.EndDate);
+        await SettingsAsync(db, year.Year, ct) is { } settings ? await RulesAsync(db, settings, year, ct) : null;
+
+    /// <summary>
+    /// Settings already loaded as rules for their year, with every fund's number: the calculator gives
+    /// the odd cent of an even split to the lower fund number, so the rules must number every fund.
+    /// </summary>
+    public static async Task<PayrollRules> RulesAsync(ICivicBudgetDbContext db, PersonnelSettings settings, FiscalYear year, CancellationToken ct) =>
+        settings.ToRules(year.StartDate, year.EndDate, await db.Funds.ToDictionaryAsync(f => f.Id, f => f.Code, ct));
 
     /// <summary>Every fund and account of the government, so applying personnel can create any line a position costs into.</summary>
     public static async Task<PersonnelChart> ChartAsync(ICivicBudgetDbContext db, Department department, CancellationToken ct) =>

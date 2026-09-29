@@ -67,6 +67,11 @@ listed. That last rule came from a bug. Funds come back from the database in no 
 "the last fund takes the cent" moved a cent between the General and Street funds each time the
 year was repriced. A test now saves unchanged settings and asserts that no line moves.
 
+> **Since 2026-09-29:** equal shares went to the fund with the lower id, and ids made in the same
+> millisecond sort at random, so a reseed could still move the cent. Now the lowest fund number
+> takes it, and the other funds' parts round down so that the cent really does go to the first
+> fund (ADR-0038, amended). The numbers reach the calculator in `PayrollRules.FundCodes`.
+
 ## 4. Longevity, in English
 
 Ohio contracts pay longevity three ways, and the settings support all three:
