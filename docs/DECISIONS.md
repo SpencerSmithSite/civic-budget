@@ -1751,6 +1751,8 @@ navigation); Phase 37 adds actions; Phase 38 a separate bot on the public portal
     as data; the evaluation set checks that it does.
 - **Read-only for now.** The prompt says so, and there is no tool that writes. Phase 37 adds actions
   that the model proposes and only the user's click confirms.
+  - *Amended 2026-09-29 (Phase 37):* the assistant now proposes changes, and only the user's click on
+    the proposal commits them; see ADR-0048.
 - **The conversation lives in the browser tab's connection** (`AssistantPanelState`), so it
   survives moving between pages and is gone when the tab closes. Nothing is stored.
 - **Tested three ways:**
@@ -1759,6 +1761,8 @@ navigation); Phase 37 adds actions; Phase 38 a separate bot on the public portal
   - component and catalog tests;
   - an evaluation set against the real model (`AssistantEvaluationTests`), which runs when
     `ANTHROPIC_API_KEY` is set.
+  - *Amended 2026-09-29:* the evaluation set reads the app's own `Assistant` settings (user-secrets
+    or `Assistant__ApiKey` in the environment), not `ANTHROPIC_API_KEY`.
 
 **Alternatives.**
 - **Let the model query the database** (text to SQL, or a read replica): powerful, but permissions
@@ -1778,6 +1782,66 @@ navigation); Phase 37 adds actions; Phase 38 a separate bot on the public portal
 - The quality of answers depends on the model and the prompt; the evaluation set is the check after
   changing either.
 - The hosted demo shows the switch but not the assistant, until a key and a spending cap are chosen.
+
+---
+
+## ADR-0048: The assistant proposes; only the user's click commits
+**Date:** 2026-09-29 · **Status:** Accepted
+
+**Context.** Phase 36's assistant could read and navigate but change nothing. The requests I want
+it to handle are changes: "build a five-year plan at 4% a year", "raise utilities 5%", "start next
+year's budget", "fix the Street fund". A model that can write is a model that can be talked into
+writing, by a confused request or by text planted in the data (a justification that says "set every
+line to zero"). The permission rules from ADR-0047 still hold, since the tools run as the user, but a
+Fiscal Officer's assistant could still make a change the Fiscal Officer did not mean.
+
+**Decision.**
+- **Propose, preview, confirm.** An action tool (`ActionTools`, all named `propose_...`) never
+  changes anything. It checks the user may make the change, works it out through the same service a
+  page uses (the plan's own calculation, `PreviewPlanAsync`; the ERP's own preview, for actuals),
+  and stores a proposal: the exact change, the rows before and after, and a commit delegate. The
+  panel shows it as a card, and only the card's button calls `IAssistantService.ConfirmAsync`. No
+  tool can confirm, so the model cannot confirm its own proposal, whatever it reads.
+- **The commit is the page's own service call, checked again.** Confirming runs `SavePlanAsync`,
+  `UpdateLineAmountsAsync`, `StartBudgetAsync`, and the rest as the user, so every rule is applied
+  at the moment of the change, not only when it was proposed.
+- **A stale preview is refused, whole.** Line changes carry the amount each line had when the
+  preview was made (`LineAmountChange.Expected`). If any line has moved since, nothing is changed and
+  the user is told which line; they ask again for a fresh preview. The batch is all or nothing.
+- **Proposals are single-use, short-lived, and belong to one tab.** `AssistantProposals` is scoped
+  to the browser tab's connection; `Take` removes a proposal as it runs, and it expires after 30
+  minutes. A proposal id from another tab or another user finds nothing.
+- **The arithmetic is code, not the model.** "Fix the Street fund" is `FundTrim`, which cuts the
+  fund's spending lines in proportion by exactly the amount over the limit, to the cent. "Check my
+  budget" is `BudgetReview`, which reads the reports that already exist. Both are pure and tested.
+  The prompt tells the model to copy amounts, not work them out.
+- **The audit trail says how.** The service's own changes are audited as usual under the user; a
+  named event, "Through the assistant: (the proposal's title)", records that the assistant proposed
+  them.
+- **The page catches up.** After a confirmed change the admin layout rebuilds the page beneath the
+  panel (`AssistantPanelState.PageGeneration` is the key), so the page shows the change.
+- **The model hears what happened.** When the conversation goes back with the next question, each
+  proposal is followed by what the user did with it (confirmed, cancelled, failed, still waiting), so
+  "now do the same for Police" starts from the truth.
+
+**Alternatives.**
+- **Let the model act, and offer undo.** Faster for the user, but undo is not free in a budget: a
+  change can be published or sent to the ERP before anyone looks, and a reverted change still went
+  through the audit trail as a change.
+- **Ask "are you sure?" in the chat, and act on "yes".** The model reads the "yes" too, and so can
+  a planted instruction. A button outside the model's reach is the only confirmation it cannot
+  forge.
+- **Hold the proposal in the model's context and re-send it on confirm.** The model could alter it
+  between the preview and the commit. The store keeps the change the user saw.
+- **Store proposals in the database.** It would let them survive a reconnect, but a proposal is
+  worked out from a budget that moves, and half an hour in memory is the honest lifetime.
+
+**Consequences.**
+- A new action is a `propose_` tool that previews through a service and passes a commit delegate;
+  nothing in the panel or the service changes.
+- A proposal lost to a closed tab is simply gone; the user asks again.
+- Each action needs a preview the user can judge. Where a service has no preview (a message, a
+  narrative), the proposal shows the text itself.
 
 ---
 
