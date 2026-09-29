@@ -11,17 +11,26 @@ namespace CivicBudget.Infrastructure.Assistant;
 /// cloud); never on a page or in the database:
 /// <code>
 /// Assistant:ApiKey     the provider's key; without it the assistant is simply not there
-/// Assistant:Model      the model id (claude-sonnet-5-5 by default)
+/// Assistant:Provider   Anthropic (the default) or Ollama
+/// Assistant:Model      the model id; claude-sonnet-5-5 by default for Anthropic, required for Ollama
+/// Assistant:BaseUrl    optional; another address for the provider, such as a local Ollama
 /// </code>
 /// </summary>
 public sealed class AssistantModelOptions
 {
     public const string SectionName = "Assistant";
-    public const string DefaultModel = "claude-sonnet-5-5";
+    public const string Anthropic = "Anthropic";
+    public const string Ollama = "Ollama";
+    public const string DefaultAnthropicModel = "claude-sonnet-5-5";
+    public const string OllamaCloud = "https://ollama.com";
 
     public string? ApiKey { get; set; }
 
-    public string Model { get; set; } = DefaultModel;
+    public string Provider { get; set; } = Anthropic;
+
+    public string? Model { get; set; }
+
+    public string? BaseUrl { get; set; }
 
     /// <summary>Tool calls the model may chain for one question before it must answer.</summary>
     public int MaxToolRounds { get; set; } = 8;
@@ -30,10 +39,12 @@ public sealed class AssistantModelOptions
 public static class AssistantModelRegistration
 {
     /// <summary>
-    /// Registers Claude as the assistant's <see cref="IChatClient"/> when a key is configured. The
-    /// Application layer sees only the interface, so another provider (a government cloud's model,
-    /// say) is a different registration here and nothing else. Function invocation is the layer that
-    /// runs the tools the model asks for, capped so a confused model cannot loop.
+    /// Registers the assistant's <see cref="IChatClient"/> when a key is configured. The Application
+    /// layer sees only the interface, so the provider is decided here and nothing else changes.
+    /// Both providers go through Anthropic's SDK: Ollama (on its cloud or a local server) speaks
+    /// Anthropic's Messages API, tools included, and wants the key as a Bearer token. Function
+    /// invocation is the layer that runs the tools the model asks for, capped so a confused model
+    /// cannot loop. A setting that cannot work stops the app at startup.
     /// </summary>
     public static IServiceCollection AddAssistantModel(this IServiceCollection services, IConfiguration configuration)
     {
@@ -43,18 +54,28 @@ public static class AssistantModelRegistration
             return services;
         }
 
-        services.AddSingleton(sp =>
+        TimeSpan timeout = TimeSpan.FromSeconds(90);
+        (AnthropicClient client, string model) = options.Provider switch
         {
-            var client = new AnthropicClient { ApiKey = options.ApiKey, Timeout = TimeSpan.FromSeconds(90) };
-            return client.AsIChatClient(options.Model, 1500)
-                .AsBuilder()
-                .UseFunctionInvocation(sp.GetRequiredService<ILoggerFactory>(), invoker =>
-                {
-                    invoker.MaximumIterationsPerRequest = options.MaxToolRounds;
-                    invoker.IncludeDetailedErrors = false; // a tool's exception text stays on the server
-                })
-                .Build(sp);
-        });
+            AssistantModelOptions.Anthropic => (
+                options.BaseUrl is { Length: > 0 } url
+                    ? new AnthropicClient { ApiKey = options.ApiKey, BaseUrl = url, Timeout = timeout }
+                    : new AnthropicClient { ApiKey = options.ApiKey, Timeout = timeout },
+                options.Model ?? AssistantModelOptions.DefaultAnthropicModel),
+            AssistantModelOptions.Ollama => (
+                new AnthropicClient { AuthToken = options.ApiKey, BaseUrl = options.BaseUrl ?? AssistantModelOptions.OllamaCloud, Timeout = timeout },
+                options.Model ?? throw new InvalidOperationException("Set Assistant:Model to an Ollama model with tool support, such as glm-5.3-flash.")),
+            _ => throw new InvalidOperationException($"Assistant:Provider must be {AssistantModelOptions.Anthropic} or {AssistantModelOptions.Ollama}, not '{options.Provider}'."),
+        };
+
+        services.AddSingleton(sp => client.AsIChatClient(model, 1500)
+            .AsBuilder()
+            .UseFunctionInvocation(sp.GetRequiredService<ILoggerFactory>(), invoker =>
+            {
+                invoker.MaximumIterationsPerRequest = options.MaxToolRounds;
+                invoker.IncludeDetailedErrors = false; // a tool's exception text stays on the server
+            })
+            .Build(sp));
         return services;
     }
 }

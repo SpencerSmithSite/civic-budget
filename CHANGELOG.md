@@ -13,7 +13,8 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 - **Help topics** on every page (`[HelpTopic]`), from which the assistant finds pages the user may open.
 - **Government setting:** the Administrator turns the assistant on or off; it is audited. Nothing appears unless the operator has connected a model (`Assistant:ApiKey`).
 - **Security log:** every question, with the tools it used and without its text.
-- **Evaluation set** against the real model, run when `ANTHROPIC_API_KEY` is set.
+- **Two providers:** Anthropic (Claude) or Ollama (cloud or local), chosen by `Assistant:Provider`; both through the same SDK and interface.
+- **Evaluation set** against the real model, run when the app's `Assistant:ApiKey` is set in user-secrets.
 ### Packages
 - Microsoft.Extensions.AI.Abstractions, Microsoft.Extensions.AI, Anthropic (the official Claude SDK), and Markdig.
 

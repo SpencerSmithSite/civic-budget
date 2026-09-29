@@ -14,14 +14,29 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CivicBudget.IntegrationTests;
 
-/// <summary>A test that needs the real model: skipped unless ANTHROPIC_API_KEY is set, so CI and a laptop without a key stay green.</summary>
+/// <summary>
+/// The model settings the evaluation uses: the same Assistant section the app reads, from the web
+/// project's user-secrets on a developer's machine or environment variables (Assistant__ApiKey) in
+/// CI, so a key set once for the app runs the evaluation too and never appears on a command line.
+/// </summary>
+public static class LiveModelSettings
+{
+    public static IConfiguration Configuration { get; } = new ConfigurationBuilder()
+        .AddUserSecrets("civicbudget-web-7c2e1b9a")
+        .AddEnvironmentVariables()
+        .Build();
+
+    public static bool HasKey => !string.IsNullOrWhiteSpace(Configuration["Assistant:ApiKey"]);
+}
+
+/// <summary>A test that needs the real model: skipped unless an Assistant:ApiKey is configured, so CI and a laptop without a key stay green.</summary>
 public sealed class LiveModelFactAttribute : FactAttribute
 {
     public LiveModelFactAttribute()
     {
-        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY")))
+        if (!LiveModelSettings.HasKey)
         {
-            Skip = "Set ANTHROPIC_API_KEY to run the assistant against the real model.";
+            Skip = "Set Assistant:ApiKey (and Assistant:Provider and Assistant:Model for Ollama) in the web project's user-secrets to run the assistant against a real model.";
         }
     }
 }
@@ -30,8 +45,8 @@ public sealed class LiveModelFactAttribute : FactAttribute
 /// The evaluation set: real questions to the real model against the seeded demo, checked for what
 /// matters rather than exact wording. Does it look the answer up, link the page, keep a department
 /// user inside their department, and ignore instructions typed into the data? Run it after changing
-/// the prompt, a tool, or the model:
-/// <code>ANTHROPIC_API_KEY=... dotnet test tests/CivicBudget.IntegrationTests --filter AssistantEvaluationTests</code>
+/// the prompt, a tool, or the model, with the app's Assistant settings in user-secrets:
+/// <code>dotnet test tests/CivicBudget.IntegrationTests --filter AssistantEvaluationTests</code>
 /// </summary>
 [Collection(SqlServerTests.Name)]
 public sealed class AssistantEvaluationTests(SqlServerFixture fixture) : IAsyncLifetime
@@ -53,11 +68,7 @@ public sealed class AssistantEvaluationTests(SqlServerFixture fixture) : IAsyncL
 
     private static IChatClient RealModel() =>
         new ServiceCollection().AddLogging()
-            .AddAssistantModel(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Assistant:ApiKey"] = Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY"),
-                ["Assistant:Model"] = Environment.GetEnvironmentVariable("ASSISTANT_MODEL") ?? AssistantModelOptions.DefaultModel,
-            }).Build())
+            .AddAssistantModel(LiveModelSettings.Configuration)
             .BuildServiceProvider().GetRequiredService<IChatClient>();
 
     private static async Task<AssistantReply> AskAsync(AsyncServiceScope scope, string question)

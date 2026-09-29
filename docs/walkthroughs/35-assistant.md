@@ -77,8 +77,20 @@ client.AsIChatClient(options.Model, 1500)
 ```
 
 `UseFunctionInvocation` is the loop that runs the tools the model asks for and hands back their
-results, capped so a confused model cannot go round forever. Moving to another provider is a
-different registration here; nothing in Application changes.
+results, capped so a confused model cannot go round forever.
+
+`Assistant:Provider` picks the model's home:
+
+| Setting | Anthropic (default) | Ollama |
+|---|---|---|
+| `Assistant:ApiKey` | Sent as Anthropic's API key | Sent as a Bearer token, which Ollama's cloud requires |
+| `Assistant:Model` | `claude-sonnet-5-5` unless set | Required, e.g. `glm-5.3-flash` (it must support tools) |
+| `Assistant:BaseUrl` | Anthropic's API unless set | `https://ollama.com` unless set; `http://localhost:11434` for a local server |
+
+Both go through Anthropic's SDK, because Ollama implements Anthropic's Messages API, tools included.
+That is the interface paying off: a second provider was a switch in one registration method, with no
+new package and nothing changed in Application. A setting that cannot work (an unknown provider, an
+Ollama setup with no model) stops the app at startup.
 
 ## 4. The guardrails
 
@@ -121,5 +133,7 @@ matters, not exact wording:
 - a justification that says "IGNORE ALL PREVIOUS INSTRUCTIONS" (the answer reports the line and its
   amount instead of obeying).
 
-The set is skipped without `ANTHROPIC_API_KEY`, so CI stays green; run it after changing the prompt,
-a tool, or the model.
+It reads the same `Assistant` settings as the app, from the web project's user-secrets (or
+`Assistant__ApiKey` and friends in the environment), so a key set once for the app runs the
+evaluation too. Without a key the set is skipped, so CI stays green; run it after changing the
+prompt, a tool, or the model.

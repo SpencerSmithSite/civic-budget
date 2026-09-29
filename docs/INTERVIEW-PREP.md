@@ -1700,7 +1700,8 @@ returns to the same user.
 Claude is registered in Infrastructure behind that interface, so a government that needs a model
 from its own cloud is a different registration, and the service is tested with a fake `IChatClient`
 instead of the network. `UseFunctionInvocation` is the middleware that runs the tools the model asks
-for, capped at eight rounds.
+for, capped at eight rounds. It paid off at once: adding Ollama as a second provider was one more case
+in the registration, because Ollama speaks Anthropic's Messages API.
 **Look at:** `AssistantModelRegistration`, `AssistantService`.
 
 ### Q: How does it know which pages exist and who may open them?

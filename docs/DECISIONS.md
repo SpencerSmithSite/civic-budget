@@ -1731,10 +1731,13 @@ navigation); Phase 37 adds actions; Phase 38 a separate bot on the public portal
   keywords); `PageCatalog` reads them with each page's routes and `[Authorize]` policies, and
   `NavigationTools` offers or opens only the pages the user's policies allow. A test fails for an
   admin page without a topic.
-- **Microsoft.Extensions.AI in Application, Claude in Infrastructure.** Application depends on
-  `IChatClient` and `AIFunction` only. Infrastructure registers Anthropic's official SDK behind that
-  interface, with the tool-calling layer (`UseFunctionInvocation`) capped at eight rounds. Another
-  provider is a different registration.
+- **Microsoft.Extensions.AI in Application, the provider in Infrastructure.** Application depends
+  on `IChatClient` and `AIFunction` only. Infrastructure registers Anthropic's official SDK behind
+  that interface, with the tool-calling layer (`UseFunctionInvocation`) capped at eight rounds.
+  `Assistant:Provider` chooses Anthropic (Claude, the default) or Ollama (its cloud, or a local
+  server at `Assistant:BaseUrl`). Ollama speaks Anthropic's Messages API, tools included, so the same
+  SDK reaches it with the key sent as a Bearer token, and no second package is needed. Any other
+  provider is one more case in that registration.
 - **Off unless both switches are on.** The operator connects a model (`Assistant:ApiKey` in the
   secret store); without it nothing is registered and the button does not appear. Each government's
   Administrator then turns it on (`Government.AssistantEnabled`, audited), because questions send
