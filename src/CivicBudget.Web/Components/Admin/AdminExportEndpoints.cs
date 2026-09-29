@@ -50,6 +50,15 @@ internal static class AdminExportEndpoints
             return plan is null ? Results.NotFound() : File(exporter, ReportTables.Plan(plan), $"multi-year-plan-fy{plan.BudgetYear}-{Slug(plan.VersionLabel)}");
         });
 
+        // The budget book with the sections chosen on its page; a section left out of the query uses the government's default.
+        group.MapGet("/budgets/{versionId:guid}/book.pdf", async (Guid versionId, bool? outlook, bool? personnel, bool? lineItems, bool? glossary,
+            [FromServices] IBudgetBookService books, CancellationToken ct) =>
+        {
+            BudgetBookOptions defaults = await books.GetDefaultsAsync(ct);
+            var options = new BudgetBookOptions(outlook ?? defaults.Outlook, personnel ?? defaults.Personnel, lineItems ?? defaults.LineItems, glossary ?? defaults.Glossary);
+            return await books.RenderAsync(versionId, options, ct) is { } book ? Results.File(book.Content, "application/pdf", book.FileName) : Results.NotFound();
+        });
+
         group.MapGet("/reports/{versionId:guid}/fund-summary.xlsx", async (Guid versionId, [FromServices] IReportService reports, [FromServices] ISpreadsheetExporter exporter, CancellationToken ct) =>
         {
             FundSummaryReportDto? report = await reports.FundSummaryAsync(versionId, ct);

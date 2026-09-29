@@ -87,6 +87,14 @@ public static class PublishedSnapshotModel
             year.Ignore(y => y.EndingBalance);
             year.HasIndex(y => new { y.SnapshotId, y.FundCode, y.FiscalYear }).IsUnique();
         });
+
+        // No navigation from the snapshot: the portal loads a snapshot's figures on every page and the
+        // book only when someone downloads it.
+        builder.Entity<PublishedBudgetBook>(book =>
+        {
+            book.ToTable("PublishedBudgetBooks");
+            book.HasOne<PublishedBudgetSnapshot>().WithOne().HasForeignKey<PublishedBudgetBook>(b => b.SnapshotId).OnDelete(DeleteBehavior.Cascade);
+        });
     }
 }
 
@@ -113,6 +121,12 @@ internal sealed class PublishedSnapshotDepartmentAdminConfiguration : IEntityTyp
 {
     public void Configure(EntityTypeBuilder<PublishedBudgetSnapshotDepartment> builder) =>
         builder.HasOne<Government>().WithMany().HasForeignKey(d => d.GovernmentId).OnDelete(DeleteBehavior.Restrict);
+}
+
+internal sealed class PublishedBudgetBookAdminConfiguration : IEntityTypeConfiguration<PublishedBudgetBook>
+{
+    public void Configure(EntityTypeBuilder<PublishedBudgetBook> builder) =>
+        builder.HasOne<Government>().WithMany().HasForeignKey(b => b.GovernmentId).OnDelete(DeleteBehavior.Restrict);
 }
 
 internal sealed class PublishedSnapshotPlanYearAdminConfiguration : IEntityTypeConfiguration<PublishedBudgetSnapshotPlanYear>

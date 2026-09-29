@@ -1,5 +1,6 @@
 using CivicBudget.Application.Common;
 using CivicBudget.Application.Persistence;
+using CivicBudget.Application.Reports;
 using CivicBudget.Application.Security;
 using CivicBudget.Domain.Auditing;
 using CivicBudget.Domain.Budgets;
@@ -16,7 +17,8 @@ public sealed class PublishingService(
     ICivicBudgetDbContextFactory dbFactory,
     ICurrentUser currentUser,
     TimeProvider clock,
-    IPublishedSnapshotCacheInvalidator cacheInvalidator) : IPublishingService
+    IPublishedSnapshotCacheInvalidator cacheInvalidator,
+    IBudgetBookService books) : IPublishingService
 {
     private const string NotAllowed = "Only an Administrator or the Fiscal Officer can publish or unpublish a budget.";
 
@@ -83,6 +85,14 @@ public sealed class PublishingService(
         }
 
         db.PublishedBudgetSnapshots.Add(snapshot);
+
+        // The book is printed now and kept with the snapshot, so residents download the book that was
+        // published; editing the budget or its message afterwards changes neither.
+        if (await books.RenderAsync(version.Id, await books.GetDefaultsAsync(ct), ct) is { } book)
+        {
+            db.PublishedBudgetBooks.Add(new PublishedBudgetBook(snapshot.Id, snapshot.GovernmentId, book.Content, clock.GetUtcNow()));
+        }
+
         db.AuditEntries.Add(Event(snapshot, $"Published FY{snapshot.FiscalYear} {snapshot.VersionLabel} ({snapshot.Lines.Count} lines)"));
         db.AuditEntries.Add(AuditEntry.Event(version.GovernmentId, nameof(BudgetVersion), version.Id, "Published to the public portal",
             currentUser.UserId!, currentUser.DisplayName ?? "", clock.GetUtcNow()));

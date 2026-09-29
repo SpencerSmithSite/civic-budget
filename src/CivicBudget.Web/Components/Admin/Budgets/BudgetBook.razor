@@ -1,0 +1,211 @@
+@page "/admin/budgets/{VersionId:guid}/book"
+@using CivicBudget.Application.Reports
+@attribute [Authorize(Policy = Policies.CanViewBudget)]
+@inject IBudgetBookService Books
+@inject ToastService Toasts
+
+@* The printable budget book: write the budget message that opens it, choose the optional sections,
+   and download the PDF. The book covers every fund, so department users are told so rather than
+   given part of it. *@
+<PageTitle>@(book is null ? "Budget book" : $"FY{book.FiscalYear} {book.VersionLabel} budget book")</PageTitle>
+
+@if (notFound)
+{
+    <PageHeader Title="Budget book" Eyebrow="Budget" Crumbs="@([new Crumb("Budget"), new Crumb("Budget versions", "admin/budgets"), new Crumb("Book")])" />
+    <EmptyState Icon="bi-book" Title="No budget book here" Text="The book covers every fund, so it is printed by the Administrator, the Fiscal Officer, or a viewer; or this budget may have been removed." />
+}
+else if (book is null)
+{
+    <PageHeader Title="Budget book" Eyebrow="Budget" Crumbs="@([new Crumb("Budget"), new Crumb("Budget versions", "admin/budgets"), new Crumb("Book")])" />
+    <SkeletonRows Rows="6" Columns="2" />
+}
+else
+{
+    <PageHeader Title="Budget book" Eyebrow="@($"Budget · FY{book.FiscalYear} {book.VersionLabel}")"
+                Crumbs="@([new Crumb("Budget"), new Crumb("Budget versions", "admin/budgets"), new Crumb($"FY{book.FiscalYear} {book.VersionLabel}", $"admin/budgets/{VersionId}"), new Crumb("Book")])"
+                Tip="The whole budget as one PDF for council, the public, and the file: the message, a summary, a page for each fund, each department's account of its year, and the certificate of estimated resources.">
+        <TitleAddon><StatusPill Budget="book.Status" /></TitleAddon>
+        <Actions>
+            <a class="btn btn-outline-primary btn-sm" href="admin/budgets/@VersionId">Back to the budget</a>
+        </Actions>
+    </PageHeader>
+
+    <div class="cb-book-layout">
+        <div class="card">
+            <div class="card-header"><h2 class="cb-card-title">Budget message</h2></div>
+            <div class="card-body">
+                @if (book.CanEditMessage)
+                {
+                    <ResultAlert Result="messageResult" />
+                    <p class="small text-secondary">The letter that opens the book, usually from the mayor, the trustees, or the fiscal officer: what this budget does and why. Leave a blank line between paragraphs.</p>
+                    <div class="mb-3">
+                        <label class="form-label" for="message-heading">Heading</label>
+                        <input id="message-heading" class="form-control" maxlength="@BudgetVersion.MessageHeadingMaxLength" @bind="heading" placeholder="@BudgetBookBuilder.DefaultMessageHeading" />
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label" for="message-body">Message</label>
+                        <textarea id="message-body" class="form-control" rows="14" maxlength="@BudgetVersion.MessageMaxLength" @bind="body" @bind:event="oninput"
+                                  aria-describedby="message-count"></textarea>
+                    </div>
+                    <small class="text-secondary d-block mb-3" id="message-count">@(body?.Length ?? 0) of @BudgetVersion.MessageMaxLength characters</small>
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label" for="message-signer">Signed by</label>
+                            <input id="message-signer" class="form-control" maxlength="@BudgetVersion.MessageSignerMaxLength" @bind="signedBy" />
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label" for="message-title">Title</label>
+                            <input id="message-title" class="form-control" maxlength="@BudgetVersion.MessageSignerMaxLength" @bind="signerTitle" placeholder="Mayor" />
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-sm" @onclick="SaveMessageAsync" disabled="@savingMessage">Save message</button>
+                }
+                else if (book.MessageBody is null)
+                {
+                    <p class="mb-0 text-secondary">@(book.IsDraft ? "No message has been written. The Administrator or Fiscal Officer writes it." : "No message was written for this budget; its book starts with the summary.")</p>
+                }
+                else
+                {
+                    <h3 class="h6">@(book.MessageHeading ?? BudgetBookBuilder.DefaultMessageHeading)</h3>
+                    <p class="cb-narrative-text">@book.MessageBody</p>
+                    @if (book.MessageSignedBy is not null || book.MessageSignerTitle is not null)
+                    {
+                        <p class="mb-0"><strong>@book.MessageSignedBy</strong><br /><span class="text-secondary">@book.MessageSignerTitle</span></p>
+                    }
+
+                    @if (!book.IsDraft)
+                    {
+                        <p class="small text-secondary mt-3 mb-0">Settled when council adopted the budget; an amendment starts from it.</p>
+                    }
+                }
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h2 class="cb-card-title">Print the book</h2></div>
+            <div class="card-body">
+                @if (book.IsDraft)
+                {
+                    <p class="small"><StatusPill Tone="warning" Label="Proposed" /> Council has not adopted this budget, so the book says "Proposed" on the cover and on every page.</p>
+                }
+
+                <p class="small text-secondary mb-2">Always included: the cover and contents, the message, the budget at a glance, a page for each fund, the departments, and the certificate of estimated resources.</p>
+                <fieldset class="mb-3">
+                    <legend class="form-label fw-semibold fs-6 mb-1">Also include</legend>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="book-outlook" @bind="outlook" />
+                        <label class="form-check-label" for="book-outlook">Multi-year outlook</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="book-personnel" @bind="personnel" />
+                        <label class="form-check-label" for="book-personnel">Personnel cost by fund and department</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="book-lines" @bind="lineItems" />
+                        <label class="form-check-label" for="book-lines">Every account line (a long appendix)</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="book-glossary" @bind="glossary" />
+                        <label class="form-check-label" for="book-glossary">Glossary</label>
+                    </div>
+                </fieldset>
+
+                @if (book.DepartmentsWithoutNarrative.Count > 0)
+                {
+                    <p class="small text-secondary">
+                        <i class="bi bi-info-circle me-1" aria-hidden="true"></i>No narrative yet from @string.Join(", ", book.DepartmentsWithoutNarrative); their pages will show figures only.
+                    </p>
+                }
+
+                <div class="d-flex flex-wrap gap-2">
+                    <a class="btn btn-primary btn-sm" href="@DownloadHref" download><i class="bi bi-file-earmark-pdf me-1" aria-hidden="true"></i>Download PDF</a>
+                    @if (book.CanSaveDefaults)
+                    {
+                        <button type="button" class="btn btn-outline-primary btn-sm" @onclick="SaveDefaultsAsync" disabled="@(!ChoicesDiffer)">Use these for published books</button>
+                    }
+                </div>
+                @if (book.CanSaveDefaults)
+                {
+                    <p class="small text-secondary mt-2 mb-0">Publishing a budget prints its book with the sections saved here, and residents download that copy from the portal.</p>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public Guid VersionId { get; set; }
+
+    private BudgetBookPageDto? book;
+    private Guid loadedFor;
+    private bool notFound;
+    private Result? messageResult;
+    private bool savingMessage;
+    private string? heading;
+    private string? body;
+    private string? signedBy;
+    private string? signerTitle;
+    private bool outlook;
+    private bool personnel;
+    private bool lineItems;
+    private bool glossary;
+
+    private BudgetBookOptions Choices => new(outlook, personnel, lineItems, glossary);
+
+    private bool ChoicesDiffer => book is not null && Choices != book.Defaults;
+
+    private string DownloadHref =>
+        $"admin/export/budgets/{VersionId}/book.pdf?outlook={Lower(outlook)}&personnel={Lower(personnel)}&lineItems={Lower(lineItems)}&glossary={Lower(glossary)}";
+
+    private static string Lower(bool value) => value ? "true" : "false";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (loadedFor != VersionId)
+        {
+            loadedFor = VersionId;
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        book = await Books.GetAsync(VersionId);
+        notFound = book is null;
+        if (book is not null)
+        {
+            (heading, body, signedBy, signerTitle) = (book.MessageHeading, book.MessageBody, book.MessageSignedBy, book.MessageSignerTitle);
+            (outlook, personnel, lineItems, glossary) = (book.Defaults.Outlook, book.Defaults.Personnel, book.Defaults.LineItems, book.Defaults.Glossary);
+        }
+    }
+
+    private async Task SaveMessageAsync()
+    {
+        savingMessage = true;
+        messageResult = await Books.SaveMessageAsync(new SaveBudgetMessageRequest(VersionId, heading, body, signedBy, signerTitle));
+        savingMessage = false;
+        if (messageResult.IsSuccess)
+        {
+            messageResult = null;
+            Toasts.Success(string.IsNullOrWhiteSpace(body) ? "Message removed." : "Message saved.");
+            BudgetBookOptions choices = Choices; // keep the reader's section choices across the reload
+            await LoadAsync();
+            (outlook, personnel, lineItems, glossary) = (choices.Outlook, choices.Personnel, choices.LineItems, choices.Glossary);
+        }
+    }
+
+    private async Task SaveDefaultsAsync()
+    {
+        Result result = await Books.SaveDefaultsAsync(Choices);
+        if (result.IsSuccess)
+        {
+            Toasts.Success("Published books will use these sections.");
+            book = book! with { Defaults = Choices };
+        }
+        else
+        {
+            Toasts.Danger(result.Errors[0].Message);
+        }
+    }
+}

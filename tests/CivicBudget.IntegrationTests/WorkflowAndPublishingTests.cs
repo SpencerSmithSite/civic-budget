@@ -334,7 +334,7 @@ public class WorkflowAndPublishingTests(SqlServerFixture fixture) : IAsyncLifeti
         // The model maps the four snapshot tables and the government logo (a public image, ADR-0029) and
         // nothing else: no live lines, users, or governments to leak.
         List<string> tables = portal.Model.GetEntityTypes().Select(e => e.GetTableName()!).OrderBy(t => t).ToList();
-        Assert.Equal(["GovernmentLogos", "PublishedBudgetSnapshotDepartments", "PublishedBudgetSnapshotFunds", "PublishedBudgetSnapshotLines", "PublishedBudgetSnapshotPlanYears", "PublishedBudgetSnapshots"], tables);
+        Assert.Equal(["GovernmentLogos", "PublishedBudgetBooks", "PublishedBudgetSnapshotDepartments", "PublishedBudgetSnapshotFunds", "PublishedBudgetSnapshotLines", "PublishedBudgetSnapshotPlanYears", "PublishedBudgetSnapshots"], tables);
     }
 
     [Fact]

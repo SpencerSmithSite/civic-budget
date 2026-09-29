@@ -18,6 +18,9 @@ public sealed class BudgetVersion : Entity, ITenantOwned
 {
     public const int ReasonMaxLength = 1000;
     public const int ResolutionNumberMaxLength = 50;
+    public const int MessageHeadingMaxLength = 120;
+    public const int MessageMaxLength = 8000;
+    public const int MessageSignerMaxLength = 100;
 
     private readonly List<BudgetLine> _lines = [];
     private readonly List<FundBeginningBalance> _beginningBalances = [];
@@ -69,6 +72,20 @@ public sealed class BudgetVersion : Entity, ITenantOwned
     public bool PlanInWholeDollars { get; private set; }
 
     public IReadOnlyCollection<PlanAssumption> PlanAssumptions => _planAssumptions.AsReadOnly();
+
+    /// <summary>
+    /// The budget message: the letter from the mayor, trustees, or fiscal officer that opens the
+    /// budget book, explaining the year's choices in plain words. Null until someone writes one.
+    /// </summary>
+    public string? MessageBody { get; private set; }
+
+    /// <summary>The message's heading; the book says "Budget message" when there is none.</summary>
+    public string? MessageHeading { get; private set; }
+
+    /// <summary>Who signs the message, and their office ("Mayor", "Fiscal Officer").</summary>
+    public string? MessageSignedBy { get; private set; }
+
+    public string? MessageSignerTitle { get; private set; }
 
     public bool IsAmendment => VersionNumber > 1;
     public bool IsEditable => Status != BudgetStatus.Adopted;
@@ -130,6 +147,7 @@ public sealed class BudgetVersion : Entity, ITenantOwned
         }
 
         version.CarryPlanForward(priorAdopted);
+        priorAdopted.CopyMessageTo(version); // last year's letter, as a draft to rewrite
 
         foreach (FundBalanceSummary summary in FundBalanceCalculator.CalculateAll(priorAdopted))
         {
@@ -206,6 +224,7 @@ public sealed class BudgetVersion : Entity, ITenantOwned
             copy.CopyPlannedFrom(source, shift: 0);
         }
 
+        CopyMessageTo(amendment);
         return amendment;
     }
 
@@ -488,6 +507,33 @@ public sealed class BudgetVersion : Entity, ITenantOwned
     /// <summary>True once the department has handed its request in and it has not been returned.</summary>
     public bool IsDepartmentSubmitted(Guid departmentId) =>
         GetDepartmentRequest(departmentId)?.IsSubmitted == true;
+
+    /// <summary>
+    /// Writes the budget message, or clears it with an empty body. Like the rest of the budget it is
+    /// settled by adoption: the book of an adopted budget prints the message council saw.
+    /// </summary>
+    public void SetMessage(string? heading, string? body, string? signedBy, string? signerTitle)
+    {
+        Touch();
+        EnsureEditable();
+        if (string.IsNullOrWhiteSpace(body))
+        {
+            MessageHeading = MessageBody = MessageSignedBy = MessageSignerTitle = null;
+            return;
+        }
+
+        MessageBody = Guard.MaxLength(body.Trim(), MessageMaxLength, nameof(body));
+        MessageHeading = Optional(heading, MessageHeadingMaxLength, nameof(heading));
+        MessageSignedBy = Optional(signedBy, MessageSignerMaxLength, nameof(signedBy));
+        MessageSignerTitle = Optional(signerTitle, MessageSignerMaxLength, nameof(signerTitle));
+
+        static string? Optional(string? text, int max, string name) =>
+            string.IsNullOrWhiteSpace(text) ? null : Guard.MaxLength(text.Trim(), max, name);
+    }
+
+    private void CopyMessageTo(BudgetVersion target) =>
+        (target.MessageHeading, target.MessageBody, target.MessageSignedBy, target.MessageSignerTitle) =
+        (MessageHeading, MessageBody, MessageSignedBy, MessageSignerTitle);
 
     public void SetDepartmentNarrative(Department department, string? narrative)
     {

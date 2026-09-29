@@ -27,7 +27,9 @@ public sealed record PortalBudgetDto(
     decimal PriorYearRevenues,
     decimal PriorYearExpenditures,
     /// <summary>Upload ticks of the government's logo for the portal header; null shows the CivicBudget mark.</summary>
-    long? LogoVersion = null)
+    long? LogoVersion = null,
+    /// <summary>Whether the budget book was printed when this budget was published.</summary>
+    bool HasBook = false)
 {
     /// <summary>Across all funds: beginning balances + revenues + transfers in - expenditures - transfers out.</summary>
     public decimal ProjectedEndingBalance => TotalBeginningBalance + TotalRevenues + TotalTransfersIn - TotalExpenditures - TotalTransfersOut;
@@ -99,6 +101,9 @@ public sealed record YearTotalsDto(int FiscalYear, string VersionLabel, decimal 
 
 /// <summary>A government's logo as the portal serves it.</summary>
 public sealed record PortalLogoDto(byte[] Data, string ContentType, DateTimeOffset UpdatedAtUtc);
+
+/// <summary>The budget book PDF as it was printed when the budget was published.</summary>
+public sealed record PortalBookDto(byte[] Content, DateTimeOffset CreatedAtUtc);
 
 /// <summary>One fund in one year of the published plan. The first year is the adopted budget; later years are the plan, not appropriations.</summary>
 public sealed record OutlookFundYearDto(int FiscalYear, decimal BeginningBalance, decimal Revenues, decimal TransfersIn,

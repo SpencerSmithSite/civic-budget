@@ -46,6 +46,10 @@
             @if (budget is not null)
             {
                 <span>@budget.GovernmentName · FY@(budget.FiscalYear) @budget.VersionLabel@(budget.ResolutionNumber is null ? "" : $", resolution {budget.ResolutionNumber}") · published @Display.LongDate(budget.PublishedAtUtc)</span>
+                @if (budget.HasBook)
+                {
+                    <a href="@Root/budget-book.pdf">Budget book (PDF)</a>
+                }
                 <a href="@Root/download.csv">Download CSV</a>
                 <a href="@Root/download.xlsx">Download Excel</a>
                 <a href="@Root/glossary">Glossary</a>

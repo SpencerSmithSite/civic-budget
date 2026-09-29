@@ -17,25 +17,38 @@ namespace CivicBudget.Infrastructure.Reports;
 public sealed class CertificatePdfRenderer : ICertificatePdfRenderer
 {
     private const string Font = EmbeddedFontResolver.FamilyName;
-    private static readonly CultureInfo Us = CultureInfo.GetCultureInfo("en-US");
-    private static readonly Color Ink = new(0x1F, 0x29, 0x37);
-    private static readonly Color Muted = new(0x5B, 0x6B, 0x7B);
-    private static readonly Color Rule = new(0xC8, 0xD0, 0xDA);
-    private static readonly Color Shade = new(0xEA, 0xF1, 0xF8);
+    private static readonly CultureInfo Us = PdfPalette.Us;
+    private static readonly Color Ink = PdfPalette.Ink;
+    private static readonly Color Muted = PdfPalette.Muted;
+    private static readonly Color Rule = PdfPalette.Rule;
+    private static readonly Color Shade = PdfPalette.Shade;
 
     static CertificatePdfRenderer() => EmbeddedFontResolver.Register();
 
     public byte[] Render(CertificateReportDto certificate)
     {
         Document document = NewDocument(certificate);
-        IssuedCertificate(NewSection(document), certificate);
-        DetailedSchedule(NewSection(document), certificate);
+        AddPages(document, certificate, section => Footer(section, certificate));
 
         var renderer = new PdfDocumentRenderer { Document = document };
         renderer.RenderDocument();
         using var stream = new MemoryStream();
         renderer.PdfDocument.Save(stream, false);
         return stream.ToArray();
+    }
+
+    /// <summary>
+    /// The certificate's landscape pages, added to any document with the caller's footer: the budget
+    /// book includes them between its portrait pages, with a bookmark on the title for its contents.
+    /// </summary>
+    internal static void AddPages(Document document, CertificateReportDto certificate, Action<Section> footer, string? bookmark = null)
+    {
+        Section issued = NewSection(document);
+        footer(issued);
+        IssuedCertificate(issued, certificate, bookmark);
+        Section detailed = NewSection(document);
+        footer(detailed);
+        DetailedSchedule(detailed, certificate);
     }
 
     private static Document NewDocument(CertificateReportDto c)
@@ -74,12 +87,18 @@ public sealed class CertificatePdfRenderer : ICertificatePdfRenderer
 
     // ---- page 1: the certificate as issued --------------------------------------------------
 
-    private static void IssuedCertificate(Section section, CertificateReportDto c)
+    private static void IssuedCertificate(Section section, CertificateReportDto c, string? bookmark = null)
     {
-        Footer(section, c);
         string county = c.Header.County is { } name ? $"{name} County" : "the county";
 
-        Paragraph title = section.AddParagraph(c.Header.Title.ToUpperInvariant());
+        Paragraph title = section.AddParagraph();
+        if (bookmark is not null)
+        {
+            title.AddBookmark(bookmark);
+            title.Format.OutlineLevel = OutlineLevel.Level1;
+        }
+
+        title.AddText(c.Header.Title.ToUpperInvariant());
         title.Format.Font.Size = 14;
         title.Format.Font.Bold = true;
         title.Format.Alignment = ParagraphAlignment.Center;
@@ -130,7 +149,6 @@ public sealed class CertificatePdfRenderer : ICertificatePdfRenderer
 
     private static void DetailedSchedule(Section section, CertificateReportDto c)
     {
-        Footer(section, c);
         Heading(section, "Detailed schedule");
         Paragraph sub = section.AddParagraph(c.CarryoverFromErp
             ? $"Cash and carried encumbrances at {Date(c.CarryoverAsOf)} from the ERP's closed year."
@@ -336,6 +354,19 @@ public sealed class CertificatePdfRenderer : ICertificatePdfRenderer
     private static string Amount(decimal value) => value.ToString("#,##0.00;(#,##0.00)", Us);
 
     private static string Date(DateOnly date) => date.ToString("MMMM d, yyyy", Us);
+}
+
+/// <summary>The colors and number format every CivicBudget PDF shares, so the certificate reads like part of the book.</summary>
+internal static class PdfPalette
+{
+    public static readonly CultureInfo Us = CultureInfo.GetCultureInfo("en-US");
+    public static readonly Color Ink = new(0x1F, 0x29, 0x37);
+    public static readonly Color Muted = new(0x5B, 0x6B, 0x7B);
+    public static readonly Color Rule = new(0xC8, 0xD0, 0xDA);
+    public static readonly Color Shade = new(0xEA, 0xF1, 0xF8);
+    public static readonly Color Navy = new(0x1F, 0x4E, 0x79);
+    public static readonly Color Teal = new(0x0B, 0x72, 0x85);
+    public static readonly Color Alert = new(0xB4, 0x23, 0x18);
 }
 
 /// <summary>

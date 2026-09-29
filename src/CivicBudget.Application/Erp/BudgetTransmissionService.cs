@@ -342,21 +342,8 @@ public sealed class BudgetTransmissionService(
             return year.StartDate;
         }
 
-        var day = DateOnly.FromDateTime(InOhio(adopted).DateTime);
+        var day = OhioTime.DateOf(adopted);
         return day < year.StartDate ? year.StartDate : day > year.EndDate ? year.EndDate : day;
-    }
-
-    /// <summary>The adoption's date where the council met (Ohio is all Eastern), or UTC if the host lacks zone data.</summary>
-    private static DateTimeOffset InOhio(DateTimeOffset when)
-    {
-        try
-        {
-            return TimeZoneInfo.ConvertTime(when, TimeZoneInfo.FindSystemTimeZoneById("America/New_York"));
-        }
-        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
-        {
-            return when.ToUniversalTime();
-        }
     }
 
     private static ErpBudgetJournal JournalOf(BudgetTransmission t) =>

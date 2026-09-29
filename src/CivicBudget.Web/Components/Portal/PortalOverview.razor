@@ -14,6 +14,10 @@ else if (budget is not null && byFund is not null && revenue is not null)
         <div>
             <h1 class="pt-h1">The @budget.FiscalYear budget</h1>
             <p class="pt-lead">@(budget.GovernmentDescription ?? $"This is the budget council adopted for {budget.FiscalYear}.") It shows what the government expects to take in, what it plans to spend, and what each fund keeps in reserve.</p>
+            @if (budget.HasBook)
+            {
+                <p class="pt-book"><a href="@Root/budget-book.pdf">Read the full budget book (PDF)</a>: the budget message, every fund and department, and the certificate council received.</p>
+            }
         </div>
         @if (budget.AvailableYears.Count > 1)
         {

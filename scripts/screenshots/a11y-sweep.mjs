@@ -69,7 +69,7 @@ for (const email of roles) {
   const routes = new Set(['/admin', ...navs.filter(h => h && !h.startsWith('http') && !h.startsWith('#') && !h.includes('transparency')).map(h => h.startsWith('/') ? h : '/' + h),
     '/admin/profile-picture', '/Account/Manage', '/Account/Manage/ChangePassword', '/Account/Manage/TwoFactor', '/Account/Manage/EnableAuthenticator']);
   for (const v of versions.slice(0, 2)) {
-    for (const s of ['', '/departments', '/import', '/send', '/plan']) routes.add(`/admin/budgets/${v}${s}`);
+    for (const s of ['', '/departments', '/import', '/send', '/plan', '/book']) routes.add(`/admin/budgets/${v}${s}`);
     for (const s of ['fund-summary', 'department-detail', 'category', 'position-roster', 'personnel-cost', 'benefits-summary', 'certificate', 'fund-projection', 'trends', 'appropriation-measure', 'budget-vs-actual', 'revenue-vs-receipts']) routes.add(`/admin/reports/${v}/${s}`);
   }
   if (versions[0]) {

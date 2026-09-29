@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 namespace CivicBudget.Infrastructure.Persistence;
 
 /// <summary>
-/// The public portal's only door to the database (ADR-0006). It maps the five snapshot tables plus the
+/// The public portal's only door to the database (ADR-0006). It maps the snapshot tables (with the published budget book) plus the
 /// government logo (a public image) and nothing else: no budget lines, no users, no governments. A
 /// global query filter hides every snapshot that is not <see cref="SnapshotStatus.Active"/>, and
 /// SaveChanges throws. So a bug in the portal cannot show a draft or a withdrawn budget, and cannot
@@ -20,6 +20,7 @@ public sealed class PublicPortalDbContext(DbContextOptions<PublicPortalDbContext
     public DbSet<PublishedBudgetSnapshotFund> SnapshotFunds => Set<PublishedBudgetSnapshotFund>();
     public DbSet<PublishedBudgetSnapshotDepartment> SnapshotDepartments => Set<PublishedBudgetSnapshotDepartment>();
     public DbSet<PublishedBudgetSnapshotPlanYear> SnapshotPlanYears => Set<PublishedBudgetSnapshotPlanYear>();
+    public DbSet<PublishedBudgetBook> SnapshotBooks => Set<PublishedBudgetBook>();
 
     /// <summary>The one non-snapshot table: a public image, nothing else (ADR-0029).</summary>
     public DbSet<GovernmentLogo> GovernmentLogos => Set<GovernmentLogo>();
@@ -44,6 +45,7 @@ public sealed class PublicPortalDbContext(DbContextOptions<PublicPortalDbContext
         modelBuilder.Entity<PublishedBudgetSnapshotFund>().HasQueryFilter(f => Snapshots.Any(s => s.Id == f.SnapshotId && s.Status == SnapshotStatus.Active));
         modelBuilder.Entity<PublishedBudgetSnapshotDepartment>().HasQueryFilter(d => Snapshots.Any(s => s.Id == d.SnapshotId && s.Status == SnapshotStatus.Active));
         modelBuilder.Entity<PublishedBudgetSnapshotPlanYear>().HasQueryFilter(y => Snapshots.Any(s => s.Id == y.SnapshotId && s.Status == SnapshotStatus.Active));
+        modelBuilder.Entity<PublishedBudgetBook>().HasQueryFilter(b => Snapshots.Any(s => s.Id == b.SnapshotId && s.Status == SnapshotStatus.Active));
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess) => throw new InvalidOperationException(ReadOnlyMessage);

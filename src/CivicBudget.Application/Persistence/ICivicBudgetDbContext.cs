@@ -32,6 +32,7 @@ public interface ICivicBudgetDbContext : IAsyncDisposable, IDisposable
     DbSet<DepartmentRequest> DepartmentRequests { get; }
     DbSet<AuditEntry> AuditEntries { get; }
     DbSet<PublishedBudgetSnapshot> PublishedBudgetSnapshots { get; }
+    DbSet<PublishedBudgetBook> PublishedBudgetBooks { get; }
     DbSet<ChartSync> ChartSyncs { get; }
     DbSet<ActualsSync> ActualsSyncs { get; }
     DbSet<ErpActual> ErpActuals { get; }
@@ -39,6 +40,7 @@ public interface ICivicBudgetDbContext : IAsyncDisposable, IDisposable
     DbSet<ErpFundCash> ErpFundCash { get; }
     DbSet<BudgetTransmission> BudgetTransmissions { get; }
     DbSet<CertificateSettings> CertificateSettings { get; }
+    DbSet<BudgetBookSettings> BudgetBookSettings { get; }
     DbSet<ReportAccountGroup> ReportAccountGroups { get; }
     DbSet<CertificateFundAdjustment> CertificateFundAdjustments { get; }
     DbSet<PersonnelSettings> PersonnelSettings { get; }

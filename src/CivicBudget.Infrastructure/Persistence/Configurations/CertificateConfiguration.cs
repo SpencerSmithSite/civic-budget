@@ -21,6 +21,15 @@ internal sealed class CertificateSettingsConfiguration : IEntityTypeConfiguratio
     }
 }
 
+internal sealed class BudgetBookSettingsConfiguration : IEntityTypeConfiguration<BudgetBookSettings>
+{
+    public void Configure(EntityTypeBuilder<BudgetBookSettings> builder)
+    {
+        builder.HasIndex(s => s.GovernmentId).IsUnique(); // one set of book defaults per government
+        builder.HasOne<Government>().WithMany().HasForeignKey(s => s.GovernmentId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
 internal sealed class ReportAccountGroupConfiguration : IEntityTypeConfiguration<ReportAccountGroup>
 {
     public void Configure(EntityTypeBuilder<ReportAccountGroup> builder)

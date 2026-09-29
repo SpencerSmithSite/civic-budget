@@ -37,8 +37,12 @@ public static class DatabaseInitializer
 
     public static async Task SeedAsync(IServiceProvider services, CancellationToken ct = default)
     {
-        await using AsyncServiceScope scope = services.CreateAsyncScope();
-        await scope.ServiceProvider.GetRequiredService<DevelopmentSeeder>().SeedAsync(ct);
+        await using (AsyncServiceScope scope = services.CreateAsyncScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<DevelopmentSeeder>().SeedAsync(ct);
+        }
+
+        await Reports.PublishedBookBackfill.RunAsync(services, ct);
     }
 
     /// <summary>

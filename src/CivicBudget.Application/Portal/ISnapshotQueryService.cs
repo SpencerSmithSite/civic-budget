@@ -31,6 +31,9 @@ public interface ISnapshotQueryService
 
     Task<IReadOnlyList<PortalSearchHitDto>> SearchAsync(string slug, int fiscalYear, string query, CancellationToken ct = default);
 
+    /// <summary>The budget book published with the year's budget, or null when it has none.</summary>
+    Task<PortalBookDto?> GetBookAsync(string slug, int fiscalYear, CancellationToken ct = default);
+
     /// <summary>The government's uploaded logo, or null when it uses the CivicBudget mark. Only for governments with a published budget.</summary>
     Task<PortalLogoDto?> GetLogoAsync(string slug, CancellationToken ct = default);
 }
