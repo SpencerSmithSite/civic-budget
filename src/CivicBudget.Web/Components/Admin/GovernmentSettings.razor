@@ -1,5 +1,5 @@
 @page "/admin/settings"
-@attribute [HelpTopic("Government settings", "The government's name, address, account number format, portal introduction and logo, two-step sign-in, the assistant switch, and downloading all its data.", "settings logo two-step mfa assistant export all data")]
+@attribute [HelpTopic("Government settings", "The government's name, address, account number format, portal introduction and logo, two-step sign-in, the assistant and portal-question switches, and downloading all its data.", "settings logo two-step mfa assistant portal questions public export all data")]
 @attribute [Authorize(Policy = Policies.CanManageUsers)]
 @inject IGovernmentSettingsService SettingsService
 @inject IGovernmentLogoService Logos
@@ -100,7 +100,7 @@ else
     </div>
 
     <div class="card mt-3" style="max-width: 640px">
-        <div class="card-header d-flex align-items-center gap-2">Assistant <InfoTip Text="An assistant in the top bar that answers questions about your budget and actuals and helps people find their way around CivicBudget. It sees only what each user's account can see and cannot change anything. Questions and the figures it looks up go to the AI model's provider." /></div>
+        <div class="card-header d-flex align-items-center gap-2">Assistant <InfoTip Text="An assistant in the top bar that answers questions about your budget and actuals and helps people find their way around CivicBudget. It sees only what each user's account can see, and changes something only when the user confirms the change it proposes. Questions and the figures it looks up go to the AI model's provider." /></div>
         <div class="card-body">
             @if (assistant is null)
             {
@@ -117,6 +117,12 @@ else
                     <label class="form-check-label fw-semibold" for="assistantEnabled">Let our users use the assistant</label>
                 </div>
                 <div class="small text-secondary">When on, a user's questions and the figures the assistant looks up to answer them are sent to the AI model's provider. Each question is recorded in the security log, without its text.</div>
+
+                <div class="form-check form-switch mb-2 mt-3">
+                    <input class="form-check-input" type="checkbox" role="switch" id="portalQuestionsEnabled" checked="@assistant.PortalQuestionsEnabled" @onchange="e => SetPortalQuestionsAsync(e.Value is true)" disabled="@assistantBusy" />
+                    <label class="form-check-label fw-semibold" for="portalQuestionsEnabled">Answer the public's questions on the transparency portal</label>
+                </div>
+                <div class="small text-secondary">When on, residents can ask about the published budget, and answers come only from what the portal already shows. Each portal takes a set number of questions a month; the question text is not kept.</div>
             }
         </div>
     </div>
@@ -187,6 +193,29 @@ else
 
             assistant = await Assistant.GetSettingsAsync();
             AssistantPanel.Refresh(await Assistant.StatusAsync());
+        }
+        finally
+        {
+            assistantBusy = false;
+        }
+    }
+
+    private async Task SetPortalQuestionsAsync(bool enabled)
+    {
+        assistantBusy = true;
+        try
+        {
+            Result saved = await Assistant.SetPortalQuestionsEnabledAsync(enabled);
+            if (saved.IsSuccess)
+            {
+                Toasts.Success(enabled ? "The portal takes questions. \"Ask a question\" is in its menu." : "The portal no longer takes questions.");
+            }
+            else
+            {
+                Toasts.Danger(saved.Errors[0].Message);
+            }
+
+            assistant = await Assistant.GetSettingsAsync();
         }
         finally
         {

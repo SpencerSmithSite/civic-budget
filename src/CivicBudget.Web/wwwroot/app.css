@@ -3093,6 +3093,64 @@ table.pt-grid th[scope="row"] a {
     margin-bottom: 20px;
 }
 
+/* The question box: a plain form, then the answer set apart like a quoted reply. */
+.pt-ask {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 640px;
+    margin-bottom: 16px;
+}
+
+.pt-ask .btn {
+    align-self: flex-start;
+}
+
+.pt-ask-label {
+    font-weight: 600;
+}
+
+.pt-ask-hint,
+.pt-ask-note,
+.pt-answer-steps {
+    color: var(--cb-muted);
+    font-size: 0.875rem;
+    margin: 0;
+    max-width: 72ch;
+}
+
+.pt-ask-refusal {
+    max-width: 640px;
+}
+
+.pt-answer {
+    max-width: 72ch;
+    margin: 8px 0 28px;
+    padding: 16px 20px;
+    border-left: 4px solid var(--cb-teal);
+    background: var(--cb-canvas);
+    border-radius: 0 8px 8px 0;
+    overflow-wrap: anywhere;
+}
+
+.pt-asked {
+    margin: 6px 0 10px;
+}
+
+.pt-answer-body p:last-child,
+.pt-answer-body ul:last-child {
+    margin-bottom: 0;
+}
+
+.pt-answer-body ul {
+    padding-left: 1.2rem;
+}
+
+.pt-answer-steps {
+    margin-top: 10px;
+    font-size: 0.8125rem;
+}
+
 .pt-results {
     list-style: none;
     padding: 0;

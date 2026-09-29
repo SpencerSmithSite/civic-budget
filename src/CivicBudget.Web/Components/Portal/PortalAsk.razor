@@ -1,0 +1,84 @@
+@page "/transparency/{Slug}/{Year:int}/ask"
+@using CivicBudget.Application.Assistant
+@attribute [Microsoft.AspNetCore.Antiforgery.RequireAntiforgeryToken(required: false)]
+@inject ISnapshotQueryService Snapshots
+@inject IPortalQuestionService Questions
+
+@* The question box (ADR-0049). A plain form post, so it works with JavaScript off like the rest of
+   the portal. No antiforgery token: the portal sets no cookies and a question carries no identity to
+   protect; the per-address limit (RateLimits) and the monthly cap bound what a forged post could
+   cost. The empty page is cached like any portal page; an answer, being a POST, never is. *@
+<PageTitle>@(budget is null ? "Ask about the budget" : $"Ask about the FY{budget.FiscalYear} budget, {budget.GovernmentName}")</PageTitle>
+
+@if (loaded && (budget is null || !available))
+{
+    <PortalNotFound />
+}
+else if (budget is not null)
+{
+    <PortalCrumbs Crumbs="@([new Crumb($"{budget.FiscalYear} budget", Root), new Crumb("Ask a question")])" />
+    <h1 class="pt-h1">Ask about the @budget.FiscalYear budget</h1>
+    <p class="pt-lead">Ask in your own words, the way you would ask at the @(budget.GovernmentName.Split(',')[0]) office. The answer comes only from the budget published here, with a link to the page that shows it.</p>
+
+    <div id="answer">
+        @if (answer is not null)
+        {
+            <PortalAnswerView Question="@asked" Answer="answer" LinkPrefix="@($"/transparency/{Slug}/")" />
+        }
+        else if (refusal is not null)
+        {
+            <div class="alert alert-warning pt-ask-refusal" role="alert">@refusal</div>
+        }
+    </div>
+
+    <form method="post" action="@($"{Root}/ask#answer")" @formname="portal-ask" @onsubmit="AskAsync" class="pt-ask">
+        <label for="question" class="pt-ask-label">@(answer is null ? "Your question" : "Ask another question")</label>
+        <textarea id="question" name="Question" rows="3" maxlength="@PortalQuestionService.QuestionMaxLength" required class="form-control" aria-describedby="ask-hint"></textarea>
+        <p id="ask-hint" class="pt-ask-hint">For example: "How much is budgeted for police?", "Where does the money for roads come from?", or "What is an appropriation?" An answer can take up to half a minute.</p>
+        <button type="submit" class="btn btn-primary">Ask</button>
+    </form>
+
+    <p class="pt-ask-note">Answers are written by an AI model from the published budget and can be wrong; the linked pages hold the official figures. Your question is sent to the model's provider to be answered and is not stored here.</p>
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public int Year { get; set; }
+
+    [SupplyParameterFromForm(FormName = "portal-ask")]
+    public string? Question { get; set; }
+
+    private string Root => $"/transparency/{Slug}/{Year}";
+
+    private PortalBudgetDto? budget;
+    private bool available;
+    private bool loaded;
+    private string asked = "";
+    private PortalAnswer? answer;
+    private string? refusal;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // No model, no database: the page is not found, as it would be for an unpublished budget.
+        if (Questions.ModelConfigured)
+        {
+            budget = await Snapshots.GetBudgetAsync(Slug, Year);
+            available = budget is not null && await Questions.IsAvailableAsync(Slug);
+        }
+
+        loaded = true;
+    }
+
+    private async Task AskAsync()
+    {
+        if (!available)
+        {
+            return;
+        }
+
+        asked = (Question ?? "").Trim();
+        Result<PortalAnswer> result = await Questions.AskAsync(Slug, Year, asked);
+        answer = result.IsSuccess ? result.Value : null;
+        refusal = result.IsSuccess ? null : result.Errors[0].Message;
+    }
+}

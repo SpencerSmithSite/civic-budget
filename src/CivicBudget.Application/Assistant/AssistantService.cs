@@ -52,6 +52,7 @@ public sealed partial class AssistantService(
     AssistantUsageLimiter limiter,
     AssistantProposals proposals,
     ISecurityEventLog securityLog,
+    Publishing.IPublishedSnapshotCacheInvalidator portalCache,
     TimeProvider clock,
     ILogger<AssistantService> logger) : IAssistantService
 {
@@ -171,8 +172,8 @@ public sealed partial class AssistantService(
     public async Task<AssistantSettingsDto> GetSettingsAsync(CancellationToken ct = default)
     {
         await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
-        bool enabled = await db.Governments.Where(g => g.Id == currentUser.GovernmentId).Select(g => g.AssistantEnabled).SingleOrDefaultAsync(ct);
-        return new AssistantSettingsDto(model is not null, enabled);
+        var switches = await db.Governments.Where(g => g.Id == currentUser.GovernmentId).Select(g => new { g.AssistantEnabled, g.PortalQuestionsEnabled }).SingleAsync(ct);
+        return new AssistantSettingsDto(model is not null, switches.AssistantEnabled, switches.PortalQuestionsEnabled);
     }
 
     public async Task<Result> SetEnabledAsync(bool enabled, CancellationToken ct = default)
@@ -193,6 +194,31 @@ public sealed partial class AssistantService(
         db.AuditEntries.Add(AuditEntry.Event(governmentId, nameof(Government), governmentId,
             enabled ? "Turned the assistant on" : "Turned the assistant off", currentUser.UserId!, currentUser.DisplayName ?? "", clock.GetUtcNow()));
         await db.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
+    public async Task<Result> SetPortalQuestionsEnabledAsync(bool enabled, CancellationToken ct = default)
+    {
+        if (!currentUser.IsInRole(Roles.Admin) || currentUser.GovernmentId is not { } governmentId)
+        {
+            return Result.Failure("Only an Administrator can turn portal questions on or off.");
+        }
+
+        await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
+        Government government = await db.Governments.SingleAsync(g => g.Id == governmentId, ct);
+        if (government.PortalQuestionsEnabled == enabled)
+        {
+            return Result.Success();
+        }
+
+        government.SetPortalQuestionsEnabled(enabled);
+        db.AuditEntries.Add(AuditEntry.Event(governmentId, nameof(Government), governmentId,
+            enabled ? "Turned on questions from the public on the portal" : "Turned off questions from the public on the portal",
+            currentUser.UserId!, currentUser.DisplayName ?? "", clock.GetUtcNow()));
+        await db.SaveChangesAsync(ct);
+
+        // The portal's pages are cached for hours; drop them so the question link shows or goes now.
+        await portalCache.InvalidateAsync(government.PublicSlug, ct);
         return Result.Success();
     }
 

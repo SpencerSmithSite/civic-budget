@@ -89,7 +89,7 @@ public sealed class AssistantEvaluationTests(SqlServerFixture fixture, Xunit.Abs
             scope.ServiceProvider.GetRequiredService<ICivicBudgetDbContextFactory>(), scope.ServiceProvider.GetRequiredService<ICurrentUser>(),
             [RealModel()], scope.ServiceProvider.GetServices<IAssistantToolProvider>(), new AssistantUsageLimiter(TimeProvider.System),
             scope.ServiceProvider.GetRequiredService<AssistantProposals>(),
-            scope.ServiceProvider.GetRequiredService<ISecurityEventLog>(), TimeProvider.System, NullLogger<AssistantService>.Instance);
+            scope.ServiceProvider.GetRequiredService<ISecurityEventLog>(), scope.ServiceProvider.GetRequiredService<Application.Publishing.IPublishedSnapshotCacheInvalidator>(), TimeProvider.System, NullLogger<AssistantService>.Instance);
         Result<AssistantReply> reply = await assistant.AskAsync(new AssistantRequest([], question, null));
         Assert.True(reply.IsSuccess, string.Join("; ", reply.Errors.Select(e => e.Message)));
         // Printed so a reviewer reads the answers, not only whether they passed.

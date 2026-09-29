@@ -183,6 +183,8 @@ public class AssistantPanelTests : BunitContext
 
         public Task<Result> SetEnabledAsync(bool enabled, CancellationToken ct = default) => Task.FromResult(Result.Success());
 
+        public Task<Result> SetPortalQuestionsEnabledAsync(bool enabled, CancellationToken ct = default) => Task.FromResult(Result.Success());
+
         public Result<ProposalOutcome> Outcome { get; set; } = Result.Success(new ProposalOutcome("Done.", null));
         public Guid? Confirmed { get; private set; }
         public Guid? Discarded { get; private set; }

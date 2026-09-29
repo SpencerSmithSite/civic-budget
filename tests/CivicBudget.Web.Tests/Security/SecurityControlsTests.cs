@@ -39,6 +39,11 @@ public class SecurityControlsTests : BunitContext
     [InlineData("POST", "/Account/Logout", null)]
     [InlineData("GET", "/admin/budgets", null)]
     [InlineData("GET", "/transparency/maple-ridge-oh", null)]
+    [InlineData("POST", "/transparency/maple-ridge-oh/2026/ask", RateLimits.PortalQuestion)]
+    [InlineData("POST", "/Transparency/maple-ridge-oh/2026/Ask/", RateLimits.PortalQuestion)]
+    [InlineData("GET", "/transparency/maple-ridge-oh/2026/ask", null)]
+    [InlineData("POST", "/transparency/maple-ridge-oh/fy26/ask", null)]
+    [InlineData("POST", "/transparency/maple-ridge-oh/2026/ask/more", null)]
     public void Limits_only_the_requests_an_attacker_would_repeat(string method, string path, string? expected)
     {
         var context = new DefaultHttpContext { Request = { Method = method, Path = path } };
