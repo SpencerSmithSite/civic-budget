@@ -27,7 +27,7 @@ public class EmployeeMatcherTests
         settings.SaveInsurancePlan(null, "Medical", 650m, 1_300m, 1_760m, 15m, Account);
         settings.SaveLongevitySchedule(null, "FOP", LongevityMethod.FlatAmount, ServiceCountedOn.FirstDayOfYear, null, null, [new(5, 600m)]);
         settings.SavePayScale(null, "FOP", PayBasis.Hourly, [new("PO", 1, 25.10m), new("PO", 2, 26.60m)]);
-        _rules = settings.ToRules(new DateOnly(2027, 1, 1), new DateOnly(2027, 12, 31));
+        _rules = settings.ToRules(new DateOnly(2027, 1, 1), new DateOnly(2027, 12, 31), new Dictionary<Guid, string> { [General] = "1000", [Street] = "2011" });
     }
 
     private Guid Opers => _rules.RetirementPlans.Single(p => p.Name == "OPERS").Id;

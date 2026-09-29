@@ -219,6 +219,28 @@ public class PositionCostCalculatorTests
         Assert.Equal(10_000.01m, Salaries(listed, PersonnelTestData.GeneralFund) + Salaries(listed, PersonnelTestData.StreetFund));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void An_even_split_gives_the_odd_cent_to_the_lower_fund_number_whatever_the_ids(bool higherNumberHasLowerId)
+    {
+        // Ids made in the same millisecond sort at random, so try the lower number with each id.
+        Guid low = Guid.Parse("00000000-0000-7000-8000-000000000001");
+        Guid high = Guid.Parse("ffffffff-ffff-7fff-bfff-ffffffffffff");
+        (Guid general, Guid street) = higherNumberHasLowerId ? (high, low) : (low, high);
+        PayrollRules rules = data.Rules with { FundCodes = new Dictionary<Guid, string> { [general] = "1000", [street] = "2011" } };
+        PositionDetails split = data.Clerk() with { Rate = 10_000.01m, Funds = [new FundShare(street, 50m), new FundShare(general, 50m)] };
+
+        PositionCost listed = PositionCostCalculator.Calculate(split, rules);
+        PositionCost reversed = PositionCostCalculator.Calculate(split with { Funds = [.. split.Funds.Reverse()] }, rules);
+
+        foreach (PositionCost cost in new[] { listed, reversed })
+        {
+            Assert.Equal(5_000.01m, Salaries(cost, general));
+            Assert.Equal(5_000.00m, Salaries(cost, street));
+        }
+    }
+
     private static decimal Salaries(PositionCost cost, Guid fund) =>
         cost.ByFund.Single(c => c.FundId == fund && c.AccountId == PersonnelTestData.SalariesAccount).Amount;
 

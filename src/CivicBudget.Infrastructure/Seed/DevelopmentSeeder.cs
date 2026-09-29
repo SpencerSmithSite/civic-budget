@@ -212,7 +212,7 @@ public sealed class DevelopmentSeeder(
         // become calculated ("from 9 positions") the moment the seed runs, as they would for a real user.
         PersonnelSettings personnel = MapleRidgePersonnel.Settings(government.Id, code => chart.Account(code).Id);
         FiscalYear personnelYear = chart.FiscalYear(MapleRidgePersonnel.Year);
-        PayrollRules rules = personnel.ToRules(personnelYear.StartDate, personnelYear.EndDate);
+        PayrollRules rules = personnel.ToRules(personnelYear.StartDate, personnelYear.EndDate, chart.AllFunds.ToDictionary(f => f.Id, f => f.Code));
         foreach ((string deptCode, PositionDetails details) in MapleRidgePersonnel.Positions(rules, code => chart.Fund(code).Id))
         {
             fy2027.AddPosition(chart.PersonnelChart(deptCode), details, rules);

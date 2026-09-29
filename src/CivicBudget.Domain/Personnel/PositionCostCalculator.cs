@@ -153,7 +153,7 @@ public static class PositionCostCalculator
                 $"{Dollars(premium)} a month less {Number(plan.EmployeeSharePercent)}% employee share, {position.MonthsPaid} months"));
         }
 
-        List<(Guid FundId, CostPart Part, decimal Amount)> split = SplitAmongFunds(parts, position.Funds);
+        List<(Guid FundId, CostPart Part, decimal Amount)> split = SplitAmongFunds(parts, position.Funds, rules.FundCodes);
         return new PositionCost(basis, startRate, endRate, averageHourly, years, parts,
             split.GroupBy(s => (s.FundId, s.Part.AccountId)).Select(g => new FundAccountCost(g.Key.FundId, g.Key.AccountId, g.Sum(s => s.Amount))).ToList(),
             split.GroupBy(s => (s.FundId, s.Part.Kind)).Select(g => new FundKindCost(g.Key.FundId, g.Key.Kind, g.Sum(s => s.Amount))).ToList(),
@@ -243,21 +243,32 @@ public static class PositionCostCalculator
     }
 
     /// <summary>
-    /// Divides each piece among the funds by their percentages, rounding each fund's part to cents.
-    /// The fund with the largest share (the lowest id, on a tie) takes whatever cent is left, so no
-    /// cent is lost or invented, and the same position always splits the same way however its funds
-    /// happen to be listed; the database returns them in no particular order.
+    /// Divides each piece among the funds by their percentages. Every fund but one gets its share
+    /// rounded down to the cent, and the fund with the largest share takes the rest, so no cent is
+    /// lost or invented and the odd cent of a split always goes to that fund (rounding the others to
+    /// the nearest cent would hand it to a smaller fund whenever a share ends in exactly half a cent).
+    /// On equal shares the lowest fund number takes it: that is what a person checking the figures
+    /// expects, and it is the same in every database, which ids are not (funds created in the same
+    /// millisecond get random ids, so a reseed could move the cent). The order the funds are listed
+    /// in never matters, because the database returns them in no particular order. Fund numbers
+    /// compare ordinally so the server's culture cannot change the answer; the id settles only a tie
+    /// between funds the rules do not number, which only a test builds.
     /// </summary>
-    private static List<(Guid FundId, CostPart Part, decimal Amount)> SplitAmongFunds(IEnumerable<CostPart> parts, IReadOnlyList<FundShare> funds)
+    private static List<(Guid FundId, CostPart Part, decimal Amount)> SplitAmongFunds(
+        IEnumerable<CostPart> parts, IReadOnlyList<FundShare> funds, IReadOnlyDictionary<Guid, string> fundCodes)
     {
-        List<FundShare> ordered = funds.OrderByDescending(f => f.Percent).ThenBy(f => f.FundId).ToList();
+        List<FundShare> ordered = funds
+            .OrderByDescending(f => f.Percent)
+            .ThenBy(f => fundCodes.GetValueOrDefault(f.FundId), StringComparer.Ordinal)
+            .ThenBy(f => f.FundId)
+            .ToList();
         var split = new List<(Guid, CostPart, decimal)>();
         foreach (CostPart part in parts)
         {
             decimal others = 0m;
             for (int i = 1; i < ordered.Count; i++)
             {
-                decimal share = Money.Round(part.Amount * ordered[i].Percent / 100m);
+                decimal share = Math.Round(part.Amount * ordered[i].Percent / 100m, Money.Scale, MidpointRounding.ToZero);
                 others += share;
                 split.Add((ordered[i].FundId, part, share));
             }

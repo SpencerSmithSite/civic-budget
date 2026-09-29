@@ -13,6 +13,7 @@ internal sealed class PersonnelTestData
     public static readonly Guid InsuranceAccount = Guid.CreateVersion7();
     public static readonly Guid GeneralFund = Guid.CreateVersion7();
     public static readonly Guid StreetFund = Guid.CreateVersion7();
+    public static readonly IReadOnlyDictionary<Guid, string> FundCodes = new Dictionary<Guid, string> { [GeneralFund] = "1000", [StreetFund] = "2011" };
 
     public PersonnelSettings Settings { get; }
 
@@ -31,7 +32,7 @@ internal sealed class PersonnelTestData
         Settings.SavePayScale(null, "Non-union", PayBasis.Salary, [new("B", 1, 50_000m), new("B", 2, 52_000m)]);
     }
 
-    public PayrollRules Rules => Settings.ToRules(new DateOnly(2027, 1, 1), new DateOnly(2027, 12, 31));
+    public PayrollRules Rules => Settings.ToRules(new DateOnly(2027, 1, 1), new DateOnly(2027, 12, 31), FundCodes);
 
     public Guid Plan(string name) => Rules.RetirementPlans.Single(p => p.Name == name).Id;
     public Guid Insurance(string name) => Rules.InsurancePlans.Single(p => p.Name == name).Id;

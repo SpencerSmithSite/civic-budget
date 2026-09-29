@@ -1222,6 +1222,19 @@ adopted year's settings does not move its lines, so its personnel page says when
 longer price to the adopted amounts. Percentages and hours are the only decimals that are not
 money: they keep four places (`decimal(9,4)`), and the migration test names them.
 
+**Amended 2026-09-29: which fund takes the odd cent.** I broke a tie between equal shares by fund
+id. Ids are Guid v7, and funds created in the same millisecond (the whole seed) get random low bits,
+so a 50/50 position could move its odd cent between the General and Street funds on a reseed, and
+the Street fund's over-limit amount in the demo moved between $21,908.63 and $21,908.65. Rounding
+every fund's part to the nearest cent also meant the fund "taking the rest" could come out a cent
+short: half of $10,000.01 rounds up to $5,000.01 for the other fund. Now every fund but the one with
+the largest share is rounded down, that fund takes what is left, and on a tie the lowest fund
+number takes it (compared ordinally). The fund numbers come to the calculator in `PayrollRules`
+(`FundCodes`), which `PersonnelData.RulesAsync` fills from the government's funds, so the calculator
+stays pure and `Position` needs no fund lookup. `ToRules` requires the map, so a caller cannot leave
+it out by accident. The demo's Street fund is now over by $21,908.68 on every reseed (the
+rounding change moves the uneven splits too, not just the 50/50 one).
+
 ---
 
 ## ADR-0039: Employees come from the ERP's payroll by name and code; the sync refreshes what the ERP owns and leaves the budget's plans alone
