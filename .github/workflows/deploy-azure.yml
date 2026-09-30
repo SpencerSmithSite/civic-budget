@@ -61,7 +61,7 @@ jobs:
       # Built into the local Docker first and checked before anything is pushed, so a broken image
       # never becomes :latest (the tag scripts/azure-setup.sh deploys).
       - name: Build the image
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           load: true
@@ -74,7 +74,7 @@ jobs:
         run: docker run --rm --entrypoint sh "${{ steps.name.outputs.image }}:${{ env.SHA }}" -c "test -f wwwroot/_framework/blazor.web.js && grep -q blazor.web CivicBudget.Web.staticwebassets.endpoints.json"
 
       - name: Push the image
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           push: true
