@@ -1,29 +1,25 @@
 # CivicBudget design brief
 
-**Status:** direction settled 2026-09-18, with one sharpening I added: it does not have to
-look like VIP, but it must look and feel like it *fits in* next to VIP. Mockups next, then
-implementation (ROADMAP Phase 4.5 and Phase 5).
-**Inputs:** a VIP marketing screenshot, and the three research reports in this folder.
+**Status:** direction settled 2026-09-18; the admin design pass and the portal were built from it.
 
 ## 1. Direction in one sentence
 
-A **modern civic ERP**: instantly familiar to someone who lives in VIP, Munis, or UAN (dark navy
-chrome, left module navigation, dense worksheets, toolbars, breadcrumbs, status pills, a workflow
-stepper), executed with the restraint of OpenGov and Socrata (one primary, one accent, white cards
-on a grey canvas, an 8px rhythm, tabular numerals, one icon set, designed empty and loading states).
+A **modern civic ERP**: instantly familiar to someone who works in government finance software all
+day (dark navy chrome, left module navigation, dense worksheets, toolbars, breadcrumbs, status
+pills, a workflow stepper), executed with restraint (one primary, one accent, white cards on a grey
+canvas, an 8px rhythm, tabular numerals, one icon set, designed empty and loading states).
 
-Why this and not something flashier: every credible product in the research uses navy/blue and
-white; finance directors read density as competence; and the interviewer's own product is a
-blue-module-tree ERP. The goal is "this person understands our world and knows what 2026 looks
-like", not "this person can imitate a consumer app".
+Why this and not something flashier: navy and white read as trustworthy in public finance, and
+finance directors read density as competence. The goal is "this understands our world and knows
+what 2026 looks like", not "this imitates a consumer app".
 
-### "Fits in with VIP" means
-Same family, one generation newer. Keep: blue module navigation with uppercase group headers,
-an icon toolbar above records, a breadcrumb trail, label/value detail cards with small uppercase
-labels, tabbed sub-sections over grids, grids that group and filter, blue as the trust color.
-Change: one blue instead of several, a dark sidebar instead of saturated bars, whitespace in
-headers and cards (not in grids), a single icon set, and designed states. A VIP user should feel
-at home in ten seconds; an OpenGov user should not feel they went back in time.
+### "Familiar" means
+Keep: module navigation with uppercase group headers, an icon toolbar above records, a breadcrumb
+trail, label/value detail cards with small uppercase labels, tabbed sub-sections over grids, grids
+that group and filter, blue as the trust color. Change what makes older software feel dated: one
+blue instead of several, a dark sidebar instead of saturated bars, whitespace in headers and cards
+(not in grids), a single icon set, and designed states. Someone used to an ERP should feel at home
+in ten seconds without feeling they went back in time.
 
 ## 2. Design tokens
 
@@ -33,7 +29,7 @@ All colors meet WCAG AA (4.5:1) as text on white unless noted. Defined once as C
 | Token | Value | Use |
 |---|---|---|
 | `--cb-navy` | `#1F4E79` | Primary: buttons, active nav, links in chrome (8.7:1) |
-| `--cb-action` | `#1565C0` | VIP-adjacent action blue for primary buttons and toolbar icons (4.9:1 with white text) |
+| `--cb-action` | `#1565C0` | Action blue for primary buttons and toolbar icons (4.9:1 with white text) |
 | `--cb-navy-hover` | `#2B6CB0` | Hover and focus rings (5.4:1) |
 | `--cb-sidebar` | `#0F2A44` | Admin sidebar and portal footer background |
 | `--cb-teal` | `#0B7285` | Accent: drill-down links, active rule in the sidebar, chart secondary (5.6:1) |
@@ -55,7 +51,7 @@ teal `#0B7285`, amber `#C8873A`, purple `#6B4C9A`, green `#2E8B57`, rose `#B5545
 hatched) or position, never hue alone.
 
 Typography: system stack `"Segoe UI", -apple-system, "Helvetica Neue", Roboto, system-ui, sans-serif`
-(Windows users get Segoe, which is what VIP and Munis render in). Base 14px / 1.45. Grid cells 13px.
+(Windows users get Segoe, the face most desktop finance software renders in). Base 14px / 1.45. Grid cells 13px.
 Page title 20px / 600. Section title 16px / 600. Eyebrow labels 11px uppercase, letter-spacing .06em
 (the "GENERAL LEDGER / Budget Entry" pattern). `font-variant-numeric: tabular-nums` on every
 amount. Radius 6px. Spacing on an 8px scale. Focus ring 2px `--cb-navy-hover` with 2px offset,
@@ -119,7 +115,7 @@ Maple Ridge's public page.
 
 ## 4. Public transparency portal (Phase 5, design-first)
 
-Principles from the research, in priority order:
+Principles, in priority order:
 
 1. **Question-led structure.** Tabs or sections titled "Where does the money go?", "Where does it
    come from?", "What changed from last year?", "Fund balances". Not "Expenditures by Object Class".
@@ -133,7 +129,7 @@ Principles from the research, in priority order:
    > Category > Account, every level a stable URL.
 6. **Trust chrome**: government seal placeholder and name, "Adopted by resolution X on date;
    published date", a data-source line, a glossary ("What is a fund?"), a contact link, and an
-   accessibility statement in the footer. Echoes Ohio Checkbook's institutional cues.
+   accessibility statement in the footer.
 7. **Mobile-first**: KPI cards stack, navigation collapses, charts cap their height, tables scroll
    horizontally inside their card.
 8. **Fast and static**: no iframes, no third-party embeds, no cookie banner (nothing to consent to).
@@ -147,10 +143,10 @@ things lead, and the footer is navy. See ADR-0050.
 
 ## 5. Mockups
 
-Eight screens in [mockups.html](mockups.html), reviewed before any UI code was written:
-login; admin overview; budget workspace with stepper and fund rail; adopt dialog in Warn mode;
-users; portal overview; portal fund drill-down; portal on a phone. The mockup CSS uses the tokens
-above verbatim, so approved styles move into `app.css` rather than being re-created.
+Eight screens were mocked up and reviewed before any UI code was written: login; admin overview;
+budget workspace with stepper and fund rail; adopt dialog in Warn mode; users; portal overview;
+portal fund drill-down; portal on a phone. The mockup CSS used the tokens above verbatim, so
+approved styles moved into `app.css` rather than being re-created.
 
 ## 6. Implementation plan (Phase 4.5) and acceptance criteria
 

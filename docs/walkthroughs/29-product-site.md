@@ -7,9 +7,9 @@ or the contact form in one scroll. The mockup was approved before any of it was 
 
 ## 1. Where it lives
 
-The site is not in this repository. It is one static page in my portfolio's repository,
+The site is not in this repository. It is one static page in the spencersmith.site repository,
 `public/CivicBudget/`, next to Council's site, and Vercel serves it with the rest of spencersmith.site.
-It is not listed on the portfolio itself.
+It is not listed on that site's home page.
 
 ```
 public/CivicBudget/
@@ -101,5 +101,5 @@ page's canonical link keeps search engines on one address.
 - **Clips:** they play when scrolled into view, stay still under reduced motion, and start from Play.
 - **Production build:** every spelling of the address serves the page and its files; an unknown
   file is still a 404; Council is unaffected.
-- **Portfolio:** unchanged. The site is not listed on spencersmith.site's home page; it is reached
-  by its address.
+- **spencersmith.site:** unchanged. The CivicBudget page is not listed on its home page; it is
+  reached by its address.

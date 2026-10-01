@@ -73,7 +73,7 @@ public sealed class CivicBudgetStack : Stack
             MultiAz = false,
             PubliclyAccessible = false,
             BackupRetention = Duration.Days(7),
-            // A portfolio demo: tearing down must be one command and leave nothing billing. A real
+            // A demo environment: tearing down must be one command and leave nothing billing. A real
             // deployment sets DeletionProtection = true and RemovalPolicy.SNAPSHOT.
             DeletionProtection = false,
             RemovalPolicy = RemovalPolicy.DESTROY,

@@ -1,7 +1,7 @@
 # Walkthrough 06: The public transparency portal
 
 Phase 5 built the public portal. It is the one part of CivicBudget a citizen
-(or an interviewer) sees without signing in, and it is where the choices from
+sees without signing in, and it is where the choices from
 Phase 0 pay off: static SSR, the snapshot boundary, and output caching.
 
 ---
@@ -101,8 +101,8 @@ longest bar is 100% wide; the rest scale to it.
 
 Why not Chart.js? Three reasons that come up in transparency work: the
 numbers must be readable without color and without JavaScript, the page
-must print, and a bar chart with labels beside the bars is what every
-serious portal (Ohio Checkbook, OpenGov) converges on anyway. The bUnit
+must print, and a bar chart with labels beside the bars reads at a
+glance on any screen. The bUnit
 tests in `BreakdownTests` check the accessibility promises directly: label
 and value per bar, the table twin, the toggle as links.
 
@@ -145,7 +145,7 @@ What each does:
    and unpublish (Phase 4 registered a no-op); Web now registers the real
    one after `AddInfrastructure`, so the last registration wins.
 
-Things that went wrong on the way, all now in the gotchas list in `CLAUDE.md`: the
+Things that went wrong on the way: the
 default policy silently refused to cache anything (`no-store`), response
 headers are read-only inside `ServeResponseAsync`, and a middleware placed
 after `UseOutputCache` never runs on a hit.

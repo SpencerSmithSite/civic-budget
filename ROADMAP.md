@@ -11,7 +11,7 @@ what was built and why; [CHANGELOG.md](CHANGELOG.md) is the short version.
 - [x] `docs/SPEC.md`
 - [x] `docs/ARCHITECTURE.md`
 - [x] `docs/DECISIONS.md` (ADR-0001…0011)
-- [x] `ROADMAP.md`, `CLAUDE.md`, `CHANGELOG.md`, README stub
+- [x] `ROADMAP.md`, `CHANGELOG.md`, README stub
 - [x] `git init`, GitHub repo `civic-budget` (public, unlicensed)
 - [x] Reviewed and approved (2026-09-16)
 
@@ -25,7 +25,7 @@ what was built and why; [CHANGELOG.md](CHANGELOG.md) is the short version.
 - [x] Seed: Maple Ridge (FY2025 adopted, FY2026 original + Amendment 1, FY2027 draft) and Pine Hollow Township
 - [x] `ci.yml`: restore, build, format check, test (Testcontainers), test-results summary; PR template; Dependabot
 - [x] Domain unit tests for every rule in SPEC §5 (160); architecture tests (4); bUnit smoke (1); integration tests for migrations, tenancy, seed (14)
-- [x] `docs/walkthroughs/01-foundation.md`; `docs/INTERVIEW-PREP.md` Phase 1 section
+- [x] `docs/walkthroughs/01-foundation.md`
 - [x] Reviewed and approved
 
 ## Phase 2: Identity & maintenance  `phase-2-identity`
@@ -37,7 +37,7 @@ what was built and why; [CHANGELOG.md](CHANGELOG.md) is the short version.
 - [x] Admin area with Bootstrap + QuickGrid: overview, funds, departments, chart of accounts, fiscal years, users, government settings
 - [x] Demo users seeded (one per role; password in user-secrets via `scripts/dev-setup.sh`)
 - [x] Tests: 23 application, 38 web (policies + bUnit), 27 integration (user admin, setup services, seed)
-- [x] Walkthrough 02; interview prep Phase 2; ADR-0014/0015/0016
+- [x] Walkthrough 02; ADR-0014/0015/0016
 - [x] Reviewed and approved
 
 ## Phase 3: Budget entry  `phase-3-budget-entry`
@@ -48,7 +48,7 @@ what was built and why; [CHANGELOG.md](CHANGELOG.md) is the short version.
 - [x] `AuditInterceptor` + `[Audited]` + `AuditEntry` (append-only, tenant-owned); `AddAuditTrail` migration; per-line history view
 - [x] `ValueGeneratedNever` key convention (ADR-0018)
 - [x] Tests: 4 grouping, 7 bUnit (panel, department view), 14 integration (budget entry, audit); 273 total
-- [x] Walkthrough 03; interview prep Phase 3; ADR-0017/0018
+- [x] Walkthrough 03; ADR-0017/0018
 - [x] Reviewed and approved
 
 ## Phase 4: Workflow & publishing  `phase-4-workflow`
@@ -59,26 +59,25 @@ what was built and why; [CHANGELOG.md](CHANGELOG.md) is the short version.
 - [x] `IPublishedSnapshotCacheInvalidator` hook (a no-op until the portal's cache arrived in Phase 5)
 - [x] UI: `ConfirmDialog` (no JS), `WorkflowBar` with six dialogs, publish/unpublish, publishing history on the version list
 - [x] Tests: 6 domain, 4 bUnit, 9 integration; 292 total
-- [x] Walkthrough 04; interview prep Phase 4; ADR-0019
+- [x] Walkthrough 04; ADR-0019
 - [x] Reviewed and approved
 
 ## Phase 4.5: Admin UI design pass  `phase-4.5-admin-design`
 My review of Phase 3 (2026-09-17): it worked, but bare-bones Bootstrap looked like a tutorial, not a product a government would buy. This phase gives the admin app a deliberate visual identity before the public portal reuses it.
-- [x] Research: Ohio ERP vendors, admin budgeting UIs, transparency portals (`docs/design/research-*.md`)
 - [x] Design brief approved 2026-09-18: "a modern civic ERP that fits in next to VIP" (`docs/design/DESIGN-BRIEF.md`)
-- [x] Eight mockups approved before implementation (`docs/design/mockups.html`)
+- [x] Eight mockups approved before implementation
 - [x] Design tokens as CSS variables over Bootstrap; Bootstrap Icons vendored (ADR-0020)
 - [x] Shell: dark sidebar with module groups and icons, top bar with breadcrumbs (`AdminPageState`) and user menu, off-canvas under 992px
 - [x] Components: `PageHeader`, `StatusPill`, `WorkflowStepper`, `KpiCard`, `ToastService`/`ToastHost`, `ConfirmDialog` (Escape), `SideDrawer`, `RowMenu`, `EmptyState`, `SkeletonRows`
 - [x] Screens restyled: workspace (stepper, fund rail, dense grid with group rows and row menus, history drawer), overview (budget KPIs, activity timeline), version list, funds, departments, accounts, fiscal years, users, settings, login, home, account pages
 - [x] `window.confirm` retired; all outcomes via toasts; every list has empty and loading states
 - [x] Accessibility pass: contrast tokens, focus rings, Escape on dialogs, landmarks, `aria-current` stepper, reduced motion
-- [x] Checked at 1440 and 390 px; walkthrough 05; interview prep
+- [x] Checked at 1440 and 390 px; walkthrough 05
 - [x] Reviewed and approved
 
 ## Phase 5: Public transparency portal  `phase-5-portal`
-Design-first: this is the screen a citizen (and an interviewer) sees without logging in.
-- [x] Portal mockup (approved with the Phase 4.5 set in `docs/design/mockups.html`): question-led navigation, bars with table twins, mobile
+Design-first: this is the screen a citizen sees without logging in.
+- [x] Portal mockup (approved with the Phase 4.5 set): question-led navigation, bars with table twins, mobile
 - [x] `ISnapshotQueryService` (Application) over `PublicPortalDbContext` (Infrastructure): budget header, breakdowns by fund/category/department/source, fund and department pages, lines, year over year, search
 - [x] Static SSR pages under `/transparency/{slug}/{year?}`: index, overview, spending, revenue, funds, fund, department, years, search; `PortalLayout` with year pills and section nav; 404 for unknown slugs/years
 - [x] `Breakdown` component: CSS bars with values, `$ | %` toggle as links, `<details>` table twin; `PortalKpi`, `PortalCrumbs`, `MoneyShort`
@@ -87,7 +86,7 @@ Design-first: this is the screen a citizen (and an interviewer) sees without log
 - [x] Split queries on both contexts (the two-collection includes triggered EF's cartesian warning)
 - [x] Accessibility: landmarks, breadcrumb list, `aria-current`, chart text alternatives, works without JavaScript, checked at 1440 and 390 px
 - [x] Tests: 9 integration (`SnapshotQueryServiceTests`), 4 unit (CSV, XLSX), 42 Web (cache policy, invalidator, middleware, `Breakdown`, helpers); 347 total
-- [x] Walkthrough 06; interview prep Phase 5
+- [x] Walkthrough 06
 - [x] Reviewed and approved (2026-09-18)
 
 ## Phase 6: Import/export & reports  `phase-6-import-reports`
@@ -98,7 +97,7 @@ Design-first: this is the screen a citizen (and an interviewer) sees without log
 - [x] `IReportService` + `ReportBuilder`: Budget Summary by Fund, Department Budget Detail (with department filter), Revenue vs. Expenditure by Category
 - [x] Report screens with a printable header block, Print (`window.print`) and Export XLSX; `@media print` stylesheet; Reports in the sidebar; Tools menu on the workspace
 - [x] Tests: 24 unit (readers, parser, analyser, builders), 8 integration (import service, report service), 8 bUnit; 387 total
-- [x] Walkthrough 07; interview prep Phase 6; ADR-0022
+- [x] Walkthrough 07; ADR-0022
 - [x] Reviewed and approved (2026-09-18)
 
 ## Phase 7: AWS deployment (deploy-ready)  `phase-7-aws`
@@ -109,7 +108,7 @@ Design-first: this is the screen a citizen (and an interviewer) sees without log
 - [x] `GitHubOidcStack`: OIDC provider + deploy role trusting one repo on `v*` tags / `production`; ECR push + CDK bootstrap roles only
 - [x] 17 CDK assertion tests (18 after Phase 18) (`tests/CivicBudget.Infra.Tests`); `cdk synth` + Docker build job in CI
 - [x] `deploy.yml` (OIDC, ECR push tagged by SHA, `cdk deploy -c imageTag`, `workflow_dispatch`, gated on `AWS_DEPLOY_ROLE_ARN`)
-- [x] Cost note (~$90/mo, NAT a third), teardown (`cdk destroy`), Budgets alarm; walkthrough 08; interview prep; ADR-0023
+- [x] Cost note (~$90/mo, NAT a third), teardown (`cdk destroy`), Budgets alarm; walkthrough 08; ADR-0023
 - [x] Reviewed and approved (2026-09-18)
 
 ## Phase 8: Polish  `phase-8-polish`
@@ -120,7 +119,7 @@ My review (2026-09-18): too many screens explained themselves in subtitles, and 
 - [x] Leftover "Arrives in Phase 6" grid Export placeholder wired to the XLSX endpoint; portal section leads trimmed
 - [x] README screenshots (7) via a reproducible Playwright script (`scripts/screenshots`)
 - [x] Tests: 406 total (+2 InfoTip)
-- [x] Docs sweep: `docs/DEMO-SCRIPT.md`, spec status table (SPEC §12), 60-second pitch refreshed, walkthrough 09, interview prep Phase 8
+- [x] Docs sweep: `docs/DEMO-SCRIPT.md`, spec status table (SPEC §12), 60-second summary refreshed, walkthrough 09
 - [x] Tagged `v1.0.0` (2026-09-19); the deploy workflow ran and skipped as designed (no `AWS_DEPLOY_ROLE_ARN`)
 - [x] Reviewed and approved (2026-09-19)
 
@@ -167,7 +166,7 @@ UAN village or `101-110-5100` for a county), and permissions follow the departme
 - [x] Department entry page: the department's accounts across its funds as full account numbers, prior year actual, current budget, request, change; running totals; a narrative/justification for the department as a whole
 - [x] Department submits to the fiscal officer (per-department Submitted status on the version; fiscal officer can return it); the workspace shows which departments are in
 - [x] Portal and Department Detail report carry the department narrative
-- [x] Tests (domain rules, permission matrix, services end to end, published narrative, pages), walkthrough 13, interview prep (v1.1 section), ADR-0027
+- [x] Tests (domain rules, permission matrix, services end to end, published narrative, pages), walkthrough 13, ADR-0027
 - [x] Reviewed and approved (2026-09-20)
 
 Order: 9a → 9b → 9c → 9d, each its own pull request, reviewed before the next started.
@@ -177,12 +176,12 @@ Order: 9a → 9b → 9c → 9d, each its own pull request, reviewed before the n
 - [x] Sidebar brand is the government's name; the product name stays on the public header and sign-in
 - [x] Profile pictures: browser-side resize, `UserAvatars` table, versioned image endpoint, `Avatar` component everywhere initials were shown, admin removal; ADR-0028
 - [x] `[NotAudited]` so submit/return bookkeeping fields stay out of the activity feed
-- [x] Tests (service scoping and permissions, components, audit opt-out); walkthrough 14; interview prep
+- [x] Tests (service scoping and permissions, components, audit opt-out); walkthrough 14
 - [x] Reviewed and approved (2026-09-20)
 
 ## Phase 11: Front door  `phase-11-sign-in`
 - [x] Home and sign-in: centered headline, no product or project copy, "Sign in to view and enter data", portal link; no "Sign in" link in the public header
-- [x] No portfolio/demo/fictional wording anywhere in the app's UI (README and docs keep it)
+- [x] No demo or fictional wording anywhere in the app's UI (README and docs say it)
 - [x] Reviewed and approved (2026-09-20)
 
 ## Phase 12: Portal polish  `phase-12-portal-polish`
@@ -246,7 +245,7 @@ Order: 9a → 9b → 9c → 9d, each its own pull request, reviewed before the n
 
 ## Phase 19: Documentation and comments  `phase-19-docs`
 - [x] README rewritten for a first-time reader: what it is, the live demo, how to run it, how to read the code
-- [x] ARCHITECTURE, SPEC, DECISIONS (ADRs in order), walkthroughs, interview prep, demo script, and infra READMEs brought up to date and written in my voice
+- [x] ARCHITECTURE, SPEC, DECISIONS (ADRs in order), walkthroughs, demo script, and infra READMEs brought up to date and written in my voice
 - [x] Every code comment reread against the code: stale statements fixed, phase history removed, missing "why" added
 - [x] Fixed on the way: an import commit crashed on codes written with leading zeros
 - [x] Reviewed and approved (2026-09-24)
@@ -269,7 +268,7 @@ Order: 9a → 9b → 9c → 9d, each its own pull request, reviewed before the n
 
 # v1.2: Ready to sell beside an ERP (2026-09-27)
 
-The goal is a product an ERP vendor such as Software Solutions (VIP) could take on: complete
+The goal is a product an ERP vendor could take on: complete
 budget entry, reporting that combines the ERP's books with budget data in ways the ERP cannot do
 alone, a one-button send of the adopted budget back to the ERP, personnel budgeting, and a public
 site that sells it. One phase at a time, each reviewed before the next.
@@ -325,7 +324,7 @@ journal, repeated on every line), and `Date` (the journal's posting date, repeat
 - [x] Reviewed and approved (2026-09-27)
 
 ## Phase 26: Personnel budgeting  `phase-26-personnel`
-Decided with Spencer (2026-09-27):
+Decided (2026-09-27):
 - Longevity supports every method: flat per year, percent after N years, step table, set up in plain English.
 - Rates: OPERS 14%, OP&F police 19.5% and fire 24%, Medicare 1.45%, workers' comp as the BWC percent of payroll.
 - Insurance is a monthly premium per tier less an employee share.
@@ -348,7 +347,7 @@ Decided with Spencer (2026-09-27):
 - [x] Reviewed and approved (2026-09-27)
 
 ## Phase 27: Personnel from VIP and personnel reports  `phase-27-personnel-seed`
-Decided with Spencer (2026-09-27): VIP's employee export is not known yet. Seed with fields a payroll export can reasonably be assumed to have, and take them by API or file.
+Decided (2026-09-27): VIP's employee export is not known yet. Seed with fields a payroll export can reasonably be assumed to have, and take them by API or file.
 
 - [x] Start personnel from the ERP's employee list and pay, by API or payroll export, with a preview (`ErpEmployees`, `EmployeeMatcher`, `PersonnelSyncService`)
 - [x] Positions keep the ERP employee number; the ERP's side is refreshed and the budget's plans kept; hires fill vacancies; leavers leave vacancies
@@ -358,7 +357,7 @@ Decided with Spencer (2026-09-27): VIP's employee export is not known yet. Seed 
 - [x] Reviewed and approved (2026-09-27)
 
 ## Phase 28: Onboarding, email, and MFA  `phase-28-market-readiness`
-Decided with Spencer (2026-09-27): no Microsoft sign-in (Entra ID) for now. App email goes through an interface: SMTP for a real deployment, an in-app outbox in the demo (every demo address is fictional). The website's contact form uses Formspree, like spencersmith.site.
+Decided (2026-09-27): no Microsoft sign-in (Entra ID) for now. App email goes through an interface: SMTP for a real deployment, an in-app outbox in the demo (every demo address is fictional). The website's contact form uses Formspree, like spencersmith.site.
 
 - [x] Set up a new government without the seed: `--provision` creates it and its first Administrator; the getting-started checklist covers the chart (from the ERP or a file), a fiscal year, the first budget, and the team
 - [x] Email: department submitted or returned, forgot password, welcome for a new user; a transactional outbox, SMTP delivery, and the demo outbox page
@@ -367,7 +366,7 @@ Decided with Spencer (2026-09-27): no Microsoft sign-in (Entra ID) for now. App 
 - [x] Reviewed and approved (2026-09-28)
 
 ## Phase 29: SOC 2 by design  `phase-29-soc2`
-Decided with Spencer (2026-09-27): designed and built to achieve SOC 2 compliance, without going through certification; cover similar frameworks buyers ask about (GovRAMP, NIST CSF 2.0). Sessions (2026-09-28): signed out after 30 idle minutes; "Remember me" keeps a trusted device signed in for up to 14 days.
+Decided (2026-09-27): designed and built to achieve SOC 2 compliance, without going through certification; cover similar frameworks buyers ask about (GovRAMP, NIST CSF 2.0). Sessions (2026-09-28): signed out after 30 idle minutes; "Remember me" keeps a trusted device signed in for up to 14 days.
 
 - [x] Security event log (sign-ins, failures, role and MFA changes, exports), session timeout, lockout, security headers
 - [x] Dependency and code scanning in CI
@@ -382,24 +381,24 @@ Decided with Spencer (2026-09-27): designed and built to achieve SOC 2 complianc
 - [x] Reviewed and approved (2026-09-28, civic-budget PR #60 and spencersmith.site PR #19)
 
 ## Phase 31: Accessibility self-scan  `phase-31-accessibility`
-Decided with Spencer (2026-09-27): no official audit for now; our own scan near the end of the project.
+Decided (2026-09-27): no official audit for now; our own scan near the end of the project.
 
 - [x] Automated checks (axe) across every page and role, plus subagent reviews of the portal and admin
 - [x] Fix what they find; write the accessibility conformance report (VPAT)
 - [x] Reviewed and approved (2026-09-28, civic-budget PR #62 and spencersmith.site PR #20)
 
 ## Phase 32: Finish accessibility  `phase-32-accessibility-finish`
-Decided with Spencer (2026-09-28): close the two partial passes in the conformance report, then a screen-reader pass.
+Decided (2026-09-28): close the two partial passes in the conformance report, then a screen-reader pass.
 
 - [x] Editable amounts show a faint border at rest (WCAG 1.4.11), darker on hover and focus
 - [x] Worksheet fund and program group rows become row-group headers (WCAG 1.3.1); the reports too
 - [x] Accessibility tree review of the sign-in, worksheet, department request, dialogs, idle warning, and portal; VoiceOver checklist written (`docs/accessibility/screen-reader-checklist.md`)
-- [x] ~~VoiceOver pass itself~~: skipped by decision (Spencer, 2026-09-28); the checklist stays for later
+- [x] ~~VoiceOver pass itself~~: skipped by decision (2026-09-28); the checklist stays for later
 - [x] Update the conformance report
 - [x] Reviewed and approved (2026-09-28, PR #63)
 
 ## Phase 33: Multi-year plan  `phase-33-multi-year-plan`
-Decided with Spencer (2026-09-28): plan up to ten years (five by default) on both the revenue and expenditure side,
+Decided (2026-09-28): plan up to ten years (five by default) on both the revenue and expenditure side,
 calculated from each prior year like starting a budget; the plan lives on each budget version; departments edit their
 own lines' future years; fund balances roll forward year by year; the portal shows the plan once published.
 
@@ -411,7 +410,7 @@ own lines' future years; fund balances roll forward year by year; the portal sho
 - [x] Reviewed and approved (2026-09-28, PR #64)
 
 ## Phase 34: ERP partner kit  `phase-34-erp-partner-kit`
-Decided with Spencer (2026-09-28): the kit ships a working HTTP adapter, so an ERP that implements the published API
+Decided (2026-09-28): the kit ships a working HTTP adapter, so an ERP that implements the published API
 connects by configuration with no code in CivicBudget; each government's connection (address and API key) is set by
 the operator in configuration (user-secrets, Secrets Manager, Key Vault), never in the database or on a page.
 
@@ -424,7 +423,7 @@ the operator in configuration (user-secrets, Secrets Manager, Key Vault), never 
 - [x] Reviewed and approved (2026-09-29, PR #65)
 
 ## Phase 35: Printable budget book  `phase-35-budget-book`
-Decided with Spencer (2026-09-29): the budget message is typed in CivicBudget on each budget version; any version can be
+Decided (2026-09-29): the budget message is typed in CivicBudget on each budget version; any version can be
 printed, and a budget council has not adopted is marked Proposed on the cover and every page; publishing keeps the book
 with the snapshot and the portal offers that copy; the outlook, personnel, line-item, and glossary sections are each
 optional, chosen when printing, with defaults the published book uses.
@@ -436,7 +435,7 @@ optional, chosen when printing, with defaults the published book uses.
 - [x] Reviewed and approved (2026-09-29, PR #66)
 
 ## AI assistant (phases 36 to 38)
-Decided with Spencer (2026-09-29): an agentic assistant that acts only through the Application services as the signed-in
+Decided (2026-09-29): an agentic assistant that acts only through the Application services as the signed-in
 user, so every permission the pages enforce applies to it; changes are proposed with a preview and committed only by the
 user's confirmation; Microsoft.Extensions.AI as the interface with Anthropic's Claude as the first model, so another
 provider can be configured; off until a government's Administrator turns it on; the API key in the operator's secret
@@ -491,4 +490,4 @@ floats in the corner of every page instead of hiding in the menu (ADR-0051).
 ## Later
 Nothing parked; the ERP partner kit and the budget book were the last two items (2026-09-29).
 
-Not planned: a VoiceOver pass and Microsoft sign-in (Entra ID), both skipped by Spencer (2026-09-28).
+Not planned: a VoiceOver pass and Microsoft sign-in (Entra ID), both skipped (2026-09-28).

@@ -104,13 +104,14 @@ door to the database:
   cannot drift. The admin context adds the foreign key to `Governments`
   separately, because the portal must not map `Governments`.
 
-Interview framing: this is defense in depth expressed structurally. The
+In short: this is defense in depth expressed structurally. The
 service already refuses to publish drafts; the snapshot already contains no
 live references; and the portal's context physically cannot reach anything
 else. Any one layer failing still leaves two.
 
 `dotnet ef` now needs `--context CivicBudgetDbContext` because the project
-has two contexts (CLAUDE.md has the command).
+has two contexts:
+`dotnet ef migrations add <Name> -p src/CivicBudget.Infrastructure -o Persistence/Migrations --context CivicBudgetDbContext`.
 
 ---
 

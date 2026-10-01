@@ -8,11 +8,9 @@ counties actually budget: money is kept in funds, each fund's spending is capped
 can expect to have, departments hand their requests to a fiscal officer, council adopts the
 budget by resolution, and changes during the year are made by amendment.
 
-I built it as a portfolio project for .NET and Blazor work on government ERP software, and I
-built it the way I would build the real thing: the domain rules come from Ohio law and the
-Auditor of State's chart of accounts, the app is meant to sit beside a government's existing
-ERP rather than replace it, and every non-obvious decision is written down. All of the data is
-fictional (the Village of Maple Ridge and Pine Hollow Township do not exist).
+The domain rules come from Ohio law and the Auditor of State's chart of accounts, the app is
+meant to sit beside a government's existing ERP rather than replace it, and every non-obvious
+decision is written down. All of the demo data is fictional (the Village of Maple Ridge and Pine Hollow Township do not exist).
 
 The product site is **[spencersmith.site/CivicBudget](https://spencersmith.site/CivicBudget/)**:
 what it does, short clips of it working (the AI assistant and forecasting among them), the
@@ -37,7 +35,7 @@ It has two halves:
 
 ## AI and forecasting
 
-The newest work, and the part I would show first.
+The newest work.
 
 - **Civic Buddy, an assistant that acts as you.** Its tools are the same Application services the pages
   call, run as the signed-in user, so it sees what you can see and nothing more. Ask how the
@@ -181,8 +179,7 @@ criterion. It is a self-evaluation, with no screen reader testing yet, and it sa
 
 ## Problems worth reading about
 
-These are the parts I would walk an interviewer through, because each one had an easy answer
-that would have been wrong.
+Each of these had an easy answer that would have been wrong.
 
 - **Keeping draft numbers off the public site.** The portal does not filter the live budget by
   status. Publishing copies the adopted budget into separate snapshot tables, and the portal's
@@ -377,7 +374,7 @@ deployed; it shows the production-shaped design. See [infra/README.md](infra/REA
    with the alternatives I turned down, and the table of every package and why it is there.
 5. Then the code, starting at `src/CivicBudget.Domain/Budgets/BudgetVersion.cs`, the heart of it.
 
-Also: [Demo script](docs/DEMO-SCRIPT.md) · [Interview prep](docs/INTERVIEW-PREP.md) ·
+Also: [Demo script](docs/DEMO-SCRIPT.md) ·
 [Design brief](docs/design/DESIGN-BRIEF.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md)
 
 ```
@@ -392,5 +389,5 @@ docs/                           spec, architecture, decisions, walkthroughs, des
 
 ## Rights
 
-Copyright © 2026 Spencer Smith. **All rights reserved.** This repository is public for portfolio
-review only. It is not licensed for use, modification, or distribution.
+Copyright © 2026 Spencer Smith. **All rights reserved.** This repository is public so the code
+can be reviewed. It is not licensed for use, modification, or distribution.

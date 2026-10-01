@@ -2,7 +2,7 @@
 
 **Owner:** the security owner · **Reviewed:** yearly
 
-The conventions live in `CLAUDE.md` and the ADRs. These are the security-relevant ones, each
+The conventions live in the ADRs (`docs/DECISIONS.md`) and the architecture notes (`docs/ARCHITECTURE.md`). These are the security-relevant ones, each
 enforced by the design or by a test rather than by memory.
 
 ## Design rules

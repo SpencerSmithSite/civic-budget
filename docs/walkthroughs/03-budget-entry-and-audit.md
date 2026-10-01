@@ -122,9 +122,8 @@ and issued an UPDATE.
 
 Fix: `CivicBudgetDbContext.UseClientGeneratedKeys` marks every domain
 entity's `Id` as `ValueGeneratedNever()`. No schema change (the probe
-migration was empty), but EF now tracks discovered children as Added. This
-is a one-paragraph interview answer about the difference between
-`Add`/`Attach`/`Update` and graph discovery.
+migration was empty), but EF now tracks discovered children as Added. It comes down
+to the difference between `Add`/`Attach`/`Update` and graph discovery.
 
 ---
 
