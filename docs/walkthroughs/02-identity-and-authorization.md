@@ -27,7 +27,7 @@ policy through `IAuthorizationService`; both get the same answer. Unit tests
 (`BudgetLinePermissionsTests`) cover the function; policy tests cover the
 adapter.
 
-*Interview question:* "Why not just check the role in the component?"
+*Why not just check the role in the component?*
 Because the department user's rule depends on the line's department and the
 version's status. Roles can't express that. And a rule in a component can't
 protect an import or an API.
@@ -84,7 +84,7 @@ table would make login impossible. Instead:
   another tenant (`Rejects_departments_that_belong_to_another_government`).
 
 This is the one deliberate exception to "everything is filtered", and it is
-documented as such because an interviewer who knows multi-tenancy will ask.
+documented as such because anyone who knows multi-tenancy will ask.
 
 ---
 

@@ -18,7 +18,7 @@ pick up the theme without any Bootstrap SCSS build.
 
 Why not compile Bootstrap with custom SCSS? Because the project has no
 front-end build pipeline and adding one (Node, Sass, a watcher) to a .NET
-solution is a real cost with no benefit an interviewer would care about.
+solution is a real cost with no benefit to the people using it.
 Bootstrap 5 exposes enough as CSS variables that `--bs-*` overrides plus a
 few component rules (`.btn-primary`, `.card`, `.modal-content`) get the
 whole surface.

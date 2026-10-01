@@ -17,7 +17,7 @@ baselines are drawn from.
 | CC1.1 Integrity and ethical values | Written security policy that everyone with production access acknowledges | [information-security.md](policies/information-security.md) | Signed acknowledgements, yearly | GV.PO | PL-1, PL-4 |
 | CC1.2 Oversight | A named security owner reviews controls every quarter and reports gaps | [information-security.md](policies/information-security.md) | Quarterly review notes | GV.OV | PM-1, PM-9 |
 | CC1.3 Structure and responsibilities | Shared responsibility between the software, the operator, each government, and the host | [README](README.md#who-is-responsible-for-what) | This page | GV.RR | PM-2 |
-| CC1.4 Competence | Secure development practice; reviewers know the conventions | [secure-development.md](policies/secure-development.md), `CLAUDE.md` | Pull request reviews | GV.RR, PR.AT | AT-2, AT-3 |
+| CC1.4 Competence | Secure development practice; reviewers know the conventions | [secure-development.md](policies/secure-development.md), `docs/DECISIONS.md` | Pull request reviews | GV.RR, PR.AT | AT-2, AT-3 |
 | CC1.5 Accountability | Every change and every sign-in is tied to a named person | Audit trail, security log, Git history | `AuditEntries`, `SecurityEvents`, commits | GV.RR | AU-3 |
 
 ### CC2: Communication and information

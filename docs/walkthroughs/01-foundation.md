@@ -41,7 +41,7 @@ EF Core is told to use the fields (`UsePropertyAccessMode(PropertyAccessMode.Fie
 balances, fresh ids, and `VersionNumber + 1`. The original is untouched, which
 `BudgetAmendmentTests` checks.
 
-*Interview question:* "Why not put a status check in the service?" Because the service
+*Why not put a status check in the service?* Because the service
 is not the only caller. Imports, the seeder, and every later feature go through the same
 entity, so the rule cannot be bypassed by a new code path.
 
@@ -76,7 +76,7 @@ that implements `ITenantOwned` and adds:
 modelBuilder.Entity<TEntity>().HasQueryFilter(e => e.GovernmentId == CurrentGovernmentId);
 ```
 
-Two subtleties an interviewer may probe:
+Two subtleties worth knowing:
 
 1. `CurrentGovernmentId` is an **instance property** on the DbContext that reads
    `ITenantContext`. EF Core sees a member of the context instance and turns it into a

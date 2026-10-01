@@ -23,4 +23,4 @@ dotnet test
 - [ ] Tests pass locally (`dotnet test`)
 - [ ] `ROADMAP.md` boxes checked, `CHANGELOG.md` updated
 - [ ] New packages recorded in `docs/DECISIONS.md`
-- [ ] Walkthrough / interview-prep updated for anything non-obvious
+- [ ] Walkthrough updated for anything non-obvious

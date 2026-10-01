@@ -161,8 +161,8 @@ errors a service returns rather than relying on `DataAnnotationsValidator`.
 ## ADR-0008: Deploy-ready AWS infrastructure without an AWS account
 **Date:** 2026-09-15 · **Status:** Accepted
 
-**Context.** I have no AWS account or budget for this project, but the employer I am
-interviewing with runs on AWS, so the deployment story matters.
+**Context.** I have no AWS account or budget for this project, but much of government software
+runs on AWS, so the deployment story matters.
 
 **Decision.** Build everything up to `cdk deploy`: a Dockerfile, a full-stack Docker
 Compose file, a CDK stack in C#, `cdk synth` in CI, CDK assertion tests for the
@@ -188,8 +188,8 @@ ships no arm64 SQL Server image.
 **Decision.** `mcr.microsoft.com/mssql/server:2022-latest` with `platform: linux/amd64`
 in Docker Compose and in Testcontainers, relying on Docker Desktop's Rosetta emulation.
 
-**Alternatives.** PostgreSQL: native on arm64 and cheaper on RDS, but it changes the
-story this project is meant to tell. Azure SQL Edge: retired.
+**Alternatives.** PostgreSQL: native on arm64 and cheaper on RDS, but the governments and
+ERP vendors this is for run SQL Server. Azure SQL Edge: retired.
 
 **Consequences.** Slower container starts locally (15 to 40 seconds) and the occasional
 emulation crash, which Compose now restarts automatically. CI on Ubuntu runs natively.
@@ -200,10 +200,10 @@ The EF provider is confined to Infrastructure, so a swap stays possible.
 ## ADR-0010: The repository is public and unlicensed (all rights reserved)
 **Date:** 2026-09-15 · **Status:** Accepted
 
-**Context.** I want interviewers to be able to read the code without my granting anyone
-the right to reuse it.
+**Context.** I want anyone evaluating CivicBudget to be able to read the code without my granting
+anyone the right to reuse it.
 
-**Decision.** No `LICENSE` file; the README says "All rights reserved", portfolio review
+**Decision.** No `LICENSE` file; the README says "All rights reserved", public for review
 only. Changes reach `main` through pull requests.
 
 **Alternatives.** A private repository (invisible unless each reviewer is invited); a
@@ -218,7 +218,7 @@ repository, but no right to use it is granted.
 **Date:** 2026-09-15 · **Status:** Accepted
 
 **Context.** Government ERP vendors often use DevExpress or Telerik. I had no license or
-trial, and a portfolio project should not depend on one.
+trial, and a product sold beside an ERP should not make its buyer license another vendor's suite.
 
 **Decision.** `Microsoft.AspNetCore.Components.QuickGrid` for the grids, with inline
 editing built from standard components.
@@ -1382,7 +1382,7 @@ command line needs `App:PublicUrl`.
 **Date:** 2026-09-28 · **Status:** Accepted
 
 **Context.** A government or an ERP vendor buying CivicBudget will ask for a SOC 2 report, and a
-state buyer may ask about GovRAMP. I decided not to pay for an audit for a portfolio project, but
+state buyer may ask about GovRAMP. I decided not to pay for an audit yet, but
 to build what an auditor would examine, and to say plainly "designed and built to achieve SOC 2
 compliance". Most of an audit tests five things:
 - who can get in;
@@ -1475,7 +1475,7 @@ Several pieces were missing:
 
 ---
 
-## ADR-0042: The product site is one static page in the portfolio repository, with clips recorded from the app
+## ADR-0042: The product site is one static page on my existing site, with clips recorded from the app
 **Date:** 2026-09-28 · **Status:** Accepted
 
 **Context.** An ERP vendor or a government deciding whether to look further needs one page that
@@ -1502,14 +1502,14 @@ through Formspree.
 
   They play only on screen, never under reduced motion, and each has a pause button (WCAG 2.2.2)
   and a caption.
-- **The contact form** posts to the portfolio's Formspree endpoint with a hidden subject of
+- **The contact form** posts to the site's Formspree endpoint with a hidden subject of
   "CivicBudget inquiry", and works without JavaScript.
 - **The address keeps its capitals** (`/CivicBudget/`), and any other spelling is rewritten onto
   it, because a redirect loops (Next matches redirect sources without regard to case).
 
 **Alternatives.**
 - A page inside the app: it would share the demo's cold start, and the demo resets nightly.
-- A separate domain: another thing to pay for and renew, when the portfolio already has one.
+- A separate domain: another thing to pay for and renew, when spencersmith.site already exists.
 - Separate security and demo pages: the page is short enough that one scroll answers everything.
 - Animated GIFs: ten times the size and worse to look at.
 - Google Fonts by link: a third-party request on every visit.
@@ -1568,7 +1568,7 @@ pay for an audit yet, and to do my own:
 **Consequences.**
 - Portal panels now use CSS `:has()`, so browsers older than 2023 show the first panel only.
 - Editable amount cells keep their borderless look at rest, a known partial pass on 1.4.11.
-  *Amended 2026-09-28 (Phase 32):* Spencer chose to outline them at rest, and the worksheet's
+  *Amended 2026-09-28 (Phase 32):* I chose to outline them at rest, and the worksheet's
   group rows became row-group headers, closing both partial passes.
 - Any new page should pass the sweep before it merges.
 

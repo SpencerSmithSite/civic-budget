@@ -164,7 +164,6 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
   - the live demo with every login;
   - FAQ, and a contact form through Formspree.
 - `scripts/screenshots/site-clips.mjs`: records the site's three clips from a freshly seeded app.
-- The site is reached by its address and is not listed on the portfolio's home page.
 
 ## Phase 29: 2026-09-28 (SOC 2 by design)
 ### Added
@@ -301,7 +300,7 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 ## Phase 19: 2026-09-24 (documentation and comments)
 ### Changed
 - README rewritten for a first-time reader: what the app is, the live demo and its logins, how it is built, the problems worth reading about, and how to read the repository.
-- ARCHITECTURE, SPEC, DECISIONS, the walkthroughs, interview prep, and the demo script brought up to date with the code and written in the first person. ADRs are in numeric order, and decisions that later changed are amended in place.
+- ARCHITECTURE, SPEC, DECISIONS, the walkthroughs, and the demo script brought up to date with the code and written in the first person. ADRs are in numeric order, and decisions that later changed are amended in place.
 - Every code comment reread against its code: stale statements fixed (a self-contradicting index comment, a "placeholder" that was not one, a removed health endpoint), phase numbers removed, and a "why" added where a reader would ask.
 ### Fixed
 - Import commit crashed on codes written with leading zeros (`04901`) that the preview had matched; analysed rows now carry the matched ids.
@@ -376,7 +375,7 @@ A review of the whole codebase (one layer at a time, each finding checked agains
 
 ## Phase 11: 2026-09-20 (v1.1)
 ### Changed
-- Front door and sign-in page read like a product, not a project: one centered headline on the navy half, "Sign in to view and enter data" and a link to the public portal on the other. The portfolio, demo, stack, and "fictional data" copy is gone from the app (the README still says it); the redundant "Sign in" link left the public header.
+- Front door and sign-in page read like a product: one centered headline on the navy half, "Sign in to view and enter data" and a link to the public portal on the other. The demo, stack, and "fictional data" copy is gone from the app (the README still says it); the redundant "Sign in" link left the public header.
 
 ## Phase 10: 2026-09-20 (v1.1)
 ### Added
@@ -458,7 +457,7 @@ A review of the whole codebase (one layer at a time, each finding checked agains
 
 ## Phase 4.5: 2026-09-18
 ### Added
-- Design research (Ohio vendors, admin budgeting UIs, transparency portals), design brief, and eight approved mockups under `docs/design/`.
+- Design brief (`docs/design/DESIGN-BRIEF.md`), and eight mockups approved before any UI code.
 - Theme: design tokens as CSS variables over Bootstrap; Bootstrap Icons vendored.
 - Admin shell with dark module sidebar, breadcrumb top bar, user menu, and off-canvas navigation on small screens.
 - Components: page header, status pills, workflow stepper, KPI cards, toasts, restyled confirm dialog, side drawer, row menus, empty and skeleton states.
@@ -510,4 +509,4 @@ A review of the whole codebase (one layer at a time, each finding checked agains
 ## Phase 0: 2026-09-15
 ### Added
 - Functional specification (`docs/SPEC.md`), architecture (`docs/ARCHITECTURE.md`),
-  decision records ADR-0001…0011 (`docs/DECISIONS.md`), roadmap, `CLAUDE.md`.
+  decision records ADR-0001…0011 (`docs/DECISIONS.md`), roadmap.

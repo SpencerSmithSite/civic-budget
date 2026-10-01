@@ -6,7 +6,7 @@ namespace CivicBudget.Infra.Tests;
 
 /// <summary>
 /// Security and cost invariants of the synthesized CloudFormation, checked without an AWS account.
-/// These are the properties an interviewer (or an auditor) would ask about: is the database
+/// These are the properties a reviewer (or an auditor) would ask about: is the database
 /// private, can only the app reach it, do secrets stay out of the template, does it log, and can
 /// the whole thing be torn down.
 /// </summary>

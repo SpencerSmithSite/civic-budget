@@ -3,17 +3,16 @@
 What I show, in what order, and what I say at each stop. It works on the
 [live demo](../README.md#try-the-live-demo) or locally
 (`docker compose up -d && dotnet run --project src/CivicBudget.Web`) with fresh seed data.
-If the live demo has been idle, open it a minute early so the database is awake. Keep
-[INTERVIEW-PREP.md](INTERVIEW-PREP.md) open in another tab for follow-up questions.
+If the live demo has been idle, open it a minute early so the database is awake.
 
 ## 0. Frame it (30 seconds)
 
 "Ohio's local governments build an appropriation budget every year, fund by fund, and
 the law says appropriations can't exceed each fund's certified estimated resources.
 CivicBudget is that workflow, for several governments at once, plus the public portal
-citizens see at the end. It plans five years ahead, and it has an AI assistant, Civic Buddy, that works
-only as the signed-in user and changes nothing without a click. It's built to sit beside
-the government's ERP rather than replace it. .NET 10, Blazor, EF Core, SQL Server. All the
+citizens see at the end. It plans five years ahead, and it has an AI assistant, Civic
+Buddy, that works only as the signed-in user and changes nothing without a click. It's
+built to sit beside the government's ERP rather than replace it. .NET 10, Blazor, EF Core, SQL Server. All the
 data is fictional."
 
 ## 1. The public portal, before signing in (1.5 minutes)
