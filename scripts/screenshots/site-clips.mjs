@@ -1,7 +1,7 @@
 // Records the silent clips on the product site (spencersmith.site/CivicBudget): a department
 // moving a line and submitting, the fiscal officer bringing the Street fund within its limit, the
-// public portal on a phone, the multi-year plan, the assistant proposing a change that the fiscal
-// officer confirms, and a resident asking the portal a question. Each ends saved, so reseed before
+// public portal on a phone, the multi-year plan, Civic Buddy proposing a change that the fiscal
+// officer confirms, and a resident asking Civic Buddy on the portal. Each ends saved, so reseed before
 // recording again. The assistant and question clips need a model (Assistant:ApiKey in user-secrets).
 // From the repo root, with a freshly seeded app running and Playwright set up (see mobile-sweep.mjs):
 //   dotnet run --project src/CivicBudget.Web -- --reseed
@@ -194,13 +194,13 @@ if (!only || only === 'assistant') {
 
 if (!only || only === 'ask') {
   await record('ask', { width: 390, height: 844 }, undefined, { ctx: { isMobile: true, hasTouch: true } }, async (p, mark) => {
-    await p.goto(`${base}/transparency/maple-ridge-oh/2026/ask`, { waitUntil: 'networkidle' }); await p.waitForTimeout(800);
-    mark(); await p.waitForTimeout(1400);
-    const box = p.locator('#ask-question');
-    await box.scrollIntoViewIfNeeded(); await box.tap();
-    await box.pressSequentially('Where does the money for roads come from?', { delay: 60 }); await p.waitForTimeout(500);
-    await mark.wait(() => Promise.all([p.waitForNavigation({ timeout: 120000 }), p.locator('.pt-ask button[type=submit]').tap()]));
-    // Start at the top of the answer (the question it repeats), then read down through it.
+    await p.goto(`${base}/transparency/maple-ridge-oh/2026`, { waitUntil: 'networkidle' }); await p.waitForTimeout(800);
+    mark(); await p.waitForTimeout(1600);
+    // Civic Buddy floats on every page; open it and ask one of its suggested questions.
+    await p.locator('.pt-buddy-launch').tap(); await p.waitForTimeout(2600);
+    const chip = p.locator('.pt-buddy-chips button', { hasText: 'Where does the money for roads come from?' });
+    await mark.wait(() => Promise.all([p.waitForNavigation({ timeout: 120000 }), chip.tap()]));
+    // Start at the top of the exchange (the question it repeats), then read down through the answer.
     await p.evaluate(() => document.querySelector('.pt-answer')?.scrollIntoView({ block: 'start' }));
     await p.waitForTimeout(4200);
     for (let i = 0; i < 8; i++) { await p.mouse.wheel(0, 45); await p.waitForTimeout(380); }
