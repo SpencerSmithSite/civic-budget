@@ -43,7 +43,10 @@
     </header>
 
     <main class="pt-in pt-main" id="main">
-        @Body
+        @* Whether this portal takes questions, worked out once here, so a page can offer the question box without asking again. *@
+        <CascadingValue Name="PortalAskable" Value="askable">
+            @Body
+        </CascadingValue>
     </main>
 
     <footer class="pt-foot">

@@ -2750,30 +2750,6 @@ table.cb-grid > tfoot > tr > th {
     flex: 1;
 }
 
-.pt-h1 {
-    font-size: 1.75rem;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-    margin: 0 0 6px;
-}
-
-.pt-lead {
-    color: var(--cb-muted);
-    max-width: 72ch;
-    font-size: 1rem;
-    margin: 0 0 18px;
-}
-
-/* The link to the printed budget book, under the lead: easy to find without competing with the figures. */
-.pt-book {
-    max-width: 72ch;
-    margin: -8px 0 18px;
-    font-size: 0.95rem;
-}
-
-.pt-book a {
-    font-weight: 600;
-}
 
 .pt-lead-sm {
     color: var(--cb-muted);
@@ -2784,13 +2760,6 @@ table.cb-grid > tfoot > tr > th {
 
 .pt-muted {
     color: var(--cb-muted);
-}
-
-.pt-head {
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
-    flex-wrap: wrap;
 }
 
 .pt-years {
@@ -3177,23 +3146,6 @@ table.pt-grid th[scope="row"] a {
     white-space: nowrap;
 }
 
-.pt-govlist {
-    list-style: none;
-    padding: 0;
-    display: grid;
-    gap: 10px;
-    max-width: 560px;
-}
-
-.pt-govlist a {
-    display: block;
-    padding: 14px 18px;
-    border: 1px solid var(--cb-border);
-    border-radius: 10px;
-    text-decoration: none;
-    font-weight: 600;
-}
-
 .pt-empty {
     max-width: 60ch;
     padding: 40px 0;
@@ -3337,11 +3289,7 @@ table.pt-grid th[scope="row"] a {
         padding-right: 16px;
     }
 
-    .pt-h1 {
-        font-size: 1.375rem;
-    }
-
-    .pt-kpi-v {
+        .pt-kpi-v {
         font-size: 1.625rem;
     }
 
@@ -3384,6 +3332,93 @@ table.pt-grid th[scope="row"] a {
     .pt-glossary-list dd {
         margin-bottom: 10px;
     }
+}
+
+/* --------------------------------------------------------------------------
+   The portal's look, matching the product site: each page opens on a navy band that continues the
+   header, content sits in white cards on a light page, and icons mark where things lead. Layering
+   is kept to one place, the headline figures overlapping the band's edge.
+   -------------------------------------------------------------------------- */
+
+.cb-portal { background: var(--cb-canvas); }
+.pt-bar { border-bottom: 1px solid rgb(255 255 255 / 0.08); }
+
+.pt-hero {
+    background: var(--cb-sidebar);
+    color: #fff;
+    /* Edge to edge without leaving the centered column: a shadow paints the sides and the clip keeps
+       it to the band's own height, so nothing scrolls sideways. */
+    box-shadow: 0 0 0 100vmax var(--cb-sidebar);
+    clip-path: inset(0 -100vmax);
+    margin: -36px 0 36px;
+    padding: 26px 0 44px;
+}
+
+.pt-hero--overlap { padding-bottom: 104px; margin-bottom: 0; }
+.pt-hero-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px 32px; flex-wrap: wrap; }
+.pt-hero-copy { max-width: 720px; }
+.pt-hero-eyebrow { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #6FD0DC; margin: 0 0 10px; }
+.pt-hero-title { font-size: clamp(1.9rem, 3.6vw, 2.75rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.12; color: #fff; margin: 0; text-wrap: balance; }
+.pt-hero-lead { color: #D3DEEA; font-size: 1.125rem; line-height: 1.5; max-width: 60ch; margin: 14px 0 0; }
+.pt-hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.pt-hero-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 6px; border: 1px solid #fff; background: #fff; color: var(--cb-sidebar); font-weight: 600; font-size: 0.9375rem; text-decoration: none; }
+.pt-hero-btn:hover { background: #E8EEF5; color: var(--cb-sidebar); }
+.pt-hero-btn--ghost { background: transparent; color: #fff; border-color: rgb(255 255 255 / 0.4); }
+.pt-hero-btn--ghost:hover { background: rgb(255 255 255 / 0.08); color: #fff; }
+.pt-hero :focus-visible { outline-color: #6FD0DC; }
+.pt-hero .pt-crumbs ol { margin-bottom: 16px; color: #fff; }
+.pt-hero .pt-crumbs a { color: #C9D7E5; }
+.pt-hero .pt-crumbs a:hover { color: #fff; }
+.pt-hero .pt-crumbs li + li::before { color: rgb(255 255 255 / 0.5); }
+.pt-hero .pt-years { margin-left: 0; }
+.pt-hero .pt-years a { border-color: rgb(255 255 255 / 0.4); color: #fff; }
+.pt-hero .pt-years a.on { background: #fff; border-color: #fff; color: var(--cb-sidebar); }
+
+/* The headline figures, lifted over the band's bottom edge. */
+.pt-kpis--lift { position: relative; z-index: 1; margin-top: -72px; }
+.pt-kpi { border-radius: 12px; padding: 20px 22px; box-shadow: 0 1px 2px rgb(15 42 68 / 0.06), 0 8px 24px rgb(15 42 68 / 0.08); }
+.pt-kpi .pt-icon { display: block; color: var(--cb-teal); margin-bottom: 8px; }
+
+/* Charts and tables as white cards on the light page. */
+.pt-card {
+    background: var(--cb-surface);
+    border: 1px solid var(--cb-border);
+    border-radius: 12px;
+    padding: clamp(18px, 3vw, 28px);
+    box-shadow: 0 1px 2px rgb(15 42 68 / 0.06), 0 8px 24px rgb(15 42 68 / 0.08);
+}
+
+.pt-section.pt-card { margin: 28px 0; }
+
+/* Column headings may wrap, so a wide table fits its card instead of scrolling for one heading. */
+table.pt-grid > thead > tr > th { white-space: normal; vertical-align: bottom; }
+
+/* The search box fills the band; the button stays beside it. */
+.pt-hero .pt-search { flex: 1 1 100%; max-width: 640px; margin: 0; }
+.pt-hero .pt-search input { flex: 1; min-width: 0; }
+.pt-card .pt-table .cb-grid-wrap { max-width: none; }
+
+/* Where to go next, on the overview: one card per page, each led by its icon. */
+.pt-explore { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 14px; }
+.pt-explore a { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 14px; row-gap: 2px; align-items: start; height: 100%; padding: 18px 20px; background: var(--cb-surface); border: 1px solid var(--cb-border); border-radius: 12px; box-shadow: 0 1px 2px rgb(15 42 68 / 0.06), 0 8px 24px rgb(15 42 68 / 0.08); color: var(--cb-text); text-decoration: none; }
+.pt-explore .pt-icon { grid-row: span 2; color: var(--cb-teal); margin-top: 1px; }
+.pt-explore b { font-size: 1rem; }
+.pt-explore span { color: var(--cb-muted); font-size: 0.9rem; line-height: 1.45; }
+.pt-explore a:hover { border-color: var(--cb-teal); }
+.pt-explore a:hover b { color: var(--cb-teal); }
+
+/* Each citation flows as ordinary text, so a long amendment reason wraps under its own label. */
+.pt-trust .pt-icon { color: var(--cb-teal); vertical-align: -4px; margin-right: 6px; }
+
+/* The footer is navy like the header, closing the page the way it opened. */
+.pt-foot { background: var(--cb-sidebar); border-top: 0; color: #C9D7E5; }
+.pt-foot a { color: #fff; }
+.pt-foot :focus-visible { outline-color: #6FD0DC; }
+
+@media (max-width: 575.98px) {
+    .pt-hero { padding: 20px 0 32px; }
+    .pt-hero--overlap { padding-bottom: 92px; }
+    .pt-hero-lead { font-size: 1.0625rem; }
 }
 
 /* ---- Personnel ------------------------------------------------------------------------------ */

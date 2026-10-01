@@ -11,11 +11,10 @@
 }
 else if (budget is not null)
 {
-    <PortalCrumbs Crumbs="@([new Crumb($"{Year} budget", Root), new Crumb("Glossary")])" />
-    <h1 class="pt-h1">Glossary</h1>
-    <p class="pt-lead">The budget uses a few words the way Ohio law does. Here is what they mean on this site.</p>
-
-    <dl class="pt-glossary-list">
+    <PortalHero Title="Glossary" Crumbs="@([new Crumb($"{Year} budget", Root), new Crumb("Glossary")])">
+        <Lead>The budget uses a few words the way state law does. Here is what they mean on this site.</Lead>
+    </PortalHero>
+    <dl class="pt-glossary-list pt-card">
         @foreach (GlossaryTerm term in Glossary.Terms)
         {
             <dt>@term.Term</dt>
@@ -23,7 +22,7 @@ else if (budget is not null)
         }
     </dl>
 
-    <section class="pt-section" id="accessibility" aria-labelledby="a11y">
+    <section class="pt-section pt-card" id="accessibility" aria-labelledby="a11y">
         <h2 id="a11y" class="pt-q">Accessibility</h2>
         <p class="pt-lead-sm">This site is built to WCAG 2.1 AA: every chart has a table with the same numbers, nothing is conveyed by color alone, and every page works without JavaScript. If something does not work for you, contact the fiscal office.</p>
     </section>

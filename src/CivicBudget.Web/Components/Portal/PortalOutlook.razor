@@ -11,22 +11,15 @@
 }
 else if (budget is not null)
 {
-    <PortalCrumbs Crumbs="@([new Crumb($"{Year} budget", Root), new Crumb("Outlook")])" />
-    <h1 class="pt-h1">Where is the budget heading?</h1>
-
-    @if (outlook is null)
+    <PortalHero Title="Where is the budget heading?" Crumbs="@([new Crumb($"{Year} budget", Root), new Crumb("Outlook")])">
+        <Lead>@(outlook is null
+            ? $"The FY{Year} budget was published without a plan for later years."
+            : $"FY{outlook.BudgetYear} is the adopted budget. FY{outlook.BudgetYear + 1} to FY{outlook.Years[^1].FiscalYear} are the plan: where revenues, spending, and fund balances go if the assumptions below hold. Council does not appropriate them.")</Lead>
+    </PortalHero>
+    @if (outlook is not null)
     {
-        <p class="pt-lead">The FY@(Year) budget was published without a plan for later years.</p>
-    }
-    else
-    {
-        OutlookYearDto last = outlook.Years[^1];
-        <p class="pt-lead">
-            FY@(outlook.BudgetYear) is the adopted budget. FY@(outlook.BudgetYear + 1) to FY@(last.FiscalYear) are the plan: an estimate of where
-            revenues, spending, and fund balances go if the assumptions below hold. Council does not appropriate them.
-        </p>
 
-        <section class="pt-section" aria-labelledby="outlook-totals">
+        <section class="pt-section pt-card" aria-labelledby="outlook-totals">
             <h2 id="outlook-totals" class="pt-q">All funds, year by year</h2>
             <div class="cb-grid-wrap" tabindex="0" role="region" aria-label="Table of the plan by fiscal year">
                 <table class="cb-grid pt-grid">
@@ -60,7 +53,7 @@ else if (budget is not null)
             <p class="pt-muted mt-2">Each planned year starts from the year before and changes by the percentage shown, except amounts the government set by hand (a planned project, for example). Each fund's ending balance is the next year's beginning balance.</p>
         </section>
 
-        <section class="pt-section" aria-labelledby="outlook-funds">
+        <section class="pt-section pt-card" aria-labelledby="outlook-funds">
             <h2 id="outlook-funds" class="pt-q">Ending balance by fund</h2>
             <div class="cb-grid-wrap" tabindex="0" role="region" aria-label="Table of each fund's ending balance by fiscal year">
                 <table class="cb-grid pt-grid">

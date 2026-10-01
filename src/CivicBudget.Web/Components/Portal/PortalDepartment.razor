@@ -9,18 +9,14 @@
 }
 else if (department is not null)
 {
-    <PortalCrumbs Crumbs="@([new Crumb($"{Year} budget", Root), new Crumb("Funds", $"{Root}/funds"), new Crumb($"{department.FundCode} {department.FundName}", $"{Root}/funds/{FundCode}"), new Crumb(department.Name)])" />
-    <div class="cb-eyebrow">@department.FundCode @department.FundName</div>
-    <h1 class="pt-h1">@department.Name</h1>
-    @if (department.Description is not null)
-    {
-        <p class="pt-lead">@department.Description</p>
-    }
-    <p class="pt-lead">@MoneyShort.Speakable(department.Expenditures) budgeted for @Year in this fund.</p>
+    <PortalHero Title="@department.Name" Eyebrow="@($"{department.FundCode} {department.FundName}")"
+                Crumbs="@([new Crumb($"{Year} budget", Root), new Crumb("Funds", $"{Root}/funds"), new Crumb($"{department.FundCode} {department.FundName}", $"{Root}/funds/{FundCode}"), new Crumb(department.Name)])">
+        <Lead>@(department.Description is null ? "" : department.Description + " ")@MoneyShort.Speakable(department.Expenditures) budgeted for @Year in this fund.</Lead>
+    </PortalHero>
 
     @if (department.Narrative is not null)
     {
-        <section class="pt-section pt-narrative" aria-labelledby="narrative">
+        <section class="pt-section pt-card pt-narrative" aria-labelledby="narrative">
             <h2 id="narrative" class="pt-q">From the department</h2>
             <blockquote class="pt-quote"><p>@department.Narrative</p></blockquote>
         </section>
@@ -29,7 +25,7 @@ else if (department is not null)
     <Breakdown Title="By category" Data="department.ByCategory" ItemHeader="Category" Open="true"
                ShowPercent="ShowPercent" PageHref="@($"{Root}/funds/{FundCode}/departments/{DepartmentCode}")" />
 
-    <section class="pt-section" aria-labelledby="accts">
+    <section class="pt-section pt-card" aria-labelledby="accts">
         <h2 id="accts" class="pt-q">Every account</h2>
         <div class="cb-grid-wrap" tabindex="0" role="region" aria-label="Table of every account">
             <table class="cb-grid pt-grid">

@@ -3,8 +3,9 @@
 
 <PageTitle>Budget transparency</PageTitle>
 
-<h1 class="pt-h1">Budget transparency</h1>
-<p class="pt-lead">Pick a government to see where its money comes from and where it goes.</p>
+<PortalHero Title="Budget transparency">
+    <Lead>Pick a government to see where its money comes from and where it goes.</Lead>
+</PortalHero>
 
 @if (governments is null)
 {
@@ -19,10 +20,10 @@ else if (governments.Count == 0)
 }
 else
 {
-    <ul class="pt-govlist">
+    <ul class="pt-explore">
         @foreach ((string slug, string name) in governments)
         {
-            <li><a href="/transparency/@slug">@name</a></li>
+            <li><a href="/transparency/@slug"><PortalIcon Name="revenue" /><b>@name</b><span>Its published budget, funds, and outlook.</span></a></li>
         }
     </ul>
 }

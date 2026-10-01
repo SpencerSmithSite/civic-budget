@@ -9,9 +9,9 @@
 }
 else if (years is not null)
 {
-    <PortalCrumbs Crumbs="@([new Crumb($"{Year} budget", Root), new Crumb("Year over year")])" />
-    <h1 class="pt-h1">What changed from year to year?</h1>
-    <p class="pt-lead">Every published budget, side by side. Amounts are the adopted (or amended) budget for each year, not actual results.</p>
+    <PortalHero Title="What changed from year to year?" Crumbs="@([new Crumb($"{Year} budget", Root), new Crumb("Year over year")])">
+        <Lead>Every published budget, side by side. Amounts are the adopted (or amended) budget for each year, not actual results.</Lead>
+    </PortalHero>
 
     @if (years.Count < 2)
     {
@@ -20,7 +20,7 @@ else if (years is not null)
     else
     {
         decimal max = years.Max(y => Math.Max(y.Revenues, y.Expenditures));
-        <section class="pt-section" aria-labelledby="yoy">
+        <section class="pt-section pt-card" aria-labelledby="yoy">
             <h2 id="yoy" class="pt-q">Revenues and expenditures by year</h2>
             <div class="pt-yoy" role="img" aria-label="@string.Join("; ", years.Select(y => $"FY{y.FiscalYear}: revenues {Display.Money(y.Revenues)}, expenditures {Display.Money(y.Expenditures)}"))">
                 @foreach (YearTotalsDto y in years)

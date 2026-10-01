@@ -9,9 +9,10 @@
 }
 else if (budget is not null && funds is not null)
 {
-    <PortalCrumbs Crumbs="@([new Crumb($"{budget.FiscalYear} budget", Root), new Crumb("Funds")])" />
-    <h1 class="pt-h1">Fund balances</h1>
-    <p class="pt-lead">A fund is a separate set of books for money that can only be used for a purpose. Each one starts the year with a balance, takes in revenue, spends, and carries the rest forward. In Ohio, a fund may not appropriate more than its estimated resources.</p>
+    <PortalHero Title="Fund balances" Crumbs="@([new Crumb($"{budget.FiscalYear} budget", Root), new Crumb("Funds")])">
+        <Lead>A fund is a separate set of books for money that can only be used for a purpose. Each starts the year with a balance, takes in revenue, spends, and carries the rest forward, and may not appropriate more than its estimated resources.</Lead>
+    </PortalHero>
+    <section class="pt-section pt-card" aria-label="Fund balances">
 
     <div class="cb-grid-wrap" tabindex="0" role="region" aria-label="Table of fund balances">
         <table class="cb-grid pt-grid pt-funds">
@@ -52,6 +53,7 @@ else if (budget is not null && funds is not null)
         </table>
     </div>
     <p class="pt-dl">Estimated resources = beginning balance + revenues + transfers in. Appropriations = expenditures + transfers out.</p>
+    </section>
 }
 
 @code {

@@ -1,0 +1,50 @@
+@* A page's opening: a navy band that continues the header, with the breadcrumbs, the title, one
+   short lead, and any actions. With Overlap, it leaves room at the bottom for the cards that follow
+   (the page's headline figures) to sit over its edge. The band is drawn edge to edge by a shadow and
+   clipped to its own height, so it needs no change to the page's centered column and never adds a
+   sideways scroll. *@
+<div class="pt-hero @(Overlap ? "pt-hero--overlap" : "")">
+    @if (Crumbs is not null)
+    {
+        <PortalCrumbs Crumbs="Crumbs" />
+    }
+    <div class="pt-hero-row">
+        <div class="pt-hero-copy">
+            @if (Eyebrow is not null)
+            {
+                <p class="pt-hero-eyebrow">@Eyebrow</p>
+            }
+            <h1 class="pt-hero-title">@Title</h1>
+            @if (Lead is not null)
+            {
+                <p class="pt-hero-lead">@Lead</p>
+            }
+            else if (!string.IsNullOrWhiteSpace(LeadText))
+            {
+                <p class="pt-hero-lead">@LeadText</p>
+            }
+            @if (Actions is not null)
+            {
+                <div class="pt-hero-actions">@Actions</div>
+            }
+        </div>
+        @Aside
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public string? Eyebrow { get; set; }
+    [Parameter] public RenderFragment? Lead { get; set; }
+
+    /// <summary>A plain lead that may be missing (a fund's description): nothing is drawn when it is empty.</summary>
+    [Parameter] public string? LeadText { get; set; }
+    [Parameter] public Crumb[]? Crumbs { get; set; }
+    [Parameter] public RenderFragment? Actions { get; set; }
+
+    /// <summary>Beside the title on a wide screen, under it on a phone: the year picker on the overview.</summary>
+    [Parameter] public RenderFragment? Aside { get; set; }
+
+    /// <summary>Leave room for the next row of cards to overlap the band's bottom edge.</summary>
+    [Parameter] public bool Overlap { get; set; }
+}

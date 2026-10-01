@@ -9,9 +9,9 @@
 }
 else if (budget is not null && byDepartment is not null && byCategory is not null)
 {
-    <PortalCrumbs Crumbs="@([new Crumb($"{budget.FiscalYear} budget", Root), new Crumb("Where it goes")])" />
-    <h1 class="pt-h1">Where does the money go?</h1>
-    <p class="pt-lead">@MoneyShort.Speakable(budget.TotalExpenditures) in expenditures for @budget.FiscalYear, across every fund. Departments show who spends it; categories show what it buys.</p>
+    <PortalHero Title="Where does the money go?" Crumbs="@([new Crumb($"{budget.FiscalYear} budget", Root), new Crumb("Where it goes")])">
+        <Lead>@MoneyShort.Speakable(budget.TotalExpenditures) in expenditures for @budget.FiscalYear, across every fund. Departments show who spends it; categories show what it buys.</Lead>
+    </PortalHero>
 
     <Breakdown Title="By department" Data="byDepartment" ItemHeader="Department" Open="true"
                ShowPercent="ShowPercent" PageHref="@($"{Root}/spending")" />
@@ -20,7 +20,7 @@ else if (budget is not null && byDepartment is not null && byCategory is not nul
 
     @if (departments is not null)
     {
-        <section class="pt-section" aria-labelledby="depts">
+        <section class="pt-section pt-card" aria-labelledby="depts">
             <h2 id="depts" class="pt-q">Departments by fund</h2>
             <div class="cb-grid-wrap" tabindex="0" role="region" aria-label="Table of departments by fund">
                 <table class="cb-grid pt-grid">
