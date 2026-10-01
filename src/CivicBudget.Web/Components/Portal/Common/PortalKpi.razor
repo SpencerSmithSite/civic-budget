@@ -1,4 +1,8 @@
 <div class="pt-kpi">
+    @if (Icon is not null)
+    {
+        <PortalIcon Name="@Icon" />
+    }
     <div class="cb-eyebrow">@Label</div>
     <div class="pt-kpi-v">@if (Amount is { } amount) { @MoneyShort.Speakable(amount) } else { @Value }</div>
     @if (Text is not null) { <p>@Text</p> }
@@ -14,4 +18,7 @@
     [Parameter] public string? Text { get; set; }
     [Parameter] public string? Href { get; set; }
     [Parameter] public string LinkText { get; set; } = "Explore";
+
+    /// <summary>A <see cref="PortalIcon"/> name shown above the label.</summary>
+    [Parameter] public string? Icon { get; set; }
 }

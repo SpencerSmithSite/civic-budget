@@ -1957,6 +1957,52 @@ them in a sentence, but it is a different problem:
 
 ---
 
+## ADR-0050: The portal takes the product site's look: navy openings, white cards, icons as signposts
+**Date:** 2026-10-01 · **Status:** Accepted
+
+**Context.** The portal worked and read correctly, but every page was the same white column: a
+small heading, a gray paragraph, then charts and tables of equal weight, and nothing that said where
+to start. The product site (spencersmith.site/CivicBudget) had just been reworked to be skimmed:
+navy bands where the app is navy, light sections, white cards, icons, short leads, and overlap only
+where it means something. Residents skim a portal even more than buyers skim a product page.
+
+**Decision.**
+- **Every page opens on a navy band** (`PortalHero`) that continues the header: the breadcrumbs, an
+  optional eyebrow (the fund type, the department's fund), the title, one short lead, and actions
+  (the budget book, the download, the search box). One component, so every page opens the same way.
+- **Drawn edge to edge without leaving the column.** The portal's `<main>` is a centered column, and
+  a band inside it could not reach the window's edges. The band paints its sides with a spread
+  `box-shadow` and clips that to its own height with `clip-path`, so it needs no change to the layout
+  and adds no sideways scroll (which on a phone would make Safari zoom the page out).
+- **Overlap in one place only.** The headline figures (revenues, expenditures, the projected ending
+  balance) sit as cards over the band's bottom edge on the overview and on each fund. Nothing else
+  overlaps or tilts; the product site showed that layering everything is noise.
+- **White cards on a light page.** Each chart and table is a card (`.pt-card`), so a section reads as
+  one thing. Table headings may wrap, so a wide table fits its card instead of scrolling for the sake
+  of one heading.
+- **Icons as signposts** (`PortalIcon`, inline SVG, always `aria-hidden`): on the headline cards, the
+  overview's "Explore the budget" cards, and the adoption details. The text beside each icon says
+  what it means.
+- **A navy footer**, closing the page the way the header opens it. Always light: there is no dark
+  scheme, as on the product site.
+- **Still no JavaScript**, and the question box is offered on the overview only when the portal takes
+  questions, which the layout already works out (`PortalAskable`, a cascading value) rather than each
+  page asking again.
+
+**Alternatives.**
+- **Restructure the layout so each page owns full-width sections:** cleaner HTML, but every page
+  would carry its own column wrapper, and a page that forgot one would break the layout.
+- **A dark mode:** turned every section dark on a device set to dark mode on the product site, which
+  buried the contrast between bands; not worth it for a public page.
+- **Tilted, layered screenshots-style cards everywhere:** tried on the product site and pulled back.
+
+**Consequences.**
+- A new portal page starts with `<PortalHero>` and puts its sections in `.pt-card`.
+- `.pt-h1`, `.pt-head`, `.pt-lead`, `.pt-book`, and `.pt-govlist` are gone.
+- The README's portal screenshots and the product site's portal image show the new look.
+
+---
+
 ## Packages
 
 Every NuGet package and why it is here. A package is added to this table in the same change that

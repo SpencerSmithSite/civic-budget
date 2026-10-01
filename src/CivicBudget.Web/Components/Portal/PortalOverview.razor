@@ -10,30 +10,32 @@
 }
 else if (budget is not null && byFund is not null && revenue is not null)
 {
-    <div class="pt-head">
-        <div>
-            <h1 class="pt-h1">The @budget.FiscalYear budget</h1>
-            <p class="pt-lead">@(budget.GovernmentDescription ?? $"This is the budget council adopted for {budget.FiscalYear}.") It shows what the government expects to take in, what it plans to spend, and what each fund keeps in reserve.</p>
+    <PortalHero Title="@($"The {budget.FiscalYear} budget")" Overlap="true">
+        <Lead>@(budget.GovernmentDescription ?? $"What {budget.GovernmentName} expects to take in, plans to spend, and keeps in reserve in {budget.FiscalYear}, as council adopted it.")</Lead>
+        <Actions>
             @if (budget.HasBook)
             {
-                <p class="pt-book"><a href="@Root/budget-book.pdf">Read the full budget book (PDF)</a>: the budget message, every fund and department, and the certificate council received.</p>
+                <a class="pt-hero-btn" href="@Root/budget-book.pdf"><PortalIcon Name="book" Size="18" />Read the budget book (PDF)</a>
             }
-        </div>
-        @if (budget.AvailableYears.Count > 1)
-        {
-            <nav class="pt-years" aria-label="Fiscal year">
-                @foreach (PortalYearDto y in budget.AvailableYears)
-                {
-                    <a href="/transparency/@Slug/@y.FiscalYear" class="@(y.FiscalYear == budget.FiscalYear ? "on" : "")" aria-current="@(y.FiscalYear == budget.FiscalYear ? "page" : null)">FY@(y.FiscalYear)</a>
-                }
-            </nav>
-        }
-    </div>
+            <a class="pt-hero-btn pt-hero-btn--ghost" href="@Root/download.xlsx"><PortalIcon Name="download" Size="18" />Download the numbers</a>
+        </Actions>
+        <Aside>
+            @if (budget.AvailableYears.Count > 1)
+            {
+                <nav class="pt-years" aria-label="Fiscal year">
+                    @foreach (PortalYearDto y in budget.AvailableYears)
+                    {
+                        <a href="/transparency/@Slug/@y.FiscalYear" class="@(y.FiscalYear == budget.FiscalYear ? "on" : "")" aria-current="@(y.FiscalYear == budget.FiscalYear ? "page" : null)">FY@(y.FiscalYear)</a>
+                    }
+                </nav>
+            }
+        </Aside>
+    </PortalHero>
 
-    <div class="pt-kpis">
-        <PortalKpi Label="Revenues" Amount="budget.TotalRevenues" Text="Taxes, state funding, utility bills, fees, and interest the government expects to receive." Href="@($"{Root}/revenue")" LinkText="Where it comes from" />
-        <PortalKpi Label="Expenditures" Amount="budget.TotalExpenditures" Text="What council authorized departments to spend, including debt payments." Href="@($"{Root}/spending")" LinkText="Where it goes" />
-        <PortalKpi Label="Projected ending balance" Amount="budget.ProjectedEndingBalance" Text="@($"Money carried into {budget.FiscalYear + 1} across all funds, after this year's revenues and spending.")" Href="@($"{Root}/funds")" LinkText="Fund balances" />
+    <div class="pt-kpis pt-kpis--lift">
+        <PortalKpi Icon="in" Label="Revenues" Amount="budget.TotalRevenues" Text="Taxes, state funding, utility bills, fees, and interest the government expects to receive." Href="@($"{Root}/revenue")" LinkText="Where it comes from" />
+        <PortalKpi Icon="out" Label="Expenditures" Amount="budget.TotalExpenditures" Text="What council authorized departments to spend, including debt payments." Href="@($"{Root}/spending")" LinkText="Where it goes" />
+        <PortalKpi Icon="balance" Label="Projected ending balance" Amount="budget.ProjectedEndingBalance" Text="@($"Money carried into {budget.FiscalYear + 1} across all funds, after this year's revenues and spending.")" Href="@($"{Root}/funds")" LinkText="Fund balances" />
     </div>
 
     <PortalPanels Name="money" Label="Spending or revenue" FirstTitle="Where does the money go?" SecondTitle="Where does it come from?" SecondFirst="@(View == "revenue")">
@@ -47,12 +49,29 @@ else if (budget is not null && byFund is not null && revenue is not null)
         </Second>
     </PortalPanels>
 
-    <p class="pt-dl">Want the numbers? <a href="@Root/download.csv">Download CSV</a> · <a href="@Root/download.xlsx">Download Excel</a></p>
+    <section class="pt-section" aria-labelledby="explore-title">
+        <h2 id="explore-title" class="pt-q">Explore the budget</h2>
+        <ul class="pt-explore">
+            <li><a href="@Root/spending"><PortalIcon Name="spending" /><b>Where it goes</b><span>Spending by department, and what it buys.</span></a></li>
+            <li><a href="@Root/revenue"><PortalIcon Name="revenue" /><b>Where it comes from</b><span>Taxes, state funding, fees, and more.</span></a></li>
+            <li><a href="@Root/funds"><PortalIcon Name="funds" /><b>Funds</b><span>Each fund's money in, money out, and reserve.</span></a></li>
+            <li><a href="@Root/outlook"><PortalIcon Name="outlook" /><b>Outlook</b><span>Where the budget is heading, year by year.</span></a></li>
+            <li><a href="@Root/years"><PortalIcon Name="years" /><b>Year over year</b><span>How this budget compares with earlier ones.</span></a></li>
+            @if (Askable)
+            {
+                <li><a href="@Root/ask"><PortalIcon Name="ask" /><b>Ask a question</b><span>In your own words, answered from this budget.</span></a></li>
+            }
+            else
+            {
+                <li><a href="@Root/search"><PortalIcon Name="search" /><b>Search</b><span>Find a fund, a department, or an account.</span></a></li>
+            }
+        </ul>
+    </section>
 
     <div class="pt-trust">
-        @if (budget.ResolutionNumber is not null) { <span>Adopted by resolution <b>@budget.ResolutionNumber</b>@(budget.AdoptedOnUtc is { } a ? $" on {a:MMMM d, yyyy}" : "")</span> }
-        <span>Published <b>@Display.LongDate(budget.PublishedAtUtc)</b></span>
-        <span>Version <b>@budget.VersionLabel</b>@(budget.AmendmentReason is null ? "" : $": {budget.AmendmentReason}")</span>
+        @if (budget.ResolutionNumber is not null) { <span><PortalIcon Name="resolution" Size="18" />Adopted by resolution <b>@budget.ResolutionNumber</b>@(budget.AdoptedOnUtc is { } a ? $" on {a:MMMM d, yyyy}" : "")</span> }
+        <span><PortalIcon Name="published" Size="18" />Published <b>@Display.LongDate(budget.PublishedAtUtc)</b></span>
+        <span><PortalIcon Name="version" Size="18" />Version <b>@budget.VersionLabel</b>@(budget.AmendmentReason is null ? "" : $": {budget.AmendmentReason}")</span>
     </div>
 }
 
@@ -63,6 +82,8 @@ else if (budget is not null && byFund is not null && revenue is not null)
 
     /// <summary>"revenue" opens the second panel, so the $/% toggle and links can land on it.</summary>
     [SupplyParameterFromQuery(Name = "view")] public string? View { get; set; }
+
+    [CascadingParameter(Name = "PortalAskable")] public bool Askable { get; set; }
 
     private PortalBudgetDto? budget;
     private BreakdownDto? byFund;

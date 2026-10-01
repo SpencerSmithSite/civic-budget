@@ -9,18 +9,13 @@
 }
 else if (fund is not null)
 {
-    <PortalCrumbs Crumbs="@([new Crumb($"{Year} budget", Root), new Crumb("Funds", $"{Root}/funds"), new Crumb($"{fund.Code} {fund.Name}")])" />
-    <div class="cb-eyebrow">@Display.Enum(fund.Category) fund</div>
-    <h1 class="pt-h1">@fund.Name</h1>
-    @if (fund.Description is not null)
-    {
-        <p class="pt-lead">@fund.Description</p>
-    }
+    <PortalHero Title="@fund.Name" Eyebrow="@($"{Display.Enum(fund.Category)} fund {fund.Code}")" Overlap="true" LeadText="@fund.Description"
+                Crumbs="@([new Crumb($"{Year} budget", Root), new Crumb("Funds", $"{Root}/funds"), new Crumb($"{fund.Code} {fund.Name}")])" />
 
-    <div class="pt-kpis">
-        <PortalKpi Label="Revenues" Amount="fund.Revenues + fund.TransfersIn" Text="@(fund.TransfersIn > 0 ? $"Including {Display.Money(fund.TransfersIn)} transferred in from other funds." : "Money this fund takes in during the year.")" />
-        <PortalKpi Label="Expenditures" Amount="fund.Appropriations" Text="@(fund.TransfersOut > 0 ? $"Including {Display.Money(fund.TransfersOut)} transferred to other funds." : "What council authorized this fund to spend.")" />
-        <PortalKpi Label="Projected ending balance" Amount="fund.ProjectedEndingBalance" Text="@($"Began the year with {Display.Money(fund.BeginningBalance)}; estimated resources {Display.Money(fund.EstimatedResources)}.")" />
+    <div class="pt-kpis pt-kpis--lift">
+        <PortalKpi Icon="in" Label="Revenues" Amount="fund.Revenues + fund.TransfersIn" Text="@(fund.TransfersIn > 0 ? $"Including {Display.Money(fund.TransfersIn)} transferred in from other funds." : "Money this fund takes in during the year.")" />
+        <PortalKpi Icon="out" Label="Expenditures" Amount="fund.Appropriations" Text="@(fund.TransfersOut > 0 ? $"Including {Display.Money(fund.TransfersOut)} transferred to other funds." : "What council authorized this fund to spend.")" />
+        <PortalKpi Icon="balance" Label="Projected ending balance" Amount="fund.ProjectedEndingBalance" Text="@($"Began the year with {Display.Money(fund.BeginningBalance)}; estimated resources {Display.Money(fund.EstimatedResources)}.")" />
     </div>
 
     @if (fund.ExpendituresByDepartment.Items.Count > 0)

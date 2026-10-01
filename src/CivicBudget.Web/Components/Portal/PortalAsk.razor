@@ -16,9 +16,9 @@
 }
 else if (budget is not null)
 {
-    <PortalCrumbs Crumbs="@([new Crumb($"{budget.FiscalYear} budget", Root), new Crumb("Ask a question")])" />
-    <h1 class="pt-h1">Ask about the @budget.FiscalYear budget</h1>
-    <p class="pt-lead">Ask in your own words, the way you would ask at the @(budget.GovernmentName.Split(',')[0]) office. The answer comes only from the budget published here, with a link to the page that shows it.</p>
+    <PortalHero Title="@($"Ask about the {budget.FiscalYear} budget")" Crumbs="@([new Crumb($"{budget.FiscalYear} budget", Root), new Crumb("Ask a question")])">
+        <Lead>Ask in your own words, the way you would ask at the @(budget.GovernmentName.Split(',')[0]) office. The answer comes only from the budget published here, with a link to the page that shows it.</Lead>
+    </PortalHero>
 
     <div id="answer">
         @if (answer is not null)
@@ -31,7 +31,7 @@ else if (budget is not null)
         }
     </div>
 
-    <form method="post" action="@($"{Root}/ask#answer")" @formname="portal-ask" @onsubmit="AskAsync" class="pt-ask">
+    <form method="post" action="@($"{Root}/ask#answer")" @formname="portal-ask" @onsubmit="AskAsync" class="pt-ask pt-card">
         <label for="question" class="pt-ask-label">@(answer is null ? "Your question" : "Ask another question")</label>
         <textarea id="question" name="Question" rows="3" maxlength="@PortalQuestionService.QuestionMaxLength" required class="form-control" aria-describedby="ask-hint"></textarea>
         <p id="ask-hint" class="pt-ask-hint">For example: "How much is budgeted for police?", "Where does the money for roads come from?", or "What is an appropriation?" An answer can take up to half a minute.</p>

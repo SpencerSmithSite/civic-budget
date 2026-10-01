@@ -465,7 +465,17 @@ published snapshot.
 - [x] A non-agentic bot that reads only the published snapshot, answers with links, and says so when something is not published
 - [x] Works without JavaScript; rate limits and a monthly cap per government; prompt-injection tests
 
-- [ ] Reviewed and approved
+- [x] Reviewed and approved
+
+### Phase 39: The portal's new look  `phase-39-portal-design`
+The product site's design applied to the transparency portal: every page opens on a navy band,
+content in white cards, icons as signposts, overlap only for the headline figures (ADR-0050).
+- [x] `PortalHero` on every page, with the overview's and each fund's headline figures over its edge
+- [x] Charts and tables as cards; table headings wrap to fit
+- [x] "Explore the budget" cards on the overview; icons on figures and adoption details; navy footer
+- [x] Checked at desktop and phone widths: no overflow, axe clean, still no JavaScript
+
+- [x] Reviewed and approved
 
 ## Later
 Nothing parked; the ERP partner kit and the budget book were the last two items (2026-09-29).
