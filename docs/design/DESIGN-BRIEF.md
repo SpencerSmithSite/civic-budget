@@ -141,6 +141,10 @@ Principles from the research, in priority order:
 Palette: the same tokens with `--cb-sidebar` as a header band and white content; the categorical
 chart palette above; larger type (16px base) because citizens read, staff scan.
 
+*Amended 2026-10-01 (Phase 39):* each page now opens on a navy band under the header, content sits
+in white cards on the light canvas, the headline figures overlap the band's edge, icons mark where
+things lead, and the footer is navy. See ADR-0050.
+
 ## 5. Mockups
 
 Eight screens in [mockups.html](mockups.html), reviewed before any UI code was written:

@@ -1815,3 +1815,26 @@ bound that.
 tool now returns that total, and the next run copied the published $937,100.00. The general rule
 from all three phases: give a model figures to copy, never figures to compute.
 **Look at:** walkthrough 37 section 6, `PortalTools.SearchAsync`.
+
+## Phase 39: The portal's new look
+
+### Q: How did you make a full-width band inside a centered page without breaking the layout?
+**A:** The portal's main area is a centered column, so a band inside it can't reach the window's
+edges. Instead of restructuring every page, the band paints its sides with a spread box-shadow and
+clips that to its own height with clip-path. Box-shadow doesn't count toward scrollable overflow, so
+there's no sideways scroll, which matters because Safari zooms a whole page out when anything is
+wider than the phone.
+**Look at:** `PortalHero.razor`, the `.pt-hero` rule in `app.css`.
+
+### Q: Why overlap the headline figures and nothing else?
+**A:** Overlap says "this sits on top, read it first". The three headline numbers earn that; a chart
+or a table doesn't. I tried layering everything on the product site and it was noise, so the rule is
+to layer only where the overlap means something.
+**Look at:** ADR-0050, `.pt-kpis--lift`.
+
+### Q: How do you keep a visual redesign from breaking accessibility?
+**A:** The structure didn't change: still one h1 per page (now inside the hero component, with a test
+that says so), every chart with its table twin, icons hidden from screen readers with the text beside
+them doing the work, and no JavaScript. Every page was checked with axe at desktop and phone widths,
+and with the project's accessibility and phone sweeps.
+**Look at:** `PortalHeroTests`, `scripts/screenshots/a11y-sweep.mjs`.

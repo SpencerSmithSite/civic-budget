@@ -13,6 +13,14 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 - **A form opened before the nightly reset** (or before a deploy that changed the keys) no longer submits to a blank white page. Its antiforgery token was sealed with keys the reset deletes, and the app answered with an empty 400. `ExpiredFormMiddleware` now shows a short "This page expired" page with a link back to the same address; sign-in keeps its ReturnUrl when it stays on the site, and a post-only endpoint such as sign-out links home. The portal's question box, which has no token, is unaffected.
 - The waiting screen and the new page share one shell (`PlainPage`) instead of two copies of the header and styles.
 
+## Phase 39: 2026-10-01 (the portal's new look)
+### Changed
+- **The transparency portal takes the product site's look** (ADR-0050): every page opens on a navy band (`PortalHero`) with its breadcrumbs, title, and a short lead; the overview's and each fund's headline figures sit as cards over the band's edge; charts and tables are white cards on a light page; icons mark the headline figures, the adoption details, and a new "Explore the budget" grid on the overview; the footer is navy. The search box sits in the band, and the portal index lists governments as cards.
+- Wide tables fit their card: column headings wrap.
+- Still no JavaScript; the overview offers "Ask a question" only when the portal takes questions (`PortalAskable`, from the layout).
+### Removed
+- The unused `.pt-h1`, `.pt-head`, `.pt-lead`, `.pt-book`, and `.pt-govlist` styles.
+
 ## Phase 38: 2026-09-29 (questions from the public)
 ### Added
 - **"Ask a question"** on the transparency portal: a resident asks about the published budget in their own words and gets a short answer with a link to the page that shows it. Answers come only from the published snapshot of that government, through nine read-only tools; drafts, actual spending, and anything about people are not there to find, and it says so.
