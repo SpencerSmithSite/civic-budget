@@ -5,6 +5,8 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Added
+- **`POST /health/wake`**, which the product site calls when its page loads, so the demo is waking while a visitor reads about it. It starts the database check when one is due (a running container whose database paused) and answers at once; it never opens a connection itself, and calling it often keeps the database awake no longer than page views could (ADR-0031, amended). `StartupState.ClaimWake` is now the one "is a check due" rule for the endpoint and `WakingUpMiddleware`.
 ### Changed
 - **The README, the demo script, and the product site lead with the AI features and forecasting:** a new "AI and forecasting" section in the README with six screenshots (the assistant answering, a proposal card, a resident's question, the multi-year plan, the projection, the outlook), the two new phases in "Problems worth reading about", and a demo script that shows the assistant and the plan early. `scripts/screenshots/capture-ai.mjs` takes the new screenshots (it needs a model), and `site-clips.mjs` records the assistant, the question box, and the plan. The existing screenshot script typed into Police overtime, which is calculated from positions now; it edits two typed General Fund lines instead.
 - **The live demo has the AI features:** the assistant and the portal's question box run on GLM 5.3 Flash (Ollama Cloud). `scripts/azure-assistant.sh` stores the key as a Container App secret (`--off` removes it); the Bicep template takes it as an optional parameter for the web app only, `azure-setup.sh` keeps it on a rerun, and the demo's portal takes 200 questions a month per government.

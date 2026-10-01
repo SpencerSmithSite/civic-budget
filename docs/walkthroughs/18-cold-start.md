@@ -112,6 +112,13 @@ screen with its counter restarted, and `/health/startup` flips back to 200
 when the waker's connection finally succeeds. The waker runs on its own task,
 so a visitor closing the tab does not cancel the wake for the next one.
 
+*Since 2026-10-01:* the product site starts this ahead of the visitor. Its page
+sends one `POST /health/wake` when it loads; `WakeEndpoint` claims the check
+through `StartupState.ClaimWake()` (the same condition the middleware uses) and
+answers at once, so a reader's database is often awake by the time they click
+through. It never opens a connection itself, and it does nothing unless a check
+is due, so it cannot hold the database awake (ADR-0031, amended).
+
 ## 3c. What is left, and why it stays
 
 After a few idle minutes the first visit still waits about 17 seconds before
