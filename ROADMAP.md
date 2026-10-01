@@ -475,7 +475,7 @@ content in white cards, icons as signposts, overlap only for the headline figure
 - [x] "Explore the budget" cards on the overview; icons on figures and adoption details; navy footer
 - [x] Checked at desktop and phone widths: no overflow, axe clean, still no JavaScript
 
-- [ ] Reviewed and approved
+- [x] Reviewed and approved
 
 ## Later
 Nothing parked; the ERP partner kit and the budget book were the last two items (2026-09-29).
