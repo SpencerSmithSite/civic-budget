@@ -2003,6 +2003,48 @@ where it means something. Residents skim a portal even more than buyers skim a p
 
 ---
 
+## ADR-0051: The assistant is called Civic Buddy, and on the portal it floats in the corner of every page
+**Date:** 2026-10-01 · **Status:** Accepted
+
+**Context.** The staff assistant (ADR-0047) was a button labeled "Assistant", and the portal's
+question box (ADR-0049) was "Ask a question", the last item in a crowded menu in the top right
+corner. Residents had to find it, and nothing said the answers came from an AI. Both are the same
+feature to the people using them, so they should share a name.
+
+**Decision.**
+- **One name, Civic Buddy, in everything people see:** the top bar's button, the panel's heading,
+  the portal launcher and its page, the settings switches, the security log ("Asked Civic Buddy"),
+  the audit trail ("Through Civic Buddy: ..."), toasts and messages. The code keeps its names
+  (`AssistantService`, `PortalQuestionService`, `Assistant:*` settings), because they describe what
+  the pieces do and renaming them would touch configuration on the live demo for nothing.
+- **It says it is an AI, everywhere.** An "AI" badge beside the name, a mark built from sparkles
+  (the sign people read as AI) on the CivicBudget tile (`BuddyMark`), and both prompts tell the
+  model its name and to say it is an AI, not a person or an official, if asked.
+- **Not a help desk.** No headset, no "How can we help?", no person's face. The launcher reads
+  "Ask Civic Buddy / AI answers from this budget", and the panel leads with what it answers from.
+- **On the portal it floats on every page** of a government that takes questions, bottom right,
+  and the menu item is gone. The ask page still exists: it is where every answer is written.
+- **Still no JavaScript.** The launcher is a `<details>` element: the summary is the button, it
+  opens and closes on its own, and a screen reader hears whether it is open. The panel's form is a
+  plain post to the ask page carrying `_handler` set to `PortalAsk.FormName`, so the ask page
+  treats it as its own form. Each suggested question is its own small form for the same reason:
+  links would be GETs that crawlers follow, and every question spends the monthly allowance.
+
+**Alternatives.**
+- **Answer inside the floating panel without leaving the page:** needs JavaScript or every portal
+  page handling the post, and an answer page is easier to share and to read on a phone.
+- **A dialog or a JavaScript chat widget:** the portal has no script by design (static SSR per
+  ADR-0002, and ADR-0049's form that works without one).
+- **Rename the code too:** churn in settings, secrets, and tests for a word only developers see.
+
+**Consequences.**
+- On phones the panel opens as a sheet above the launcher; the footer leaves room so the launcher
+  never covers its links. The launcher is hidden when printing.
+- Copy that names the assistant says "Civic Buddy"; comments and docs about the code may still
+  say "the assistant".
+
+---
+
 ## Packages
 
 Every NuGet package and why it is here. A package is added to this table in the same change that

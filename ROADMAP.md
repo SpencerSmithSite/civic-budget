@@ -477,6 +477,17 @@ content in white cards, icons as signposts, overlap only for the headline figure
 
 - [x] Reviewed and approved
 
+### Phase 40: Civic Buddy  `phase-40-civic-buddy`
+The AI assistant gets a name, Civic Buddy, in the admin app and on the portal, and on the portal it
+floats in the corner of every page instead of hiding in the menu (ADR-0051).
+- [x] "Civic Buddy" with an "AI" badge and its own mark (`BuddyMark`) on the top bar's button, the panel, settings, the security log, and the audit trail
+- [x] Both prompts know the name and say it is an AI when asked
+- [x] Portal launcher on every page: a `<details>` panel with the question box and suggested questions, no JavaScript
+- [x] The ask page as a conversation: the question, then the reply under Civic Buddy's name
+- [x] Checked at desktop and phone widths, with the panel open and closed: no overflow, axe clean
+
+- [ ] Reviewed and approved
+
 ## Later
 Nothing parked; the ERP partner kit and the budget book were the last two items (2026-09-29).
 
