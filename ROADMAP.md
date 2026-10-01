@@ -486,7 +486,7 @@ floats in the corner of every page instead of hiding in the menu (ADR-0051).
 - [x] The ask page as a conversation: the question, then the reply under Civic Buddy's name
 - [x] Checked at desktop and phone widths, with the panel open and closed: no overflow, axe clean
 
-- [ ] Reviewed and approved
+- [x] Reviewed and approved
 
 ## Later
 Nothing parked; the ERP partner kit and the budget book were the last two items (2026-09-29).
