@@ -1,0 +1,21 @@
+@using CivicBudget.Application.Assistant
+
+@* The fields of a question to Civic Buddy: the box and the button. The form around them belongs to
+   the caller (the ask page's own form, or the floating panel's plain post to that page), because
+   only the ask page can answer. *@
+<label for="@($"{IdPrefix}-question")" class="pt-buddy-label">@Label</label>
+<div class="pt-buddy-input">
+    <textarea id="@($"{IdPrefix}-question")" name="Question" rows="2" maxlength="@PortalQuestionService.QuestionMaxLength" required
+              placeholder="@($"Ask about the {Year} budget")" aria-describedby="@($"{IdPrefix}-hint")"></textarea>
+    <button type="submit" class="pt-buddy-send">Ask <PortalIcon Name="send" Size="18" /></button>
+</div>
+<p id="@($"{IdPrefix}-hint")" class="pt-buddy-hint">In your own words. An answer can take up to half a minute.</p>
+
+@code {
+    /// <summary>Keeps the ids unique when a page holds more than one box.</summary>
+    [Parameter, EditorRequired] public string IdPrefix { get; set; } = "";
+
+    [Parameter, EditorRequired] public int Year { get; set; }
+
+    [Parameter] public string Label { get; set; } = "Your question";
+}

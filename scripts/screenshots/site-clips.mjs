@@ -196,7 +196,7 @@ if (!only || only === 'ask') {
   await record('ask', { width: 390, height: 844 }, undefined, { ctx: { isMobile: true, hasTouch: true } }, async (p, mark) => {
     await p.goto(`${base}/transparency/maple-ridge-oh/2026/ask`, { waitUntil: 'networkidle' }); await p.waitForTimeout(800);
     mark(); await p.waitForTimeout(1400);
-    const box = p.locator('#question');
+    const box = p.locator('#ask-question');
     await box.scrollIntoViewIfNeeded(); await box.tap();
     await box.pressSequentially('Where does the money for roads come from?', { delay: 60 }); await p.waitForTimeout(500);
     await mark.wait(() => Promise.all([p.waitForNavigation({ timeout: 120000 }), p.locator('.pt-ask button[type=submit]').tap()]));

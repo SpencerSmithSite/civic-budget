@@ -192,7 +192,7 @@ public sealed class AssistantServiceTests(SqlServerFixture fixture) : IAsyncLife
         Assert.True((await assistant.StatusAsync()).Available);
 
         await using CivicBudgetDbContext db = _database.CreateContext(_pineHollow);
-        Assert.True(await db.AuditEntries.AnyAsync(a => a.Description == "Turned the assistant on"));
+        Assert.True(await db.AuditEntries.AnyAsync(a => a.Description == "Turned Civic Buddy on"));
     }
 
     [Fact]

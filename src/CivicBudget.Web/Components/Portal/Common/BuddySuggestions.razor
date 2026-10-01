@@ -1,0 +1,36 @@
+@using CivicBudget.Web.Components.Portal
+@* Questions to start from. Each is its own small form that posts the question to the ask page, so a
+   tap asks it with JavaScript off. They are forms, not links: a link would be a GET that crawlers
+   follow, and every question spends the government's monthly allowance. _handler names the ask
+   page's form (PortalAsk.FormName) so the ask page treats the post as its own. *@
+<div class="pt-buddy-try">
+    <p class="pt-buddy-try-label" id="@($"{IdPrefix}-try")">Try asking</p>
+    <ul class="pt-buddy-chips" aria-labelledby="@($"{IdPrefix}-try")">
+        @foreach (string question in Questions)
+        {
+            <li>
+                <form method="post" action="@Action">
+                    <input type="hidden" name="_handler" value="@PortalAsk.FormName" />
+                    <input type="hidden" name="Question" value="@question" />
+                    <button type="submit">@question</button>
+                </form>
+            </li>
+        }
+    </ul>
+</div>
+
+@code {
+    /// <summary>Questions that make sense for any government's budget, so no portal offers one it cannot answer.</summary>
+    public static readonly IReadOnlyList<string> Questions =
+    [
+        "Which department spends the most?",
+        "Where does the money for roads come from?",
+        "How much will be in reserve at the end of the year?",
+        "What is an appropriation?",
+    ];
+
+    [Parameter, EditorRequired] public string IdPrefix { get; set; } = "";
+
+    /// <summary>The ask page's address, with #answer so the browser lands on the reply.</summary>
+    [Parameter, EditorRequired] public string Action { get; set; } = "";
+}

@@ -8,7 +8,7 @@
 @* The citizen-facing shell: a navy header band with the government's name and question-led
    navigation, the page, and a one-line footer (which budget, downloads, glossary, accessibility).
    Static SSR: rendered once per request, then cached. *@
-<div class="cb-portal">
+<div class="cb-portal @(ShowBuddy ? "pt-has-buddy" : "")">
     <a class="cb-skip" href="#main">Skip to content</a>
     <header class="pt-bar">
         <div class="pt-in pt-bar-in">
@@ -33,10 +33,6 @@
                     <a href="@Root/outlook" class="@Active("outlook")" aria-current="@Current("outlook")">Outlook</a>
                     <a href="@Root/years" class="@Active("years")" aria-current="@Current("years")">Year over year</a>
                     <a href="@Root/search" class="@Active("search")" aria-current="@Current("search")">Search</a>
-                    @if (askable)
-                    {
-                        <a href="@Root/ask" class="@Active("ask")" aria-current="@Current("ask")">Ask a question</a>
-                    }
                 </nav>
             }
         </div>
@@ -48,6 +44,11 @@
             @Body
         </CascadingValue>
     </main>
+
+    @if (ShowBuddy)
+    {
+        <PortalBuddy Budget="budget!" Root="@Root" />
+    }
 
     <footer class="pt-foot">
         <div class="pt-in pt-foot-in">
@@ -93,6 +94,9 @@
         string current = segments.Length >= 4 ? segments[3] : "";
         return current.Equals(section, StringComparison.OrdinalIgnoreCase) ? "active" : "";
     }
+
+    // Civic Buddy floats on every page of a portal that takes questions, except the ask page, which is Civic Buddy itself.
+    private bool ShowBuddy => askable && Active("ask") != "active";
 
     // The class shows the current section; aria-current tells a screen reader the same thing.
     private string? Current(string section) => Active(section) == "active" ? "page" : null;

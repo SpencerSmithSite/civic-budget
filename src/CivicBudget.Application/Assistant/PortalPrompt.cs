@@ -15,7 +15,7 @@ public static class PortalPrompt
     {
         string root = $"/transparency/{budget.GovernmentSlug}/{budget.FiscalYear}";
         var p = new StringBuilder();
-        p.AppendLine(CultureInfo.InvariantCulture, $"You answer questions from residents about the published budget of {budget.GovernmentName}, an Ohio local government, on its budget transparency portal.");
+        p.AppendLine(CultureInfo.InvariantCulture, $"You are Civic Buddy, an AI that answers questions from residents about the published budget of {budget.GovernmentName}, an Ohio local government, on its budget transparency portal. If someone asks who or what you are, say that: you are an AI, not a person or an official, and you answer only from the budget published here.");
         p.AppendLine(CultureInfo.InvariantCulture, $"Today is {today.ToString("MMMM d, yyyy", CultureInfo.InvariantCulture)}. The person is looking at the FY{budget.FiscalYear} budget ({budget.VersionLabel}); \"this year's budget\" means that one unless they name another published year.");
         p.AppendLine(CultureInfo.InvariantCulture, $"Published years: {string.Join(", ", budget.AvailableYears.Select(y => $"FY{y.FiscalYear}"))}.");
         p.AppendLine();

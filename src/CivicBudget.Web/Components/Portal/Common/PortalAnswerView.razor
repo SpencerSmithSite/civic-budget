@@ -1,16 +1,19 @@
 @using CivicBudget.Application.Assistant
 @using CivicBudget.Web.Components.Assistant
 
-@* A resident's question and its answer. The answer is the model's Markdown made safe: no raw HTML,
+@* A resident's question and Civic Buddy's answer, as an exchange: the question on the right, the reply under Civic Buddy's name. The answer is the model's Markdown made safe: no raw HTML,
    and a link survives only if it points into this government's own portal. *@
 <section class="pt-answer" aria-labelledby="answer-title">
-    <h2 id="answer-title" class="pt-q">Answer</h2>
-    <p class="pt-asked"><span class="pt-muted">You asked:</span> @Question</p>
-    <div class="pt-answer-body">@((MarkupString)AssistantMarkdown.ToHtml(Answer.Text, LinkPrefix))</div>
-    @if (Answer.LookedAt.Count > 0)
-    {
-        <p class="pt-answer-steps">Looked at: @string.Join("; ", Answer.LookedAt)</p>
-    }
+    <h2 id="answer-title" class="visually-hidden">Civic Buddy's answer</h2>
+    <p class="pt-asked"><span class="visually-hidden">You asked: </span>@Question</p>
+    <div class="pt-reply">
+        <p class="pt-reply-who" aria-hidden="true"><BuddyMark Size="28" /><b>Civic Buddy</b><span class="pt-ai-badge">AI</span></p>
+        <div class="pt-answer-body">@((MarkupString)AssistantMarkdown.ToHtml(Answer.Text, LinkPrefix))</div>
+        @if (Answer.LookedAt.Count > 0)
+        {
+            <p class="pt-answer-steps">Looked at: @string.Join("; ", Answer.LookedAt)</p>
+        }
+    </div>
 </section>
 
 @code {

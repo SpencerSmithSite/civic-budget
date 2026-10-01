@@ -24,8 +24,8 @@ public sealed record AssistantStatus(bool Configured, bool Enabled)
     public bool Available => Configured && Enabled;
 
     public string? Reason => !Configured
-        ? "The assistant is not connected to a model. The operator connects it (Assistant:ApiKey)."
-        : !Enabled ? "The assistant is off for your government. An Administrator can turn it on under Government settings." : null;
+        ? "Civic Buddy is not connected to an AI model. The operator connects it (Assistant:ApiKey)."
+        : !Enabled ? "Civic Buddy is off for your government. An Administrator can turn it on under Government settings." : null;
 }
 
 /// <summary>The Government settings card: whether the operator has connected a model, and whether this government has it on.</summary>

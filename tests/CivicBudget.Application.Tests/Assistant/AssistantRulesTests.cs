@@ -27,6 +27,15 @@ public class AssistantRulesTests
     }
 
     [Fact]
+    public void The_assistant_knows_it_is_Civic_Buddy_and_an_AI()
+    {
+        string prompt = AssistantPrompt.For(Situation());
+
+        Assert.Contains("You are Civic Buddy", prompt, StringComparison.Ordinal);
+        Assert.Contains("an AI assistant, not a person", prompt, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_department_user_is_told_apart_and_the_page_is_named()
     {
         string prompt = AssistantPrompt.For(Situation(departmentUser: true, path: "/admin/budgets/abc/plan"));

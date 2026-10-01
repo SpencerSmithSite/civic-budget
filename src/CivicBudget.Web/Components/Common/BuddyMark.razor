@@ -1,0 +1,23 @@
+@* Civic Buddy's mark: the CivicBudget tile with sparkles in place of the building, the sign people
+   already read as "AI", so the assistant never looks like a help desk with a person behind it.
+   Always decorative: it sits beside the name "Civic Buddy". *@
+<svg class="cb-buddy-mark" width="@Size" height="@Size" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+    <defs>
+        <linearGradient id="@gradientId" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#1798A8" />
+            <stop offset="1" stop-color="#0F2A44" />
+        </linearGradient>
+    </defs>
+    <rect width="40" height="40" rx="11" fill="url(#@gradientId)" />
+    <path d="M17.5 9c.9 6.4 3.1 9.1 9.5 10.5-6.4 1.4-8.6 4.1-9.5 10.5-.9-6.4-3.1-9.1-9.5-10.5 6.4-1.4 8.6-4.1 9.5-10.5z" fill="#fff" />
+    <path d="M28.5 6.5c.4 2.6 1.2 3.6 3.8 4-2.6.4-3.4 1.4-3.8 4-.4-2.6-1.2-3.6-3.8-4 2.6-.4 3.4-1.4 3.8-4z" fill="#6FD0DC" />
+    <path d="M28 25.5c.3 1.8.9 2.5 2.7 2.8-1.8.3-2.4 1-2.7 2.8-.3-1.8-.9-2.5-2.7-2.8 1.8-.3 2.4-1 2.7-2.8z" fill="#6FD0DC" />
+</svg>
+
+@code {
+    private readonly string gradientId = "cb-buddy-g-" + Guid.NewGuid().ToString("N")[..6];
+
+    /// <summary>Rendered width and height in pixels.</summary>
+    [Parameter]
+    public int Size { get; set; } = 32;
+}

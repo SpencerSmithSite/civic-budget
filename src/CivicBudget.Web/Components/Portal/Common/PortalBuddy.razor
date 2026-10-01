@@ -1,0 +1,37 @@
+@using CivicBudget.Web.Components.Portal
+@using CivicBudget.Application.Portal
+
+@* Civic Buddy in the corner of every portal page. It is a <details> element: it opens and closes
+   without JavaScript, and a screen reader hears whether it is open. The question posts to the ask
+   page, the one place an answer is written, and that page leaves this launcher out. *@
+<details class="pt-buddy">
+    <summary class="pt-buddy-launch">
+        <BuddyMark Size="36" />
+        <span class="pt-buddy-closed"><b>Ask Civic Buddy</b><small>AI answers from this budget</small></span>
+        <span class="pt-buddy-open">Close</span>
+    </summary>
+    <section class="pt-buddy-panel" aria-labelledby="buddy-title">
+        <div class="pt-buddy-head">
+            <BuddyMark Size="40" />
+            <div>
+                <h2 id="buddy-title" class="pt-buddy-title">Civic Buddy <span class="pt-ai-badge">AI</span></h2>
+                <p class="pt-buddy-sub">Answers questions about the @Budget.FiscalYear budget using only what @Budget.GovernmentName published here, with a link to the page that shows it.</p>
+            </div>
+        </div>
+        <form method="post" action="@Action" class="pt-buddy-form">
+            <input type="hidden" name="_handler" value="@PortalAsk.FormName" />
+            <BuddyComposer IdPrefix="buddy" Year="Budget.FiscalYear" />
+        </form>
+        <BuddySuggestions IdPrefix="buddy" Action="@Action" />
+        <BuddyNote />
+    </section>
+</details>
+
+@code {
+    [Parameter, EditorRequired] public PortalBudgetDto Budget { get; set; } = null!;
+
+    /// <summary>"/transparency/maple-ridge-oh/2026": the budget's portal root.</summary>
+    [Parameter, EditorRequired] public string Root { get; set; } = "";
+
+    private string Action => $"{Root}/ask#answer";
+}

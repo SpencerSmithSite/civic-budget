@@ -3062,48 +3062,47 @@ table.pt-grid th[scope="row"] a {
     margin-bottom: 20px;
 }
 
-/* The question box: a plain form, then the answer set apart like a quoted reply. */
+/* Civic Buddy's page: the exchange reads like a conversation, the question on the right in navy
+   and the reply under Civic Buddy's name, then the box for the next question. */
+.pt-buddy-page {
+    max-width: 780px;
+}
+
 .pt-ask {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    max-width: 640px;
-    margin-bottom: 16px;
-}
-
-.pt-ask .btn {
-    align-self: flex-start;
-}
-
-.pt-ask-label {
-    font-weight: 600;
-}
-
-.pt-ask-hint,
-.pt-ask-note,
-.pt-answer-steps {
-    color: var(--cb-muted);
-    font-size: 0.875rem;
     margin: 0;
-    max-width: 72ch;
 }
 
 .pt-ask-refusal {
-    max-width: 640px;
+    margin-bottom: 18px;
 }
 
 .pt-answer {
-    max-width: 72ch;
-    margin: 8px 0 28px;
-    padding: 16px 20px;
-    border-left: 4px solid var(--cb-teal);
-    background: var(--cb-canvas);
-    border-radius: 0 8px 8px 0;
+    margin: 0 0 22px;
     overflow-wrap: anywhere;
 }
 
 .pt-asked {
-    margin: 6px 0 10px;
+    width: fit-content;
+    max-width: 85%;
+    margin: 0 0 14px auto;
+    padding: 10px 14px;
+    background: var(--cb-sidebar);
+    color: #fff;
+    border-radius: 14px 14px 4px 14px;
+}
+
+.pt-reply {
+    padding: 14px 18px;
+    background: var(--cb-canvas);
+    border: 1px solid var(--cb-border);
+    border-radius: 4px 14px 14px 14px;
+}
+
+.pt-reply-who {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 10px;
 }
 
 .pt-answer-body p:last-child,
@@ -3116,7 +3115,8 @@ table.pt-grid th[scope="row"] a {
 }
 
 .pt-answer-steps {
-    margin-top: 10px;
+    color: var(--cb-muted);
+    margin: 10px 0 0;
     font-size: 0.8125rem;
 }
 
@@ -3414,6 +3414,62 @@ table.pt-grid > thead > tr > th { white-space: normal; vertical-align: bottom; }
 .pt-foot { background: var(--cb-sidebar); border-top: 0; color: #C9D7E5; }
 .pt-foot a { color: #fff; }
 .pt-foot :focus-visible { outline-color: #6FD0DC; }
+
+/* ---- Civic Buddy on the portal ---- */
+/* The launcher floats in the corner of every page. It is a <details>: the summary is the button,
+   and the panel opens above it. Navy with the sparkle mark and "AI" said outright, so it reads as
+   a way to ask the budget a question rather than a help desk. */
+.cb-buddy-mark { flex: none; }
+.pt-buddy { position: fixed; right: 24px; bottom: 24px; z-index: 40; }
+.pt-buddy-launch { display: flex; align-items: center; gap: 12px; list-style: none; cursor: pointer; padding: 8px 20px 8px 8px; background: var(--cb-sidebar); color: #fff; border: 1px solid rgb(111 208 220 / 0.45); border-radius: 999px; box-shadow: 0 10px 30px rgb(15 42 68 / 0.35); }
+.pt-buddy-launch::-webkit-details-marker { display: none; }
+.pt-buddy-launch:hover { background: #163A5C; }
+.pt-buddy-launch:focus-visible { outline: 3px solid #6FD0DC; outline-offset: 3px; }
+.pt-buddy-closed b { display: block; font-size: 1rem; line-height: 1.2; }
+.pt-buddy-closed small { display: block; font-size: 0.8125rem; color: #B8E6ED; }
+.pt-buddy-open { display: none; font-weight: 600; }
+.pt-buddy[open] .pt-buddy-closed { display: none; }
+.pt-buddy[open] .pt-buddy-open { display: inline; }
+.pt-buddy[open] .pt-buddy-launch { padding-right: 18px; }
+
+.pt-buddy-panel { position: absolute; right: 0; bottom: calc(100% + 12px); width: min(430px, calc(100vw - 32px)); max-height: calc(100vh - 120px); overflow-y: auto; padding: 0 20px 18px; background: var(--cb-surface); border: 1px solid var(--cb-border); border-radius: 16px; box-shadow: 0 24px 60px rgb(15 42 68 / 0.28); }
+.pt-buddy-head { display: flex; gap: 12px; align-items: flex-start; margin: 0 -20px 16px; padding: 18px 20px; background: linear-gradient(135deg, #0F2A44, #134E66); color: #fff; }
+.pt-buddy-title { font-size: 1.125rem; font-weight: 800; margin: 2px 0 4px; }
+.pt-buddy-sub { margin: 0; color: #D3DEEA; font-size: 0.875rem; line-height: 1.45; }
+.pt-ai-badge { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: #6FD0DC; color: var(--cb-sidebar); font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.08em; vertical-align: 2px; }
+
+/* The question box: one outlined field holding the text and the button, like a search box. */
+.pt-buddy-label { display: block; font-weight: 600; margin-bottom: 6px; }
+.pt-buddy-input { display: flex; gap: 8px; align-items: flex-end; padding: 8px 8px 8px 12px; background: var(--cb-surface); border: 1px solid var(--cb-field-border); border-radius: 12px; }
+.pt-buddy-input:focus-within { border-color: var(--cb-teal); box-shadow: 0 0 0 3px rgb(11 114 133 / 0.25); }
+.pt-buddy-input textarea { flex: 1; min-width: 0; border: 0; padding: 4px 0; resize: none; font: inherit; color: var(--cb-text); background: transparent; }
+.pt-buddy-input textarea:focus { outline: none; }
+.pt-buddy-send { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border: 0; border-radius: 9px; background: var(--cb-sidebar); color: #fff; font-weight: 600; }
+.pt-buddy-send:hover { background: var(--cb-teal); }
+.pt-buddy-send:focus-visible { outline: 3px solid var(--cb-teal); outline-offset: 2px; }
+.pt-buddy-hint { margin: 6px 0 0; color: var(--cb-muted); font-size: 0.8125rem; }
+
+.pt-buddy-try-label { margin: 16px 0 8px; color: var(--cb-muted); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.pt-buddy-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.pt-buddy-chips form { margin: 0; }
+.pt-buddy-chips button { padding: 6px 12px; border: 1px solid var(--cb-border); border-radius: 999px; background: var(--cb-canvas); color: var(--cb-text); font-size: 0.875rem; text-align: left; }
+.pt-buddy-chips button:hover { border-color: var(--cb-teal); color: var(--cb-teal); }
+.pt-buddy-chips button:focus-visible { outline: 3px solid var(--cb-teal); outline-offset: 2px; }
+.pt-buddy-note { margin: 14px 0 0; color: var(--cb-muted); font-size: 0.8125rem; line-height: 1.45; }
+
+/* Room under the footer so the launcher never covers its links. */
+.pt-has-buddy .pt-foot { padding-bottom: 96px; }
+.pt-explore-buddy .cb-buddy-mark { grid-row: span 2; }
+
+@media print { .pt-buddy { display: none; } }
+
+@media (max-width: 575.98px) {
+    .pt-buddy { right: 16px; bottom: 16px; }
+    .pt-buddy-closed small { display: none; }
+    .pt-buddy-launch { padding: 6px 16px 6px 6px; }
+    .pt-buddy-panel { position: fixed; left: 8px; right: 8px; bottom: 76px; width: auto; max-height: calc(100dvh - 96px); }
+    .pt-asked { max-width: 100%; }
+}
 
 @media (max-width: 575.98px) {
     .pt-hero { padding: 20px 0 32px; }
@@ -3865,9 +3921,25 @@ button.cb-plan-reset:hover {
 }
 
 .cb-assistant-header h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 1rem;
-    font-weight: 600;
+    font-weight: 700;
     margin: 0 auto 0 0;
+}
+
+/* "AI" beside Civic Buddy's name, so nobody mistakes it for a person on the other end. */
+.cb-ai-badge {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--cb-sidebar);
+    color: #fff;
+    font-size: 0.6875rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    line-height: 1.5;
 }
 
 .cb-assistant-body {
@@ -4005,5 +4077,11 @@ button.cb-plan-reset:hover {
 }
 
 .cb-assistant-toggle {
+    display: inline-flex;
+    align-items: center;
     white-space: nowrap;
+}
+
+.cb-assistant-toggle .cb-buddy-mark {
+    margin: -2px 0;
 }

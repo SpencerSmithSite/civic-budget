@@ -98,7 +98,7 @@ public sealed partial class AssistantService(
 
         if (!limiter.TryTake(currentUser.UserId ?? ""))
         {
-            return Result.Failure<AssistantReply>($"That is {AssistantUsageLimiter.QuestionsPerHour} questions in the last hour, the most the assistant takes. Try again a little later.");
+            return Result.Failure<AssistantReply>($"That is {AssistantUsageLimiter.QuestionsPerHour} questions in the last hour, the most Civic Buddy takes. Try again a little later.");
         }
 
         var turn = new AssistantTurn(request.CurrentPath);
@@ -160,7 +160,7 @@ public sealed partial class AssistantService(
             // The service's own changes are already in the audit trail under this user; this names how they were made.
             await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
             db.AuditEntries.Add(AuditEntry.Event(currentUser.GovernmentId!.Value, pending.EntityType, pending.EntityId,
-                $"Through the assistant: {pending.AuditText}", currentUser.UserId!, currentUser.DisplayName ?? "", clock.GetUtcNow()));
+                $"Through Civic Buddy: {pending.AuditText}", currentUser.UserId!, currentUser.DisplayName ?? "", clock.GetUtcNow()));
             await db.SaveChangesAsync(ct);
         }
 
@@ -180,7 +180,7 @@ public sealed partial class AssistantService(
     {
         if (!currentUser.IsInRole(Roles.Admin) || currentUser.GovernmentId is not { } governmentId)
         {
-            return Result.Failure("Only an Administrator can turn the assistant on or off.");
+            return Result.Failure("Only an Administrator can turn Civic Buddy on or off.");
         }
 
         await using ICivicBudgetDbContext db = await dbFactory.CreateDbContextAsync(ct);
@@ -192,7 +192,7 @@ public sealed partial class AssistantService(
 
         government.SetAssistantEnabled(enabled);
         db.AuditEntries.Add(AuditEntry.Event(governmentId, nameof(Government), governmentId,
-            enabled ? "Turned the assistant on" : "Turned the assistant off", currentUser.UserId!, currentUser.DisplayName ?? "", clock.GetUtcNow()));
+            enabled ? "Turned Civic Buddy on" : "Turned Civic Buddy off", currentUser.UserId!, currentUser.DisplayName ?? "", clock.GetUtcNow()));
         await db.SaveChangesAsync(ct);
         return Result.Success();
     }
