@@ -13,6 +13,14 @@ walkthrough in [docs/walkthroughs](docs/walkthroughs). Format loosely follows
 - **A form opened before the nightly reset** (or before a deploy that changed the keys) no longer submits to a blank white page. Its antiforgery token was sealed with keys the reset deletes, and the app answered with an empty 400. `ExpiredFormMiddleware` now shows a short "This page expired" page with a link back to the same address; sign-in keeps its ReturnUrl when it stays on the site, and a post-only endpoint such as sign-out links home. The portal's question box, which has no token, is unaffected.
 - The waiting screen and the new page share one shell (`PlainPage`) instead of two copies of the header and styles.
 
+## Phase 40: 2026-10-01 (Civic Buddy)
+### Changed
+- **The AI assistant is Civic Buddy** (ADR-0051) in the admin app and on the portal: the top bar's button, the panel, Government settings, the security log ("Asked Civic Buddy"), and the audit trail ("Through Civic Buddy: ..."). An "AI" badge and a sparkle mark (`BuddyMark`) sit beside the name; both prompts tell the model its name and to say it is an AI.
+- **On the portal, Civic Buddy floats in the corner of every page** of a government that takes questions, replacing the "Ask a question" menu item. It opens a panel with the question box and four suggested questions, without JavaScript (a `<details>` element; each post names the ask page's form).
+- The ask page reads as a conversation: the question on the right, the reply under Civic Buddy's name.
+### Added
+- `CivicBuddyTests`, and prompt tests for the name. The accessibility sweep also scans the ask page and the open panel.
+
 ## Phase 39: 2026-10-01 (the portal's new look)
 ### Changed
 - **The transparency portal takes the product site's look** (ADR-0050): every page opens on a navy band (`PortalHero`) with its breadcrumbs, title, and a short lead; the overview's and each fund's headline figures sit as cards over the band's edge; charts and tables are white cards on a light page; icons mark the headline figures, the adoption details, and a new "Explore the budget" grid on the overview; the footer is navy. The search box sits in the band, and the portal index lists governments as cards.

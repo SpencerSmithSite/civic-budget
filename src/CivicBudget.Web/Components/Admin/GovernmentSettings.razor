@@ -1,5 +1,5 @@
 @page "/admin/settings"
-@attribute [HelpTopic("Government settings", "The government's name, address, account number format, portal introduction and logo, two-step sign-in, the assistant and portal-question switches, and downloading all its data.", "settings logo two-step mfa assistant portal questions public export all data")]
+@attribute [HelpTopic("Government settings", "The government's name, address, account number format, portal introduction and logo, two-step sign-in, the Civic Buddy (AI assistant) and portal-question switches, and downloading all its data.", "settings logo two-step mfa assistant civic buddy ai portal questions public export all data")]
 @attribute [Authorize(Policy = Policies.CanManageUsers)]
 @inject IGovernmentSettingsService SettingsService
 @inject IGovernmentLogoService Logos
@@ -100,7 +100,7 @@ else
     </div>
 
     <div class="card mt-3" style="max-width: 640px">
-        <div class="card-header d-flex align-items-center gap-2">Assistant <InfoTip Text="An assistant in the top bar that answers questions about your budget and actuals and helps people find their way around CivicBudget. It sees only what each user's account can see, and changes something only when the user confirms the change it proposes. Questions and the figures it looks up go to the AI model's provider." /></div>
+        <div class="card-header d-flex align-items-center gap-2"><BuddyMark Size="20" />Civic Buddy <span class="cb-ai-badge">AI</span> <InfoTip Text="Civic Buddy is an AI assistant in the top bar that answers questions about your budget and actuals and helps people find their way around CivicBudget. It sees only what each user's account can see, and changes something only when the user confirms the change it proposes. Questions and the figures it looks up go to the AI model's provider." /></div>
         <div class="card-body">
             @if (assistant is null)
             {
@@ -108,19 +108,19 @@ else
             }
             else if (!assistant.Configured)
             {
-                <p class="small text-secondary mb-0">No AI model is connected to this CivicBudget. The operator connects one; after that you can turn the assistant on here.</p>
+                <p class="small text-secondary mb-0">No AI model is connected to this CivicBudget. The operator connects one; after that you can turn Civic Buddy on here.</p>
             }
             else
             {
                 <div class="form-check form-switch mb-2">
                     <input class="form-check-input" type="checkbox" role="switch" id="assistantEnabled" checked="@assistant.Enabled" @onchange="e => SetAssistantAsync(e.Value is true)" disabled="@assistantBusy" />
-                    <label class="form-check-label fw-semibold" for="assistantEnabled">Let our users use the assistant</label>
+                    <label class="form-check-label fw-semibold" for="assistantEnabled">Let our users ask Civic Buddy</label>
                 </div>
-                <div class="small text-secondary">When on, a user's questions and the figures the assistant looks up to answer them are sent to the AI model's provider. Each question is recorded in the security log, without its text.</div>
+                <div class="small text-secondary">When on, a user's questions and the figures Civic Buddy looks up to answer them are sent to the AI model's provider. Each question is recorded in the security log, without its text.</div>
 
                 <div class="form-check form-switch mb-2 mt-3">
                     <input class="form-check-input" type="checkbox" role="switch" id="portalQuestionsEnabled" checked="@assistant.PortalQuestionsEnabled" @onchange="e => SetPortalQuestionsAsync(e.Value is true)" disabled="@assistantBusy" />
-                    <label class="form-check-label fw-semibold" for="portalQuestionsEnabled">Answer the public's questions on the transparency portal</label>
+                    <label class="form-check-label fw-semibold" for="portalQuestionsEnabled">Let the public ask Civic Buddy on the transparency portal</label>
                 </div>
                 <div class="small text-secondary">When on, residents can ask about the published budget, and answers come only from what the portal already shows. Each portal takes a set number of questions a month; the question text is not kept.</div>
             }
@@ -184,7 +184,7 @@ else
             Result saved = await Assistant.SetEnabledAsync(enabled);
             if (saved.IsSuccess)
             {
-                Toasts.Success(enabled ? "The assistant is on. It is in the top bar for every user." : "The assistant is off.");
+                Toasts.Success(enabled ? "Civic Buddy is on. It is in the top bar for every user." : "Civic Buddy is off.");
             }
             else
             {
@@ -208,7 +208,7 @@ else
             Result saved = await Assistant.SetPortalQuestionsEnabledAsync(enabled);
             if (saved.IsSuccess)
             {
-                Toasts.Success(enabled ? "The portal takes questions. \"Ask a question\" is in its menu." : "The portal no longer takes questions.");
+                Toasts.Success(enabled ? "The portal takes questions. Civic Buddy is in the corner of every page." : "The portal no longer takes questions.");
             }
             else
             {

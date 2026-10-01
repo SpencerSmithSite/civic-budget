@@ -1,5 +1,5 @@
 @page "/admin/security-log"
-@attribute [HelpTopic("Security log", "Sign-ins, failed attempts, lockouts, exports, and assistant use, for the government's Administrator.", "security log sign-in audit exports")]
+@attribute [HelpTopic("Security log", "Sign-ins, failed attempts, lockouts, exports, and Civic Buddy (AI assistant) use, for the government's Administrator.", "security log sign-in audit exports")]
 @attribute [Authorize(Policy = Policies.CanManageUsers)]
 @using CivicBudget.Domain.Security
 @inject ISecurityLogService Log
@@ -105,7 +105,7 @@ else
         SecurityEventKind.SessionExpired => "Signed out, idle",
         SecurityEventKind.PasswordChanged => "Password changed",
         SecurityEventKind.DataExported => "Exported",
-        SecurityEventKind.AssistantUsed => "Asked the assistant",
+        SecurityEventKind.AssistantUsed => "Asked Civic Buddy",
         SecurityEventKind.RateLimited => "Too many attempts",
         SecurityEventKind.GovernmentRemoved => "Government removed",
         SecurityEventKind.RetentionPurge => "Old records removed",

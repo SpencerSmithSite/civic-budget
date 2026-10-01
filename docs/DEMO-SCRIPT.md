@@ -11,7 +11,7 @@ If the live demo has been idle, open it a minute early so the database is awake.
 "Ohio's local governments build an appropriation budget every year, fund by fund, and
 the law says appropriations can't exceed each fund's certified estimated resources.
 CivicBudget is that workflow, for several governments at once, plus the public portal
-citizens see at the end. It plans five years ahead, and it has an AI assistant that works
+citizens see at the end. It plans five years ahead, and it has an AI assistant, Civic Buddy, that works
 only as the signed-in user and changes nothing without a click. It's built to sit beside
 the government's ERP rather than replace it. .NET 10, Blazor, EF Core, SQL Server. All the
 data is fictional."
@@ -30,7 +30,8 @@ Open `/transparency/maple-ridge-oh`.
   snapshots of adopted budgets; there's no code path to a draft."
 - **Outlook**: "The five-year plan is published with the budget: each year's totals and each
   fund's balance, with the assumptions shown, and a plain line that these years are a plan."
-- **Ask a question**: ask "How much is budgeted for police, and how does it compare to last
+- **Ask Civic Buddy**, the panel in the corner of every page: "It says it's an AI up front, and
+  it opens with no JavaScript; it's a `<details>` element." Ask "How much is budgeted for police, and how does it compare to last
   year?" The answer quotes the published figures and links the Police page. Then ask "How much
   has the village actually spent so far this year?" "It says that isn't published. Its tools
   read the published snapshot and nothing else, so it can't leak a draft or the ERP's books,
@@ -38,9 +39,9 @@ Open `/transparency/maple-ridge-oh`.
 - Optional: the browser's network tab, reload, and show `Cache-Control: public,
   max-age=600`. "Cached per government; publishing clears that government's pages."
 
-## 2. The assistant (2.5 minutes)
+## 2. Civic Buddy, the assistant (2.5 minutes)
 
-Sign in as `finance@mapleridge.example` and open the **Assistant** in the top bar.
+Sign in as `finance@mapleridge.example` and open **Civic Buddy** in the top bar.
 
 - Ask "How are actuals compared to our budget so far this year?" "It looked that up in the
   same budget-against-actual report the Reports page shows, as me, and says so under the
@@ -53,8 +54,8 @@ Sign in as `finance@mapleridge.example` and open the **Assistant** in the top ba
   **Cancel** (the red fund is needed in section 6).
 - Ask "Raise utilities 5% in this budget." Check the card against the grid, click **Change 6
   lines**, and the grid shows the new amounts. Row menu, **History** on one of them: "The
-  change is in the audit trail under my name, and a separate audit entry records that the
-  assistant proposed it. If someone had changed a line since the preview, nothing would change
+  change is in the audit trail under my name, and a separate audit entry records that
+  Civic Buddy proposed it. If someone had changed a line since the preview, nothing would change
   and it would say which."
 - Optional, in a private window as `police@mapleridge.example`: ask for Finance's budget. "It
   can't see it, because the chief can't."
@@ -189,7 +190,7 @@ every phase a pull request with a walkthrough.
   data survives.
 - You need fresh data: `docker compose down -v && docker compose up -d`, then run the app
   (locally), or wait for the nightly reset (live).
-- The Assistant button is missing: no model is connected. Locally, set `Assistant:ApiKey` (and
+- The Civic Buddy button is missing: no model is connected. Locally, set `Assistant:ApiKey` (and
   `Assistant:Provider` and `Assistant:Model` for Ollama) in the web project's user-secrets; on
   Azure, run `./scripts/azure-assistant.sh`. An answer takes a few seconds on the demo's small
   model.

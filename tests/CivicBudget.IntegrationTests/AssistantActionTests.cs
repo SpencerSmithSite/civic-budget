@@ -86,7 +86,7 @@ public sealed class AssistantActionTests(SqlServerFixture fixture) : IAsyncLifet
         Assert.Equal(5, saved.Years);
         Assert.All(saved.Rates, r => Assert.Equal((4m, 4m), (r.RevenuePercent, r.ExpenditurePercent)));
         await using CivicBudgetDbContext db = _database.CreateContext(_mapleRidge);
-        Assert.True(await db.AuditEntries.AnyAsync(a => a.EntityId == _draft && a.Description == "Through the assistant: " + proposal.Title));
+        Assert.True(await db.AuditEntries.AnyAsync(a => a.EntityId == _draft && a.Description == "Through Civic Buddy: " + proposal.Title));
 
         Result<ProposalOutcome> again = await assistant.ConfirmAsync(proposal.Id);
         Assert.Contains("already used", again.Errors.Single().Message, StringComparison.Ordinal);

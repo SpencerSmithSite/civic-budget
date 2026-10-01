@@ -1838,3 +1838,31 @@ that says so), every chart with its table twin, icons hidden from screen readers
 them doing the work, and no JavaScript. Every page was checked with axe at desktop and phone widths,
 and with the project's accessibility and phone sweeps.
 **Look at:** `PortalHeroTests`, `scripts/screenshots/a11y-sweep.mjs`.
+
+## Phase 40: Civic Buddy
+
+### Q: How does a floating chat panel work on a portal with no JavaScript?
+**A:** It's a `<details>` element. The summary is the launcher, so the browser opens and closes it
+and tells a screen reader whether it's open. The question box inside is a plain form that posts to
+the ask page, the one place an answer is written. Blazor matches a posted form by name, so the
+panel's form sends `_handler` set to the ask page's form name, which is a constant
+(`PortalAsk.FormName`) so the two can't drift apart.
+**Look at:** `PortalBuddy.razor`, `BuddySuggestions.razor`, `CivicBuddyTests`.
+
+### Q: Why are the suggested questions buttons in forms rather than links?
+**A:** A link is a GET, and crawlers follow links. Every question costs a model call and counts
+against the government's monthly allowance, so asking has to be a POST, which crawlers don't send
+and which the rate limiter already covers.
+**Look at:** `BuddySuggestions.razor`, `RateLimits`.
+
+### Q: You renamed the assistant. Why not rename the classes too?
+**A:** The name is product copy. The code names say what the pieces do, and renaming them would
+change the `Assistant:*` settings on the live demo and dozens of tests for a word only developers
+read. People see "Civic Buddy" everywhere; the code stays readable.
+**Look at:** ADR-0051, `AssistantToggle.razor`.
+
+### Q: How do you keep people from thinking they're talking to a person?
+**A:** It says so in three places: an "AI" badge beside the name, a sparkle mark rather than a
+face or headset, and a note under the box that it can be wrong and the linked pages hold the
+official figures. The prompts also tell the model to say it's an AI if asked.
+**Look at:** `BuddyNote.razor`, `PortalPrompt.cs`, `AssistantPrompt.cs`.

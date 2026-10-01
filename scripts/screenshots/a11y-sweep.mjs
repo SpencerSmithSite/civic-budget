@@ -46,8 +46,16 @@ for (const [viewport, suffix] of [[{ width: 1366, height: 850 }, ''], [{ width: 
     '/Account/Login', '/Account/ForgotPassword', '/Account/AccessDenied', '/Account/Lockout',
     '/transparency', '/transparency/maple-ridge-oh', portal, `${portal}/spending`, `${portal}/revenue`, `${portal}/funds`,
     `${portal}/funds/1000`, `${portal}/funds/1000/departments/110`, `${portal}/search?q=police`, `${portal}/glossary`, `${portal}/years`, `${portal}/outlook`,
+    `${portal}/ask`,
   ];
   for (const r of anon) await visit(p, base + r, r + suffix);
+
+  // Civic Buddy's panel, opened (it is closed on every page above). Absent when no model is connected.
+  await p.goto(base + portal, { waitUntil: 'networkidle' });
+  if (await p.locator('.pt-buddy-launch').count()) {
+    await p.click('.pt-buddy-launch');
+    await scan(p, 'Civic Buddy panel open' + suffix);
+  }
   if (site) await visit(p, site, 'product site' + suffix);
   await ctx.close();
 }

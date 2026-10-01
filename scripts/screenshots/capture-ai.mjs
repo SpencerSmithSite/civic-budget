@@ -88,7 +88,7 @@ async function ask(page, question) {
   await save(page, 'portal-outlook');
 
   await open(page, '/transparency/maple-ridge-oh/2026/ask');
-  await page.fill('#question', 'How much is budgeted for the police department this year, and how does it compare to last year?');
+  await page.fill('#ask-question', 'How much is budgeted for the police department this year, and how does it compare to last year?');
   await Promise.all([page.waitForNavigation({ timeout: 120000 }), page.click('.pt-ask button[type=submit]')]);
   // The page lands on the answer; show the question heading above it too.
   await page.evaluate(() => scrollTo(0, 0));

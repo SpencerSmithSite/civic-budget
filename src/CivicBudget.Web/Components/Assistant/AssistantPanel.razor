@@ -4,19 +4,19 @@
 @inject IAssistantService Assistant
 @inject NavigationManager Navigation
 
-@* The assistant beside the page: not a dialog, so the page stays usable while it is open, and the
+@* Civic Buddy, the AI assistant, beside the page: not a dialog, so the page stays usable while it is open, and the
    conversation carries across pages. New answers are announced (role="log"), Escape closes it and
    returns to the button, and focus goes to the question box when it opens. *@
 @if (State.IsOpen && State.Status is { Configured: true } status)
 {
     <aside class="cb-assistant" id="assistant-panel" aria-labelledby="assistant-title" @onkeydown="OnKeyDownAsync">
         <div class="cb-assistant-header">
-            <h2 id="assistant-title"><i class="bi bi-stars me-2" aria-hidden="true"></i>Assistant</h2>
+            <h2 id="assistant-title"><BuddyMark Size="26" />Civic Buddy <span class="cb-ai-badge">AI</span></h2>
             @if (State.Conversation.Count > 0)
             {
                 <button type="button" class="btn btn-link btn-sm" @onclick="StartOver">Start over</button>
             }
-            <button type="button" class="btn-close" aria-label="Close the assistant" @onclick="CloseAsync"></button>
+            <button type="button" class="btn-close" aria-label="Close Civic Buddy" @onclick="CloseAsync"></button>
         </div>
 
         @if (!status.Available)
@@ -25,10 +25,10 @@
         }
         else
         {
-            <div class="cb-assistant-body" role="log" aria-live="polite" aria-label="Conversation with the assistant">
+            <div class="cb-assistant-body" role="log" aria-live="polite" aria-label="Conversation with Civic Buddy">
                 @if (State.Conversation.Count == 0)
                 {
-                    <p class="small text-secondary">Ask about your budget and actuals, or how to do something in CivicBudget. I answer from what your account can see. When you ask for a change, I show it to you first, and only your click makes it.</p>
+                    <p class="small text-secondary">I'm Civic Buddy, the AI assistant in CivicBudget. Ask about your budget and actuals, or how to do something here. I answer from what your account can see. When you ask for a change, I show it to you first, and only your click makes it.</p>
                     <div class="cb-assistant-suggestions">
                         @foreach (string suggestion in Suggestions)
                         {
@@ -46,7 +46,7 @@
                     else
                     {
                         <div class="cb-assistant-msg @(entry.IsError ? "cb-assistant-error" : "cb-assistant-answer")">
-                            <span class="visually-hidden">Assistant: </span>
+                            <span class="visually-hidden">Civic Buddy: </span>
                             @if (entry.IsError)
                             {
                                 @entry.Text
@@ -74,8 +74,8 @@
             </div>
 
             <form class="cb-assistant-ask" @onsubmit="SubmitAsync" @onsubmit:preventDefault>
-                <label class="visually-hidden" for="assistant-question">Ask the assistant</label>
-                <textarea id="assistant-question" class="form-control" rows="2" maxlength="@AssistantService.QuestionMaxLength" placeholder="Ask a question…"
+                <label class="visually-hidden" for="assistant-question">Ask Civic Buddy</label>
+                <textarea id="assistant-question" class="form-control" rows="2" maxlength="@AssistantService.QuestionMaxLength" placeholder="Ask Civic Buddy…"
                           @bind="question" @bind:event="oninput" @onkeydown="OnQuestionKeyDownAsync" @ref="questionBox" disabled="@busy"></textarea>
                 <button type="submit" class="btn btn-primary btn-sm" disabled="@(busy || string.IsNullOrWhiteSpace(question))">Ask</button>
             </form>

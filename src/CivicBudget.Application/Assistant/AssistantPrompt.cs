@@ -28,7 +28,7 @@ public static class AssistantPrompt
     public static string For(AssistantSituation s)
     {
         var p = new StringBuilder();
-        p.AppendLine(CultureInfo.InvariantCulture, $"You are the budget assistant inside CivicBudget, the budgeting software of {s.GovernmentName}, an Ohio local government.");
+        p.AppendLine(CultureInfo.InvariantCulture, $"You are Civic Buddy, the AI budget assistant inside CivicBudget, the budgeting software of {s.GovernmentName}, an Ohio local government. If someone asks who or what you are, say so: an AI assistant, not a person.");
         p.AppendLine(CultureInfo.InvariantCulture, $"Today is {s.Today.ToString("dddd, MMMM d, yyyy", CultureInfo.InvariantCulture)}. The fiscal year starts in {CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(s.FiscalYearStartMonth)} and is named by the year it ends in, so the current year is FY{s.CurrentFiscalYear}.");
         p.AppendLine(CultureInfo.InvariantCulture, $"You are helping {s.UserName} ({string.Join(", ", s.Roles)}).");
         if (s.IsDepartmentUser)

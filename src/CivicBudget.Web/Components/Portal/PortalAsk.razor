@@ -4,11 +4,13 @@
 @inject ISnapshotQueryService Snapshots
 @inject IPortalQuestionService Questions
 
-@* The question box (ADR-0049). A plain form post, so it works with JavaScript off like the rest of
-   the portal. No antiforgery token: the portal sets no cookies and a question carries no identity to
-   protect; the per-address limit (RateLimits) and the monthly cap bound what a forged post could
-   cost. The empty page is cached like any portal page; an answer, being a POST, never is. *@
-<PageTitle>@(budget is null ? "Ask about the budget" : $"Ask about the FY{budget.FiscalYear} budget, {budget.GovernmentName}")</PageTitle>
+@* Civic Buddy's page, where every question is answered (ADR-0049, ADR-0051). A plain form post, so
+   it works with JavaScript off like the rest of the portal; the floating panel and the suggested
+   questions post here too, naming this form in _handler. No antiforgery token: the portal sets no
+   cookies and a question carries no identity to protect; the per-address limit (RateLimits) and the
+   monthly cap bound what a forged post could cost. The empty page is cached like any portal page;
+   an answer, being a POST, never is. *@
+<PageTitle>@(budget is null ? "Ask Civic Buddy" : $"Ask Civic Buddy about the FY{budget.FiscalYear} budget, {budget.GovernmentName}")</PageTitle>
 
 @if (loaded && (budget is null || !available))
 {
@@ -16,36 +18,43 @@
 }
 else if (budget is not null)
 {
-    <PortalHero Title="@($"Ask about the {budget.FiscalYear} budget")" Crumbs="@([new Crumb($"{budget.FiscalYear} budget", Root), new Crumb("Ask a question")])">
-        <Lead>Ask in your own words, the way you would ask at the @(budget.GovernmentName.Split(',')[0]) office. The answer comes only from the budget published here, with a link to the page that shows it.</Lead>
+    <PortalHero Title="Ask Civic Buddy" Eyebrow="@($"AI answers · {budget.FiscalYear} budget")" Crumbs="@([new Crumb($"{budget.FiscalYear} budget", Root), new Crumb("Civic Buddy")])">
+        <Lead>Ask about the budget in your own words, the way you would ask at the @(budget.GovernmentName.Split(',')[0]) office. Civic Buddy answers only from the budget published here, with a link to the page that shows it.</Lead>
     </PortalHero>
 
-    <div id="answer">
-        @if (answer is not null)
+    <div class="pt-buddy-page pt-card">
+        <div id="answer">
+            @if (answer is not null)
+            {
+                <PortalAnswerView Question="@asked" Answer="answer" LinkPrefix="@($"/transparency/{Slug}/")" />
+            }
+            else if (refusal is not null)
+            {
+                <div class="alert alert-warning pt-ask-refusal" role="alert">@refusal</div>
+            }
+        </div>
+
+        <form method="post" action="@($"{Root}/ask#answer")" @formname="@FormName" @onsubmit="AskAsync" class="pt-ask pt-buddy-form">
+            <BuddyComposer IdPrefix="ask" Year="budget.FiscalYear" Label="@(answer is null ? "Your question" : "Ask another question")" />
+        </form>
+
+        @if (answer is null)
         {
-            <PortalAnswerView Question="@asked" Answer="answer" LinkPrefix="@($"/transparency/{Slug}/")" />
+            <BuddySuggestions IdPrefix="ask" Action="@($"{Root}/ask#answer")" />
         }
-        else if (refusal is not null)
-        {
-            <div class="alert alert-warning pt-ask-refusal" role="alert">@refusal</div>
-        }
+
+        <BuddyNote />
     </div>
-
-    <form method="post" action="@($"{Root}/ask#answer")" @formname="portal-ask" @onsubmit="AskAsync" class="pt-ask pt-card">
-        <label for="question" class="pt-ask-label">@(answer is null ? "Your question" : "Ask another question")</label>
-        <textarea id="question" name="Question" rows="3" maxlength="@PortalQuestionService.QuestionMaxLength" required class="form-control" aria-describedby="ask-hint"></textarea>
-        <p id="ask-hint" class="pt-ask-hint">For example: "How much is budgeted for police?", "Where does the money for roads come from?", or "What is an appropriation?" An answer can take up to half a minute.</p>
-        <button type="submit" class="btn btn-primary">Ask</button>
-    </form>
-
-    <p class="pt-ask-note">Answers are written by an AI model from the published budget and can be wrong; the linked pages hold the official figures. Your question is sent to the model's provider to be answered and is not stored here.</p>
 }
 
 @code {
+    /// <summary>The form every question posts as; the floating panel and the suggested questions send it as _handler.</summary>
+    public const string FormName = "portal-ask";
+
     [Parameter] public string Slug { get; set; } = "";
     [Parameter] public int Year { get; set; }
 
-    [SupplyParameterFromForm(FormName = "portal-ask")]
+    [SupplyParameterFromForm(FormName = FormName)]
     public string? Question { get; set; }
 
     private string Root => $"/transparency/{Slug}/{Year}";

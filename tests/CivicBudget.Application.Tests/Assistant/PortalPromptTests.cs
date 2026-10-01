@@ -35,4 +35,13 @@ public class PortalPromptTests
         Assert.Contains("(/transparency/maple-ridge-oh/2026/spending)", prompt, StringComparison.Ordinal);
         Assert.DoesNotContain("/admin", prompt, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void The_portal_bot_is_Civic_Buddy_and_says_it_is_an_AI()
+    {
+        string prompt = PortalPrompt.For(Budget, new DateOnly(2026, 9, 29));
+
+        Assert.Contains("You are Civic Buddy", prompt, StringComparison.Ordinal);
+        Assert.Contains("you are an AI, not a person or an official", prompt, StringComparison.Ordinal);
+    }
 }
