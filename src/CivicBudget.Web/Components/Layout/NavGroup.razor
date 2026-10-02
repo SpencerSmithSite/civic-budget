@@ -1,0 +1,25 @@
+@* One group of the sidebar: its heading is a button that folds the links away and brings them back.
+   The links stay in the page while folded (CSS hides them), because in the icon rail every link shows
+   whatever is folded: the rail has no headings to unfold them with. *@
+<button type="button" class="cb-navgroup" aria-expanded="@Aria.Bool(Open)" aria-controls="@NavId" @onclick="() => OnToggle.InvokeAsync(Key)">
+    <span>@Title</span><i class="bi bi-chevron-down" aria-hidden="true"></i>
+</button>
+<nav class="nav cb-nav flex-column @(Open ? "" : "cb-nav-folded")" id="@NavId" aria-label="@Title">
+    @ChildContent
+</nav>
+
+@code {
+    /// <summary>The group's key in <see cref="SidebarGroups"/>.</summary>
+    [Parameter, EditorRequired] public string Key { get; set; } = "";
+
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+
+    [Parameter] public bool Open { get; set; } = true;
+
+    /// <summary>Called with <see cref="Key"/> when the heading is pressed.</summary>
+    [Parameter] public EventCallback<string> OnToggle { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string NavId => $"nav-{Key}";
+}

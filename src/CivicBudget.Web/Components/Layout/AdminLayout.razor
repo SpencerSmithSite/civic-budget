@@ -3,6 +3,7 @@
 @inject AdminPageState PageState
 @inject IGovernmentSettingsService SettingsService
 @inject IJSRuntime JS
+@inject NavigationManager Navigation
 @inject PersistentComponentState ApplicationState
 @inject CivicBudget.Web.Components.Assistant.AssistantPanelState AssistantState
 @using CivicBudget.Application.Setup
@@ -11,7 +12,8 @@
    trail and the signed-in user, and the page. Links are shown per policy so a Viewer never sees
    a "Users" link they cannot use (the pages are still protected server-side). Under 992px the
    sidebar slides in over the page from a hamburger button; above it the sidebar can collapse to
-   an icon rail (the choice is kept in a cookie so the prerender already knows it). *@
+   an icon rail. Each group can also be folded away from its heading. Both choices are kept in
+   cookies so the prerender already knows them. *@
 <a class="cb-skip" href="#main">Skip to content</a>
 <div class="cb-shell @(collapsed ? "collapsed" : "")">
     <aside class="cb-sidebar @(menuOpen ? "open" : "")" id="admin-sidebar" @ref="sidebar" @onkeydown="OnSidebarKeyDown"
@@ -32,19 +34,17 @@
         </div>
 
         <AuthorizeView Policy="@Policies.CanViewBudget">
-            <div class="cb-navgroup">Budget</div>
-            <nav class="nav cb-nav flex-column" aria-label="Budget">
+            <NavGroup Key="@SidebarGroups.Budget" Title="Budget" Open="IsOpen(SidebarGroups.Budget)" OnToggle="ToggleGroupAsync">
                 <AuthorizeView Roles="@Roles.DepartmentHead" Context="member">
                     <Authorized><NavLink class="nav-link" href="admin/my-department" @onclick="LeaveMenuAsync"><i class="bi bi-building" aria-hidden="true"></i>My department</NavLink></Authorized>
                     <NotAuthorized><NavLink class="nav-link" href="admin" Match="NavLinkMatch.All" @onclick="LeaveMenuAsync"><i class="bi bi-grid-1x2" aria-hidden="true"></i>Overview</NavLink></NotAuthorized>
                 </AuthorizeView>
                 <NavLink class="nav-link" href="admin/budgets" @onclick="LeaveMenuAsync"><i class="bi bi-journal-text" aria-hidden="true"></i>Budget versions</NavLink>
                 <NavLink class="nav-link" href="admin/reports" @onclick="LeaveMenuAsync"><i class="bi bi-file-earmark-bar-graph" aria-hidden="true"></i>Reports</NavLink>
-            </nav>
+            </NavGroup>
         </AuthorizeView>
         <AuthorizeView Policy="@Policies.CanMaintainSetup">
-            <div class="cb-navgroup">Setup</div>
-            <nav class="nav cb-nav flex-column" aria-label="Setup">
+            <NavGroup Key="@SidebarGroups.Setup" Title="Setup" Open="IsOpen(SidebarGroups.Setup)" OnToggle="ToggleGroupAsync">
                 <NavLink class="nav-link" href="admin/getting-started" @onclick="LeaveMenuAsync"><i class="bi bi-signpost-2" aria-hidden="true"></i>Getting started</NavLink>
                 <NavLink class="nav-link" href="admin/funds" @onclick="LeaveMenuAsync"><i class="bi bi-bank" aria-hidden="true"></i>Funds</NavLink>
                 <NavLink class="nav-link" href="admin/departments" @onclick="LeaveMenuAsync"><i class="bi bi-diagram-3" aria-hidden="true"></i>Departments</NavLink>
@@ -55,22 +55,20 @@
                 <NavLink class="nav-link" href="admin/report-settings" @onclick="LeaveMenuAsync"><i class="bi bi-layout-three-columns" aria-hidden="true"></i>Report settings</NavLink>
                 <NavLink class="nav-link" href="admin/personnel-settings" @onclick="LeaveMenuAsync"><i class="bi bi-person-gear" aria-hidden="true"></i>Personnel settings</NavLink>
                 <NavLink class="nav-link" href="admin/personnel-sync" @onclick="LeaveMenuAsync"><i class="bi bi-person-down" aria-hidden="true"></i>Employees from the ERP</NavLink>
-            </nav>
+            </NavGroup>
         </AuthorizeView>
         <AuthorizeView Policy="@Policies.CanManageUsers">
-            <div class="cb-navgroup">Administration</div>
-            <nav class="nav cb-nav flex-column" aria-label="Administration">
+            <NavGroup Key="@SidebarGroups.Administration" Title="Administration" Open="IsOpen(SidebarGroups.Administration)" OnToggle="ToggleGroupAsync">
                 <NavLink class="nav-link" href="admin/users" @onclick="LeaveMenuAsync"><i class="bi bi-people" aria-hidden="true"></i>Users</NavLink>
                 <NavLink class="nav-link" href="admin/settings" @onclick="LeaveMenuAsync"><i class="bi bi-sliders" aria-hidden="true"></i>Government settings</NavLink>
                 <NavLink class="nav-link" href="admin/outbox" @onclick="LeaveMenuAsync"><i class="bi bi-envelope" aria-hidden="true"></i>Email outbox</NavLink>
                 <NavLink class="nav-link" href="admin/security-log" @onclick="LeaveMenuAsync"><i class="bi bi-shield-lock" aria-hidden="true"></i>Security log</NavLink>
-            </nav>
+            </NavGroup>
         </AuthorizeView>
-        <div class="cb-navgroup">Public portal</div>
-        <nav class="nav cb-nav flex-column" aria-label="Public portal">
+        <NavGroup Key="@SidebarGroups.Portal" Title="Public portal" Open="IsOpen(SidebarGroups.Portal)" OnToggle="ToggleGroupAsync">
             <NavLink class="nav-link" href="admin/budgets#publishing" @onclick="LeaveMenuAsync"><i class="bi bi-megaphone" aria-hidden="true"></i>Publishing history</NavLink>
             <a class="nav-link" href="transparency/@publicSlug" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>Open portal</a>
-        </nav>
+        </NavGroup>
         <div class="cb-sidebar-foot">Ohio fund accounting · @fiscalYearNote</div>
     </aside>
 
@@ -153,6 +151,8 @@
     private bool menuOpen;
     private ErrorBoundary? errorBoundary;
     private bool collapsed;
+    private HashSet<string> folded = [];
+    private bool saveFolded;
     private PersistingComponentStateSubscription persisting;
     private string? governmentName;
     private string publicSlug = "";
@@ -168,11 +168,15 @@
         persisting = ApplicationState.RegisterOnPersisting(() =>
         {
             ApplicationState.PersistAsJson(CollapsedCookie, collapsed);
+            ApplicationState.PersistAsJson(SidebarGroups.Cookie, SidebarGroups.Format(folded));
             return Task.CompletedTask;
         });
         collapsed = ApplicationState.TryTakeFromJson(CollapsedCookie, out bool persisted)
             ? persisted
             : HttpContext?.Request.Cookies[CollapsedCookie] == "1";
+        folded = SidebarGroups.Parse(ApplicationState.TryTakeFromJson(SidebarGroups.Cookie, out string? persistedFolded)
+            ? persistedFolded
+            : HttpContext?.Request.Cookies[SidebarGroups.Cookie]);
         GovernmentSettingsDto government = await SettingsService.GetAsync();
         governmentName = government.Name;
         publicSlug = government.PublicSlug;
@@ -181,7 +185,34 @@
 
     // The layout gets new parameters (a new Body) on every navigation; a page that failed should not
     // keep showing its error once the user has gone somewhere else.
-    protected override void OnParametersSet() => errorBoundary?.Recover();
+    // It also unfolds the group holding the new page, so the highlighted link is never hidden; the
+    // change is saved after the render, when the browser can take it.
+    protected override void OnParametersSet()
+    {
+        errorBoundary?.Recover();
+        if (SidebarGroups.For(Navigation.ToBaseRelativePath(Navigation.Uri)) is { } current && folded.Remove(current))
+        {
+            saveFolded = true;
+        }
+    }
+
+    private bool IsOpen(string group) => !folded.Contains(group);
+
+    private async Task ToggleGroupAsync(string group)
+    {
+        if (!folded.Remove(group))
+        {
+            folded.Add(group);
+        }
+
+        await SaveFoldedAsync();
+    }
+
+    private async Task SaveFoldedAsync()
+    {
+        saveFolded = false;
+        await JS.InvokeVoidAsync("civicBudget.setCookie", SidebarGroups.Cookie, SidebarGroups.Format(folded));
+    }
 
     private void OnPageStateChanged() => InvokeAsync(StateHasChanged);
 
@@ -198,6 +229,13 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // On the first interactive render too: a page loaded in a folded group unfolded it during the
+        // prerender, which had no browser to tell, so the cookie still says folded until now.
+        if (saveFolded || firstRender)
+        {
+            await SaveFoldedAsync();
+        }
+
         if (focusMenu)
         {
             focusMenu = false;
