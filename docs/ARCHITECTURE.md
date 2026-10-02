@@ -131,7 +131,7 @@ government's cached pages by tag.
 |---|---|---|
 | Admin app, layout included | Interactive Server, set once on `Routes` in `App.razor` | Editing grids, live fund balances, dialogs, toasts, a collapsible menu. Server-side keeps the domain and EF Core off the client and keeps authorization simple. |
 | Portal, account pages, error pages | Static SSR (`[ExcludeFromInteractiveRouting]`) | Each visit is a plain HTTP request: cacheable, crawlable, small, and no connection held open per visitor. The account pages need `HttpContext` to set cookies, which a circuit does not have. |
-| Portal charts and search | Static SSR, no JavaScript at all | Bars are CSS with the value beside each one and a table twin; the `$ \| %` toggle is two links; search is a GET form; the spending and revenue panels switch with radio buttons and CSS. |
+| Portal charts and search | Static SSR, no JavaScript at all | Bars are CSS with the value beside each one and a table twin; the `$ \| %` toggle is a radio pair that CSS reads; search is a GET form; the spending and revenue panels switch with radio buttons and CSS. |
 
 A SignalR circuit costs server memory for every connected user. That is fine for
 twenty finance staff and wrong for twenty thousand citizens on budget-adoption night.

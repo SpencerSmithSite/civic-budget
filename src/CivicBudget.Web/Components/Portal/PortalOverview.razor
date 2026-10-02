@@ -41,11 +41,11 @@ else if (budget is not null && byFund is not null && revenue is not null)
     <PortalPanels Name="money" Label="Spending or revenue" FirstTitle="Where does the money go?" SecondTitle="Where does it come from?" SecondFirst="@(View == "revenue")">
         <First>
             <Breakdown Title="Where does the money go?" HideTitle="true" Data="byFund" ItemHeader="Fund" Open="true"
-                       ShowPercent="ShowPercent" PageHref="@Root" LinkFor="@(item => $"{Root}/funds/{item.Key}")" />
+                       ShowPercent="ShowPercent" LinkFor="@(item => $"{Root}/funds/{item.Key}")" />
         </First>
         <Second>
             <Breakdown Title="Where does it come from?" HideTitle="true" Data="revenue" ItemHeader="Source" Tone="rev" Open="true"
-                       ShowPercent="ShowPercent" PageHref="@($"{Root}?view=revenue")" />
+                       ShowPercent="ShowPercent" />
         </Second>
     </PortalPanels>
 

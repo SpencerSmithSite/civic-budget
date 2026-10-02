@@ -2873,34 +2873,62 @@ table.cb-grid > tfoot > tr > th {
 }
 
 .pt-toggle {
-    position: relative; /* contains its visually hidden labels */
+    position: relative; /* contains its visually hidden radios and legend */
     display: inline-flex;
+    min-width: 0; /* a fieldset is otherwise as wide as its content's minimum */
+    margin: 0;
+    padding: 0;
     border: 1px solid #c9d3df;
     border-radius: 6px;
     overflow: hidden;
     font-size: 0.8125rem;
 }
 
-.pt-toggle a {
-    padding: 3px 12px;
-    color: var(--cb-navy);
-    text-decoration: none;
+.pt-toggle-radio {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
 }
 
-.pt-toggle a.on {
+.pt-toggle label {
+    margin: 0;
+    padding: 3px 12px;
+    color: var(--cb-navy);
+    cursor: pointer;
+}
+
+.pt-toggle-radio:checked + label {
     background: var(--cb-navy);
     color: #fff;
 }
 
 /* The toggle clips its corners, which would cut an outside focus ring to a sliver, so the ring is
    drawn inside each segment: navy on the white one, white on the navy one. */
-.pt-toggle a:focus-visible {
+.pt-toggle-radio:focus-visible + label {
     outline: 2px solid var(--cb-navy);
     outline-offset: -4px;
 }
 
-.pt-toggle a.on:focus-visible {
+.pt-toggle-radio:checked:focus-visible + label {
     outline-color: #fff;
+}
+
+/* Each bar carries both values; the chart's own toggle decides which shows. Without :has() support
+   the dollars stay, which is the default anyway. */
+.pt-show-pct {
+    display: none;
+}
+
+.pt-section:has(> .pt-section-head .pt-toggle-pct:checked) > .pt-bars .pt-show-amt {
+    display: none;
+}
+
+.pt-section:has(> .pt-section-head .pt-toggle-pct:checked) > .pt-bars .pt-show-pct {
+    display: inline;
 }
 
 .pt-bars {

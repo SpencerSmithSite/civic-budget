@@ -28,7 +28,8 @@ maps, by joining through an active snapshot's government id (ADR-0029).
   radio inputs styled as tabs. `:checked` slides the track, hides the other
   panel (`visibility`, then `max-height: 0`), and highlights the tab. No
   script; reduced motion turns the slide off. The `$ | %` toggle reloads the
-  page, so the revenue panel's toggle links carry `?view=revenue`.
+  page, so the revenue panel's toggle links carry `?view=revenue`. (*Since
+  2026-10-01* it switches in place with radio buttons too, so no reload.)
 - The "every line of the adopted budget" tail is gone.
 
 ## 3. The glossary

@@ -25,7 +25,9 @@ Phase 0 pay off: static SSR, the snapshot boundary, and output caching.
 Every page is a plain GET. There is no login, no cookie, no SignalR
 circuit, and no JavaScript: the `$ | %` toggle on the charts is two links,
 the table twins are `<details>`, search is a GET form. Turn JavaScript off
-and nothing changes.
+and nothing changes. (*Since 2026-10-01* the toggle is a pair of radio
+buttons that CSS reads, so it switches in place without a page load;
+ADR-0029, amended.)
 
 Pages live in `src/CivicBudget.Web/Components/Portal/`. The folder's
 `_Imports.razor` gives them `@layout PortalLayout` and

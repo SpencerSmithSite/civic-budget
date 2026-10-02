@@ -6,7 +6,8 @@ namespace CivicBudget.Web.Tests.Portal;
 
 /// <summary>
 /// The chart is HTML, so its accessibility promises are testable: every bar has a visible label and
-/// value, the same numbers appear in a table, and the "$ | %" toggle is two ordinary links.
+/// value, the same numbers appear in a table, and the "$ | %" toggle is a pair of radio buttons
+/// that switches the values in place, without a page load or JavaScript.
 /// </summary>
 public class BreakdownTests : BunitContext
 {
@@ -23,14 +24,14 @@ public class BreakdownTests : BunitContext
             .Add(x => x.Title, "Where does the money go?")
             .Add(x => x.Data, Data)
             .Add(x => x.ItemHeader, "Fund")
-            .Add(x => x.PageHref, "/transparency/maple-ridge-oh/2026")
             .Add(x => x.LinkFor, item => $"/funds/{item.Key}"));
 
         IReadOnlyList<IElement> rows = cut.FindAll(".pt-bar-row");
         Assert.Equal(2, rows.Count);
         Assert.Equal("1000 General Fund", rows[0].QuerySelector(".pt-bar-label a")!.TextContent);
         Assert.Equal("/funds/1000", rows[0].QuerySelector(".pt-bar-label a")!.GetAttribute("href"));
-        Assert.Equal("$300.00", rows[0].QuerySelector(".pt-bar-value")!.TextContent);
+        Assert.Equal("$300.00", rows[0].QuerySelector(".pt-bar-value .pt-show-amt")!.TextContent);
+        Assert.Equal("75.0%", rows[0].QuerySelector(".pt-bar-value .pt-show-pct")!.TextContent);
         Assert.Contains("width:100%", rows[0].QuerySelector(".pt-bar-fill")!.GetAttribute("style"));
         Assert.Contains("width:33.3%", rows[1].QuerySelector(".pt-bar-fill")!.GetAttribute("style")); // scaled to the largest bar
 
@@ -52,7 +53,7 @@ public class BreakdownTests : BunitContext
             .Add(x => x.Title, "By department")
             .Add(x => x.Data, new BreakdownDto("By department", eight.Sum(i => i.Amount), eight))
             .Add(x => x.ItemHeader, "Department")
-            .Add(x => x.PageHref, "/transparency/maple-ridge-oh/2026"));
+            );
 
         string label = cut.Find(".pt-bars").GetAttribute("aria-label")!;
         Assert.Equal("img", cut.Find(".pt-bars").GetAttribute("role"));
@@ -62,21 +63,42 @@ public class BreakdownTests : BunitContext
     }
 
     [Fact]
-    public void Percent_mode_swaps_the_bar_values_and_the_toggle_is_a_pair_of_links()
+    public void The_toggle_is_a_named_radio_pair_that_starts_on_dollars()
+    {
+        IRenderedComponent<Breakdown> cut = Render<Breakdown>(p => p
+            .Add(x => x.Title, "Where does the money go?")
+            .Add(x => x.Data, Data));
+
+        Assert.Equal("Show amounts as", cut.Find(".pt-toggle legend").TextContent);
+        IReadOnlyList<IElement> radios = cut.FindAll(".pt-toggle input[type=radio]");
+        Assert.Equal(2, radios.Count);
+        Assert.All(radios, r => Assert.Equal("bd-where-does-the-money-go-show", r.GetAttribute("name")));
+        Assert.True(radios[0].HasAttribute("checked"));
+        Assert.False(radios[1].HasAttribute("checked"));
+        Assert.Equal(["Dollars", "Percent"], cut.FindAll(".pt-toggle label").Select(l => l.QuerySelector(".visually-hidden")!.TextContent));
+        Assert.Equal(radios.Select(r => r.Id), cut.FindAll(".pt-toggle label").Select(l => l.GetAttribute("for")));
+        Assert.Empty(cut.FindAll(".pt-toggle a")); // no links, so no page load
+    }
+
+    [Fact]
+    public void A_page_asked_for_percentages_starts_on_the_percent_radio()
     {
         IRenderedComponent<Breakdown> cut = Render<Breakdown>(p => p
             .Add(x => x.Title, "Where does the money go?")
             .Add(x => x.Data, Data)
-            .Add(x => x.ShowPercent, true)
-            .Add(x => x.PageHref, "/transparency/maple-ridge-oh/2026"));
+            .Add(x => x.ShowPercent, true));
 
-        Assert.Equal(["75.0%", "25.0%"], cut.FindAll(".pt-bar-value").Select(v => v.TextContent));
+        Assert.True(cut.Find(".pt-toggle-pct").HasAttribute("checked"));
+        Assert.Equal(["75.0%", "25.0%"], cut.FindAll(".pt-bar-value .pt-show-pct").Select(v => v.TextContent));
+    }
 
-        IReadOnlyList<IElement> toggle = cut.FindAll(".pt-toggle a");
-        Assert.StartsWith("/transparency/maple-ridge-oh/2026#", toggle[0].GetAttribute("href"));
-        Assert.StartsWith("/transparency/maple-ridge-oh/2026?show=pct#", toggle[1].GetAttribute("href"));
-        Assert.Equal("true", toggle[1].GetAttribute("aria-current"));
-        Assert.Null(toggle[0].GetAttribute("aria-current"));
+    [Fact]
+    public void Two_charts_on_a_page_have_their_own_toggles()
+    {
+        IRenderedComponent<Breakdown> first = Render<Breakdown>(p => p.Add(x => x.Title, "By department").Add(x => x.Data, Data));
+        IRenderedComponent<Breakdown> second = Render<Breakdown>(p => p.Add(x => x.Title, "By category").Add(x => x.Data, Data));
+
+        Assert.NotEqual(first.Find(".pt-toggle-radio").GetAttribute("name"), second.Find(".pt-toggle-radio").GetAttribute("name"));
     }
 
     [Fact]

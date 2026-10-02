@@ -1,6 +1,6 @@
 # Walkthrough 16: The live demo on Azure
 
-Phase 13. The app is hosted where hiring managers can sign in and use it, at
+Phase 13. The app is hosted where anyone evaluating it can sign in and use it, at
 no monthly cost, with the demo reset every night.
 
 ## 1. Why Azure
