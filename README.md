@@ -370,7 +370,7 @@ deployed; it shows the production-shaped design. See [infra/README.md](infra/REA
    [37 Questions from the public](docs/walkthroughs/37-portal-questions.md) ·
    [38 The portal's new look](docs/walkthroughs/38-portal-design.md) ·
    [39 Civic Buddy](docs/walkthroughs/39-civic-buddy.md)
-4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 51 decision records, each
+4. [docs/DECISIONS.md](docs/DECISIONS.md) when you want to know why: 52 decision records, each
    with the alternatives I turned down, and the table of every package and why it is there.
 5. Then the code, starting at `src/CivicBudget.Domain/Budgets/BudgetVersion.cs`, the heart of it.
 

@@ -2062,6 +2062,39 @@ feature to the people using them, so they should share a name.
 
 ---
 
+## ADR-0052: The sidebar's groups fold away, remembered in a cookie, and the current page's group stays open
+**Date:** 2026-10-02 · **Status:** Accepted
+
+**Context.** An Administrator's sidebar has four groups and twenty links, most of them setup pages
+used a few times a year. People want to fold away what they do not use, and to find it folded the
+next day.
+
+**Decision.**
+- **Each group's heading is a button** (`NavGroup`) with `aria-expanded` and `aria-controls`, and a
+  chevron that turns. Folded links stay in the page, hidden by CSS.
+- **The folded groups are a cookie** (`cb.navfolded`, the keys joined with dots), set from the
+  browser and read during the prerender, then handed to the interactive circuit through persistent
+  component state, the same way the icon rail's choice is kept. So a reload paints the menu as the
+  user left it, with no flash of open groups.
+- **The group holding the current page is never folded.** Opening a page unfolds its group
+  (`SidebarGroups.For` maps an address to its group) and saves that, so the highlighted link is
+  always visible.
+- **The icon rail shows every link.** It has no headings to unfold a group with, so folding applies
+  only where headings are shown: the full sidebar and the phone drawer.
+
+**Alternatives.**
+- `localStorage`: the server cannot read it, so every full page load would paint the groups open and
+  then fold them.
+- A preference stored per user in the database: survives across browsers, but costs a table, a
+  service, and a query on every page for a convenience.
+- `<details>` elements: no button semantics to style the same way as the rest of the sidebar, and
+  their open state would still need saving.
+
+**Consequences.** One more cookie, holding only group names, never anything about the user. A new
+admin section is one more entry in `SidebarGroups`; `SidebarGroupsTests` holds the map.
+
+---
+
 ## Packages
 
 Every NuGet package and why it is here. A package is added to this table in the same change that

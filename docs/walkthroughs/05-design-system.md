@@ -36,6 +36,9 @@ portal), a white `cb-topbar` with breadcrumbs and the user menu, and
 `cb-main`. Links are inside `AuthorizeView` per policy, so a Viewer never
 sees Users. Under 992px the sidebar becomes an off-canvas panel behind a
 hamburger; the state is a Blazor boolean and a CSS class, no JavaScript.
+(*Since 2026-10-02* each group's heading also folds the group away; the
+choice is kept in a cookie and the current page's group stays open,
+ADR-0052.)
 
 Breadcrumbs are set by the page, not the layout. `AdminPageState` is a
 scoped service: `PageHeader` calls `SetCrumbs(...)` and the layout

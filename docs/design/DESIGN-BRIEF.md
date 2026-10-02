@@ -68,7 +68,9 @@ Reports [Phase 6]), **Setup** (Funds, Departments, Chart of accounts, Fiscal yea
 (Users, Government settings), **Public portal** (Publishing history, Open portal). Items are 36px
 tall with a 16px icon; the active item has a 3px teal left rule and a 10% white background. Under
 1200px the sidebar collapses to a 56px icon rail with tooltips; under 768px it becomes an offcanvas
-sheet behind a hamburger. A 48px white top bar carries the page breadcrumb (Budget > FY2027 >
+sheet behind a hamburger. *Amended 2026-10-02:* each group's label is a button that folds the
+group away; the choice is remembered, and the group holding the current page stays open (ADR-0052).
+A 48px white top bar carries the page breadcrumb (Budget > FY2027 >
 Original), a fiscal-year selector where relevant, and the user menu (initials avatar, name, role,
 Profile, Log out).
 
