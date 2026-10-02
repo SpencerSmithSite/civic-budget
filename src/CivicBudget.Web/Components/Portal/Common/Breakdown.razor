@@ -1,12 +1,18 @@
-@* Sorted horizontal bars with direct value labels, a "$ | %" toggle that is just two links (no
-   JavaScript), and the same numbers as a table below. Never color alone: every bar has its label
+@* Sorted horizontal bars with direct value labels, a "$ | %" toggle, and the same numbers as a
+   table below. The toggle is a pair of radio buttons styled as a switch, like PortalPanels: both
+   values are in the page and CSS shows the one that matches the checked radio, so it switches in
+   place with no JavaScript and no page load. Never color alone: every bar has its label
    and value beside it. Items can link to a drill-down page. *@
 <section class="pt-section pt-card" aria-labelledby="@headingId">
     <div class="pt-section-head">
         <h2 id="@headingId" class="pt-q @(HideTitle ? "visually-hidden" : "")">@Title</h2>
-        <span class="pt-toggle" role="group" aria-label="Show amounts as">
-            <a href="@ToggleHref(false)" class="@(showPercent ? "" : "on")" aria-current="@(showPercent ? null : "true")"><span aria-hidden="true">$</span><span class="visually-hidden">Dollars</span></a><a href="@ToggleHref(true)" class="@(showPercent ? "on" : "")" aria-current="@(showPercent ? "true" : null)"><span aria-hidden="true">%</span><span class="visually-hidden">Percent</span></a>
-        </span>
+        <fieldset class="pt-toggle">
+            <legend class="visually-hidden">Show amounts as</legend>
+            <input type="radio" name="@toggleName" id="@($"{toggleName}-amt")" class="pt-toggle-radio" checked="@(!ShowPercent)" />
+            <label for="@($"{toggleName}-amt")"><span aria-hidden="true">$</span><span class="visually-hidden">Dollars</span></label>
+            <input type="radio" name="@toggleName" id="@($"{toggleName}-pct")" class="pt-toggle-radio pt-toggle-pct" checked="@ShowPercent" />
+            <label for="@($"{toggleName}-pct")"><span aria-hidden="true">%</span><span class="visually-hidden">Percent</span></label>
+        </fieldset>
     </div>
     @if (Lead is not null)
     {
@@ -38,7 +44,7 @@
                         }
                     </div>
                     <div class="pt-bar-track"><div class="pt-bar-fill" style="width:@(width.ToString(System.Globalization.CultureInfo.InvariantCulture))%"></div></div>
-                    <div class="pt-bar-value">@(showPercent ? $"{share.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)}%" : Display.Money(item.Amount))</div>
+                    <div class="pt-bar-value"><span class="pt-show-amt">@Display.Money(item.Amount)</span><span class="pt-show-pct">@($"{share.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)}%")</span></div>
                 </div>
             }
         </div>
@@ -76,9 +82,11 @@
     [Parameter]
     public bool HideTitle { get; set; }
 
-    // Derived from the title, not random: the "$ | %" links reload the page and jump back to this
-    // chart by id, and a random id changes on every render, so the jump landed at the top.
+    // Derived from the title, so the ids stay the same from render to render (the page is cached).
     private string headingId => "bd-" + System.Text.RegularExpressions.Regex.Replace(Title.ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-');
+
+    // One radio group per chart, so each chart's toggle is its own and none changes another's.
+    private string toggleName => headingId + "-show";
 
     [Parameter, EditorRequired]
     public string Title { get; set; } = "";
@@ -104,17 +112,9 @@
     [Parameter]
     public bool Open { get; set; }
 
-    /// <summary>Set from the page's ?show=pct query so every breakdown on a page toggles together.</summary>
+    /// <summary>Start on percentages: the page's ?show=pct, so a link to a page in percent mode still opens that way.</summary>
     [Parameter]
     public bool ShowPercent { get; set; }
-
-    [Parameter]
-    public string PageHref { get; set; } = "";
-
-    private bool showPercent => ShowPercent;
-
-    // PageHref may already carry a query (the overview's ?view=revenue), so the toggle appends rather than assumes.
-    private string ToggleHref(bool percent) => percent ? $"{PageHref}{(PageHref.Contains('?') ? "&" : "?")}show=pct#{headingId}" : $"{PageHref}#{headingId}";
 
     // A chart's text: every item when there are few, else the largest six and a count, so the label
     // never implies a short list is the whole one. The table beside it has every amount.

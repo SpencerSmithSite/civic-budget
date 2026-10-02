@@ -749,6 +749,12 @@ section, and the portal has no JavaScript.
   everything, and the `$ | %` toggle, which reloads the page, keeps the panel through
   `?view=revenue`.
 
+  *Amended 2026-10-01:* the `$ | %` toggle no longer reloads the page. A link reloaded and then
+  jumped to the chart's anchor, which sat inside the sliding track, so the reader landed somewhere
+  odd. The toggle is now a radio pair like the panels: each bar carries both values and CSS shows
+  the one the chart's checked radio picks. Each chart has its own toggle, and `?show=pct` still
+  opens a page in percent.
+
 **Alternatives.** Copying the logo into each snapshot (a logo change would need a republish);
 serving it through the admin context (breaks the one-door rule for no gain); a JavaScript
 carousel (breaks the portal's no-script promise); `<details>` or `:target` for the tabs (no
@@ -762,7 +768,7 @@ context maps.
 ## ADR-0030: The live demo runs on Azure's free tiers; the database is rebuilt from the seed every night
 **Date:** 2026-09-20 · **Status:** Accepted, amended 2026-09-29
 
-**Context.** I wanted the app hosted for free so hiring managers can sign in and use it. It
+**Context.** I wanted the app hosted for free so anyone evaluating it can sign in and use it. It
 needs a persistent process (Blazor Server) and SQL Server. The SQL Server container wants 2 GB
 of memory, which no free VM tier offers, and the AWS free tier no longer covers RDS or the NAT
 gateway the CDK stack uses.

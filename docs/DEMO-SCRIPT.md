@@ -20,7 +20,8 @@ data is fictional."
 Open `/transparency/maple-ridge-oh`.
 
 - "This is plain server-rendered HTML: no sign-in, no SignalR connection, no JavaScript.
-  The `$ | %` toggle is two links, and every chart has a table behind it."
+  The `$ | %` toggle is two radio buttons that CSS reads, and every chart has a table behind
+  it."
 - Click **2011 Street Construction** for the fund page. "Estimated resources,
   appropriations, projected ending balance: the Ohio certificate arithmetic, per fund."
 - Open a department, such as Police. "The department's own budget message is published

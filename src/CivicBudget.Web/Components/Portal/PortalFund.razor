@@ -21,12 +21,12 @@ else if (fund is not null)
     @if (fund.ExpendituresByDepartment.Items.Count > 0)
     {
         <Breakdown Title="@($"Where does the {fund.Name} fund's money go?")" Data="fund.ExpendituresByDepartment" ItemHeader="Department" Open="true"
-                   ShowPercent="ShowPercent" PageHref="@($"{Root}/funds/{FundCode}")" LinkFor="@(item => $"{Root}/funds/{FundCode}/departments/{item.Key}")" />
+                   ShowPercent="ShowPercent" LinkFor="@(item => $"{Root}/funds/{FundCode}/departments/{item.Key}")" />
     }
     <Breakdown Title="By category" Data="fund.ExpendituresByCategory" ItemHeader="Category"
-               ShowPercent="ShowPercent" PageHref="@($"{Root}/funds/{FundCode}")" />
+               ShowPercent="ShowPercent" />
     <Breakdown Title="Where does it come from?" Data="fund.RevenuesByCategory" ItemHeader="Source" Tone="rev"
-               ShowPercent="ShowPercent" PageHref="@($"{Root}/funds/{FundCode}")" />
+               ShowPercent="ShowPercent" />
 }
 
 @code {
