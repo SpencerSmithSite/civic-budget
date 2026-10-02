@@ -38,8 +38,8 @@ public class WakingUpMiddlewareTests
         http.Response.Body.Position = 0;
         string body = await new StreamReader(http.Response.Body).ReadToEndAsync();
         Assert.Contains("Waking up the demo", body);
-        Assert.Contains("/health/startup", body);
-        Assert.Contains("<span id=\"t\">42</span>", body); // the counter continues from the process's own clock
+        Assert.Contains("<span id=\"t\" data-elapsed=\"42\">42</span>", body); // the counter continues from the process's own clock
+        Assert.Contains("<script src=\"/js/waiting.js\"></script>", body);
     }
 
     [Theory]
@@ -126,7 +126,7 @@ public class WakingUpMiddlewareTests
         Assert.Equal(503, second.Response.StatusCode);
         Assert.Equal(1, waker.Calls); // a burst of requests shares one check
         first.Response.Body.Position = 0;
-        Assert.Contains("<span id=\"t\">0</span>", await new StreamReader(first.Response.Body).ReadToEndAsync()); // the counter restarts for this wait
+        Assert.Contains("<span id=\"t\" data-elapsed=\"0\">0</span>", await new StreamReader(first.Response.Body).ReadToEndAsync()); // the counter restarts for this wait
 
         state.MarkReady();
         resuming.SetResult();
@@ -183,6 +183,46 @@ public class WakingUpMiddlewareTests
         Assert.Equal(2, attempts);
         Assert.Equal(200, second.Response.StatusCode);
         Assert.True(state.IsReady);
+    }
+
+    [Fact]
+    public void The_waiting_screen_has_no_inline_script_so_the_content_security_policy_runs_it()
+    {
+        string page = WakingUpPage.Render(7);
+
+        // The policy runs this site's script files and the import map's nonce, never inline script.
+        foreach (System.Text.RegularExpressions.Match tag in System.Text.RegularExpressions.Regex.Matches(page, "<script(?<attrs>[^>]*)>(?<body>.*?)</script>", System.Text.RegularExpressions.RegexOptions.Singleline))
+        {
+            Assert.Contains("src=\"/", tag.Groups["attrs"].Value, StringComparison.Ordinal);
+            Assert.True(string.IsNullOrWhiteSpace(tag.Groups["body"].Value), "a script with a src carries no code of its own");
+        }
+
+        Assert.True(StaticAssetPath.IsStaticAsset("/js/waiting.js")); // so it loads past the waiting screen
+    }
+
+    [Fact]
+    public void The_waiting_script_counts_on_from_the_server_and_polls_for_ready()
+    {
+        string script = File.ReadAllText(WebFile("wwwroot", "js", "waiting.js"));
+
+        Assert.Contains("dataset.elapsed", script, StringComparison.Ordinal);
+        Assert.Contains("/health/startup", script, StringComparison.Ordinal);
+        Assert.Contains("location.reload()", script, StringComparison.Ordinal);
+    }
+
+    // The web project's own file, found from the test's output folder.
+    private static string WebFile(params string[] parts)
+    {
+        for (DirectoryInfo? dir = new(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
+        {
+            string candidate = Path.Combine([dir.FullName, "src", "CivicBudget.Web", .. parts]);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        throw new FileNotFoundException(Path.Combine(parts));
     }
 
     private sealed class FakeWaker(Func<Task>? wake = null) : IDatabaseWaker

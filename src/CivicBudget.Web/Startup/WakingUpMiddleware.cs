@@ -53,9 +53,11 @@ public sealed class WakingUpMiddleware(RequestDelegate next, StartupState state,
 }
 
 /// <summary>
-/// The waiting screen on the shared <see cref="PlainPage"/> shell, plus a few lines of script that
-/// count the seconds and poll for ready. The noscript fallback is a plain meta refresh, so a browser
-/// without script still gets through.
+/// The waiting screen on the shared <see cref="PlainPage"/> shell. Its clock and its poll for ready
+/// are <c>js/waiting.js</c>, a file rather than inline script, because the Content-Security-Policy
+/// runs only this site's files (static assets pass the waiting screen, so it loads while the
+/// database starts). The noscript fallback is a plain meta refresh, so a browser without script
+/// still gets through.
 /// </summary>
 public static class WakingUpPage
 {
@@ -67,7 +69,7 @@ public static class WakingUpPage
             Card.Replace("{{elapsed}}", elapsed, StringComparison.Ordinal),
             Styles,
             head: """<noscript><meta http-equiv="refresh" content="5"></noscript>""",
-            script: Script.Replace("{{elapsed}}", elapsed, StringComparison.Ordinal));
+            script: """<script src="/js/waiting.js"></script>""");
     }
 
     private const string Styles = """
@@ -87,28 +89,8 @@ public static class WakingUpPage
             <p>This demo environment sleeps when nobody is using it. The database is starting now, which usually takes under a minute.</p>
             <p>You will be taken to the site automatically. After that, pages load normally.</p>
             <div class="bar"><i></i></div>
-            <div class="status"><span>Preparing the database</span><span><span id="t">{{elapsed}}</span>s</span></div>
+            <div class="status"><span>Preparing the database</span><span><span id="t" data-elapsed="{{elapsed}}">{{elapsed}}</span>s</span></div>
             <p class="slow" id="slow">Taking longer than usual. It is still trying; you can also <a href="">refresh</a>.</p>
         </div>
-        """;
-
-    private const string Script = """
-        <script>
-            (function () {
-                var started = Date.now() - {{elapsed}} * 1000;
-                var t = document.getElementById("t"), slow = document.getElementById("slow");
-                setInterval(function () {
-                    var s = Math.floor((Date.now() - started) / 1000);
-                    t.textContent = s;
-                    if (s > 120) { slow.style.display = "block"; }
-                }, 1000);
-                function poll() {
-                    fetch("/health/startup", { cache: "no-store" })
-                        .then(function (r) { if (r.ok) { location.reload(); } else { setTimeout(poll, 2000); } })
-                        .catch(function () { setTimeout(poll, 2000); });
-                }
-                setTimeout(poll, 2000);
-            })();
-        </script>
         """;
 }

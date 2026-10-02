@@ -1446,6 +1446,10 @@ Several pieces were missing:
   map. Also no framing, nosniff, a strict referrer policy, and a permissions policy. The inline
   `window.civicBudget` helpers moved to `js/civicbudget.js` so no other inline script is needed.
   Blazor's own `frame-ancestors` header is switched off in favor of the full policy.
+
+  *Amended 2026-10-02:* the waiting screen (ADR-0031) still carried an inline script, which the
+  policy blocked, so its counter stood still and it never moved on by itself; a visitor had to
+  refresh. Its code is now `js/waiting.js`, and a test fails if that page grows inline script again.
 - **A government's data is found from the EF model** (`GovernmentDataStore`), not from a list.
   Its scope:
   - every table with a `GovernmentId` column;

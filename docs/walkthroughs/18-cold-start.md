@@ -89,6 +89,12 @@ elapsed seconds so it does not restart on reload. A few lines of script poll
 visitor on the URL they asked for. A `noscript` meta refresh covers the rest.
 After two minutes a line appears offering a manual refresh.
 
+*Since 2026-10-02* that script is a file, `js/waiting.js`, with the elapsed
+seconds in a `data-elapsed` attribute. Written inline, the Content-Security-
+Policy from Phase 28 blocked it, so the counter stood still and the page
+waited for a manual refresh. Static files pass the waiting screen, so the
+script loads while the database is still starting.
+
 503 rather than 200 is deliberate: a monitor or crawler that sees the waiting
 screen must not record it as the site.
 
