@@ -220,6 +220,9 @@ app.UseMiddleware<ExpiredFormMiddleware>();
 // monthly allowance ran out (ADR-0031).
 app.MapHealthChecks("/health", new() { Predicate = _ => false });
 app.MapHealthChecks("/health/startup", new() { Predicate = check => check.Tags.Contains("startup") });
+// Wake: starts the database check when one is due and answers at once, for the product site to call
+// while a visitor reads about the demo. It opens no connection itself (WakeEndpoint).
+app.MapPost(WakeEndpoint.Path, WakeEndpoint.Wake).AllowAnonymous().DisableAntiforgery();
 
 app.MapStaticAssets();
 // Blazor adds its own "frame-ancestors 'self'" policy header; SecurityHeadersMiddleware sets the

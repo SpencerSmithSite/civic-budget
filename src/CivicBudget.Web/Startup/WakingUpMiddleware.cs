@@ -26,7 +26,7 @@ public sealed class WakingUpMiddleware(RequestDelegate next, StartupState state,
             return;
         }
 
-        if ((state.MayBeAsleep && state.BeginWaiting()) || state.TakeWakeRetry())
+        if (state.ClaimWake())
         {
             Task wake = waker.WakeAsync();
             await Task.WhenAny(wake, Task.Delay(CheckGrace, context.RequestAborted));

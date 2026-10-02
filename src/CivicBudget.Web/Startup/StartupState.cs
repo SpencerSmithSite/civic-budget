@@ -68,6 +68,12 @@ public sealed class StartupState
         }
     }
 
+    /// <summary>
+    /// Claims the database check when one is due: after a quiet spell, when the database may have
+    /// paused, or after a check that gave up. True for exactly one caller, who starts the check.
+    /// </summary>
+    public bool ClaimWake() => (MayBeAsleep && BeginWaiting()) || TakeWakeRetry();
+
     /// <summary>A database check gave up. The next page request starts another rather than waiting on nothing.</summary>
     public void MarkWakeFailed()
     {

@@ -869,6 +869,17 @@ has no model, keeps the rule. With a model, 10 questions per address per hour ar
 question can wake its database. Each address gets 10 an hour, so keeping it awake takes many
 addresses; if that ever happens, `scripts/azure-assistant.sh --off` restores the rule in a minute.
 
+**Amended 2026-10-01: waking ahead of the visitor.** The product site now starts the demo waking
+while someone reads about it: one `POST /health/wake` when its page loads. Any request starts a
+container that scaled to zero, and that start wakes the database. The endpoint also covers the case
+the request alone cannot, a running container whose database paused: it starts the same check the
+next page request would (`StartupState.ClaimWake`) and answers at once. It keeps the rule above. It
+opens no connection on the request, and the check runs only when one is due (after `QuietSpell`), so
+calling it often keeps the database awake no longer than page views already could. It is a POST so
+crawlers and link previews never trigger it, and the site skips it in automated browsers. This is
+not the keep-alive ping turned down below: nothing calls it on a timer, only a person opening the
+page.
+
 **Alternatives.** A minimum of one replica (costs money, and the database would still pause);
 disabling SQL auto-pause (burns the free vCore-seconds in about four days); a keep-alive ping
 (the same); a static loading page on a CDN in front (another moving part, and it could not know

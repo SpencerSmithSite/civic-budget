@@ -45,6 +45,7 @@ public class WakingUpMiddlewareTests
     [Theory]
     [InlineData("/health")]
     [InlineData("/health/startup")]
+    [InlineData("/health/wake")]
     [InlineData("/health/ready")]
     [InlineData("/favicon.svg")]
     [InlineData("/app.abc123.css")]
